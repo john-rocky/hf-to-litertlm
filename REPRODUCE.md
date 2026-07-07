@@ -87,8 +87,8 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 ## Vision-language models (`fast_vlm`)
 
 VLMs reproduce via `bash scripts/reproduce_vlm.sh <key>` (each runs a `ship_*.sh` that downloads the
-source, converts the vision encoder+adapter and the int4 decoder, and assembles the bundle). Details
-per model in `cards/<name>-litert.md`.
+source, converts the vision encoder+adapter and the decoder — int4 unless noted — and assembles the
+bundle). Details per model in `cards/<name>-litert.md`.
 
 | key | vision | decoder | ship script |
 |---|---|---|---|
@@ -96,7 +96,14 @@ per model in `cards/<name>-litert.md`.
 | `internvl3.5-1b` / `-2b` / `-4b` | InternViT-448 | Qwen3-0.6B / 1.7B / 4B | `ship_internvl3_5_{1b,2b,4b}.sh` |
 | `llava-onevision-0.5b` | SigLIP-384 (730 tok) | Qwen2-0.5B | `ship_llavaov.sh` |
 | `ovis2.5-2b` | **static-NaViT-512** (256 tok) | Qwen3-1.7B | `ship_ovis_2b.sh` |
+| `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — int4/int8 corrupt OCR) | `ship_paddleocr_vl.sh` |
 | `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
+
+`paddleocr-vl-1.6` is the OCR/document-parsing specialist (task prompts `OCR:` / `Table Recognition:` /
+`Formula Recognition:` / …). Two conversion gotchas are baked into its scripts: transformers ≥5.12 loads
+remote-code rotary modules with a ZEROED non-persistent `inv_freq` (fix: `rope_init()` after load — and
+validate against the native `paddleocr_vl` port, not the remote code), and its 0.36B decoder must ship
+fp16 (`RECIPE=WF16`): int4 and dynamic-int8 both measurably corrupt transcription.
 
 VLM quality is gated on vision end-to-end corr (≈1.0 fp32) + eager image grounding, not the 8-question
 text gate (image input is device-only on this toolchain). `internvl3-2b` has a card but is reproduced by

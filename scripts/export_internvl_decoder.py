@@ -49,6 +49,16 @@ _W8F["op_config"]["compute_precision"] = "FLOAT"
 _W8F["op_config"]["explicit_dequantize"] = True
 _aqr.WI8_FLOAT = lambda: [_W8F]
 
+# WF16: fp16 weights (float_casting) — near-lossless, standard runtime pattern.
+_F16 = copy.deepcopy(_I8)
+_F16["algorithm_key"] = "float_casting"
+_F16["op_config"]["weight_tensor_config"] = {
+    "num_bits": 16, "symmetric": True, "granularity": "TENSORWISE",
+    "dtype": "FLOAT"}
+_F16["op_config"]["compute_precision"] = "FLOAT"
+_F16["op_config"]["explicit_dequantize"] = False
+_aqr.WF16 = lambda: [_F16]
+
 from litert_torch.generative.export_hf.export import export  # noqa: E402
 
 CACHE = int(os.environ.get("CACHE", "2048"))
