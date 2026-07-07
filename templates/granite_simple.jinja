@@ -1,0 +1,11 @@
+{#- Granite-3.x simple-structured template. The runtime applies the structured
+    prompt_templates extracted from this jinja (the official template uses
+    strftime_now / tool / document logic the runtime minja can't render). BOS
+    (<|end_of_text|>) is added by the runtime's start_token. Stop = <|end_of_text|>
+    (== eos). Roles use <|start_of_role|>{role}<|end_of_role|> … <|end_of_text|>. -#}
+{%- for message in messages -%}
+{{- '<|start_of_role|>' + message['role'] + '<|end_of_role|>' + message['content'] + '<|end_of_text|>\n' -}}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<|start_of_role|>assistant<|end_of_role|>' -}}
+{%- endif -%}

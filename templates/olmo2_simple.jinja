@@ -1,0 +1,16 @@
+{#- OLMo-2 simple-structured template (native Allen AI Tülu format). The runtime
+    applies the structured prompt_templates extracted from this jinja. BOS
+    (<|endoftext|>) is added by the runtime's start_token, so it is not emitted
+    here (cf llama_simple). Stop token = <|endoftext|> (== eos). -#}
+{%- for message in messages -%}
+{%- if message['role'] == 'system' -%}
+{{- '<|system|>\n' + message['content'] + '\n' -}}
+{%- elif message['role'] == 'user' -%}
+{{- '<|user|>\n' + message['content'] + '\n' -}}
+{%- elif message['role'] == 'assistant' -%}
+{{- '<|assistant|>\n' + message['content'] + '<|endoftext|>\n' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<|assistant|>\n' -}}
+{%- endif -%}

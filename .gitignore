@@ -1,0 +1,46 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Model binaries — converted artifacts and HF checkouts, never committed
+out/
+deliverables/
+*.litertlm
+*.tflite
+*.spiece
+*.bin
+*.safetensors
+*.pth
+*.pt
+*.gguf
+*.mlpackage/
+*.mlmodelc/
+*.mlmodel
+
+# HF weight checkouts / vendored trees (huge)
+src_models/
+third_party/
+ref_models/
+
+# Heavy per-model work / scratch dirs (weights, images, intermediate outputs).
+# The runnable CONVERTERS live in scripts/ + <name>_work/*.py — keep those; drop the data.
+bin/
+logs/
+moe_work/
+nanodet_work/
+pfld_work/
+pose/
+vdsr/
+zerodce/
+colorization_work/
+evaldata/
+
+# Report outputs that aren't code (probe logs, charts, images) — keep reports/*.json + *.md
+reports/probes/
+reports/charts/
+*.png
+
+# OS
+.DS_Store

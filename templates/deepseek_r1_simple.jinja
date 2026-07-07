@@ -1,0 +1,19 @@
+{#- DeepSeek-R1-Distill simple-structured template. The runtime applies the
+    structured prompt_templates extracted from this jinja (the official template
+    has tool/namespace logic minja can't render). DeepSeek format:
+    <｜begin▁of▁sentence｜>{system}<｜User｜>{user}<｜Assistant｜>{response}<｜end▁of▁sentence｜>.
+    BOS (<｜begin▁of▁sentence｜>) is added by the runtime start_token; stop =
+    <｜end▁of▁sentence｜> (== eos). The assistant emits <think>…</think> then the
+    answer (the model reasons on its own; no <think> is pre-filled). -#}
+{%- for message in messages -%}
+{%- if message['role'] == 'system' -%}
+{{- message['content'] -}}
+{%- elif message['role'] == 'user' -%}
+{{- '<｜User｜>' + message['content'] -}}
+{%- elif message['role'] == 'assistant' -%}
+{{- '<｜Assistant｜>' + message['content'] + '<｜end▁of▁sentence｜>' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<｜Assistant｜>' -}}
+{%- endif -%}
