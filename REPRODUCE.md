@@ -11,8 +11,8 @@ bash scripts/reproduce_llm.sh --all           # everything (heavy)
 The engine is `scripts/export_simple_template.py`
 (`<hf_model> out/<name> templates/<template>.jinja <quant>` + env). Recipes reconstructed **2026-07-06**
 from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few env/template fields are
-best-inference, flagged below). VLMs have their own `scripts/ship_*.sh` (InternVL / LLaVA-OV / SmolVLM2 /
-Ovis) — this file is the dense/reasoning-LLM set.
+best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
+models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
 ## Verified by running (2026-07-07)
 
