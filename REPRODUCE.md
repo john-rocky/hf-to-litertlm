@@ -102,6 +102,26 @@ VLM quality is gated on vision end-to-end corr (≈1.0 fp32) + eager image groun
 text gate (image input is device-only on this toolchain). `internvl3-2b` has a card but is reproduced by
 adapting `ship_internvl_1b.sh` (model id + dims) — no dedicated script.
 
+## Text-to-speech (Qwen3-TTS, host-loop tflite)
+
+`qwen3tts_work/` converts [Qwen/Qwen3-TTS-12Hz-0.6B-Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base) (Apache-2.0 speech LM, 10 languages, x-vector voice cloning) into three LiteRT graphs plus host tables, and includes the runnable host-side pipeline. Published artifacts: [litert-community/Qwen3-TTS-12Hz-0.6B-Base](https://huggingface.co/litert-community/Qwen3-TTS-12Hz-0.6B-Base). This one is **not** a `.litertlm` — the speech-LM decode loop (16-codebook embedding sum, 15-step inner AR sub-loop per frame, PCM output) is outside the LiteRT-LM Engine's text loop, so the graphs run under a Compiled Model host loop instead.
+
+```bash
+cd qwen3tts_work
+# reference dumps (env with qwen-tts==0.1.1, transformers==4.57.3):
+python dump_talker_ref.py && python dump_mtp_ref.py && python dump_codec_ref.py
+# conversion + verification (env with litert-torch 0.9.1, transformers 5.12.x):
+python extract_talker_ckpt.py && python export_talker.py && python verify_talker.py
+RECIPE=BOCTAV4 python export_talker.py          # int4 variant
+python export_mtp.py && python export_codec.py && python extract_host_tables.py
+python assemble_release.py                      # -> out/release/ (published layout)
+# synthesize (auto-downloads the published models if out/release is absent):
+python synthesize.py --text "Hello from LiteRT." --output hello.wav --model_dir out/release
+```
+
+Gates: talker tflite corr 1.0 / top-1 100% (and the synthesized Qwen3 checkpoint is bit-exact vs the talker — the TTS mrope reduces to standard RoPE); MTP 15/15 greedy tokens; codec corr 1.0; end-to-end with `--talker fp32 --greedy` = token-for-token vs the PyTorch reference, waveform corr 1.0, ASR round-trip exact. Known trap: channelwise int8 (tooling default) degenerates — use `RECIPE=BOCTAV4` (blockwise-32). M4 Max CPU is RTF ≈ 2.5 (the 17-invoke MTP inner loop dominates).
+
+
 ## Verify a reproduction
 
 ```bash
