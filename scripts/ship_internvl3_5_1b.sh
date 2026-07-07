@@ -4,7 +4,7 @@
 # generic prep (real decoder class) and hidden=2048 flows through automatically (vision
 # adapter dims come from the model's real projector weights).
 set -e
-cd ~/code/litertlm-convert
+cd "$(dirname "$0")/.."
 PY=~/clipconv/bin/python
 SRC=src_models/internvl3_5-1b
 LLM=src_models/internvl3_5-1b-llm

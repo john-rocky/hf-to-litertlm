@@ -1,7 +1,7 @@
 #!/bin/bash
 # Full LLaVA-OneVision-0.5B -> fast_vlm .litertlm pipeline (different-family proof).
 set -e
-cd ~/code/litertlm-convert
+cd "$(dirname "$0")/.."
 PY=~/clipconv/bin/python
 SRC=src_models/llava-ov-0.5b
 LLM=src_models/llava-ov-0.5b-llm

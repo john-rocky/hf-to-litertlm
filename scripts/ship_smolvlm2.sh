@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-cd ~/code/litertlm-convert
+cd "$(dirname "$0")/.."
 PY=~/clipconv/bin/python
 SRC=src_models/smolvlm2-500m
 LLM=src_models/smolvlm2-500m-llm

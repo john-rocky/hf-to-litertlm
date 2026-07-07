@@ -84,6 +84,24 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
   `falcon3-3b` (naive int4 ≠ bf16 parity), `qwen3-1.7b` (dropped), `qwen25-3b` (Qwen NC license → personal
   namespace only).
 
+## Vision-language models (`fast_vlm`)
+
+VLMs reproduce via `bash scripts/reproduce_vlm.sh <key>` (each runs a `ship_*.sh` that downloads the
+source, converts the vision encoder+adapter and the int4 decoder, and assembles the bundle). Details
+per model in `cards/<name>-litert.md`.
+
+| key | vision | decoder | ship script |
+|---|---|---|---|
+| `internvl3-1b` | InternViT-448 | Qwen2.5-0.5B | `ship_internvl_1b.sh` |
+| `internvl3.5-1b` / `-2b` / `-4b` | InternViT-448 | Qwen3-0.6B / 1.7B / 4B | `ship_internvl3_5_{1b,2b,4b}.sh` |
+| `llava-onevision-0.5b` | SigLIP-384 (730 tok) | Qwen2-0.5B | `ship_llavaov.sh` |
+| `ovis2.5-2b` | **static-NaViT-512** (256 tok) | Qwen3-1.7B | `ship_ovis_2b.sh` |
+| `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
+
+VLM quality is gated on vision end-to-end corr (≈1.0 fp32) + eager image grounding, not the 8-question
+text gate (image input is device-only on this toolchain). `internvl3-2b` has a card but is reproduced by
+adapting `ship_internvl_1b.sh` (model id + dims) — no dedicated script.
+
 ## Verify a reproduction
 
 ```bash

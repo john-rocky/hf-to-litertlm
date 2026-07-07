@@ -4,7 +4,7 @@
 # Ovis visual-tokenizer tail (head->softmax->vte). Decoder = Qwen3-1.7B (hidden 2048),
 # same BOCTAV4 recipe as the InternVL3_5-2B / Ministral ships.
 set -e
-cd ~/code/litertlm-convert
+cd "$(dirname "$0")/.."
 PY=~/clipconv/bin/python
 LLM=src_models/ovis2_5-2b-llm
 DECO=out/ovis-decoder

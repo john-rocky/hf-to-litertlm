@@ -34,7 +34,7 @@ import timm
 
 MODEL = "vit_pe_core_base_patch16_224"
 IMG = 224
-OUT_DIR = os.path.expanduser("~/code/litertlm-convert/out/pecore")
+OUT_DIR = os.path.join(os.getcwd(), "out", "pecore")
 os.makedirs(OUT_DIR, exist_ok=True)
 FP32 = os.path.join(OUT_DIR, "pe_core_base_224.tflite")
 FP16 = os.path.join(OUT_DIR, "pe_core_base_224_fp16.tflite")

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Full InternVL3-1B -> fast_vlm .litertlm pipeline (proven recipe, separate dirs).
 set -e
-cd ~/code/litertlm-convert
+cd "$(dirname "$0")/.."
 PY=~/clipconv/bin/python
 SRC=src_models/internvl3-1b
 LLM=src_models/internvl3-1b-llm

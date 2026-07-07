@@ -40,7 +40,7 @@ import timm
 
 MODEL = "vit_base_patch16_siglip_224.v2_webli"
 IMG = 224
-OUT_DIR = os.path.expanduser("~/code/litertlm-convert/out/siglip2")
+OUT_DIR = os.path.join(os.getcwd(), "out", "siglip2")
 os.makedirs(OUT_DIR, exist_ok=True)
 FP32 = os.path.join(OUT_DIR, "siglip2_base_224.tflite")
 FP16 = os.path.join(OUT_DIR, "siglip2_base_224_fp16.tflite")
