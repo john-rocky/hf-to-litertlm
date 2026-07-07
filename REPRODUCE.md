@@ -126,7 +126,20 @@ python assemble_release.py                      # -> out/release/ (published lay
 python synthesize.py --text "Hello from LiteRT." --output hello.wav --model_dir out/release
 ```
 
-Gates: talker tflite corr 1.0 / top-1 100% (and the synthesized Qwen3 checkpoint is bit-exact vs the talker — the TTS mrope reduces to standard RoPE); MTP 15/15 greedy tokens; codec corr 1.0; end-to-end with `--talker fp32 --greedy` = token-for-token vs the PyTorch reference, waveform corr 1.0, ASR round-trip exact. Known trap: channelwise int8 (tooling default) degenerates — use `RECIPE=BOCTAV4` (blockwise-32). M4 Max CPU is RTF ≈ 2.5 (the 17-invoke MTP inner loop dominates).
+Gates: talker tflite corr 1.0 / top-1 100% (and the synthesized Qwen3 checkpoint is bit-exact vs the talker — the TTS mrope reduces to standard RoPE); MTP 15/15 greedy tokens; codec corr 1.0; end-to-end with `--talker fp32 --greedy` = token-for-token vs the PyTorch reference, waveform corr 1.0, ASR round-trip exact. Known trap: channelwise int8 (tooling default) degenerates — use `RECIPE=BOCTAV4` (blockwise-32).
+
+**Fast MTP (single-graph fold + dynamic int8).** The default `export_mtp.py` graph is a decode step run 17× per audio frame — weight-streaming-bound and the whole pipeline's bottleneck (M4 Max RTF ≈ 2.5). `export_mtp_folded.py` folds all 16 inner steps × 5 layers into ONE graph (in-graph argmax + embedding-table gather, KV kept internal): token-identical (52/52 e2e frames), 41 ms/frame vs 148 (M4 Max), end-to-end RTF 2.18. Data-free int8/int4 on the fold both fail (blockwise-int8 is a no-op; int4 collapses — the 15 lm-heads can't survive 4 bits); calibrated static int16 runs away. What works is **GPTQ int8 → dynamic int8 (DRQ)** so the weights stay int8 in RAM:
+
+```bash
+# calibration frames from the fp32 pipeline (extend the sentence list as needed):
+TEXT="The quick brown fox jumps over the lazy dog." DUMP_MTP=out/qwen3tts-mtp/calib/calib_1.npz \
+  python hostloop_e2e.py
+python export_mtp_folded.py                                   # fp32 fold (desktop-exact, 559 MB)
+BITS=8 GROUP=32 TAG=int8g32 python gptq_mtp_folded.py         # torch GPTQ (ai-edge-quantizer's is a stub)
+python quantize_mtp_folded_v2.py fp16                         # or a plain fp16 fold (desktop only)
+```
+
+`gptq_mtp_folded.py` bakes the GPTQ int8 grid; a `dynamic_wi8_afp32` re-quant of that export (`recipe.dynamic_wi8_afp32`) yields a 218 MB graph whose FC weights are int8 in RAM (no explicit-dequantize — that trap re-materializes fp32 at load and defeats the size win). Gate = frame count + no runaway + ASR round-trip (not token match; the int trajectory diverges yet stays intelligible). On a Pixel 8a this cuts the MTP from ≈333 to ≈68 ms/frame (~5×) and the end-to-end RTF from ≈6.7 to ≈3.3; the codec decoder then dominates. `verify_codec_chunking.py` documents a related limit: the fixed-T codec graph's left-context chunking is only seam-clean up to that T, so long utterances want a larger-T codec export.
 
 
 ## Verify a reproduction
