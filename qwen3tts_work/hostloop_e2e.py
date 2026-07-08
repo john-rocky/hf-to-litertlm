@@ -92,8 +92,36 @@ dec = it_t.get_signature_runner("decode")
 MTP_MODEL = os.environ.get("MTP_MODEL", "out/qwen3tts-mtp/mtp_step.tflite")
 it_m = Interpreter(model_path=MTP_MODEL, num_threads=MTP_THREADS)
 mtp = it_m.get_signature_runner()
-it_c = Interpreter(model_path="out/qwen3tts-codec/codec_decode_T64.tflite", num_threads=NTHREADS)
-codec = it_c.get_signature_runner()
+# Codec: single fp32 graph, or the mixed-precision split (Part A transformer
+# fp32 + Part B convnet forced fp16) when CODEC_SPLIT=1 — ~2.2x, ASR-identical.
+CODEC_SPLIT = os.environ.get("CODEC_SPLIT") == "1"
+if CODEC_SPLIT:
+    from ai_edge_litert.compiled_model import CompiledModel
+    from ai_edge_litert.options import CpuOptions, Options
+
+    def _cm(path, flags):
+        return CompiledModel.from_file(
+            path, options=Options(cpu_options=CpuOptions(
+                num_threads=NTHREADS, xnnpack_flags=flags)))
+
+    cmA = _cm("out/qwen3tts-codec/codec_partA_T64.tflite", None)
+    cmB = _cm("out/qwen3tts-codec/codec_partB_T64.tflite", 4)  # 4 = FORCE_FP16
+    _HN = 512 * 64  # partA hidden [1,512,64]
+
+    def codec_decode(buf):
+        ia = cmA.create_input_buffers(0); oa = cmA.create_output_buffers(0)
+        ia[0].write(buf.reshape(-1).astype(np.int32))
+        cmA.run_by_index(0, ia, oa)
+        ib = cmB.create_input_buffers(0); ob = cmB.create_output_buffers(0)
+        ib[0].write(np.array(oa[0].read(_HN, np.float32)))
+        cmB.run_by_index(0, ib, ob)
+        return np.array(ob[0].read(64 * 1920, np.float32))
+else:
+    it_c = Interpreter(model_path="out/qwen3tts-codec/codec_decode_T64.tflite", num_threads=NTHREADS)
+    codec = it_c.get_signature_runner()
+
+    def codec_decode(buf):
+        return list(codec(args_0=buf).values())[0][0, 0]
 kv_names = [n for n in dec.get_input_details() if n.startswith("kv_cache")]
 print(f"[ok] interpreters loaded ({time.time()-t0:.1f}s incl tables), threads={NTHREADS}/mtp{MTP_THREADS}")
 
@@ -240,8 +268,7 @@ while i < T:
     chunk = codes[i - ctx: j]
     buf = np.zeros((1, 16, CH), np.int32)
     buf[0, :, : len(chunk)] = chunk.T
-    out = codec(args_0=buf)
-    wav = list(out.values())[0][0, 0]
+    wav = codec_decode(buf)
     wav_chunks.append(wav[ctx * 1920: len(chunk) * 1920])
     i = j
 wav = np.concatenate(wav_chunks)

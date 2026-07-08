@@ -141,6 +141,15 @@ python quantize_mtp_folded_v2.py fp16                         # or a plain fp16 
 
 `gptq_mtp_folded.py` bakes the GPTQ int8 grid; a `dynamic_wi8_afp32` re-quant of that export (`recipe.dynamic_wi8_afp32`) yields a 218 MB graph whose FC weights are int8 in RAM (no explicit-dequantize — that trap re-materializes fp32 at load and defeats the size win). Gate = frame count + no runaway + ASR round-trip (not token match; the int trajectory diverges yet stays intelligible). On a Pixel 8a this cuts the MTP from ≈333 to ≈68 ms/frame (~5×) and the end-to-end RTF from ≈6.7 to ≈3.3; the codec decoder then dominates. `verify_codec_chunking.py` documents a related limit: the fixed-T codec graph's left-context chunking is only seam-clean up to that T, so long utterances want a larger-T codec export.
 
+**Fast codec (mixed-precision split).** With the MTP folded, the codec decoder is the dominant stage (FLOP-bound: upsampling convs). ai-edge-quantizer can't int8 those convs (CONV_2D axis-remap error, TRANSPOSE_CONV unsupported — only the small transformer quantizes), and a plain fp16 cast is a load-time no-op. What works is running the graph with **XNNPACK FORCE_FP16** (`CpuOptions(xnnpack_flags=4)`), ARM-native fp16, no requant. Global FORCE_FP16 is ~2.2× but breaks quality — the 8-layer pre-transformer's large-magnitude activations don't survive fp16 (ASR unintelligible). `export_codec_split.py` splits the decoder at that boundary into Part A (RVQ + pre_conv + pre_transformer, run fp32) and Part B (upsample + SEANet convnet — nearly all the FLOPs, run FORCE_FP16). Part B in fp16 keeps the full 2.2× while waveform corr recovers to 0.997 and ASR is identical to fp32:
+
+```bash
+python export_codec_split.py                                 # -> codec_partA/partB (T=64) + bench
+CODEC_SPLIT=1 python hostloop_e2e.py                         # end-to-end with the split codec
+```
+
+The host loop runs Part A (fp32) → hidden [1,512,T] → Part B (fp16) → PCM. On a Pixel 8a the codec drops from ≈114 to ≈40 ms/frame (2.5×); combined with the folded int8 MTP the end-to-end **RTF falls from ≈6.7 to ≈2.06** (~3.2×), ASR-lossless. Gate the codec on the "Hello…" e2e_ref codes (`hostloop_e2e.py` writes the waveform) — the standalone `codec_equiv_ref` clip isn't speech and won't ASR. `quantize_codec.py` records the int8/fp16 attempts that don't work.
+
 
 ## Verify a reproduction
 
