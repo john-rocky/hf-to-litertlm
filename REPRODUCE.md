@@ -97,7 +97,10 @@ bundle). Details per model in `cards/<name>-litert.md`.
 | `llava-onevision-0.5b` | SigLIP-384 (730 tok) | Qwen2-0.5B | `ship_llavaov.sh` |
 | `ovis2.5-2b` | **static-NaViT-512** (256 tok) | Qwen3-1.7B | `ship_ovis_2b.sh` |
 | `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — int4/int8 corrupt OCR) | `ship_paddleocr_vl.sh` |
+| `qwen2-vl-2b` | **static-672, no GATHER_ND** (576 tok) | Qwen2-1.5B int4 | `ship_qwen2vl_2b.sh` |
 | `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
+
+`qwen2-vl-2b` is the general-purpose Qwen2-VL VLM (describe / VQA / OCR). Two gotchas baked into its scripts: (a) reordering patches into the merger's 2×2-block order with a gather emits a `GATHER_ND` op that the mobile GPU delegate can't compile (the vision executor then fails to create on-device) — so the encoder keeps raster order and the 2×2 merge is done with strided slices + concat in the adapter; (b) the fast_vlm runtime feeds 1-D positions (no M-RoPE), which preserves describe/VQA/OCR/count but degrades cross-cell *ranking* over 2-D tables.
 
 `paddleocr-vl-1.6` is the OCR/document-parsing specialist (task prompts `OCR:` / `Table Recognition:` /
 `Formula Recognition:` / …). Two conversion gotchas are baked into its scripts: transformers ≥5.12 loads
