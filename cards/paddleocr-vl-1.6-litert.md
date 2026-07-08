@@ -43,10 +43,12 @@ PaddleOCR-VL is the **SOTA open document-parsing model** (OmniDocBench v1.6 **96
 
 ## Quality
 
-Validated **on the actual LiteRT-LM runtime** (macOS CPU, this exact bundle):
+**Device-verified on a Pixel 8a** (Google AI Edge Gallery 1.0.15, CPU backend, this exact bundle):
 
-- **Page OCR** (`OCR:` on a synthetic report page): **perfect transcription** — every figure, the e-mail address and the phone number come out exactly ("Revenue increased by 18.4% to $2,315 million …").
-- **Table recognition** (`Table Recognition:`): output is **byte-identical** to the full-precision eager reference, including the structured `<fcel>`/`<nl>` cell tokens (the bundle's SentencePiece vocabulary carries all 1 019 added tokens at their exact ids, so they detokenize correctly on-device).
+- **Page OCR** (`OCR:` on a synthetic report page): **perfect transcription** in **22 s** — every figure, the e-mail address and the phone number come out exactly ("Revenue increased by 18.4% to $2,315 million …").
+- **Table recognition** (`Table Recognition:`): **every cell correct** including the Total row, in **17 s** (`Product / Units / Revenue … Total 24,510 $1,207,000`).
+
+Also validated on the desktop LiteRT-LM runtime (macOS CPU): table output is **byte-identical** to the full-precision eager reference, including the structured `<fcel>`/`<nl>` cell tokens (the bundle's SentencePiece vocabulary carries all 1 019 added tokens at their exact ids, so they detokenize correctly on-device).
 - Vision tower: tflite vs the reference implementation corr **1.0** (fp32) / **0.9975** (shipped int8), **zero FLEX/CUSTOM ops** (GPU-clean).
 - Decoder: extracted as a standalone Llama-layout model — **bit-exact** fp32 logits vs the original; shipped **fp16** weights are teacher-forced-parity **corr 1.0000, top-1 10/10**. This 0.36 B decoder is unusually quantization-sensitive (int4 *and* integer-compute int8 measurably corrupt transcription), so the bundle spends ~460 MB extra on fp16 exactness — for OCR, exactness wins.
 
