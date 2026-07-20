@@ -1,0 +1,7 @@
+{
+  "tag": "coreai-smoke",
+  "n": 3,
+  "correct": 3,
+  "acc": 1.0,
+  "max_tokens": 512
+}

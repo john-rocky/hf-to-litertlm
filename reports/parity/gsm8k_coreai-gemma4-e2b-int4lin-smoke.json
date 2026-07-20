@@ -1,0 +1,7 @@
+{
+  "tag": "coreai-gemma4-e2b-int4lin-smoke",
+  "n": 5,
+  "correct": 0,
+  "acc": 0.0,
+  "max_tokens": 512
+}

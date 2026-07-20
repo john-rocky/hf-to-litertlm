@@ -1,0 +1,7 @@
+{
+  "tag": "mlx-gemma4-e2b-qat-matched-g32-nothink",
+  "n": 100,
+  "correct": 87,
+  "acc": 0.87,
+  "max_tokens": 1024
+}

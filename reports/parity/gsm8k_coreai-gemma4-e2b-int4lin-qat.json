@@ -1,0 +1,7 @@
+{
+  "tag": "coreai-gemma4-e2b-int4lin-qat",
+  "n": 100,
+  "correct": 80,
+  "acc": 0.8,
+  "max_tokens": 512
+}
