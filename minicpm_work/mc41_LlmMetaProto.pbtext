@@ -1,0 +1,24 @@
+start_token {
+  token_str: "<s>"
+}
+stop_tokens {
+  token_ids {
+    ids: 2
+  }
+}
+stop_tokens {
+  token_ids {
+    ids: 73440
+  }
+}
+max_num_tokens: 4096
+llm_model_type {
+  generic_model {
+  }
+}
+jinja_prompt_template: "{% for message in messages %}{{\'<|im_start|>\' + message[\'role\'] + \'\n\' + message[\'content\'] + \'<|im_end|>\' + \'\n\'}}{% endfor %}{% if add_generation_prompt %}{{ \'<|im_start|>assistant\n\' }}{% if enable_thinking is defined and enable_thinking is false %}{{ \'<think>\n\n</think>\n\' }}{% endif %}{% endif %}"
+channels {
+  channel_name: "thought"
+  start: "<think>"
+  end: "</think>"
+}

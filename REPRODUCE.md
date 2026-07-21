@@ -154,6 +154,26 @@ CODEC_SPLIT=1 python hostloop_e2e.py                         # end-to-end with t
 The host loop runs Part A (fp32) → hidden [1,512,T] → Part B (fp16) → PCM. On a Pixel 8a the codec drops from ≈114 to ≈40 ms/frame (2.5×); combined with the folded int8 MTP the end-to-end **RTF falls from ≈6.7 to ≈2.06** (~3.2×), ASR-lossless. Gate the codec on the "Hello…" e2e_ref codes (`hostloop_e2e.py` writes the waveform) — the standalone `codec_equiv_ref` clip isn't speech and won't ASR. `quantize_codec.py` records the int8/fp16 attempts that don't work.
 
 
+## MiniCPM family (new-style: full-jinja LlmMetadata + post-hoc quantization)
+
+`minicpm_work/` converts the MiniCPM family with the newer packaging used by litert-community/MiniCPM5-1B: the LlmMetadata carries the model's **full `chat_template.jinja` verbatim** plus a `thought` channel (`<think>`/`</think>`), so hybrid-reasoning works natively in LiteRT-LM ≥0.14 (`enable_thinking` via conversation extra context; thinking text arrives on a separate channel). Export unquantized (`--quantization_recipe=""`), then quantize with ai-edge-quantizer, then repackage with `litert-lm-builder`:
+
+```bash
+cd minicpm_work
+./convert_minicpm.sh minicpm5-1b      # openbmb/MiniCPM5-1B    -> wi8 (int8)
+./convert_minicpm.sh minicpm4-0.5b    # openbmb/MiniCPM4-0.5B  -> OCTAV int4-b32 + int8 embed/head
+./convert_minicpm.sh minicpm4.1-8b    # openbmb/MiniCPM4.1-8B  -> int4-b32 + int8 embed/head
+```
+
+Needs python ≥3.11, `pip install litert-torch litert-lm "transformers==5.6.2"` (litert-torch 0.9.1 breaks with transformers 5.14+). Run/eval with the `litert-lm` CLI or `eval_gsm8k_api.py` (the old prefix/suffix-template harnesses don't apply jinja-only metadata).
+
+What the scripts encode (the non-obvious parts):
+
+- **MiniCPM5-1B** is stock `LlamaForCausalLM`, but its tokenizer contains ~15 **fused `X<|im_end|>\n` merge tokens** — the metadata must list them as string stop tokens or generation can run past end-of-turn (`LlmMetaProto.pbtext` has them all).
+- **MiniCPM4/4.1** are custom `MiniCPMForCausalLM` (muP + longrope; remote code needs transformers 4.46 and won't load in 5.x). `prep_minicpm4_as_llama.py` folds them to a stock llama checkpoint (untie; `emb ×scale_emb`; `o/down ×scale_depth/√L`; `lm_head ÷(hidden/dim_model_base)`), and `export_static_longrope.py` strips transformers' `@dynamic_rope_update` (a data-dependent branch torch.export rejects; exact here since long==short factors and factor==1).
+- **MiniCPM4 tokenizer**: the HF `tokenizer.json` bundle loses all spaces on decode; the raw `tokenizer.model` bundle lacks the added-token `<|im_end|>`(73440) stop. `fix_sp_added_tokens.py` appends the added tokens to the SP model as USER_DEFINED pieces and the fixed `.spiece` is what gets bundled.
+- **Recipe choice (GSM8K n=100, greedy, thinking off)**: MiniCPM5-1B — wi8 **63** vs official artifact 61; data-free int4-b32 lands 48 (both min-max and OCTAV; the official artifact's int4 quantizer is not reproducible from released ai-edge-quantizer, so int8 is the recommended repro target). MiniCPM4-0.5B — bf16 57; OCTAV int4 **50**; min-max int4 collapses to 38 (sub-1B int4 sensitivity), int8 47.
+
 ## Verify a reproduction
 
 ```bash
