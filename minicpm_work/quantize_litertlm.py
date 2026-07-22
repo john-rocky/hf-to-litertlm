@@ -92,6 +92,15 @@ def build_recipe(kind, algo="minmax"):
     rm = recipe_manager.RecipeManager()
     if kind == "wi8":
         rm.add_dynamic_config(regex=".*", operation_name=OP.ALL_SUPPORTED, num_bits=8)
+    elif kind == "wi8fc":
+        # FC + embedding ONLY. For hybrid-conv models (LFM2/2.5 ShortConv):
+        # post-hoc ALL_SUPPORTED int8 breaks the conv layers (no output);
+        # leave convs float (or quantize them at export time instead).
+        rm.add_dynamic_config(regex=".*", operation_name=OP.FULLY_CONNECTED, num_bits=8)
+        rm.add_dynamic_config(
+            regex=".*", operation_name=OP.EMBEDDING_LOOKUP, num_bits=8,
+            granularity=G.CHANNELWISE,
+        )
     elif kind == "wi4b32_wi8":
         # Official card: "mixed INT4-block32(linear)/INT8(embed and lmhead)".
         # int4 b32 for all FULLY_CONNECTED, then int8 overrides for embedder +
@@ -165,7 +174,7 @@ def main():
     pa = sub.add_parser("apply")
     pa.add_argument("infile")
     pa.add_argument("outfile")
-    pa.add_argument("--recipe", default="wi4b32_wi8", choices=["wi4b32_wi8", "wi8"])
+    pa.add_argument("--recipe", default="wi4b32_wi8", choices=["wi4b32_wi8", "wi8", "wi8fc"])
     pa.add_argument("--algo", default="minmax", choices=["minmax", "octav"])
     args = ap.parse_args()
 

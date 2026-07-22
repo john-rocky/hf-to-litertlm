@@ -174,6 +174,25 @@ What the scripts encode (the non-obvious parts):
 - **MiniCPM4 tokenizer**: the HF `tokenizer.json` bundle loses all spaces on decode; the raw `tokenizer.model` bundle lacks the added-token `<|im_end|>`(73440) stop. `fix_sp_added_tokens.py` appends the added tokens to the SP model as USER_DEFINED pieces and the fixed `.spiece` is what gets bundled.
 - **Recipe choice (GSM8K n=100, greedy, thinking off)**: MiniCPM5-1B — wi8 **63** vs official artifact 61; data-free int4-b32 lands 48 (both min-max and OCTAV; the official artifact's int4 quantizer is not reproducible from released ai-edge-quantizer, so int8 is the recommended repro target). MiniCPM4-0.5B — bf16 57; OCTAV int4 **50**; min-max int4 collapses to 38 (sub-1B int4 sensitivity), int8 47. MiniCPM4.1-8B — int4-b32 **44/50 (88%)** (8B is int4-robust; desktop-class at 4.9GB).
 
+## LFM2.5 family (hybrid ShortConv + attention; needs a conv-state export fix)
+
+`lfm_work/` converts LiquidAI's LFM2/2.5 hybrid models (gated short-conv blocks + GQA attention). litert-torch 0.9.1 ships the `lfm2` model support and litert-lm ≥0.14 runs it, but the stock exporter has a correctness bug on real prompts: the runtime right-pads prefill chunks whenever the prompt doesn't exactly fill a prefill signature, and the exported ShortConv block saves its conv state from the **last (padded) columns** of the chunk — attention can mask padding, a causal conv cannot — so the first generated token of nearly every reply is corrupted (`"to is a vast..."`). Easy to miss: the model recovers after ~1 token (conv window is 2 wide) and GSM8K still parses answers, it just silently loses ~20pt. `lfm_short_conv_patch.py` fixes the export: it derives the chunk's valid length from the attention mask in-graph (pad rows sit at the all-blocked fill value) and gathers the conv state from the last *valid* columns; decode keeps the stock path. With the patch, engine output is token-identical to an exact per-token decode loop at every prompt length.
+
+```bash
+cd lfm_work
+python convert_lfm25.py LiquidAI/LFM2.5-1.2B-Instruct out_lfm25_12b        # -> int8 (export-time recipe, convs included)
+python convert_lfm25.py LiquidAI/LFM2.5-1.2B-Instruct out_lfm25_12b_fp --fp  # unquantized, for post-hoc int4:
+python ../minicpm_work/quantize_litertlm.py apply out_lfm25_12b_fp/model.litertlm lfm25_int4.litertlm --recipe wi4b32_wi8 --algo octav
+```
+
+Same env as MiniCPM (python 3.10+, `litert-torch litert-lm "transformers==5.6.2"`). The non-obvious parts:
+
+- **Quantize convs at export time only.** The export-time dynamic-int8 recipe (the default) safely includes the conv layers. Post-hoc `ALL_SUPPORTED` int8 via ai-edge-quantizer kills them (no output) — post-hoc recipes must stick to linears + embedding (`wi8fc`, `wi4b32_wi8`).
+- **Multi-length prefill signatures (1..1024)** let the runtime pick tight chunks (less padding waste); they do NOT fix the conv-state bug by themselves — the remainder chunk still pads unless the length happens to exactly match a signature.
+- **Metadata**: bos `<|startoftext|>`, stops `[7 (<|im_end|>), 2]`, the HF `chat_template.jinja` verbatim (tool-calling works), and a `thought` channel declaration (`<think>`/`</think>`).
+- **Recipe results (LFM2.5-1.2B-Instruct, GSM8K n=100, greedy, max-tokens 1024)**: bf16 reference **79** · export-time int8 **81** (parity; 1.25GB) · post-hoc int8-linears-only 79 · post-hoc OCTAV int4-b32 72 (736MB). Without the conv-state fix the int8 file lands at 59 — that's the bug, not the quantization.
+- **CPU backend only** for now: desktop/WebGPU can't build the hybrid graph, and the fix's `index_select` lowers to GATHER_ND, which mobile GPU delegates don't take either. CPU is fast — the conv blocks prefill/decode quicker than same-size pure-attention models.
+
 ## Verify a reproduction
 
 ```bash
