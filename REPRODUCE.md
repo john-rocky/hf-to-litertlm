@@ -194,6 +194,22 @@ Same env as MiniCPM (python 3.10+, `litert-torch litert-lm "transformers==5.6.2"
 - **Conv-int8 sensitivity varies by finetune**: export-time conv-int8 is free on Instruct (+2), neutral on Thinking (−1), and costs the JP tune **9 points** (56 vs 65) — A/B the export-time recipe against post-hoc linears-only (`wi8fc`) for every new finetune before picking.
 - **CPU backend only** for now: desktop/WebGPU can't build the hybrid graph, and the fix's `index_select` lowers to GATHER_ND, which mobile GPU delegates don't take either. CPU is fast — the conv blocks prefill/decode quicker than same-size pure-attention models.
 
+## BitCPM-CANN (ternary / 1.58-bit LLMs — int4 blockwise is a lossless container)
+
+`bitcpm_work/` converts openbmb's BitCPM-CANN family (BitNet-b1.58-style ternary QAT LLMs, Apache-2.0). LiteRT has no native 1-bit/ternary type ([feature request #7713](https://github.com/google-ai-edge/LiteRT/issues/7713)), but it doesn't need one to run these losslessly: BitCPM's QAT quantizer produces weights in {-α, 0, +α} per group of 128 input channels (α from absmean), released "pseudo-quantized" — the ternary values materialized in a plain bf16 checkpoint. Min-max symmetric int4 `BLOCKWISE_32` (blocks subdivide the 128-groups along the same axis) maps every weight onto {-7, 0, +7} with **zero rounding decisions**; the only residual is fp16 rounding of the per-block scale (≤4e-4 relative). `verify_ternary.py` checks both properties on the actual checkpoint before you convert. You pay 4 bits/weight instead of the native ~1.6 (≈2.5× their packed GGUF), but 4× under f16, on stock CPU/GPU int4 kernels.
+
+```bash
+cd bitcpm_work
+./convert_bitcpm.sh                    # openbmb/BitCPM-CANN-1B -> bitcpm-cann-1b_wi4b32_wi8.litertlm (1.05 GB)
+```
+
+Same env as MiniCPM (`litert-torch litert-lm "transformers==5.6.2"`). The non-obvious parts:
+
+- **The 1B is a stock `LlamaForCausalLM`** (no remote code, no muP) in the MiniCPM4 tokenizer family — the pipeline reuses `../minicpm_work`'s longrope-static export wrapper, the ChatML metadata pbtext verbatim (stops `[2, 73440]`), and the SP added-tokens fix (raw `tokenizer.model` lacks `<|im_end|>`=73440 → stop never fires; the 1B repo also ships no `added_tokens.json`, so `prep_bitcpm_as_llama.py` synthesizes one from `tokenizer_config.json`). The 0.5B is MiniCPM4-0.5B-arch (muP) — run it through the `prep_minicpm4_as_llama.py` fold first if you want it.
+- **Use `--algo minmax`, not OCTAV.** For ternary blocks, min-max is exact by construction (scale = α/7); OCTAV optimizes MSE for continuous distributions and can pick a non-exact grid. This is the reverse of the usual recommendation for non-ternary models.
+- **Embeddings + lm_head are NOT ternary** (full bf16, untied) — they take the usual int8 channelwise treatment.
+- **Results (GSM8K n=100, greedy, identical prompt/extraction)**: torch bf16 **63** · .litertlm int4-b32 **60** (parity within n=100 noise; openbmb's own harness reports 61.56). The proof the container is lossless: the same data-free `wi4b32_wi8` recipe on the non-ternary MiniCPM5-1B loses ~13 points (61 → 48); on ternary it's free. 8-question gate 7/8. Mac bench (prefill 256/decode 256): CPU 285/57 tok/s, GPU (WebGPU) 1137/54.
+
 ## Verify a reproduction
 
 ```bash
