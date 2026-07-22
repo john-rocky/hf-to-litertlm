@@ -47,14 +47,22 @@ def patch_tflite(path):
             if bidx in seen_bufs:
                 continue
             seen_bufs.add(bidx)
-            arr = model.Buffers(bidx).DataAsNumpy()
-            if arr is None:
-                continue
-            f16 = arr.view(np.float16)
+            buf = model.Buffers(bidx)
+            arr = buf.DataAsNumpy()
+            if isinstance(arr, np.ndarray):
+                f16 = arr.view(np.float16)  # view into `data` (inline buffer)
+            else:
+                # >2GB-style serialization: buffer data lives out-of-band at an
+                # absolute file offset (Buffer.offset/size), not in the vector.
+                off, size = buf.Offset(), buf.Size()
+                if not size:
+                    continue
+                f16 = np.ndarray(size // 2, dtype=np.float16, buffer=data,
+                                 offset=off)
             zeros = f16 == 0
             if zeros.any():
                 nzmin = f16[~zeros].min() if (~zeros).any() else np.float16(1e-4)
-                f16[zeros] = nzmin  # view into `data` -> patches in place
+                f16[zeros] = nzmin  # writes into `data`
                 n_fixed += int(zeros.sum())
                 n_tensors += 1
     print(f"patched {n_fixed} zero scales across {n_tensors} scale tensors")
