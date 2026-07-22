@@ -9,7 +9,9 @@ maps every linear weight onto {-7, 0, +7} with no rounding decisions — the
 ternary levels survive exactly; the only residual error is fp16 rounding of
 the per-block scale (absmax/7), which we measure here.
 
-Usage: verify_ternary.py <pytorch_model.bin | model.safetensors>
+Usage: verify_ternary.py <pytorch_model.bin | model.safetensors> [group_size]
+The group test passes iff the true QAT group size is a multiple of the tested
+one (or per-row), so try 128 first, then 64/32 on failure.
 """
 import sys
 
@@ -23,12 +25,12 @@ else:
     sd = torch.load(path, map_location="cpu", weights_only=True)
 print(f"{len(sd)} tensors, lm_head present: {'lm_head.weight' in sd}")
 
-GROUP = 128
+GROUP = int(sys.argv[2]) if len(sys.argv) > 2 else 128
 n_lin = 0
 worst_scale_rel = 0.0
 bad = []
 for name, w in sd.items():
-    if w.dim() == 2 and "layers" in name and "weight" in name:
+    if w.dim() == 2 and ("layers" in name or "blocks" in name) and "weight" in name:
         n_lin += 1
         rows = w.float().reshape(-1, GROUP)
         alpha = rows.abs().amax(dim=1, keepdim=True)

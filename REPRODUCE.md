@@ -210,6 +210,22 @@ Same env as MiniCPM (`litert-torch litert-lm "transformers==5.6.2"`). The non-ob
 - **Embeddings + lm_head are NOT ternary** (full bf16, untied) — they take the usual int8 channelwise treatment.
 - **Results (GSM8K n=100, greedy, identical prompt/extraction)**: torch bf16 **63** · .litertlm int4-b32 **60** (parity within n=100 noise; openbmb's own harness reports 61.56). The proof the container is lossless: the same data-free `wi4b32_wi8` recipe on the non-ternary MiniCPM5-1B loses ~13 points (61 → 48); on ternary it's free. 8-question gate 7/8. Mac bench (prefill 256/decode 256): CPU 285/57 tok/s, GPU (WebGPU) 1137/54.
 
+## Ternary-Bonsai-1.7B (PrismML ternary Qwen3 — second ternary family, one new wall)
+
+`bonsai_work/` converts PrismML's Ternary-Bonsai LLMs (ternary g128 with FP16 group scales — vendor-documented — on a stock `Qwen3ForCausalLM`; Apache-2.0; "unpacked" fp16 release = ternary values materialized, same pattern as BitCPM-CANN). The same int4-lossless-container argument applies and `verify_ternary.py` confirms it on the real weights (Bonsai preserves ~0.003% salient outliers in fp, so a handful of blocks quantize normally instead of exactly).
+
+```bash
+cd bonsai_work
+./convert_bonsai.sh                    # prism-ml/Ternary-Bonsai-1.7B-unpacked -> ternary-bonsai-1.7b_wi4b32_wi8.litertlm (1.11 GB)
+```
+
+The non-obvious parts:
+
+- **Stock Qwen3**: yarn rope is static at init (no `@dynamic_rope_update` wrapper needed, unlike longrope); BPE tokenizer bundles as `hf_tokenizer` (no SP fix); metadata pbtext is generated from the repo's `chat_template.jinja` verbatim (always-empty `<think>` prefill = non-thinking 2507 style → no thought channel), stops `[151645, 151643]`, **no start_token** (Qwen has no BOS).
+- **⭐ Zero-scale wall (new)**: ternary weights are sparse enough that a 32-weight block can be ALL zeros → ai-edge-quantizer min-max blockwise emits **scale = 0** → XNNPACK refuses to prepare (`unsupported scale value (0.000000) ... for INT4 tensor`). This model hits it (14 blocks across 6 tensors); BitCPM-CANN-1B happened not to. `fix_zero_block_scales.py` patches it post-quant: LiteRT stores blockwise scales in **separate FLOAT16 tensors referenced by the BlockwiseQuantization details table** (not `QuantizationParameters.scale`), so the script walks the raw (lazy) flatbuffers API and replaces zero scales with the tensor's min nonzero scale in place — the affected blocks are all-zero, so dequantization is unchanged. Seconds, vs ~12 min for an object-API round-trip.
+- **Results (GSM8K n=100, greedy, identical prompt/extraction)**: torch bf16 **77** · .litertlm int4-b32 **74** — the same −3-within-noise parity as BitCPM-CANN-1B, now across two vendors and two architectures. 8-question gate **8/8**. Mac bench (matched back-to-back): GPU 1576/62 tok/s, CPU 222/33.
+- **The image sibling**: `prism-ml/bonsai-image-ternary-4B-unpacked` (FLUX.2-Klein pipeline) — the diffusion transformer's 100 block linears verify ternary-g128/int4-exact the same way (`verify_ternary.py` accepts a group-size arg and matches `blocks` names), while the text encoder is a stock fp16 Qwen3-4B (only the DiT is ternarized). Converting the full image pipeline needs a diffusion host loop (text-enc → few-step FlowMatch DiT → VAE) — out of scope here.
+
 ## Verify a reproduction
 
 ```bash
