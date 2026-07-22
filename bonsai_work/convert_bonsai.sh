@@ -29,7 +29,20 @@ python "$WORK/../bitcpm_work/verify_ternary.py" "$SNAP/model.safetensors" 128 ||
 
 python - "$SNAP/chat_template.jinja" "$WORK/bonsai17_LlmMetaProto.pbtext" <<'PYEOF'
 import sys
-jinja = open(sys.argv[1]).read()
+# The runtime's minijinja implements startswith/endswith (and [::-1] slicing)
+# but NOT .strip()/.lstrip()/.split(). The template's assistant-history branch
+# (reasoning re-render, lines 34-51) calls .strip('\n') and IS executed by the
+# engine's incremental assistant-turn render -> multi-turn dies on-device with
+# "unknown method: string has no method named strip". Single-turn evals never
+# hit it. Replace the branch with a plain verbatim emit — faithful for this
+# non-thinking model (it always answers after an empty prefilled think block).
+lines = open(sys.argv[1]).read().split("\n")
+assert "set reasoning_content" in lines[33], lines[33]
+assert "endif" in lines[50], lines[50]
+patched = lines[:33] + ["        {{- '<|im_start|>' + message.role + '\\n' + content }}"] + lines[51:]
+jinja = "\n".join(patched)
+for bad in (".strip(", ".lstrip(", ".rstrip(", ".split("):
+    assert bad not in jinja, bad
 esc = (jinja.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'")
        .replace("\n", "\\n").replace("\t", "\\t"))
 pb = ('stop_tokens {\n  token_ids {\n    ids: 151645\n  }\n}\n'
@@ -38,7 +51,7 @@ pb = ('stop_tokens {\n  token_ids {\n    ids: 151645\n  }\n}\n'
       'llm_model_type {\n  generic_model {\n  }\n}\n'
       f'jinja_prompt_template: "{esc}"\n')
 open(sys.argv[2], "w").write(pb)
-print("wrote", sys.argv[2])
+print("wrote", sys.argv[2], "(minijinja-safe)")
 PYEOF
 
 litert-torch export_hf "$SNAP" "$WORK/out_fp" \
