@@ -226,7 +226,31 @@ The non-obvious parts:
 - **⭐ Zero-scale wall (new)**: ternary weights are sparse enough that a 32-weight block can be ALL zeros → ai-edge-quantizer min-max blockwise emits **scale = 0** → XNNPACK refuses to prepare (`unsupported scale value (0.000000) ... for INT4 tensor`). This model hits it (14 blocks across 6 tensors); BitCPM-CANN-1B happened not to. `fix_zero_block_scales.py` patches it post-quant: LiteRT stores blockwise scales in **separate FLOAT16 tensors referenced by the BlockwiseQuantization details table** (not `QuantizationParameters.scale`), so the script walks the raw (lazy) flatbuffers API and replaces zero scales with the tensor's min nonzero scale in place — the affected blocks are all-zero, so dequantization is unchanged. Seconds, vs ~12 min for an object-API round-trip.
 - **Results (GSM8K n=100, greedy, identical prompt/extraction)**: torch bf16 **77** · .litertlm int4-b32 **74** — the same −3-within-noise parity as BitCPM-CANN-1B, now across two vendors and two architectures. 8-question gate **8/8**. Mac bench (matched back-to-back): GPU 1576/62 tok/s, CPU 222/33.
 - **On-device (Pixel 8a, Google AI Edge Gallery 1.0.15, official in-app benchmark, p256/d256×3)**: Ternary-Bonsai-1.7B CPU **86.5 prefill / 16.3 decode tok/s** (TTFT 3.0s), multi-turn chat correct with the patched template. BitCPM-CANN-1B GPU **133.1 / 7.7 tok/s** (GPU init ~50s) — int4-b32 blockwise runs on the mobile GPU. Ternary-Bonsai crashes at GPU engine creation on the same device (SIGSEGV in the runtime's weight loading; BitCPM with the identical recipe works, so it's file-specific — tied embeddings / odd vocab 151669 / qwen3 q-k-norms / yarn are the differing suspects). Note the Gallery accelerator list is fixed at import time: enable GPU in the import dialog, or the benchmark silently runs CPU.
-- **The image sibling**: `prism-ml/bonsai-image-ternary-4B-unpacked` (FLUX.2-Klein pipeline) — the diffusion transformer's 100 block linears verify ternary-g128/int4-exact the same way (`verify_ternary.py` accepts a group-size arg and matches `blocks` names), while the text encoder is a stock fp16 Qwen3-4B (only the DiT is ternarized). Converting the full image pipeline needs a diffusion host loop (text-enc → few-step FlowMatch DiT → VAE) — out of scope here.
+- **The image sibling**: `prism-ml/bonsai-image-ternary-4B-unpacked` (FLUX.2-Klein pipeline) — the diffusion transformer's 100 block linears verify ternary-g128/int4-exact the same way (`verify_ternary.py` accepts a group-size arg and matches `blocks` names), while the text encoder is a stock fp16 Qwen3-4B (only the DiT is ternarized). The full pipeline conversion is the next section.
+
+## Bonsai Image 4B (ternary DiT text-to-image — the full diffusion pipeline)
+
+`bonsai_image_work/` converts the whole FLUX.2-klein pipeline to three fixed-shape tflite graphs plus a torch-free host loop. Published: [litert-community/Bonsai-Image-ternary-4B](https://huggingface.co/litert-community/Bonsai-Image-ternary-4B); sample PR: [litert-samples#244](https://github.com/google-ai-edge/litert-samples/pull/244).
+
+```bash
+cd bonsai_image_work                       # checkpoint auto-downloads; BONSAI_SNAPSHOT overrides
+python export_dit.py                       # fp64-rope fix + export -> dit_fp32.tflite (14.4 GiB)
+python quantize_dit.py                     # int4-b32 ternary linears + int8 rest -> 2.11 GiB
+python fix_zero_block_scales.py dit_int4b32.tflite dit_int4b32.tflite   # zero-scale patch (REQUIRED, 15 scales here)
+python export_textenc.py && python quant_textenc.py                     # prompt embedder -> 1.68 GiB int4
+python export_vae.py                       # -> 0.19 GiB fp32
+python generate.py --model-dir . --prompt "a bonsai tree"               # host loop: no torch, no diffusers
+```
+
+The non-obvious parts:
+
+- **⭐ Flux2 rope builds its frequency table in float64** → `tfl.pow` on f64 fails to legalize at the very last conversion stage. `export_dit.py` forces f32 (cost: max rel 2.9e-6, verified with REAL position ids — an all-zero-ids check is vacuous since cos=1/sin=0 at position 0 for any dtype).
+- **The ternary container claim survives the full chain**: the finished int4-b32 file uses only {-7, 0, +7} in all 100 block linears — zero rounding decisions, measured in the artifact.
+- **Zero-scale wall again**: the DiT hits 15 zero scales across 4 tensors (the LLM sibling hit 14/6) — this is the generic sparse-ternary case, not a model quirk. Patch is mandatory before XNNPACK will prepare.
+- **Text encoder exports as a prompt embedder**: the pipeline reads hidden layers (9, 18, 27) only → litert-torch prunes the top 9 of 36 layers + LM head automatically (4.02 B → 3.11 B). Recipe note: dynamic-range quantization floors image fidelity regardless of bit width (activation quantization dominates); weight-only (`quantize_weight_only.py`) is the quality lane, and int8 weight-only is the practical variant.
+- **The host loop needs three exact formulas**, all verified against an instrumented reference run before any device work: the sigma schedule is Flux2's `compute_empirical_mu` fit (NOT the scheduler config's linspace+shift — that gives different sigmas), the DiT timestep input equals sigma, and the packed-latent→VAE transform is a per-PACKED-channel affine (the VAE BatchNorm running stats) applied BEFORE 2×2 unpatchify.
+- **⚠ Runtime integration**: attach the XNNPACK delegate explicitly (with `num_threads`) when using the C API — the reference-kernel fallback is orders of magnitude slower AND numerically wrong on blockwise int4.
+- **Measured**: Mac CPU 8 threads ≈ 19 s/image (512×512, 4 steps); iPhone 17 Pro (XNNPACK, 6 threads) ≈ 64 s/image, 2.9 GiB peak, bit-exact vs desktop (51.2 dB PSNR on the final PNG).
 
 ## Verify a reproduction
 
