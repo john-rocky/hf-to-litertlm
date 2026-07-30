@@ -67,7 +67,7 @@ if [ ! -f "$RUNTIME/libLiteRt.dylib" ]; then
   echo "Runtime pair not found at $RUNTIME — extracting from the ai-edge-litert wheel"
   TMP=$(mktemp -d)
   python3 -m pip download ai-edge-litert==2.1.6 --no-deps --only-binary :all: \
-    --platform macosx_12_0_arm64 -d "$TMP"
+    --platform macosx_12_0_arm64 --python-version 310 --implementation cp -d "$TMP"
   unzip -o -q "$TMP"/ai_edge_litert-*.whl -d "$TMP/wheel" \
     "ai_edge_litert/libLiteRt.dylib" "ai_edge_litert/libLiteRtMetalAccelerator.dylib"
   mkdir -p "$RUNTIME"
