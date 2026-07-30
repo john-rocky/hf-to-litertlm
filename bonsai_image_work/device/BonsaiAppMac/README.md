@@ -5,10 +5,12 @@ macOS SwiftUI demo for **Bonsai Image 4B** (ternary DiT, int4-b32): the 3-graph 
 ## Build
 
 ```bash
-./prep_resources.sh   # tokenizer tables + pipeline meta + LiteRT runtime pair
+./prep_resources.sh   # tokenizer tables + pipeline meta + LiteRT runtime pair + C headers
 xcodegen generate
 xcodebuild -project BonsaiMac.xcodeproj -scheme Bonsai -configuration Release build
 ```
+
+No LiteRT code is committed here: `prep_resources.sh` downloads the C API headers from the LiteRT repo at the **v2.1.6 release tag** (into `third_party/LiteRT/`, gitignored) and embeds the runtime dylib pair from the ai-edge-litert **2.1.6** wheel — headers and binaries from the same release.
 
 Models are looked up under `~/models/bonsai-image-4b-tflite` (flat, or in `gpu_work/` + `hf_upload/` subdirs; changeable in-app):
 
