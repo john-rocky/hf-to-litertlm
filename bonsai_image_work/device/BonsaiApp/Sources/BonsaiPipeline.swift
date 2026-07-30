@@ -13,14 +13,15 @@
 // limitations under the License.
 // =============================================================================
 
-// Bonsai Image 4B on-device pipeline — the verification Runner (device/
-// BonsaiDeviceTest) turned into an app engine: arbitrary prompt via the Swift
-// Qwen tokenizer, seeded on-device noise, and the Mac-verified host math from
-// BonsaiMath. Runtime path is unchanged from the verified run: classic TFLite
-// C API + explicit XNNPACK delegate (mandatory — without it this build falls
-// back to reference kernels: orders of magnitude slower AND wrong numerics
-// for blockwise int4), graphs loaded sequentially and freed between stages so
-// peak memory stays ~DiT-sized (~2.9 GiB on iPhone 17 Pro).
+// Bonsai Image 4B on-device pipeline: arbitrary prompt via the Swift Qwen
+// tokenizer, seeded on-device noise, and the Mac-verified host math from
+// BonsaiMath. Runtime = the LiteRT CompiledModel C API from the official
+// CLiteRT framework (bazel `litert/swift:CLiteRT` — no LiteRT code copied
+// into this repo), CPU accelerator with an explicit thread count via the
+// "xnnpack" TOML opaque option. This CompiledModel-CPU path is bit-exact vs
+// the previously shipped classic-API+XNNPACK build (verified against the
+// device fixture set). Graphs still load sequentially and are freed between
+// stages so peak memory stays ~DiT-sized (~2.9 GiB on iPhone 17 Pro).
 
 import CoreGraphics
 import Foundation
@@ -55,79 +56,27 @@ final class BonsaiPipeline {
 
     static let threads: Int32 = 6
 
-    // MARK: single fixed-shape graph, CPU
+    // MARK: single fixed-shape graph, CPU (CompiledModel + XNNPACK threads)
 
     final class Graph {
-        private var model: OpaquePointer?
-        private var opts: OpaquePointer?
-        private var interp: OpaquePointer?
-        private var delegate: OpaquePointer?
-        private var order: [Int32] = []
+        private let graph: BonsaiGraph
         let loadSeconds: Double
 
-        init(path: String) throws {
-            let t = Date()
-            model = TfLiteModelCreateFromFile(path)
-            guard model != nil else { throw Failure(what: "ModelCreateFromFile", code: -1) }
-            opts = TfLiteInterpreterOptionsCreate()
-            TfLiteInterpreterOptionsSetNumThreads(opts, BonsaiPipeline.threads)
-            delegate = BonsaiCreateXnnpackDelegate(BonsaiPipeline.threads)
-            guard delegate != nil else { throw Failure(what: "XNNPackDelegateCreate", code: -9) }
-            TfLiteInterpreterOptionsAddDelegate(opts, delegate)
-            interp = TfLiteInterpreterCreate(model, opts)
-            guard interp != nil else { throw Failure(what: "InterpreterCreate", code: -2) }
-            guard TfLiteInterpreterAllocateTensors(interp) == 0 else {
-                throw Failure(what: "AllocateTensors", code: -3)
-            }
-            loadSeconds = -t.timeIntervalSinceNow
-            // input order by serving_default_args_<n>, NEVER by shape/index
-            let n = TfLiteInterpreterGetInputTensorCount(interp)
-            func argpos(_ i: Int32) -> Int {
-                guard let t = TfLiteInterpreterGetInputTensor(interp, i),
-                      let c = TfLiteTensorName(t) else { return Int(i) }
-                let name = String(cString: c)
-                guard let r = name.range(of: "args_") else { return Int(i) }
-                return Int(name[r.upperBound...].prefix(while: { $0.isNumber })) ?? Int(i)
-            }
-            order = (0..<n).sorted { argpos($0) < argpos($1) }
+        /// intInputMask: bit k set means input args_k is int32 (the text
+        /// encoder's ids/mask); everything else is float32.
+        init(runtime: BonsaiRuntime, path: String, intInputMask: UInt = 0) throws {
+            graph = try BonsaiGraph(runtime: runtime, modelPath: path,
+                                    useGpu: false, threads: BonsaiPipeline.threads,
+                                    intInputMask: intInputMask)
+            loadSeconds = graph.loadSeconds + graph.compileSeconds
         }
 
         func run(_ inputs: [Data], outCount: Int) throws -> [Float] {
-            guard inputs.count == order.count else {
-                throw Failure(what: "inputCount \(inputs.count) != \(order.count)", code: -4)
+            let out = try graph.run(inputs: inputs)
+            guard out.count == outCount * MemoryLayout<Float>.stride else {
+                throw Failure(what: "output bytes \(out.count) != \(outCount * 4)", code: -8)
             }
-            for (input, idx) in zip(inputs, order) {
-                guard let t = TfLiteInterpreterGetInputTensor(interp, idx) else {
-                    throw Failure(what: "GetInputTensor \(idx)", code: -5)
-                }
-                guard TfLiteTensorByteSize(t) == input.count else {
-                    throw Failure(what: "byteSize input \(idx): graph \(TfLiteTensorByteSize(t)) "
-                                  + "!= host \(input.count)", code: -6)
-                }
-                let st = input.withUnsafeBytes {
-                    TfLiteTensorCopyFromBuffer(t, $0.baseAddress, input.count)
-                }
-                guard st == 0 else { throw Failure(what: "CopyFromBuffer \(idx)", code: st) }
-            }
-            guard TfLiteInterpreterInvoke(interp) == 0 else {
-                throw Failure(what: "Invoke", code: -7)
-            }
-            guard let ot = TfLiteInterpreterGetOutputTensor(interp, 0) else {
-                throw Failure(what: "GetOutputTensor", code: -8)
-            }
-            var out = [Float](repeating: 0, count: outCount)
-            let st = out.withUnsafeMutableBytes {
-                TfLiteTensorCopyToBuffer(ot, $0.baseAddress, outCount * MemoryLayout<Float>.stride)
-            }
-            guard st == 0 else { throw Failure(what: "CopyToBuffer", code: st) }
-            return out
-        }
-
-        deinit {
-            if interp != nil { TfLiteInterpreterDelete(interp) }
-            if opts != nil { TfLiteInterpreterOptionsDelete(opts) }
-            if delegate != nil { TfLiteXNNPackDelegateDelete(delegate) }
-            if model != nil { TfLiteModelDelete(model) }
+            return out.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
         }
     }
 
@@ -136,6 +85,7 @@ final class BonsaiPipeline {
     let dir: URL
     let meta: Meta
     let tokenizer: QwenTokenizer
+    let runtime: BonsaiRuntime
     var cancelled = false
 
     /// pipeline_meta.json comes from the models dir if present (HF repo
@@ -152,6 +102,7 @@ final class BonsaiPipeline {
             throw Failure(what: "tokenizer resources missing from bundle", code: -21)
         }
         tokenizer = try QwenTokenizer(vocabURL: vocab, mergesURL: merges)
+        runtime = try BonsaiRuntime(libraryDir: Bundle.main.privateFrameworksPath ?? "")
     }
 
     private static func bundleFallback(_ url: URL, resource: String, ext: String) -> URL? {
@@ -208,7 +159,8 @@ final class BonsaiPipeline {
         status("prompt: \(enc.promptTokenCount) tokens")
         var embeds: [Float] = []
         try autoreleasepool {
-            let te = try Graph(path: try modelPath(meta.files.textenc))
+            let te = try Graph(runtime: runtime, path: try modelPath(meta.files.textenc),
+                               intInputMask: 0b11)
             try checkCancel()
             let t = Date()
             embeds = try te.run([idata(enc.ids), idata(enc.mask)],
@@ -227,7 +179,7 @@ final class BonsaiPipeline {
         var lat = BonsaiMath.noise(seed: seed)
         var stepSeconds: [Double] = []
         try autoreleasepool {
-            let dit = try Graph(path: try modelPath(meta.files.dit))
+            let dit = try Graph(runtime: runtime, path: try modelPath(meta.files.dit))
             status(String(format: "DiT loaded %.1fs", dit.loadSeconds))
             for k in 0..<steps {
                 try checkCancel()
@@ -252,7 +204,7 @@ final class BonsaiPipeline {
                                       shift: meta.latent_bn_shift)
         var rgb = [UInt8](repeating: 0, count: 512 * 512 * 3)
         try autoreleasepool {
-            let vae = try Graph(path: try modelPath(meta.files.vae))
+            let vae = try Graph(runtime: runtime, path: try modelPath(meta.files.vae))
             let t = Date()
             let y = try vae.run([fdata(z)], outCount: 3 * 512 * 512)
             for c in 0..<3 {

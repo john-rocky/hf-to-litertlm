@@ -53,3 +53,9 @@ bonsai_image_work/device/BonsaiAppMac/BonsaiMac.xcodeproj/
 bonsai_image_work/device/BonsaiAppMac/Info.plist
 bonsai_image_work/device/BonsaiAppMac/build/
 bonsai_image_work/device/BonsaiAppMac/smoke/bonsai_smoke
+bonsai_image_work/device/BonsaiApp/CLiteRT.xcframework/
+bonsai_image_work/device/BonsaiApp/litert-src/
+bonsai_image_work/device/BonsaiApp/build/
+bonsai_image_work/device/BonsaiApp/Resources/
+bonsai_image_work/device/BonsaiApp/BonsaiApp.xcodeproj/
+bonsai_image_work/device/BonsaiApp/Info.plist

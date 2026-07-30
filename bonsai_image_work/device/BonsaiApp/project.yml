@@ -2,28 +2,28 @@
 # Bundle id deliberately matches BonsaiDeviceTest: same team + same id means
 # iOS keeps the Documents container across installs, so the 3.97 GiB model set
 # is a one-time copy per device (see device_run.sh for the devicectl command).
-# Before generating: ./prep_resources.sh (copies tokenizer tables +
-# pipeline_meta.json into Resources/, which is not committed).
+# Before generating: ./prep_resources.sh (tokenizer tables + pipeline_meta.json
+# into Resources/) and ./prep_clitert.sh (the official CLiteRT.xcframework,
+# bazel-built from the LiteRT repo — no LiteRT code is committed here).
 name: BonsaiApp
 options:
   bundleIdPrefix: com.bonsai
   deploymentTarget:
     iOS: "17.0"
-packages:
-  swift-litert-lm:
-    url: https://github.com/john-rocky/swift-litert-lm
-    from: 0.1.1
 targets:
   BonsaiApp:
     type: application
     platform: iOS
     sources:
       - path: Sources
+      - path: ../shared
+        group: Shared
       - path: Resources
         buildPhase: resources
     dependencies:
-      - package: swift-litert-lm
-        product: LiteRTLM
+      - framework: CLiteRT.xcframework
+        embed: true
+        codeSign: true
     info:
       path: Info.plist
       properties:
@@ -34,11 +34,12 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bonsai.devicetest
-        SWIFT_OBJC_BRIDGING_HEADER: ../BonsaiDeviceTest/CLiteRT/Bonsai-Bridging-Header.h
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridging.h
         HEADER_SEARCH_PATHS:
-          - $(SRCROOT)/../BonsaiDeviceTest/CLiteRT
-          - $(SRCROOT)/../BonsaiDeviceTest/CLiteRT/include
+          - $(SRCROOT)/../shared
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MFN25KNUGJ
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
