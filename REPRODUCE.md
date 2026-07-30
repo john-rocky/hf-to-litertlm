@@ -252,6 +252,21 @@ The non-obvious parts:
 - **⚠ Runtime integration**: attach the XNNPACK delegate explicitly (with `num_threads`) when using the C API — the reference-kernel fallback is orders of magnitude slower AND numerically wrong on blockwise int4.
 - **Measured**: Mac CPU 8 threads ≈ 19 s/image (512×512, 4 steps); iPhone 17 Pro (XNNPACK, 6 threads) ≈ 64 s/image, 2.9 GiB peak, bit-exact vs desktop (51.2 dB PSNR on the final PNG).
 
+### macOS GPU demo app (DiT on the Apple GPU — 6.6 s/image)
+
+`device/BonsaiAppMac/` is a SwiftUI app that runs the DiT on the Apple GPU through the LiteRT Metal accelerator: **0.76 s/DiT-step, 6.6 s/image total** (vs ≈19 s all-CPU), after a one-time ~40 s Metal compile per launch. Text encoder and VAE stay on CPU, where the CompiledModel path is bit-exact vs the fixture set. GPU vs same-latent CPU pipeline: 31.6 dB PSNR, visually identical.
+
+```bash
+cd bonsai_image_work
+python export_dit_gpu.py                   # GPU-shaped DiT (rope constants folded, gather-free)
+python quantize_dit.py && python fix_zero_block_scales.py dit_gpu_int4b32.tflite dit_gpu_int4b32.tflite
+cd device/BonsaiAppMac
+./prep_resources.sh && xcodegen generate
+xcodebuild -project BonsaiMac.xcodeproj -scheme Bonsai -configuration Release build
+```
+
+The pitfalls that cost real time (details in `device/BonsaiAppMac/README.md`): the runtime dylib pair must be **same-generation** (ai-edge-litert 2.1.6 works; the 2026-07-31 LiteRT-main macos_arm64 prebuilt pair SIGSEGVs in an XNNPACK transpose microkernel inside the Metal accelerator during delegate init on this 2.27 GiB DiT — repro CLI in `device/BonsaiAppMac/smoke/`); **fp32 precision is mandatory** (default fp16 corrupts this model's activations), passed as a hand-built TOML opaque option because the prebuilt exports no options helpers; and the GPU-shaped export is required — the CPU-shaped DiT does not run on the Metal delegate.
+
 ## Verify a reproduction
 
 ```bash

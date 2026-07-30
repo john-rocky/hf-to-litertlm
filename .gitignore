@@ -45,3 +45,11 @@ reports/charts/
 # OS
 .DS_Store
 CLAUDE.md
+
+# BonsaiAppMac generated/prep'd files (prep_resources.sh + xcodegen + build)
+bonsai_image_work/device/BonsaiAppMac/Resources/
+bonsai_image_work/device/BonsaiAppMac/Frameworks/
+bonsai_image_work/device/BonsaiAppMac/BonsaiMac.xcodeproj/
+bonsai_image_work/device/BonsaiAppMac/Info.plist
+bonsai_image_work/device/BonsaiAppMac/build/
+bonsai_image_work/device/BonsaiAppMac/smoke/bonsai_smoke
