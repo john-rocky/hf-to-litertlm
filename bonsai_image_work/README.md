@@ -23,3 +23,9 @@ python export_vae.py                      # -> vae_dec_fp32.tflite (0.19 GiB)
 3. **The text encoder is a prompt embedder, not an LM.** The pipeline reads hidden states from layers (9, 18, 27) only; exporting that interface lets the converter prune the top 9 of 36 layers and the LM head automatically (4.02 B → 3.11 B).
 
 The DiT's ternary weights ({-scale, 0, +scale} per 128-group) land in int4 block-32 as exactly {-7, 0, +7} — zero rounding decisions; the container is lossless for this model's weights.
+
+## On-device apps (iOS / Android)
+
+`device/BonsaiApp` (SwiftUI) and `device/BonsaiAppAndroid` (Kotlin, own Gradle project) run the full pipeline on the phone: pure Swift/Kotlin ports of the Qwen3 byte-level-BPE tokenizer (token-exact against the Python tokenizer on the 26-case golden set in `device/testdata/`), the FlowMatch-Euler loop, and the bn128 unpatchify, over the three `.tflite` graphs on CPU/XNNPACK. The two apps share a bit-identical seeded-noise stream, so the same (prompt, seed, steps) draws the same image on both platforms.
+
+Measured (smallest set, int4 DiT + int4 DRQ text encoder): iPhone 17 Pro ~62 s per 512x512 image (12-13 s per DiT step, ~2.9 GiB peak); Pixel 8a (8 GB RAM) completes at ~7-8 min per image — treat 8 GB as the proof-of-run floor and 12 GB+ as the practical target. Setup and per-app details in each app's README.
