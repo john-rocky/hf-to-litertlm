@@ -148,6 +148,7 @@ final class GenerationModel: ObservableObject {
                     $0.pipeline = pipeline
                     $0.preparing = false
                     $0.engine = .ready
+                    $0.maybeGuiAutorun()
                 }
             } catch {
                 print("[bonsai] ENGINE FAILED: \(error.localizedDescription)")
@@ -157,6 +158,19 @@ final class GenerationModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Demo/screenshot runs with the window up:
+    ///   open Bonsai.app --args -guiAutorun 1 [-prompt "…"] [-seed N] [-steps N]
+    /// (open --args lands in UserDefaults via NSArgumentDomain.)
+    func maybeGuiAutorun() {
+        let d = UserDefaults.standard
+        guard d.bool(forKey: "guiAutorun"), !running else { return }
+        if let p = d.string(forKey: "prompt"), !p.isEmpty { prompt = p }
+        if let s = d.string(forKey: "seed"), !s.isEmpty { seedText = s }
+        let st = d.integer(forKey: "steps")
+        if st > 0 { steps = st }
+        generate()
     }
 
     func generate() {
