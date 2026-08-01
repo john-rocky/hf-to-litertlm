@@ -40,7 +40,7 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 |---|---|---|---|---|---|
 | `fastcontext-4b` | microsoft/FastContext-1.0-4B-SFT | chatml_simple | BOCTAV4 | EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/FastContext-1.0-4B-SFT |
 | `nanbeige4.1-3b` | Nanbeige/Nanbeige4.1-3B | chatml_simple | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Nanbeige4.1-3B |
-| `nanbeige4.2-3b` | Nanbeige/Nanbeige4.2-3B | chatml_think | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096; dedicated `convert_nanbeige42.py` (looped transformer: 22 shared-weight layers ×2 loops → 44 KV slots) | *(not yet published)* |
+| `nanbeige4.2-3b` | Nanbeige/Nanbeige4.2-3B | chatml_think | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096; dedicated `convert_nanbeige42.py` (looped transformer: 22 shared-weight layers ×2 loops → 44 KV slots) | litert-community/Nanbeige4.2-3B |
 | `olmo2-1b` | allenai/OLMo-2-0425-1B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096 | mlboydaisuke/OLMo-2-1B-Instruct-LiteRT |
 | `olmo2-7b` | allenai/OLMo-2-1124-7B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096, EXTERNALIZE_EMBEDDER | *(desktop-only, not published — >2 GiB section)* |
 | `polaris-4b` | POLARIS-Project/Polaris-4B-Preview | qwen3_think | BOCTAV4_128 | EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Polaris-4B-Preview |
