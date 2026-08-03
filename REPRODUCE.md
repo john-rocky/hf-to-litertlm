@@ -96,12 +96,15 @@ bundle). Details per model in `cards/<name>-litert.md`.
 | `internvl3-1b` | InternViT-448 | Qwen2.5-0.5B | `ship_internvl_1b.sh` |
 | `internvl3.5-1b` / `-2b` / `-4b` | InternViT-448 | Qwen3-0.6B / 1.7B / 4B | `ship_internvl3_5_{1b,2b,4b}.sh` |
 | `llava-onevision-0.5b` | SigLIP-384 (730 tok) | Qwen2-0.5B | `ship_llavaov.sh` |
+| `mage-vl` | **static-448, no GATHER_ND** (196 tok) | Qwen3-4B **int4-b128**, cache 2048 | `ship_magevl.sh` |
 | `ovis2.5-2b` | **static-NaViT-512** (256 tok) | Qwen3-1.7B | `ship_ovis_2b.sh` |
 | `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — int4/int8 corrupt OCR) | `ship_paddleocr_vl.sh` |
 | `qwen2-vl-2b` | **static-672, no GATHER_ND** (576 tok) | Qwen2-1.5B int4 | `ship_qwen2vl_2b.sh` |
 | `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
 
 `qwen2-vl-2b` is the general-purpose Qwen2-VL VLM (describe / VQA / OCR). Two gotchas baked into its scripts: (a) reordering patches into the merger's 2×2-block order with a gather emits a `GATHER_ND` op that the mobile GPU delegate can't compile (the vision executor then fails to create on-device) — so the encoder keeps raster order and the 2×2 merge is done with strided slices + concat in the adapter; (b) the fast_vlm runtime feeds 1-D positions (no M-RoPE), which preserves describe/VQA/OCR/count but degrades cross-cell *ranking* over 2-D tables.
+
+`mage-vl` is Microsoft's 4.7B general VLM (describe / VQA / full-page OCR). Its vision tower is the Qwen2-VL design, but two things make it *simpler* to convert: `temporal_patch_size=1` (the patch-embed already is a stride-16 `Conv2d` — no Conv3d fold) and the text decoder is a **stock Qwen3-4B fed plain 1-D positions**, so the fast_vlm runtime contract is mathematically exact (no M-RoPE caveat at all — the 2-D-table-ranking limitation of `qwen2-vl-2b` does not apply). Its 3-D rope splits head_dim 4:6:6 over (t,h,w) with *interleaved* rotation (not half-split); the scripts precompute it from raster positions with t=0 and verify the whole patch pipeline bit-identical against the model's own processor. Cache is 2048 on purpose: at 4096 the 36-layer/kv8 fp32 KV cache is ~1.2 GB, which more than doubles the on-device session footprint; 2048 keeps the whole phone session ~1.5 GiB. Env gotchas baked into the ship script: python 3.14 breaks torchao's import (use ≤3.13), and torchvision must be the torch-matched pair (`torch==2.12.1 torchvision==0.27.1`) or pip upgrades torch past litert-torch's pin. `magevl_work/precheck_magevl_vision.py` runs the full static-rewrite export precheck on a random-init tower — no checkpoint download — in minutes.
 
 `paddleocr-vl-1.6` is the OCR/document-parsing specialist (task prompts `OCR:` / `Table Recognition:` /
 `Formula Recognition:` / …). Two conversion gotchas are baked into its scripts: transformers ≥5.12 loads

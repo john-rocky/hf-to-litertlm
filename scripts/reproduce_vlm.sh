@@ -16,6 +16,7 @@ case "${1:-}" in
   internvl3.5-2b)        bash scripts/ship_internvl3_5_2b.sh ;;   # InternViT + Qwen3-1.7B
   internvl3.5-4b)        bash scripts/ship_internvl3_5_4b.sh ;;   # InternViT + Qwen3-4B
   llava-onevision-0.5b)  bash scripts/ship_llavaov.sh ;;          # SigLIP + Qwen2-0.5B (730 tokens)
+  mage-vl)               bash scripts/ship_magevl.sh ;;           # static-448 (no GATHER_ND) + Qwen3-4B int4-b128
   ovis2.5-2b)            bash scripts/ship_ovis_2b.sh ;;          # static-NaViT + Qwen3-1.7B (structural embed)
   paddleocr-vl-1.6)      bash scripts/ship_paddleocr_vl.sh ;;     # static-NaViT-560 + ERNIE-0.3B fp16 (OCR/doc)
   qwen2-vl-2b)           bash scripts/ship_qwen2vl_2b.sh ;;       # static-672 (no GATHER_ND) + Qwen2-1.5B int4

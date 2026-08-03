@@ -41,6 +41,12 @@ def _mk_alg(int4_rule, ops_int8):
 
 _aqr.BOCTAV4 = lambda: _mk_alg(_BO4, ["EMBEDDING_LOOKUP"])
 
+# BOCTAV4_128: same but blockwise-128 — the recipe 4B-class Qwen3 decoders
+# prefer (block32 can corrupt on some mobile GPUs at 4B scale).
+_BO4_128 = copy.deepcopy(_BO4)
+_BO4_128["op_config"]["weight_tensor_config"]["granularity"] = "BLOCKWISE_128"
+_aqr.BOCTAV4_128 = lambda: _mk_alg(_BO4_128, ["EMBEDDING_LOOKUP"])
+
 # WI8_FLOAT: int8 weights but FLOAT compute (explicit dequantize) — weight-only
 # compression for quantization-sensitive tiny decoders (PaddleOCR-VL 0.36B: the
 # default INTEGER compute_precision costs top1 2/10 on teacher-forced logits).
