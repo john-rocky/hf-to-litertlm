@@ -14,18 +14,21 @@ freq table). Both are killed here WITHOUT touching the weights:
    out = x * cos + (x @ P) * sin, all rank-4.
 
 Verified in-process against the unpatched fp32 forward before export.
-Quantize afterwards with quantize_dit.py (SRC=dit_gpu_fp32.tflite) + the
-zero-scale fix, exactly like the shipped CPU DiT.
+Quantize afterwards with `python quantize_dit.py dit_gpu_fp32.tflite` + the
+zero-scale fix, exactly like the shipped CPU DiT. The result
+(dit_gpu_int4b32.tflite) is the DiT the macOS sample app
+(samples/litert/image_generation/macos) runs on the Metal accelerator.
 """
 import os, time, torch
 import diffusers.models.transformers.transformer_flux2 as flux2mod
 from diffusers import Flux2Transformer2DModel
 
-SNAP = "/Users/majimadaisuke/.cache/huggingface/hub/models--prism-ml--bonsai-image-ternary-4B-unpacked/snapshots/30bbc032dd26939bff95c3d523477ad5065c3e1a"
+from huggingface_hub import snapshot_download
+
+SNAP = os.environ.get("BONSAI_SNAPSHOT") or snapshot_download(
+    "prism-ml/bonsai-image-ternary-4B-unpacked")
 HERE = os.path.dirname(os.path.abspath(__file__))
-WORK = os.path.expanduser("~/models/bonsai-image-4b-tflite/gpu_work")
-os.makedirs(WORK, exist_ok=True)
-OUT = os.path.join(WORK, "dit_gpu_fp32.tflite")
+OUT = os.path.join(HERE, "dit_gpu_fp32.tflite")
 B, IMG, TXT, GRID = 1, 1024, 256, 32
 
 
