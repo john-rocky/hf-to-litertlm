@@ -259,8 +259,10 @@ The non-obvious parts:
 
 ```bash
 cd bonsai_image_work
-python export_dit_gpu.py                   # GPU-shaped DiT (rope constants folded, gather-free)
-python quantize_dit.py && python fix_zero_block_scales.py dit_gpu_int4b32.tflite dit_gpu_int4b32.tflite
+python export_dit_gpu.py                        # GPU-shaped DiT (rope constants folded, gather-free) -> dit_gpu_fp32.tflite
+python quantize_dit.py dit_gpu_fp32.tflite      # -> dit_gpu_int4b32.tflite
+python fix_zero_block_scales.py dit_gpu_int4b32.tflite dit_gpu_int4b32.tflite
+# (or skip the three steps above: the pre-quantized dit_gpu_int4b32.tflite is published on the model card)
 cd device/BonsaiAppMac
 ./prep_resources.sh && xcodegen generate
 xcodebuild -project BonsaiMac.xcodeproj -scheme Bonsai -configuration Release build
