@@ -34,6 +34,8 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 `FIX_ADDED_TOKENS` for `<think>` models) · `EXTERNALIZE_EMBEDDER` (split embedding so 3B+ loads on iPhone) ·
 `PHI3_STATIC_ROPE` (Phi longrope→static) · `GPTQREC_GCD_FIX` (GPTQ ingest) · `CACHE` / `PREFILL`.
 
+**Template safety:** every recipe here exports with `use_jinja_template=False` — the script swaps the vendor's HF chat template for a minimal ChatML one (`templates/*.jinja`), and the converter packs it as plain prefix/suffix turn markers, so the bundle embeds **no Jinja at all**. A plain litert-torch export instead defaults to `use_jinja_template=True`, embedding the vendor template verbatim; many vendor templates call Python-style methods (`.get()`, `.startswith()`) that LiteRT-LM's minijinja renderer doesn't implement — such a bundle imports fine and then dies on the first message (Edge Gallery: `Failed to apply template: unknown method: map has no method named get`). Triage any bundle with `pip install litert-lm-builder && python -m litert_lm_builder.litertlm_peek_main --litertlm_file model.litertlm`: `prompt_templates`-only = safe; a `jinja_prompt_template` carrying Python-method calls = the crasher.
+
 ## Single-command models
 
 | key | HF source | template | quant | env | shipped to |

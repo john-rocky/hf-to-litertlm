@@ -417,6 +417,12 @@ def main():
       externalize_embedder=bool(os.environ.get("EXTERNALIZE_EMBEDDER")),
       trust_remote_code=True,
   )
+  # The bundle embeds NO Jinja: use_jinja_template=False packs only prefix/suffix
+  # markers parsed from `template_path`. (A default litert-torch export embeds the
+  # vendor's Jinja template verbatim; Nanbeige's calls Python-style .get()/.startswith(),
+  # which the runtime's minijinja renderer rejects on the first message.)
+  print(f"Template mode: prefix/suffix prompt_templates from {template_path} "
+        "(use_jinja_template=False -- no Jinja embedded)")
   print("EXPORT_DONE")
 
 

@@ -29,6 +29,8 @@ Covered: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`, `ministral3-3b(+reason
 `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `qwen25-3b`. Full recipe table +
 per-model caveats in **[REPRODUCE.md](REPRODUCE.md)**.
 
+All recipes export with `use_jinja_template=False` (plain prefix/suffix turn markers, no embedded Jinja) — vendor HF chat templates often call Python-style methods (`.get()`, `.startswith()`) that the runtime's minijinja renderer rejects, crashing on the first message. See the template-safety note in [REPRODUCE.md](REPRODUCE.md).
+
 ### Vision-language models (`fast_vlm` single image) → `.litertlm`
 
 ```bash
