@@ -199,6 +199,28 @@ Same env as MiniCPM (python 3.10+, `litert-torch litert-lm "transformers==5.6.2"
 - **GPU works with litert-torch ≥ 0.9.2 exports** (it did not with 0.9.1: the local fix's `index_select` lowered to GATHER_ND and its mask sum brought int64 ops — both rejected by GPU delegates; the upstream 0.9.2 rework emits neither). One catch: the 0.9.2 exporter wraps attention softmax in an `odml.softmax` StableHLO composite that the GPU delegate in released litert-lm 0.14 doesn't accept (engine creation fails with "graph is not fully delegated"; CPU unaffected). `convert_lfm25.py` therefore strips the composite marker by default — the math is unchanged, plain softmax stays — which makes the export fully GPU-delegable on today's runtime (Mac WebGPU, 1.2B int8: ~4750 tok/s prefill / ~195 tok/s decode, 8/8 on the quality gate). Pass `--keep-softmax-composite` to keep the marker for newer runtimes that fuse it.
 - **litert-lm ≥ 0.15 needs an `ExecutorMetadata` section** for state-carrying (hybrid) models: 0.15 binds the per-layer conv/attention state buffers through a new `ExecutorMetadataProto` section, and files exported with litert-torch ≤ 0.9.2 don't have it — they run fine on 0.14 but fail at inference on 0.15 with `missing some output TensorBuffers` (attention-only models are unaffected). Fix an existing file in place with `python add_executor_metadata.py in.litertlm out.litertlm` (weights unchanged; the result runs on both 0.14 and 0.15 — this is how the published LFM2.5 repos were updated on 2026-08-04). Checking on the composite from the previous bullet: the 0.15 GPU delegate still rejects `odml.softmax`, so the strip default stays.
 
+## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
+
+`granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).
+
+```bash
+cd granite_work
+git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
+git -C litert-torch-granite checkout 115a136
+git -C litert-torch-granite apply "$(pwd)/granite_hybrid_litert_torch.patch"
+PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-1b out_granite_1b
+```
+
+The patch (against the pinned litert-torch base above) is what makes a state-carrying hybrid convert *and generate correctly* end to end. The non-obvious parts, in the order they were needed:
+
+- **A Mamba2 export-cache layer** (conv `[B, conv_dim, K]` + SSM recurrent `[B, heads, head_dim, state]`) registered for Granite's layer types, so `torch.export` traces the model's own state contract instead of failing on the attention-only default cache.
+- **State-continuation tracing.** Prefill graphs trace the chunk-continuation branch (previous conv/SSM state consumed) and the decode graph traces the single-step branch (conv window rolled by one, `has_previous_state` truthy at trace time). Without this the decode graph has no state continuity: it converts, loads and runs — and generates garbage from the second token on. Trap: `torch.export`'s pytree flatten/unflatten REBUILDS cache-layer objects mid-trace, so any mode flag must ride in the pytree context or it silently never reaches the graph.
+- **The mamba prefill-pad guard.** The runtime's chunk planner runs prefill chunks *partially filled* (the remainder chunk is padded), and granite's own `apply_mask_to_padding_states` is a no-op at batch 1 — so pads poison the conv/SSM state at chunk-plan-dependent prompt lengths (the Mamba2 analog of the LFM2 ShortConv prefill-pad bug). The guard derives a valid mask from `tokens != 0` (the engine zero-fills pads), makes pad positions identity SSM steps (dt → ~0), and gathers the stored conv window at the last *valid* column with an in-graph one-hot matmul.
+- **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (8Q sanity 5/8 vs 6/8 on the 350m — same rule as the LFM2.5 convs).
+- Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position; int8 sanity gate 8/8 (= the PyTorch reference); first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean.
+
+Smaller sizes convert identically but watch quality margins: at 350m, chunk-shape-dependent float jitter (~1e-4) plus int8 noise is already enough to flip greedy near-ties at a couple of prompt lengths, so gate before publishing.
+
 ## LFM2.5-Encoder (bidirectional encoders → plain .tflite)
 
 `lfm_work/convert_lfm25_encoder.py` converts LiquidAI's LFM2.5-Encoder-350M/230M — multilingual (15-language) bidirectional masked-LM encoders on the same LFM2 hybrid backbone — to plain LiteRT `.tflite` for embeddings / retrieval / fill-mask, fully on CPU. These are NOT `export_hf` runs: the models have no KV cache, so the HF eager model (remote code = stock `Lfm2Model` + bidirectional patches) is traced directly with `litert_torch` multi-signature convert. Signatures: `encode_{64,128,256,512}` → `last_hidden_state` `[1,S,1024]` (padded positions zeroed), plus `mlm_128` → masked-LM logits. Published: [litert-community/LFM2.5-Encoder-350M](https://huggingface.co/litert-community/LFM2.5-Encoder-350M), [litert-community/LFM2.5-Encoder-230M](https://huggingface.co/litert-community/LFM2.5-Encoder-230M).
