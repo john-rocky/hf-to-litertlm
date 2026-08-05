@@ -221,7 +221,19 @@ The patch (against the pinned litert-torch base above) is what makes a state-car
 - **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (8Q sanity 5/8 vs 6/8 on the 350m — same rule as the LFM2.5 convs).
 - Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position; int8 sanity gate 8/8 (= the PyTorch reference); first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean.
 
-Smaller sizes convert identically but watch quality margins: at 350m, chunk-shape-dependent float jitter (~1e-4) plus int8 noise is already enough to flip greedy near-ties at a couple of prompt lengths, so gate before publishing.
+### granite-4.0-h-350m (fp16 + int8) — and the start_token lesson
+
+Published: [litert-community/granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) (fp16 723 MB + int8 436 MB). The 350m initially looked like it had "quantization jitter" (replies ending after a few tokens at some prompt lengths; multi-question prompts answered only at the last question). The actual root cause was **our packaging, not the model or the runtime**: the bundle's `LlmMetadata start_token` makes the engine prepend `<|end_of_text|>` to every prompt, Granite's official chat template has no leading BOS, and at 350M scale that one token flips the greedy trajectory (prepending the same token to the HF reference reproduces the degraded output verbatim — the graph was faithful all along). The 1b is robust to it; the 350m is not.
+
+```bash
+cd granite_work
+PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-350m out_granite_350m
+python drop_start_token.py out_granite_350m/granite-4.0-h-350m_int8.litertlm granite-4.0-h-350m_int8.litertlm
+python ../lfm_work/add_executor_metadata.py out_granite_350m/model.litertlm out_granite_350m/model_fp_meta.litertlm
+python make_fp16_variant.py out_granite_350m/model_fp_meta.litertlm granite-4.0-h-350m_fp16.litertlm --drop-start-token
+```
+
+Gates on the published files (litert-lm 0.15 CPU, Mac + iPhone 17 Pro): fp16 = 8/8 sanity, greedy output token-identical to the HF fp32 reference on our probes, prompt-length sweep 12–200 clean; int8 = 8/8 sanity, sweep clean except a known 33–37-token band where replies can end early (int8 noise interacting with one prefill chunk shape — fp16 is clean there; documented on the card). On phones ship int8: the CPU runtime unpacks fp16 weights to fp32 in RAM (~3.7 GB peak on iPhone vs ~2.1 GB for int8).
 
 ## LFM2.5-Encoder (bidirectional encoders → plain .tflite)
 
