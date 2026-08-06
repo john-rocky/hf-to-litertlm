@@ -1,0 +1,999 @@
+diff --git a/litert_torch/generative/export_hf/core/attention.py b/litert_torch/generative/export_hf/core/attention.py
+index 7b1c68c..166a883 100644
+--- a/litert_torch/generative/export_hf/core/attention.py
++++ b/litert_torch/generative/export_hf/core/attention.py
+@@ -149,8 +149,12 @@ def transposed_attention(
+       scale=scaling,
+       softcap=softcap,
+   )
+-  # b, kg, t, h
+-  sdpa_out = sdpa_out.reshape(b, -1, seq_len, h).permute(0, 2, 1, 3)
++  # b, kg, t, h_v
++  # The SDPA output head dim is the VALUE head dim, which can differ from the
++  # query head dim h (Multi-head Latent Attention, e.g. DeepSeek-V2/V3:
++  # qk_head_dim = qk_nope + qk_rope != v_head_dim). Use the actual output dim.
++  out_head_dim = sdpa_out.shape[-1]
++  sdpa_out = sdpa_out.reshape(b, -1, seq_len, out_head_dim).permute(0, 2, 1, 3)
+   return sdpa_out, None
+ 
+ 
+diff --git a/litert_torch/generative/export_hf/core/cache.py b/litert_torch/generative/export_hf/core/cache.py
+index 5c13dea..fcca905 100644
+--- a/litert_torch/generative/export_hf/core/cache.py
++++ b/litert_torch/generative/export_hf/core/cache.py
+@@ -116,6 +116,10 @@ class LiteRTLMCacheLayer(cache_base_lib.LiteRTLMCacheLayerMixin):
+   is_compileable = True
+   is_sliding = False
+ 
++  def get_max_length(self) -> int:
++    # transformers >= 5.14 Cache ABC requirement (upstream returns max_cache_len).
++    return self.max_cache_len
++
+   def __init__(
+       self,
+       key_cache: KeyCache,
+@@ -437,10 +441,477 @@ class LiteRTLMConvCacheLayer(
+     )
+ 
+ 
++class LiteRTLMLinearAttentionCacheLayer(
++    cache_base_lib.LiteRTLMCacheLayerMixin,
++    cache_utils.LinearAttentionCacheLayerMixin,
++):
++  """Conv + recurrent state cache layer for gated-delta-net / linear-attention layers.
++
++  Used for HF arches whose `layer_types[i] == "linear_attention"` (e.g. Qwen3.5's
++  GatedDeltaNet). Unlike LiteRTLMConvCacheLayer (conv state only — LFM2 ShortConv), a
++  gated-delta-net layer also carries a per-head recurrent state, so this layer holds BOTH
++  `conv_states` and `recurrent_states`. Registering it for "linear_attention" is what makes
++  the export cache actually contain a LinearAttention layer, so the model's own
++  `cache.has_previous_state(...)` no longer raises mid-trace.
++  """
++
++  is_compileable = True
++  is_sliding = False
++
++  def get_max_length(self) -> int:
++    # transformers >= 5.14 Cache ABC: -1 = no sequence-length dimension
++    # (linear-attention recurrent state), per the base-class docstring.
++    return -1
++
++  def __init__(
++      self,
++      conv_states: torch.Tensor,
++      recurrent_states: torch.Tensor,
++      batch_size: int = 1,
++      decode_mode: bool = False,
++      **kwargs,
++  ):
++    cache_utils.LinearAttentionCacheLayerMixin.__init__(self)
++    # HF modeling reads these as one-element containers (`conv_states[0]`,
++    # `recurrent_states[0][:, None]` in the chunk-continuation path), so keep
++    # the raw buffers private and expose list views via properties below.
++    self._conv_state = conv_states
++    self._recurrent_state = recurrent_states
++    # decode_mode: the DECODE exportable module traces the single-step branch
++    # (seq_len==1, conv window rolled by one); prefill traces the chunked
++    # branch WITH state continuation (previous conv/ssm state consumed), so
++    # multi-chunk prefill composes correctly. Both need has_previous_state
++    # truthy — decode_mode only selects the conv-update semantics.
++    self._decode_mode = decode_mode
++    # transformers >= 5.14 keys these by state index (dict.values() is called on
++    # has_previous_state); a single (conv, recurrent) state pair -> index 0.
++    # On <= 5.13 the flags are read as plain bools (and a non-empty dict would be
++    # truthy -> wrong branch), so pick the shape by version.
++    import transformers as _tf
++    _tf514 = tuple(int(x) for x in _tf.__version__.split(".")[:2]) >= (5, 14)
++    self.is_conv_states_initialized = {0: True} if _tf514 else True
++    self.is_recurrent_states_initialized = {0: True} if _tf514 else True
++    # Static export carries both state buffers as graph I/O, but — like the LFM2 conv
++    # path — prefill recomputes from zeroed state, so keep has_previous_state False to take
++    # Always truthy: prefill traces the chunked branch WITH continuation
++    # (chunk 1 starts from engine-zeroed state, so the math is unchanged for a
++    # single chunk, and chunks 2+ continue correctly), decode traces the
++    # single-step branch. (dict keyed by state index since transformers 5.14;
++    # plain bool on <= 5.13 where the flag is read directly.)
++    self.has_previous_state = {0: True} if _tf514 else True
++    self.batch_size = batch_size
++    self.is_initialized = True
++    self.conv_kernel_size = conv_states.shape[-1]
++    self.keys = torch.zeros((1, 1, 1, 1))
++    self.values = torch.zeros((1, 1, 1, 1))
++
++  def get_batch_size(self) -> int:
++    return self.batch_size
++
++  def get_k_ts_idx(self) -> int:
++    return 2  # Not used.
++
++  def get_v_ts_idx(self) -> int:
++    return 3  # Not used.
++
++  def lazy_initialization(self, *args, **kwargs):
++    raise NotImplementedError("Lazy initialization is not supported.")
++
++  def update(self, key_states, value_states, *args, **kwargs):
++    raise ValueError("Cannot call update on LinearAttentionCacheLayer.")
++
++  def update_conv_state(
++      self, conv_states: torch.Tensor, state_idx: int = 0, **kwargs
++  ) -> torch.Tensor:
++    # Unlike the LFM2 ShortConv path (which hands the FULL-sequence conv input and asks the
++    # cache to roll it), gated-delta-net produces the final kernel-width conv state itself
++    # (`F.pad(mixed_qkv, (K - L, 0))` → [B, conv_dim, K]) and just asks the cache to store
++    # it. So this is a plain store into the static buffer. (state_idx: single-state
++    # layers only — transformers >= 5.14 passes it positionally.)
++    self._conv_state.copy_(conv_states)
++    return self._conv_state
++
++  def update_recurrent_state(
++      self, recurrent_states: torch.Tensor, state_idx: int = 0, **kwargs
++  ) -> torch.Tensor:
++    self._recurrent_state.copy_(recurrent_states)
++    return self._recurrent_state
++
++  @property
++  def conv_states(self):
++    # One-element container view: HF modeling indexes `conv_states[0]`.
++    return [self._conv_state]
++
++  @conv_states.setter
++  def conv_states(self, value):
++    # The transformers LinearAttention mixin __init__ assigns bookkeeping
++    # containers here; the static export buffer replaces them, so only accept
++    # tensor assignment and drop the rest.
++    if isinstance(value, torch.Tensor):
++      self._conv_state = value
++
++  @property
++  def recurrent_states(self):
++    return [self._recurrent_state]
++
++  @recurrent_states.setter
++  def recurrent_states(self, value):
++    if isinstance(value, torch.Tensor):
++      self._recurrent_state = value
++
++  def get_mask_sizes(self, cache_position: torch.Tensor):
++    return self.conv_kernel_size, 0
++
++  def get_seq_length(self) -> int:
++    return 0
++
++  def get_max_cache_shape(self) -> int:
++    return self.conv_kernel_size
++
++  @classmethod
++  def create_from_config(
++      cls,
++      model_config,
++      layer_index,
++      export_config: ExportableModuleConfig,
++      **kwargs,
++  ) -> "LiteRTLMLinearAttentionCacheLayer":
++    assert model_config.layer_types[layer_index] == "linear_attention"
++    cfg = getattr(model_config, "text_config", model_config)
++    key_dim = cfg.linear_key_head_dim * cfg.linear_num_key_heads
++    value_dim = cfg.linear_value_head_dim * cfg.linear_num_value_heads
++    conv_dim = key_dim * 2 + value_dim
++    batch_size = kwargs.pop("batch_size", export_config.batch_size)
++    # gated-delta-net stores a full kernel-width conv state (F.pad to K), not K-1.
++    conv_states = torch.zeros(
++        (batch_size, conv_dim, cfg.linear_conv_kernel_dim),
++        dtype=torch.float32,
++    )
++    recurrent_states = torch.zeros(
++        (
++            batch_size,
++            cfg.linear_num_value_heads,
++            cfg.linear_key_head_dim,
++            cfg.linear_value_head_dim,
++        ),
++        dtype=torch.float32,
++    )
++    return cls(
++        conv_states,
++        recurrent_states,
++        batch_size=batch_size,
++        **kwargs,
++    )
++
++
++class LiteRTLMMambaCacheLayer(LiteRTLMLinearAttentionCacheLayer):
++  """Conv + SSM-state cache layer for Mamba2 selective-scan layers.
++
++  Used for HF arches that interleave Mamba2 and attention layers and tag the SSM layers
++  `layer_types[i] == "mamba"` (e.g. IBM Granite-4-h's `granitemoehybrid`; Bamba/Nemotron-H
++  share the layout). Structurally identical to
++  LiteRTLMLinearAttentionCacheLayer — both hold a `conv_states` plus a per-head
++  recurrent state, and both store the final kernel-width conv state with a plain copy
++  (Mamba2's `torch_forward` pads to the full kernel width via `F.pad(.., (d_conv-L, 0))`
++  and asks the cache to store it, exactly like gated-delta-net) — so only the SHAPE
++  derivation differs: Mamba2 sizes its state from the `mamba_*` config fields rather
++  than gated-delta-net's `linear_*` fields. Registering it for "mamba" is what makes the
++  export cache contain a LinearAttention-style layer, so the model's own
++  `_update_mamba_mask` → `cache.has_previous_state()` no longer raises mid-trace.
++  """
++
++  def update_conv_state(self, conv_states, state_idx=0, **kwargs):
++    # Unified window update covering every granite call site:
++    # - chunked prefill (seq>1) passes the full K-wide window (pad-and-store)
++    #   -> cat(old, full)[..., -K:] == full, a plain store;
++    # - single-step (seq==1: decode, and length-1 prefill chunks) passes one
++    #   raw column -> cat rolls the window left by one.
++    # A plain copy_ here would silently BROADCAST a [B,dim,1] update over the
++    # [B,dim,K] buffer on the single-step path — that corrupted every prompt
++    # whose chunk plan contained a length-1 chunk.
++    merged = torch.cat([self._conv_state, conv_states], dim=-1)[
++        ..., -self.conv_kernel_size:
++    ]
++    self._conv_state.copy_(merged)
++    return merged
++
++  @classmethod
++  def create_from_config(
++      cls,
++      model_config,
++      layer_index,
++      export_config: ExportableModuleConfig,
++      **kwargs,
++  ) -> "LiteRTLMMambaCacheLayer":
++    # transformers >= 5.14 renamed the layer type "mamba" -> "linear_attention"
++    assert model_config.layer_types[layer_index] in ("mamba", "linear_attention")
++    cfg = getattr(model_config, "text_config", model_config)
++    # Matches GraniteMoeHybridMambaMixer.__init__: the mamba intermediate is
++    # `mamba_expand * hidden_size`, and the conv operates on
++    # `intermediate_size + 2 * n_groups * d_state` channels (gate/x are excluded; B and C
++    # for each group are included).
++    intermediate_size = int(cfg.mamba_expand * cfg.hidden_size)
++    conv_dim = intermediate_size + 2 * cfg.mamba_n_groups * cfg.mamba_d_state
++    batch_size = kwargs.pop("batch_size", export_config.batch_size)
++    # conv buffer is the full kernel width d_conv (not d_conv - 1) — see the plain-store
++    # contract in update_conv_state inherited from LiteRTLMLinearAttentionCacheLayer.
++    conv_states = torch.zeros(
++        (batch_size, conv_dim, cfg.mamba_d_conv),
++        dtype=torch.float32,
++    )
++    # ssm recurrent state: [B, num_heads, head_dim, state_size].
++    recurrent_states = torch.zeros(
++        (
++            batch_size,
++            cfg.mamba_n_heads,
++            cfg.mamba_d_head,
++            cfg.mamba_d_state,
++        ),
++        dtype=torch.float32,
++    )
++    return cls(
++        conv_states,
++        recurrent_states,
++        batch_size=batch_size,
++        **kwargs,
++    )
++
++
++def _is_mla_config(model_config) -> bool:
++  """True for Multi-head Latent Attention configs (DeepSeek-V2/V3/V3.2, MiniMax-M2).
++
++  MLA configs carry a low-rank KV latent (`kv_lora_rank`) and split the query/key
++  head into a no-RoPE part and a decoupled RoPE part, with a separate value head
++  dim — i.e. the K head dim (`qk_nope_head_dim + qk_rope_head_dim`) and the V head
++  dim (`v_head_dim`) are ASYMMETRIC. These configs have no per-layer `layer_types`,
++  so they fall through to the default full-attention cache, which assumes one shared
++  head dim and mis-sizes the cache.
++  """
++  cfg = getattr(model_config, "text_config", model_config)
++  return all(
++      getattr(cfg, k, None) is not None
++      for k in ("kv_lora_rank", "qk_rope_head_dim", "qk_nope_head_dim", "v_head_dim")
++  )
++
++
++class LiteRTLMMLACacheLayer(LiteRTLMCacheLayer):
++  """KV cache layer for Multi-head Latent Attention (DeepSeek-V2/V3, MiniMax-M2).
++
++  MLA compresses KV into a low-rank latent at runtime, but the transformers
++  modeling DECOMPRESSES it back to full per-head K/V *before* it calls
++  `past_key_values.update` (`kv_b_proj` in DeepseekV2/V3Attention.forward) — and
++  the decompress is a plain Linear + split/cat, so it lowers to generic ops. Hence
++  the export cache stores materialized K/V exactly like full attention, with ONE
++  difference: the K and V head dims are ASYMMETRIC. K head dim is
++  `qk_nope_head_dim + qk_rope_head_dim` (the no-RoPE part concatenated with the
++  decoupled RoPE part) while V head dim is `v_head_dim`. The base LiteRTLMCacheLayer
++  assumes a single shared `head_dim` for both, so its `update` reshape mangles MLA's
++  K/V and the score einsum then mismatches (`size 64 ... does not broadcast with
++  192`). This subclass sizes and reshapes K and V with their own head dims.
++  """
++
++  def __init__(
++      self,
++      key_cache: KeyCache,
++      value_cache: ValueCache,
++      batch_size: int = 1,
++      k_ts_idx: int = 2,
++      v_ts_idx: int = 3,
++      **kwargs,
++  ):
++    super().__init__(
++        key_cache, value_cache, batch_size, k_ts_idx, v_ts_idx, **kwargs
++    )
++    # Base sets self.head_dim from the V cache; record K's (possibly different) dim.
++    k_head_dim_idx = 3 if self.k_ts_idx == 2 else 2
++    self.k_head_dim = self.k_cache_shape[k_head_dim_idx]
++    self.v_head_dim = self.head_dim
++
++  def update(
++      self,
++      key_states: torch.Tensor,
++      value_states: torch.Tensor,
++      *args,
++      **kwargs,
++  ) -> tuple[torch.Tensor, torch.Tensor]:
++    cache_kwargs = self.get_cache_runtime_args()
++    seq_len = key_states.shape[2]
++    self.cumulative_length += seq_len
++
++    key_states = key_states.to(self.keys.dtype)
++    value_states = value_states.to(self.values.dtype)
++
++    # Identical to the base update except K and V use their own head dims.
++    if not cache_kwargs.get("kv_slice_preprocessed", False):
++      if self.k_ts_idx == 3:
++        key_states = key_states.permute(0, 1, 3, 2).reshape(
++            1, -1, self.k_head_dim, seq_len
++        )
++      elif self.k_ts_idx == 2:
++        key_states = key_states.reshape(1, -1, seq_len, self.k_head_dim)
++      else:
++        raise ValueError(f"Unsupported k_ts_idx: {self.k_ts_idx}")
++      if self.v_ts_idx == 3:
++        value_states = value_states.permute(0, 1, 3, 2).reshape(
++            1, -1, self.v_head_dim, seq_len
++        )
++      elif self.v_ts_idx == 2:
++        value_states = value_states.reshape(1, -1, seq_len, self.v_head_dim)
++      else:
++        raise ValueError(f"Unsupported v_ts_idx: {self.v_ts_idx}")
++
++    cache_position: jt.Int32[torch.Tensor, "T"] = cache_kwargs.get(
++        "cache_position"
++    )
++    assert (
++        cache_position is not None
++    ), "For export, cache position should always be set."
++    merged_kwargs = {**kwargs, **cache_kwargs}
++    merged_kwargs.pop("cache_position", None)
++    self.keys, self.values = _update_kv_impl(
++        self.keys,
++        self.values,
++        key_states,
++        value_states,
++        cache_position,
++        self.k_ts_idx,
++        self.v_ts_idx,
++        **merged_kwargs,
++    )
++    return self.keys, self.values
++
++  @classmethod
++  def _infer_cache_shape_from_config(
++      cls,
++      model_config,
++      layer_index,
++      export_config: ExportableModuleConfig,
++  ):
++    """Sizes K and V caches with the asymmetric MLA head dims."""
++    cfg = getattr(model_config, "text_config", model_config)
++    cache_length = export_config.cache_length
++    batch_size = export_config.batch_size
++    k_ts_idx = export_config.k_ts_idx
++    v_ts_idx = export_config.v_ts_idx
++    # MLA materializes one K/V per query head (num_key_value_groups == 1).
++    num_kv_heads = cfg.num_attention_heads
++    k_head_dim = cfg.qk_nope_head_dim + cfg.qk_rope_head_dim
++    v_head_dim = cfg.v_head_dim
++
++    def _shape(ts_idx, head_dim):
++      if ts_idx == 2:
++        return (1, batch_size * num_kv_heads, cache_length, head_dim)
++      elif ts_idx == 3:
++        return (1, batch_size * num_kv_heads, head_dim, cache_length)
++      raise ValueError(f"Unsupported ts_idx: {ts_idx}")
++
++    return _shape(k_ts_idx, k_head_dim), _shape(v_ts_idx, v_head_dim)
++
++
++class LiteRTLMMLAIndexerCacheLayer(LiteRTLMMLACacheLayer):
++  """MLA cache plus a DeepSeek Sparse Attention (DSA) indexer key cache.
++
++  DeepSeek-V3.2 (`layer_types[i] == "deepseek_sparse_attention"`) keeps the
++  asymmetric MLA K/V cache (inherited from LiteRTLMMLACacheLayer) AND a second,
++  lightweight per-layer cache for its sparse-attention indexer
++  (`DeepseekV32Indexer`): a single-head key cache of shape
++  `[batch_size, seq_len, index_head_dim]` updated via
++  `past_key_values.update_indexer()` — independent of the main K/V `update`.
++  transformers stores it on `DynamicIndexedLayer` / `StaticIndexedLayer`; for
++  export we add a static indexer-key buffer here and write it with the same
++  `dynamic_update_slice` primitive as K/V. (Without `update_indexer`, the modeling
++  raises `ValueError: Cannot call update_indexer ... it has no indexer key cache`
++  mid FX-trace.) The indexer buffer is laid out `[1, batch_size, cache_length,
++  index_head_dim]` (single head, seq at index 2), folding batch into dim 1 so the
++  4D `dynamic_update_slice` path is reused unchanged.
++  """
++
++  # Buffer seq dimension for the (always 4D) indexer-key cache.
++  indexer_ts_idx = 2
++
++  def __init__(
++      self,
++      key_cache: KeyCache,
++      value_cache: ValueCache,
++      indexer_cache: torch.Tensor,
++      batch_size: int = 1,
++      k_ts_idx: int = 2,
++      v_ts_idx: int = 3,
++      **kwargs,
++  ):
++    super().__init__(
++        key_cache, value_cache, batch_size, k_ts_idx, v_ts_idx, **kwargs
++    )
++    self.indexer_keys = indexer_cache
++    self.index_head_dim = self.indexer_keys.shape[3]
++
++  def update_indexer(self, indexer_key_states: torch.Tensor) -> torch.Tensor:
++    """Writes the new indexer keys into the static buffer and returns it.
++
++    Mirrors `update` but for the single-head indexer cache: the modeling passes
++    `[batch_size, seq_len, index_head_dim]`; we fold batch into dim 1 to reuse the
++    4D `dynamic_update_slice`, then return the full `[batch_size, cache_length,
++    index_head_dim]` buffer (unfilled positions are masked downstream, exactly as
++    the static K/V path returns its full preallocated cache).
++    """
++    cache_kwargs = self.get_cache_runtime_args()
++    cache_position: jt.Int32[torch.Tensor, "T"] = cache_kwargs.get(
++        "cache_position"
++    )
++    assert (
++        cache_position is not None
++    ), "For export, cache position should always be set."
++    seq_len = indexer_key_states.shape[1]
++    idx_slice = indexer_key_states.to(self.indexer_keys.dtype).reshape(
++        1, -1, seq_len, self.index_head_dim
++    )
++    positions = cache_position[0]
++    slice_indices = _get_slice_indices(
++        positions.clone(), 4, self.indexer_ts_idx
++    )
++    self.indexer_keys = tfl_dus.dynamic_update_slice(
++        self.indexer_keys, idx_slice, [x for x in slice_indices]
++    )
++    return self.indexer_keys.reshape(
++        -1, self.max_cache_len, self.index_head_dim
++    )
++
++  @classmethod
++  def create_from_config(
++      cls,
++      model_config,
++      layer_index,
++      export_config: ExportableModuleConfig,
++      **kwargs,
++  ) -> "LiteRTLMMLAIndexerCacheLayer":
++    """Creates the asymmetric MLA K/V caches plus the indexer key cache."""
++    k_cache_shape, v_cache_shape = cls._infer_cache_shape_from_config(
++        model_config, layer_index, export_config
++    )
++    cfg = getattr(model_config, "text_config", model_config)
++    keys = torch.zeros(k_cache_shape, dtype=torch.float32)
++    values = torch.zeros(v_cache_shape, dtype=torch.float32)
++    indexer_cache = torch.zeros(
++        (1, export_config.batch_size, export_config.cache_length, cfg.index_head_dim),
++        dtype=torch.float32,
++    )
++    return cls(
++        keys,
++        values,
++        indexer_cache,
++        k_ts_idx=export_config.k_ts_idx,
++        v_ts_idx=export_config.v_ts_idx,
++        **kwargs,
++    )
++
++
+ LAYER_TYPE_TO_CLASS = {
+     "full_attention": LiteRTLMCacheLayer,
+     "sliding_attention": LiteRTLMCacheLayer,
+     "conv": LiteRTLMConvCacheLayer,
++    "linear_attention": LiteRTLMLinearAttentionCacheLayer,
++    "mamba": LiteRTLMMambaCacheLayer,
++    "deepseek_sparse_attention": LiteRTLMMLAIndexerCacheLayer,
+ }
+ 
+ 
+@@ -464,6 +935,15 @@ class LiteRTLMCache(cache_base_lib.LiteRTLMCacheMixin):
+       if hasattr(model_config, "layer_types"):
+         layer_type = model_config.layer_types[layer_index]
+       layer_class = LAYER_TYPE_TO_CLASS.get(layer_type, LiteRTLMCacheLayer)
++      # transformers >= 5.14 renamed mamba layer_types to the standardized
++      # "linear_attention"; distinguish mamba2 (granite/bamba) by its config keys.
++      if (layer_class is LiteRTLMLinearAttentionCacheLayer
++          and hasattr(model_config, "mamba_n_heads")):
++        layer_class = LiteRTLMMambaCacheLayer
++      # MLA (DeepSeek-V2/V3, MiniMax-M2) has no per-layer types and needs an
++      # asymmetric K/V cache; route its (otherwise full-attention) layers to it.
++      if layer_class is LiteRTLMCacheLayer and _is_mla_config(model_config):
++        layer_class = LiteRTLMMLACacheLayer
+       layers.append(
+           layer_class.create_from_config(
+               model_config,
+@@ -519,10 +999,45 @@ def _flatten_kvc_t(
+     v_ts_idx = layer_0.get_v_ts_idx()
+   layer_types = []
+   for i, layer in enumerate(kvc.layers):
+-    if isinstance(layer, LiteRTLMConvCacheLayer):
++    if isinstance(layer, LiteRTLMMambaCacheLayer):
++      # Must precede the LiteRTLMLinearAttentionCacheLayer branch (it is a subclass).
++      layer_types.append("mamba")
++      flattened.append(layer._conv_state)
++      flat_names.append(f"mc_{i}")
++      flattened.append(layer._recurrent_state)
++      flat_names.append(f"mr_{i}")
++    elif isinstance(layer, LiteRTLMLinearAttentionCacheLayer):
++      layer_types.append("linear_attention")
++      flattened.append(layer._conv_state)
++      flat_names.append(f"lc_{i}")
++      flattened.append(layer._recurrent_state)
++      flat_names.append(f"lr_{i}")
++    elif isinstance(layer, LiteRTLMConvCacheLayer):
+       layer_types.append("conv")
+       flattened.append(layer.conv_states)
+       flat_names.append(f"c_{i}")
++    elif isinstance(layer, LiteRTLMMLAIndexerCacheLayer):
++      # Must precede the LiteRTLMMLACacheLayer branch (it is a subclass). MLA
++      # K/V reuse the `k_`/`v_` names (like plain MLA); the DSA indexer adds a
++      # third single-head key cache `idx_{i}`. The "mla_indexer" layer_type in
++      # the context drives the indexer-buffer rebuild on unflatten.
++      layer_types.append("mla_indexer")
++      flattened.append(layer.keys)
++      flat_names.append(f"k_{i}")
++      flattened.append(layer.values)
++      flat_names.append(f"v_{i}")
++      flattened.append(layer.indexer_keys)
++      flat_names.append(f"idx_{i}")
++    elif isinstance(layer, LiteRTLMMLACacheLayer):
++      # Must precede the LiteRTLMCacheLayer branch (it is a subclass). MLA stores
++      # materialized K/V exactly like full attention, so it reuses the same
++      # `k_`/`v_` tensor names (the runtime keys its KV cache off `kv_cache_k_0`);
++      # the "mla" layer_type in the context drives the asymmetric-dim rebuild.
++      layer_types.append("mla")
++      flattened.append(layer.keys)
++      flat_names.append(f"k_{i}")
++      flattened.append(layer.values)
++      flat_names.append(f"v_{i}")
+     elif isinstance(layer, LiteRTLMCacheLayer):
+       layer_types.append("full_attention")
+       flattened.append(layer.keys)
+@@ -531,9 +1046,18 @@ def _flatten_kvc_t(
+       flat_names.append(f"v_{i}")
+     else:
+       raise ValueError(f"Unsupported layer type: {type(layer)}")
++  # decode_mode must survive the flatten/unflatten round-trip torch.export
++  # performs, or the traced modeling silently falls back to prefill semantics.
++  decode_mode = any(
++      getattr(layer, "_decode_mode", False) for layer in kvc.layers
++  )
+   return (
+       flattened,
+-      (flat_names, (batch_size, num_layers, k_ts_idx, v_ts_idx, layer_types)),
++      (
++          flat_names,
++          (batch_size, num_layers, k_ts_idx, v_ts_idx, layer_types,
++           decode_mode),
++      ),
+   )
+ 
+ 
+@@ -543,11 +1067,40 @@ def _unflatten_kvc_t(
+ ) -> LiteRTLMCache:
+   """Unflattens the cache from a list of tensors."""
+   flat_names = context[0]
+-  batch_size, num_layers, k_ts_idx, v_ts_idx, layer_types = context[1]
++  # decode_mode was appended to the context (older 5-tuple contexts default False)
++  if len(context[1]) == 6:
++    batch_size, num_layers, k_ts_idx, v_ts_idx, layer_types, decode_mode = (
++        context[1]
++    )
++  else:
++    batch_size, num_layers, k_ts_idx, v_ts_idx, layer_types = context[1]
++    decode_mode = False
+   layers = []
+   for i in range(num_layers):
+     layer_type = layer_types[i]
+-    if layer_type == "conv":
++    if layer_type == "mamba":
++      mc_idx = flat_names.index(f"mc_{i}")
++      mr_idx = flat_names.index(f"mr_{i}")
++      layers.append(
++          LiteRTLMMambaCacheLayer(
++              conv_states=values[mc_idx],
++              recurrent_states=values[mr_idx],
++              batch_size=batch_size,
++              decode_mode=decode_mode,
++          )
++      )
++    elif layer_type == "linear_attention":
++      lc_idx = flat_names.index(f"lc_{i}")
++      lr_idx = flat_names.index(f"lr_{i}")
++      layers.append(
++          LiteRTLMLinearAttentionCacheLayer(
++              conv_states=values[lc_idx],
++              recurrent_states=values[lr_idx],
++              batch_size=batch_size,
++              decode_mode=decode_mode,
++          )
++      )
++    elif layer_type == "conv":
+       c_cache_idx = flat_names.index(f"c_{i}")
+       layers.append(
+           LiteRTLMConvCacheLayer(
+@@ -555,6 +1108,32 @@ def _unflatten_kvc_t(
+               batch_size=batch_size,
+           )
+       )
++    elif layer_type == "mla_indexer":
++      k_cache_idx = flat_names.index(f"k_{i}")
++      v_cache_idx = flat_names.index(f"v_{i}")
++      idx_cache_idx = flat_names.index(f"idx_{i}")
++      layers.append(
++          LiteRTLMMLAIndexerCacheLayer(
++              key_cache=values[k_cache_idx],
++              value_cache=values[v_cache_idx],
++              indexer_cache=values[idx_cache_idx],
++              batch_size=batch_size,
++              k_ts_idx=k_ts_idx,
++              v_ts_idx=v_ts_idx,
++          )
++      )
++    elif layer_type == "mla":
++      k_cache_idx = flat_names.index(f"k_{i}")
++      v_cache_idx = flat_names.index(f"v_{i}")
++      layers.append(
++          LiteRTLMMLACacheLayer(
++              key_cache=values[k_cache_idx],
++              value_cache=values[v_cache_idx],
++              batch_size=batch_size,
++              k_ts_idx=k_ts_idx,
++              v_ts_idx=v_ts_idx,
++          )
++      )
+     elif layer_type == "full_attention":
+       k_cache_idx = flat_names.index(f"k_{i}")
+       v_cache_idx = flat_names.index(f"v_{i}")
+diff --git a/litert_torch/generative/export_hf/core/export_lib.py b/litert_torch/generative/export_hf/core/export_lib.py
+index 589653d..97c472f 100644
+--- a/litert_torch/generative/export_hf/core/export_lib.py
++++ b/litert_torch/generative/export_hf/core/export_lib.py
+@@ -181,6 +181,20 @@ def load_model(
+         trust_remote_code=trust_remote_code,
+     )
+ 
++  # MoE models routed through transformers' shared experts dispatch
++  # (`@use_experts_implementation`) default to the `grouped_mm` experts path, which
++  # emits `torch.histc` and the custom `transformers.grouped_mm_fallback` op — neither
++  # has a tflite lowering, so export aborts at MLIR lowering. The `batched_mm` path
++  # computes the identical MoE function with only generic ops (gathered expert weights
++  # + `torch.bmm`), so it lowers cleanly and is numerically equivalent. Force it for
++  # export; the grouped kernel's offset-skip efficiency is irrelevant to a static graph.
++  if (
++      hasattr(model, 'set_experts_implementation')
++      and model._can_set_experts_implementation()  # pylint: disable=protected-access
++      and model.config._experts_implementation != 'deepgemm_megamoe'  # pylint: disable=protected-access
++  ):
++    model.set_experts_implementation('batched_mm')
++
+   if task == ExportTask.TEXT_GENERATION:
+     model.generation_config.cache_implementation = 'static'
+     model.generation_config.do_sample = False
+diff --git a/litert_torch/generative/export_hf/core/exportable_module.py b/litert_torch/generative/export_hf/core/exportable_module.py
+index 0fc99e4..cf96a36 100644
+--- a/litert_torch/generative/export_hf/core/exportable_module.py
++++ b/litert_torch/generative/export_hf/core/exportable_module.py
+@@ -144,6 +144,11 @@ class LiteRTExportableModuleForDecoderOnlyLM(ExportableModuleBase):
+     })
+     return ret
+ 
++  # Overridden to True by the decode/generate module: state-carrying cache
++  # layers (mamba / linear-attention) trace their single-step continuation
++  # branch there instead of the prefill recompute-from-zero branch.
++  _decode_mode = False
++
+   def get_sample_kv_cache(self, model_config):
+     """Returns the input sample KV cache for the model."""
+     export_config = self.export_config
+@@ -155,6 +160,7 @@ class LiteRTExportableModuleForDecoderOnlyLM(ExportableModuleBase):
+         export_config,
+         batch_size=export_config.batch_size,
+         cache_length=export_config.cache_length,
++        decode_mode=self._decode_mode,
+     )
+     inputs = {"kv_cache": kv_cache}
+     if export_config.cache_length_dim is not None:
+@@ -263,6 +269,8 @@ class LiteRTExportableModuleForDecoderOnlyLMGenerate(
+ ):
+   """Exportable module for generate / decode."""
+ 
++  _decode_mode = True
++
+   def forward(
+       self,
+       tokens,
+diff --git a/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py b/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py
+new file mode 100644
+index 0000000..c0f98a7
+--- /dev/null
++++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py
+@@ -0,0 +1,14 @@
++# Copyright 2026 The LiteRT Torch Authors.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++# ==============================================================================
+diff --git a/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
+new file mode 100644
+index 0000000..86e67ba
+--- /dev/null
++++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
+@@ -0,0 +1,234 @@
++# Copyright 2026 The LiteRT Torch Authors.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++# ==============================================================================
++"""Patch for Qwen3.5 (GatedDeltaNet hybrid linear-attention), transformers >= 5.14.
++
++The cache side needs no model patch: `layer_types[i] == "linear_attention"` routes to
++LiteRTLMLinearAttentionCacheLayer, whose always-truthy `has_previous_state` makes
++`create_recurrent_attention_mask` return None (no data-dependent guard is reached) and
++statically selects the state-continuation branches — seq_len==1 signatures trace the
++fused single-step path (`causal_conv1d_update` rolls the conv state in-place),
++seq_len>1 signatures trace the chunked path with the cached conv/recurrent state
++consumed, so multi-chunk prefill composes.
++
++What DOES need a patch is the prefill-pad guard: the LiteRT-LM engine runs prefill
++chunks PARTIALLY FILLED (the chunk planner zero-pads the remainder chunk), and
++`apply_mask_to_padding_states` is a no-op at batch size 1 — so pad tokens would
++poison the conv window and the gated-delta recurrent state (the gated-delta analog
++of the LFM2 ShortConv / Granite-4-h mamba prefill-pad bug). The guard:
++
++  1. valid mask = `input_ids != 0` (the engine zero-fills pad tokens), stashed
++     directly on every GatedDeltaNet instance by the patched text model (there is
++     no mask route to the mixer: `create_recurrent_attention_mask` yields None);
++  2. pad positions' hidden states zeroed before the projections (in_proj_* have
++     no bias, so q/k/v/z/b contribute nothing for pads);
++  3. pad positions' `a` forced to -30 pre-softplus -> g = -A*softplus(a+dt_bias)
++     ~ 0 -> exp(g) ~ 1: the recurrent-state decay is an IDENTITY step on pads
++     (zeroed input alone would still decay the state by softplus(dt_bias));
++  4. pad positions re-zeroed after the conv (the causal conv smears valid tokens
++     into pad positions, giving them nonzero k/v; k must be 0 so pads inject
++     nothing into the recurrent state);
++  5. the stored conv window is gathered ending at the last VALID column via an
++     in-graph one-hot matmul (the upstream LFM2 0.9.2 technique), instead of the
++     chunk's last K columns (which are pads).
++
++The guarded `forward` is generated from the installed transformers source with
++anchored string replacements (exec'd); anchors are asserted so a modeling change
++fails loudly instead of silently skipping the guard.
++"""
++
++import contextlib
++import inspect
++import textwrap
++
++import torch
++from litert_torch.generative.export_hf.model_ext import patches as patches_lib
++from transformers.models.qwen3_5 import modeling_qwen3_5
++
++
++class PatchedQwen3_5TextModel(modeling_qwen3_5.Qwen3_5TextModel):
++  """Export-friendly Qwen3.5 text model (class swap; persists on the instance)."""
++
++  def forward(self, input_ids=None, **kwargs):
++    # Engine pads prefill chunks with token id 0; derive the per-position valid
++    # mask here and stash it directly on every GatedDeltaNet instance — the
++    # linear-attention layers receive attention_mask=None during export (see
++    # module docstring), so the guarded forward reads `self._litert_valid`.
++    valid = (input_ids != 0).to(torch.float32) if input_ids is not None else None
++    for module in self.modules():
++      if isinstance(module, PatchedQwen3_5GatedDeltaNet):
++        module._litert_valid = valid
++    return super().forward(input_ids=input_ids, **kwargs)
++
++
++def _unwrap_forward():
++  """`Qwen3_5GatedDeltaNet.forward` is wrapped by `@force_accelerate_hooks`
++  (no functools.wraps, so `inspect.unwrap` can't see through it); the real
++  function rides in the wrapper's closure."""
++  wrapped = modeling_qwen3_5.Qwen3_5GatedDeltaNet.forward
++  for cell in wrapped.__closure__ or ():
++    value = cell.cell_contents
++    if callable(value) and getattr(value, "__name__", "") == "forward":
++      return value
++  raise AssertionError("could not unwrap Qwen3_5GatedDeltaNet.forward")
++
++
++def _build_guarded_forward():
++  """Vendored `Qwen3_5GatedDeltaNet.forward` with the pad guard, generated from
++  the installed source via anchored replacements."""
++  src = inspect.getsource(_unwrap_forward())
++  src = textwrap.dedent(src)
++  # Drop decorator lines (accelerate-hook plumbing; inert for export and its
++  # factory name need not resolve in the exec namespace).
++  lines = src.split("\n")
++  first_def = next(i for i, l in enumerate(lines) if l.startswith("def "))
++  src = "\n".join(lines[first_def:])
++
++  # NOTE: all anchors/replacements are in POST-DEDENT coordinates (the file's
++  # indentation minus 4: method body at 4, else-branch bodies at 8/12).
++
++  # (1)+(2) guard activation + input zeroing. The valid mask only applies on the
++  # prefill signatures (seq_len > 1); decode must NOT mask (a legitimately
++  # generated token id 0 would be zeroed, and the single-step branch never sees
++  # engine pads).
++  anchor = ("    hidden_states = apply_mask_to_padding_states"
++            "(hidden_states, attention_mask)\n")
++  assert src.count(anchor) == 1, "pad-guard anchor 1 not found"
++  src = src.replace(
++      anchor,
++      anchor
++      + "    valid = getattr(self, '_litert_valid', None)\n"
++      "    if valid is not None and hidden_states.shape[1] > 1:\n"
++      "        valid = valid.to(hidden_states.dtype)\n"
++      "        hidden_states = hidden_states * valid[..., None]\n"
++      "    else:\n"
++      "        valid = None\n",
++  )
++
++  # (3) decay identity on pads (pre-softplus -30 -> softplus ~ 0 -> exp(g) ~ 1).
++  # `a` from zeroed input is 0, and softplus(0 + dt_bias) != 0 would still decay
++  # the recurrent state at every pad position.
++  anchor = "    a = self.in_proj_a(hidden_states)\n"
++  assert src.count(anchor) == 1, "pad-guard anchor 2 not found"
++  src = src.replace(
++      anchor,
++      anchor
++      + "    if valid is not None:\n"
++      "        a = a * valid[..., None] + (1.0 - valid[..., None]) * (-30.0)\n",
++  )
++
++  # (4) post-conv zeroing (q/k/v for the delta rule). The causal conv smears
++  # valid tokens into pad positions; k must be 0 there so pads inject nothing.
++  anchor = ("    mixed_qkv = mixed_qkv.transpose(1, 2)\n"
++            "    query, key, value = torch.split(\n")
++  assert src.count(anchor) == 1, "pad-guard anchor 3 not found"
++  src = src.replace(
++      anchor,
++      "    mixed_qkv = mixed_qkv.transpose(1, 2)\n"
++      "    if valid is not None:\n"
++      "        mixed_qkv = mixed_qkv * valid[..., None]\n"
++      "    query, key, value = torch.split(\n",
++  )
++
++  # (5) conv window gathered at the last VALID column (one-hot matmul). The
++  # stock store keeps the chunk's last K columns, which are pads. On the
++  # continuation path mixed_qkv is [cached K-wide context | chunk], which
++  # `_w - valid.shape[-1]` accounts for.
++  anchor = (
++      "        if cache_params is not None:\n"
++      "            new_conv_state = F.pad(mixed_qkv, "
++      "(self.conv_kernel_size - mixed_qkv.shape[-1], 0))\n"
++      "            cache_params.update_conv_state(new_conv_state, "
++      "self.layer_idx)\n"
++  )
++  assert src.count(anchor) == 1, "pad-guard anchor 4 not found"
++  src = src.replace(
++      anchor,
++      "        if cache_params is not None:\n"
++      "            if valid is not None:\n"
++      "                _w = mixed_qkv.shape[-1]\n"
++      "                _K = self.conv_kernel_size\n"
++      "                _padded = F.pad(mixed_qkv, (_K, 0))\n"
++      "                _valid_len = valid.sum(-1)[0].to(torch.long)\n"
++      "                _base = _w - valid.shape[-1] + _valid_len\n"
++      "                _idx = _base + torch.arange(_K, device=_padded.device)\n"
++      "                _onehot = (torch.arange(_w + _K, "
++      "device=_padded.device)[:, None]\n"
++      "                           == _idx[None, :]).to(_padded.dtype)\n"
++      "                new_conv_state = _padded @ _onehot\n"
++      "            else:\n"
++      "                new_conv_state = F.pad(mixed_qkv, "
++      "(self.conv_kernel_size - mixed_qkv.shape[-1], 0))\n"
++      "            cache_params.update_conv_state(new_conv_state, "
++      "self.layer_idx)\n",
++  )
++
++  namespace = dict(vars(modeling_qwen3_5))
++  namespace["torch"] = torch
++  exec(compile(src, "<qwen3_5_pad_guard>", "exec"), namespace)  # pylint: disable=exec-used
++  return namespace["forward"]
++
++
++def _build_const_eye_chunk_rule():
++  """Vendored `torch_chunk_gated_delta_rule` with `torch.eye` built from python
++  data. The traced `torch.eye` lowers to a STABLEHLO_IOTA + EQUAL pattern that
++  no released TFLite kernel set registers (the triu masks and arange constant-
++  fold; eye alone survives as a runtime op and kills Interpreter load). A
++  `torch.tensor(<python data>)` is lifted as a graph constant instead."""
++  src = inspect.getsource(modeling_qwen3_5.torch_chunk_gated_delta_rule)
++  src = textwrap.dedent(src)
++  anchor = ("    attn = attn + torch.eye(chunk_size, dtype=attn.dtype, "
++            "device=attn.device)\n")
++  assert src.count(anchor) == 1, "const-eye anchor not found"
++  src = src.replace(
++      anchor,
++      "    attn = attn + torch.tensor(\n"
++      "        [[1.0 if _i == _j else 0.0 for _j in range(chunk_size)]\n"
++      "         for _i in range(chunk_size)],\n"
++      "        dtype=attn.dtype, device=attn.device)\n",
++  )
++  namespace = dict(vars(modeling_qwen3_5))
++  namespace["torch"] = torch
++  exec(compile(src, "<qwen3_5_const_eye>", "exec"), namespace)  # pylint: disable=exec-used
++  return namespace["torch_chunk_gated_delta_rule"]
++
++
++_const_eye_chunk_rule = _build_const_eye_chunk_rule()
++
++
++class PatchedQwen3_5GatedDeltaNet(modeling_qwen3_5.Qwen3_5GatedDeltaNet):
++  forward = _build_guarded_forward()
++
++  def __init__(self, *args, **kwargs):
++    super().__init__(*args, **kwargs)
++    # __init__ binds the module-level torch fallback per instance; rebind to the
++    # const-eye vendored copy (only when the torch fallback was selected — a
++    # real FLA kernel install means no tracing concern and no swap).
++    if self.chunk_gated_delta_rule is modeling_qwen3_5.torch_chunk_gated_delta_rule:
++      self.chunk_gated_delta_rule = _const_eye_chunk_rule
++
++
++@patches_lib.register_patch(["qwen3_5", "qwen3_5_text"])
++@contextlib.contextmanager
++def qwen3_5_litert_patch():
++  print("Qwen3.5 patch applied (with gated-delta pad guard).")
++  original_text_model = modeling_qwen3_5.Qwen3_5TextModel
++  original_mixer = modeling_qwen3_5.Qwen3_5GatedDeltaNet
++  modeling_qwen3_5.Qwen3_5TextModel = PatchedQwen3_5TextModel
++  modeling_qwen3_5.Qwen3_5GatedDeltaNet = PatchedQwen3_5GatedDeltaNet
++  try:
++    yield
++  finally:
++    modeling_qwen3_5.Qwen3_5TextModel = original_text_model
++    modeling_qwen3_5.Qwen3_5GatedDeltaNet = original_mixer
+diff --git a/litert_torch/generative/export_hf/model_ext/__init__.py b/litert_torch/generative/export_hf/model_ext/__init__.py
+index 963689d..1111111 100644
+--- a/litert_torch/generative/export_hf/model_ext/__init__.py
++++ b/litert_torch/generative/export_hf/model_ext/__init__.py
+@@ -17,4 +17,5 @@
+ from litert_torch.generative.export_hf.model_ext.gemma3 import patch as _
+ from litert_torch.generative.export_hf.model_ext.gemma3n import patch as _
+ from litert_torch.generative.export_hf.model_ext.gemma4 import patch as _
+ from litert_torch.generative.export_hf.model_ext.lfm2 import patch as _
++from litert_torch.generative.export_hf.model_ext.qwen3_5 import patch as _

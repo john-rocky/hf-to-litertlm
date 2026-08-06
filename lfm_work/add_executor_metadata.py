@@ -59,7 +59,7 @@ def build_pbtext(buffers):
     for name, shape in buffers:
         kind = name.split("_")[2]
         # c = conv, s = ssm recurrent (mc/mr: mamba-style variants some exporters emit)
-        if kind in ("c", "s", "mc", "mr"):
+        if kind in ("c", "s", "mc", "mr", "lc", "lr"):
             typ, extra = "TYPE_LINEAR_ATTENTION", ""
         elif kind in ("k", "v"):
             typ = "TYPE_GLOBAL_KEY_CACHE" if kind == "k" else "TYPE_GLOBAL_VALUE_CACHE"
@@ -126,7 +126,7 @@ def main():
                        check=True)
     n = len(buffers)
     print(f"OK: {args.dst} ({n} state buffers: "
-          f"{sum(1 for b in buffers if b[0].split('_')[2] in ('c', 's', 'mc', 'mr'))} linear-attn, "
+          f"{sum(1 for b in buffers if b[0].split('_')[2] in ('c', 's', 'mc', 'mr', 'lc', 'lr'))} linear-attn, "
           f"{sum(1 for b in buffers if b[0].split('_')[2] in ('k', 'v'))} kv)")
 
 

@@ -235,6 +235,28 @@ python make_fp16_variant.py out_granite_350m/model_fp_meta.litertlm granite-4.0-
 
 Gates on the published files (litert-lm 0.15 CPU, Mac + iPhone 17 Pro): fp16 = 8/8 sanity, greedy output token-identical to the HF fp32 reference on our probes, prompt-length sweep 12–200 clean; int8 = 8/8 sanity, sweep clean except a known 33–37-token band where replies can end early (int8 noise interacting with one prefill chunk shape — fp16 is clean there; documented on the card). On phones ship int8: the CPU runtime unpacks fp16 weights to fp32 in RAM (~3.7 GB peak on iPhone vs ~2.1 GB for int8).
 
+## Qwen3.5 (GatedDeltaNet + attention hybrid) — first Qwen3.5 in LiteRT form
+
+`qwen35_work/convert_qwen35_hybrid.py` converts Qwen3.5 hybrids (gated-delta-rule linear attention interleaved with gated full attention; the 0.8B is 18 + 6 layers) to `.litertlm`, text decoder only (the multimodal checkpoint's vision tower and MTP heads are dropped, matching upstream's own `Qwen3_5ForCausalLM` load contract). Published: [litert-community/Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B). **Requires litert-lm ≥ 0.15 to run** (the conv/recurrent states bind through the `ExecutorMetadata` section).
+
+```bash
+cd qwen35_work
+git clone https://github.com/google-ai-edge/litert-torch litert-torch-qwen35
+git -C litert-torch-qwen35 checkout 115a136
+git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
+PYTHONPATH=litert-torch-qwen35 python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
+```
+
+The patch (against the pinned litert-torch base, transformers ≥ 5.14) shares the granite hybrid machinery — export-cache layers for `layer_types == "linear_attention"`, state-continuation tracing (fused single-step decode branch + chunked-continuation prefill branch), and the prefill-pad guard (pads become identity delta-rule steps; the conv window is gathered at the last valid column). Qwen3.5-specific parts, in the order they were needed:
+
+- **Constant-eye chunk kernel.** The reference chunked delta rule builds `torch.eye` inside the traced function; it lowers to `STABLEHLO_IOTA`, which no released TFLite kernel set registers — the exported file will not even load into an Interpreter. The kernel is vendored with the identity matrix lifted as a graph constant (`torch.tensor` from python data). The triu masks and aranges constant-fold on their own; only `eye` survives as a runtime op.
+- **Unwrap `@force_accelerate_hooks`.** The mixer's `forward` is wrapped without `functools.wraps`, so `inspect.getsource` returns the accelerate wrapper; the real function is fished out of the wrapper's closure before the anchored source replacements.
+- **Delta-rule pad identity is on `a`, not dt.** Zeroed pad input alone still decays the recurrent state (softplus(0 + dt_bias) ≠ 0); the guard forces the pre-softplus gate input to −30 on pads so per-token decay is exp(0) = 1, and re-zeroes q/k/v after the conv so pads inject nothing.
+- **Chat template replaced.** The stock template strips the `<think>` block from history assistant turns, which violates LiteRT-LM's incremental conversation rendering (each turn's render must string-extend the previous one) and hard-fails turn 2. The bundled simplified ChatML template keeps the empty think block in both the generation prompt and history renders — multi-turn then works exactly (`chat_template_simple.jinja`).
+- **Quantize convs never**: post-hoc dynamic int8 on linears + embedding (`wi8fc`), convs and the delta rule stay float — same rule as LFM2.5 / granite.
+
+Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position (max|logit diff| ≤ 3.7e-5); an 8-question sanity gate answered **word-for-word identically to HF fp32 by both the float and the published int8 build**; first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean; multi-turn state continuity verified. CPU-only for now (current GPU delegates reject the graph). Mac M4 Max CPU: prefill 501 tok/s @256, decode 48 tok/s.
+
 ## LFM2.5-Encoder (bidirectional encoders → plain .tflite)
 
 `lfm_work/convert_lfm25_encoder.py` converts LiquidAI's LFM2.5-Encoder-350M/230M — multilingual (15-language) bidirectional masked-LM encoders on the same LFM2 hybrid backbone — to plain LiteRT `.tflite` for embeddings / retrieval / fill-mask, fully on CPU. These are NOT `export_hf` runs: the models have no KV cache, so the HF eager model (remote code = stock `Lfm2Model` + bidirectional patches) is traced directly with `litert_torch` multi-signature convert. Signatures: `encode_{64,128,256,512}` → `last_hidden_state` `[1,S,1024]` (padded positions zeroed), plus `mlm_128` → masked-LM logits. Published: [litert-community/LFM2.5-Encoder-350M](https://huggingface.co/litert-community/LFM2.5-Encoder-350M), [litert-community/LFM2.5-Encoder-230M](https://huggingface.co/litert-community/LFM2.5-Encoder-230M).
