@@ -80,6 +80,16 @@ pbtext_new = re.sub(r'jinja_prompt_template: ".*"',
                     lambda m: 'jinja_prompt_template: "' + esc + '"',
                     pbtext, count=1)
 assert pbtext_new != pbtext, "jinja_prompt_template not found in pbtext"
+# Qwen3.5 splits its chat turn-end (<|im_end|> = 248046) from config.json's
+# eos_token_id (<|endoftext|> = 248044); the exporter declares only the latter,
+# so <|im_end|> would leak into `litert-lm run` output as text. Declare both.
+if "ids: 248046" not in pbtext_new:
+    eos_block = "stop_tokens {\n  token_ids {\n    ids: 248044\n  }\n}\n"
+    assert eos_block in pbtext_new, "expected <|endoftext|> stop_tokens block"
+    pbtext_new = pbtext_new.replace(
+        eos_block,
+        eos_block + "stop_tokens {\n  token_ids {\n    ids: 248046\n  }\n}\n",
+        1)
 open(pbtext_path, "w").write(pbtext_new)
 subprocess.run(["litert-lm", "pack", unpack_dir,
                 "--output", tmpl, "--allow-overwrite"], check=True)
