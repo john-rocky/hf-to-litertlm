@@ -397,6 +397,26 @@ Three things are specific to this model class and worth knowing before you gate 
 
 Gate results at n=200 (stratified from the public OpenAI moderation evaluation set, threshold 0.5, identical prompt and extraction on both sides): source fp32 F1 85.0 · bf16 85.7 · int8 CPU 86.1 · int8 GPU 86.1 · int4-b32 CPU 85.7 · int4-b32 GPU 86.2. Every row lands inside a 1.2-point band, and every label flip sits where the reference margin is < 0.7 from zero. int4-b32's main section is 1.82 GiB and runs on an iPhone 17 Pro (~1.8 s per verdict warm, ~1.2 GB peak); int8's 3.33 GiB section is desktop-only.
 
+#### Shieldstral text+image (first pixtral tower here)
+
+`shieldstral_work/vision/` builds the multimodal bundle. Pixtral turns out to be an unusually shallow dynamic-resolution tower: at a fixed square size the per-image crop is the identity, the block-diagonal mask for one image is all zeros (so it collapses to plain full attention), and the meshgrid position ids become a constant. Patchify is a single Conv2d and the sequence stays raster-ordered, so no `GATHER_ND` is introduced — the usual mobile-GPU vision blocker never arises.
+
+```bash
+python shieldstral_work/vision/static_pixtral.py  src_models/shieldstral-3b   # corr 1.0 vs eager
+python shieldstral_work/vision/verify_adapter.py  src_models/shieldstral-3b   # corr 1.0 vs inputs_embeds
+python shieldstral_work/vision/convert_shieldstral_vision.py src_models/shieldstral-3b out_vision --size 560
+CACHE=4096 python scripts/export_internvl_decoder.py src_models/shieldstral-3b-text out_decoder
+DEC=out_decoder VIS=out_vision python shieldstral_work/vision/build_shieldstral_bundle.py
+```
+
+⚠ **The position ids must keep indexing the trained grid.** They are `h * max_width + w` with `max_width = config.image_size // patch_size` (110 here) — substituting the *new* grid width silently re-indexes the rope table and the output stays plausible.
+
+⚠ **The token expansion does not fit the runtime's injection contract as-is.** Pixtral expands one `[IMG]` into a grid of image tokens with `[IMG_BREAK]` ending every row and one `[IMG_END]` at the end, and those markers keep their ordinary *text* embeddings — but the runtime injects one contiguous block at the soft-token position. The escape is to fold the marker embeddings into the adapter: they are constant rows of the decoder's embedding table, so the adapter emits the full block (a `cat` with a constant column — no gather, no dynamic shape). Verify against `inputs_embeds` for the same image.
+
+Two runtime facts: `vision_backend` must be named explicitly (without it the engine loads, the conversation is created, and only the first image message fails), and the scoring API is text-only (`run_prefill(list[str])`), so image documents get the generated verdict but no continuous score.
+
+**Letterbox images before passing them.** The runtime resizes to the declared H×W with no padding. On 100 labelled images, stretching cost 8.5 F1 against the source model where letterboxing cost 3.0, and agreement rose from 92% to 96% — a larger effect than the int8-vs-int4 choice.
+
 ## Verify a reproduction
 
 ```bash
