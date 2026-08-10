@@ -1,0 +1,18 @@
+{#- Shieldstral 1.0 3B — single-shot yes/no safety classifier.
+
+     The system prompt is FIXED by the model card (it is part of the model's
+     inference contract, not a user-tunable field), and the runtime's scoring
+     path (Session.run_prefill) carries no role information. So the fixed system
+     block is baked into the user prefix: a caller sends only the
+     <Instruct>/<Query>/<Document> body and the bundle renders the reference
+     prompt exactly.
+
+     BOS (<s>) is supplied by the engine's start_token metadata, not emitted here.
+-#}
+{%- for message in messages -%}
+{%- if message['role'] == 'user' -%}
+{{- '[SYSTEM_PROMPT]Judge whether the Document meets the requirements based on the Query and the Instruction provided. Note that the answer can only be "yes" or "no".[/SYSTEM_PROMPT][INST]' + message['content'] + '[/INST]' -}}
+{%- elif message['role'] == 'assistant' -%}
+{{- message['content'] + '</s>' -}}
+{%- endif -%}
+{%- endfor -%}

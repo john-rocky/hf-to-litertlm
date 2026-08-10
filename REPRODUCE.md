@@ -377,9 +377,30 @@ xcodebuild -project BonsaiMac.xcodeproj -scheme Bonsai -configuration Release bu
 
 The pitfalls that cost real time (details in `device/BonsaiAppMac/README.md`): the runtime dylib pair must be **same-generation** (ai-edge-litert 2.1.6 works; the 2026-07-31 LiteRT-main macos_arm64 prebuilt pair SIGSEGVs in an XNNPACK transpose microkernel inside the Metal accelerator during delegate init on this 2.27 GiB DiT — repro CLI in `device/BonsaiAppMac/smoke/`); **fp32 precision is mandatory** (default fp16 corrupts this model's activations), passed as a hand-built TOML opaque option because the prebuilt exports no options helpers; and the GPU-shaped export is required — the CPU-shaped DiT does not run on the Metal delegate.
 
+### Shieldstral-1.0-3B (a single-token safety classifier, not a chat model)
+
+`shieldstral_work/convert_shieldstral.sh` converts [mistralai/Shieldstral-1.0-3B](https://huggingface.co/mistralai/Shieldstral-1.0-3B). Published: [litert-community/Shieldstral-1.0-3B](https://huggingface.co/litert-community/Shieldstral-1.0-3B).
+
+The checkpoint is `Mistral3ForConditionalGeneration` — a pixtral vision tower plus a Ministral3 text decoder — and this recipe ships the **text lane**: `scripts/extract_ministral3_text.py` drops the tower, which is output-neutral for text input (bit-identical yes/no logits on the floor set). The decoder is then the ordinary dense lane, same recipe family as `Ministral-3-3B-Instruct-2512`.
+
+```bash
+bash shieldstral_work/convert_shieldstral.sh     # -> out_int4/model.litertlm, out_int8/model.litertlm
+```
+
+Three things are specific to this model class and worth knowing before you gate it:
+
+**It answers with one token.** The reply is literally `yes` or `no`, and the published quantity is a softmax over those two logits, thresholded at 0.5. A generic 8-question quality gate is nearly useless here — obvious cases carry ±9 to ±14 logit margins, so every build scores 8/8, including one whose measured numbers were wrong. Build the floor gate from **borderline** items, and treat label agreement plus correlation of the raw logit margin against the source model as the real verdict.
+
+**The scoring API has two traps, both silent.** `Session.run_text_scoring` *mutates* the session, so scoring a second candidate after the same prefill returns a plausible-but-wrong number — give each candidate its own session and prefill. And `create_session(apply_prompt_template=True)` prefills the user **prefix only** (no user suffix, no start token), which scores the model mid-prompt: on this bundle that read 1.060 instead of 8.087 and inverted a clearly-unsafe floor item. Pre-render the whole prompt yourself and pass `apply_prompt_template=False`. The ordinary generate path is unaffected — a bundle can generate perfectly while every scored number is wrong.
+
+**The fixed system prompt is baked into the user prefix** (`templates/shieldstral_simple.jinja`). The model card fixes it as part of the inference contract, and the scoring entry point carries no role information, so shipping it as a separate system slot would make the model's own reference prompt unreachable from the API you actually classify with.
+
+Gate results at n=200 (stratified from the public OpenAI moderation evaluation set, threshold 0.5, identical prompt and extraction on both sides): source fp32 F1 85.0 · bf16 85.7 · int8 CPU 86.1 · int8 GPU 86.1 · int4-b32 CPU 85.7 · int4-b32 GPU 86.2. Every row lands inside a 1.2-point band, and every label flip sits where the reference margin is < 0.7 from zero. int4-b32's main section is 1.82 GiB and runs on an iPhone 17 Pro (~1.8 s per verdict warm, ~1.2 GB peak); int8's 3.33 GiB section is desktop-only.
+
 ## Verify a reproduction
 
 ```bash
 ~/clipconv/bin/python scripts/verify_quality.py out/<key>/model.litertlm --json   # 8-question gate
 # parity (dense): scripts/parity_gsm8k.py  ·  reasoning models: run at --max-tokens 2048
+# single-token classifiers: label F1 + margin correlation vs the source model, not the 8-question gate
 ```
