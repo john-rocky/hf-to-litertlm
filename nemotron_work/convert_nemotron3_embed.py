@@ -59,15 +59,39 @@ PAD_ID = 11  # <pad>, from config.json / tokenizer_config.json
 
 
 class Embedder(nn.Module):
-    """Ministral3Model body -> mean pool over valid positions -> L2 normalize."""
+    """Ministral3Model body -> mean pool over valid positions -> L2 normalize.
+
+    The attention bias is built here instead of letting transformers build it.
+    Feeding a 2D mask routes through `sdpa_mask`, whose index-based construction
+    lowers to GATHER_ND -> LOGICAL_AND -> SELECT_V2 in the flatbuffer. Read out
+    of an actual export, those constants are: index grid [[0,0],[0,1],...,[0,S-1]]
+    (an identity gather at batch 1), an all-True q-side mask, and
+    `where(mask, 0.0, -inf)`. So the entire thing is just
+        bias[0,0,q,k] = 0.0 if attention_mask[0,k] else -inf,   independent of q
+    which we can emit directly. transformers early-exits mask creation for any
+    4D mask (`len(attention_mask.shape) == 4` in `_preprocess_mask_arguments`),
+    so the hand-built bias is used verbatim.
+
+    Two wins: GATHER_ND is gone (it is a known hard mobile-GPU blocker and the
+    only such op that survived here), and the [1,1,S,S] mask is never
+    materialized — the [1,1,1,S] bias broadcasts over the query axis inside the
+    score add. Verified bitwise identical to the transformers-built path in
+    eager, and bitwise identical end-to-end after conversion.
+    """
 
     def __init__(self, body):
         super().__init__()
         self.body = body
 
     def forward(self, input_ids, attention_mask):
+        valid = attention_mask.to(torch.bool)[:, None, None, :]  # [1,1,1,S]
+        bias = torch.where(
+            valid,
+            torch.zeros((), dtype=torch.float32),
+            torch.full((), float("-inf"), dtype=torch.float32),
+        )
         h = self.body(
-            input_ids=input_ids, attention_mask=attention_mask, use_cache=False
+            input_ids=input_ids, attention_mask=bias, use_cache=False
         ).last_hidden_state
         m = attention_mask.to(h.dtype)[:, :, None]
         pooled = (h * m).sum(dim=1) / m.sum(dim=1)
