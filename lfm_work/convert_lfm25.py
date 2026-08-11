@@ -15,13 +15,21 @@ litert-torch (== 0.9.1) the local patch in lfm_short_conv_patch.py is applied
 automatically; on >= 0.9.2 it is skipped.
 
 GPU note (litert-torch >= 0.9.2): the exporter wraps attention softmax in a
-`odml.softmax` StableHLO composite. The GPU delegate in the current released
-runtime (litert-lm 0.14) does not accept that composite, so GPU engine creation
-fails; CPU is unaffected. By default this script strips the composite marker
-(math is unchanged — plain softmax stays in the graph), which makes the export
-fully GPU-delegable today (Mac WebGPU: ~4750 tok/s prefill, ~195 tok/s decode
-on the 1.2B int8). Pass --keep-softmax-composite to keep the marker for newer
-runtimes that fuse it.
+`odml.softmax` StableHLO composite. litert-converter < 0.3.1 leaves that
+composite in the graph and the GPU delegate rejects it, so GPU engine creation
+fails; CPU is unaffected. This script strips the composite marker on those old
+converters (math is unchanged — plain softmax stays in the graph), which makes
+the export fully GPU-delegable (Mac WebGPU: ~4750 tok/s prefill, ~195 tok/s
+decode on the 1.2B int8).
+
+litert-converter >= 0.3.1 lowers the composite itself, to a fused SOFTMAX
+builtin, so the strip is skipped automatically. Both paths converge on the same
+graph: exporting with 0.3.1 and keeping the marker gives an op histogram
+identical to the stripped export, marker count 0, Mac GPU gate PASS and 8/8 on
+the quality gate for both backends. litert-torch 0.9.3 pins
+`litert-converter==0.3.*`, so a plain install already gets you the lowering
+converter — no flags. Pass --keep-softmax-composite to force the marker through
+on an older converter (an old runtime will then refuse the GPU delegate).
 
 Multi-length prefill signatures (1..1024) are exported so the runtime can pick
 tight chunks. Requires litert-torch >= 0.9.1 and litert-lm >= 0.14 to run.
@@ -30,7 +38,34 @@ import os
 import sys
 from importlib.metadata import version
 
-lt_ver = tuple(int(x) for x in version("litert-torch").split(".")[:3])
+
+def _ver(pkg):
+    """(major, minor, patch) of an installed package; dev/rc suffixes dropped."""
+    parts = version(pkg).split(".")[:3]
+    return tuple(int("".join(c for c in p if c.isdigit()) or 0) for p in parts)
+
+
+def _converter_lowers_softmax():
+    """True if this litert-converter turns odml.softmax into a fused builtin.
+
+    Verified on 0.3.1 (released 2026-08-10) and on the 0.4.0.dev20260806
+    nightly, which produce identical op histograms. The 0.4.0.dev line was
+    renumbered to 0.3.1.dev when the release branch was cut, so an *older*
+    0.4.0.dev nightly is not covered by that check on the numeric tuple alone
+    — hence the date floor for dev builds.
+    """
+    raw = version("litert-converter")
+    if _ver("litert-converter") < (0, 3, 1):
+        return False
+    if ".dev" in raw:
+        try:
+            return int(raw.split(".dev")[1]) >= 20260806
+        except ValueError:
+            return False
+    return True
+
+
+lt_ver = _ver("litert-torch")
 
 if lt_ver < (0, 9, 2):
     # Upstream litert-torch gained the ShortConv prefill-pad fix in 0.9.2.
@@ -39,7 +74,11 @@ if lt_ver < (0, 9, 2):
 
     apply_patch()
 
-if lt_ver >= (0, 9, 2) and "--keep-softmax-composite" not in sys.argv:
+_strip_softmax = (lt_ver >= (0, 9, 2)
+                  and not _converter_lowers_softmax()
+                  and "--keep-softmax-composite" not in sys.argv)
+
+if _strip_softmax:
     # Strip the odml.softmax composite marker (see GPU note above). Rebinds the
     # name only inside the attention module; other composites (rms_norm) stay.
     from types import SimpleNamespace
