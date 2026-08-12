@@ -523,6 +523,32 @@ Two runtime facts: `vision_backend` must be named explicitly (without it the eng
 
 **Letterbox images before passing them.** The runtime resizes to the declared H×W with no padding. On 100 labelled images, stretching cost 8.5 F1 against the source model where letterboxing cost 3.0, and agreement rose from 92% to 96% — a larger effect than the int8-vs-int4 choice.
 
+## LFM2.5-VL (3B / 450M — LFM2 hybrid text + SigLIP2 vision, native runtime image support)
+
+The first family where the vanilla `litert-torch` VLM path and the runtime's own image pipeline line up end-to-end: `LiquidAI/LFM2.5-VL-3B` and `-450M` convert with stock `export_hf --task image_text_to_text` and run **text + image on the released `litert-lm==0.16.0` pip runtime** (`litert-lm run model.litertlm --prompt "..." --attachment img.png`).
+
+```bash
+python -m venv .venv && .venv/bin/pip install litert-torch==0.9.3 "transformers==5.14.1" pillow "torch==2.12.1" "torchvision==0.27.1" litert-lm
+.venv/bin/python lfm_work/convert_lfm25_vl.py LiquidAI/LFM2.5-VL-3B out_vl3b_int8            # int8 (text+vision dynamic_wi8)
+.venv/bin/python lfm_work/convert_lfm25_vl.py LiquidAI/LFM2.5-VL-3B out_vl3b_fp --fp         # fp text for int4
+.venv/bin/python lfm_work/quantize_lfm25_vl.py out_vl3b_fp/model.litertlm LFM2.5-VL-3B_int4.litertlm          # int4-b32 octav + wi8 embedder + zero-scale fix + executor metadata
+.venv/bin/python lfm_work/quantize_lfm25_vl.py out_vl3b_int8/model.litertlm LFM2.5-VL-3B_int8.litertlm --recipe none  # executor metadata only
+LITERT_LM=.venv/bin/litert-lm python lfm_work/gate_lfm25_vl_text.py LFM2.5-VL-3B_int4.litertlm cpu
+LITERT_LM=.venv/bin/litert-lm python lfm_work/gate_lfm25_vl_image.py LFM2.5-VL-3B_int4.litertlm cpu
+```
+
+⚠ **Pin transformers==5.14.1.** 5.15.0 renamed `Lfm2ShortConv.L_cache` → `conv_kernel_size` and the 0.9.3 export subclass still reads the old attribute (`AttributeError` at model load). torchvision must stay 0.27.x or it drags torch past litert-torch's `<2.13` pin.
+
+⚠ **The metadata pbtext needs `llm_model_type { lfm2 {} }` — empty is correct.** The runtime's `Lfm2DataProcessor` proto defaults already equal this family's processor config (512×512, patch 16, max 1024 patches, pooling 2, mean/std 0.5, boi `<|image_start|>` / eoi `<|image_end|>`). The chat template must render a bare `<image>` per image content part and nothing else: the runtime splits the rendered prompt on it and inserts boi + preprocessed pixels + eoi itself, so a template that emits boi/eoi too would double them.
+
+⚠ **The externalized embedder dodges every text recipe.** VLM exports split the embedder into its own tflite; an `--fp` text export leaves it float32 (1 GB at the 3B's 128k vocab) and a post-hoc recipe applied to `prefill_decode` never reaches it — `quantize_lfm25_vl.py` runs the wi8 recipe on the embedder tflite as a separate pass (1049→264 MB). It also goes through `litert-lm pack/unpack` instead of a single-tflite rebuild, because the older quantize/zero-scale scripts would silently drop the vision sections.
+
+⚠ **The zero-scale int4 wall is inherited by the VL text stack.** The 3B checkpoint carries 746,432 all-zero 32-blocks across 26 tensors — the same dense-checkpoint signature as LFM2.5-2.6B — so the zero-scale fix (folded into `quantize_lfm25_vl.py`) is mandatory; the 450M has none.
+
+Vocab split inside one family: the 3B uses the 128k vocab (stops 124900/124895), the 450M the older 64k one (stops 7/2, same as the 1.2B family) — the converter picks the matching pbtext by model name and refuses sizes it does not know (check `generation_config.json` before adding one).
+
+Gates on the 0.16.0 pip CLI (temperature 0, `--cache no`): 3B int8 AND int4 pass text 7/8 + image 5/5 on cpu and macOS gpu, with image answers verbatim identical to the HF bf16 reference (`verify_lfm25_vl_hf.py`); 450M int4 passes 8/8 + 4/5. iPhone GPU remains blocked for the ShortConv family (LiteRT-LM#3129); use CPU there.
+
 ## Verify a reproduction
 
 ```bash

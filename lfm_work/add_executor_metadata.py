@@ -100,8 +100,23 @@ def main():
         if "ExecutorMetadata" in toml:
             raise SystemExit("file already has an ExecutorMetadata section")
         tflite = [f for f in os.listdir(unpack) if f.endswith(".tflite")]
-        if len(tflite) != 1:
-            raise SystemExit(f"expected exactly one tflite section, got {tflite}")
+        if not tflite:
+            raise SystemExit("no tflite section found")
+        if len(tflite) > 1:
+            # VLM bundles carry embedder/vision tflites alongside prefill_decode;
+            # the state buffers live in the one with kv_cache_* inputs.
+            with_state = []
+            for f in tflite:
+                try:
+                    if read_state_buffers(args.python, os.path.join(unpack, f)):
+                        with_state.append(f)
+                except subprocess.CalledProcessError:
+                    pass
+            if len(with_state) != 1:
+                raise SystemExit(
+                    f"expected exactly one tflite with kv_cache_* inputs, got "
+                    f"{with_state} out of {tflite}")
+            tflite = with_state
 
         buffers = read_state_buffers(args.python, os.path.join(unpack, tflite[0]))
         if not buffers:

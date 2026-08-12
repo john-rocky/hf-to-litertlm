@@ -1,0 +1,19 @@
+start_token {
+  token_str: "<|startoftext|>"
+}
+stop_tokens {
+  token_ids {
+    ids: 124900
+  }
+}
+stop_tokens {
+  token_ids {
+    ids: 124895
+  }
+}
+max_num_tokens: 4096
+llm_model_type {
+  lfm2 {
+  }
+}
+jinja_prompt_template: "{{- bos_token -}}\n{%- for message in messages -%}\n    {{- \"<|im_start|>\" + message[\"role\"] + \"\\n\" -}}\n    {%- set content = message[\"content\"] -%}\n    {%- if content is string -%}\n        {{- content -}}\n    {%- elif content is mapping -%}\n        {{- content | tojson -}}\n    {%- else -%}\n        {%- for item in content -%}\n            {%- if item is string -%}\n                {{- item -}}\n            {%- elif item is mapping and item[\"type\"] == \"image\" -%}\n                {{- \"<image>\" -}}\n            {%- elif item is mapping and item[\"type\"] == \"text\" -%}\n                {{- item[\"text\"] -}}\n            {%- else -%}\n                {{- item | tojson -}}\n            {%- endif -%}\n        {%- endfor -%}\n    {%- endif -%}\n    {{- \"<|im_end|>\\n\" -}}\n{%- endfor -%}\n{%- if add_generation_prompt -%}\n    {{- \"<|im_start|>assistant\\n\" -}}\n{%- endif -%}"
