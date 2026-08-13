@@ -317,6 +317,58 @@ The published 0.8B was re-converted from the same weights with the vendored chun
 
 Re-ship verification: parity re-run on the ship export (48 positions, top-1/top-5 100%, Pearson 1.0000); 8-question gate **8/8 on CPU and GPU on both litert-lm 0.15.0 and 0.16.0**; prompt-length robustness with a fresh engine per length 40/40 CPU + 20/20 GPU; on iPhone 17 Pro (Metal) 8/8 with decode 41.4 tok/s vs 14.6 CPU. CPU speed is unchanged (the kernel was already matmul-form on CPU): Mac M4 Max CPU 666/46.7 tok/s, GPU 1972/161.8 (`-p 256 -d 256 --runs 3 --cache no`, 0.16.0). One honest limit: a Pixel 8a cannot compile the full prefill-ladder ship file on its GPU (fp32-expanded weights + ten compiled programs exceed ~3.8 GB available); a reduced dev shape of the same graph runs there fully delegated and correct, and CPU is unaffected.
 
+## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
+
+`falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct). **Requires litert-lm ≥ 0.15 to run.**
+
+```bash
+cd falcon_h1_work
+git clone https://github.com/google-ai-edge/litert-torch litert-torch-falcon
+git -C litert-torch-falcon checkout 115a136
+git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
+PYTHONPATH=litert-torch-falcon python convert_falcon_h1.py tiiuae/Falcon-H1-0.5B-Instruct out_falcon_05b
+# GPU ship shape: declare fp32 activations in the bundle TOML (repack, no re-export)
+python ../scripts/set_activation_type.py out_falcon_05b/Falcon-H1-0.5B-Instruct_int8.litertlm Falcon-H1-0.5B-Instruct_int8.litertlm --type fp32
+```
+
+The patch shares the granite/Qwen3.5 hybrid machinery — the folded rank ≤ 4 scan, state-continuation tracing, and the prefill-pad guard ride verbatim (the scan body is byte-identical to granite's, asserted at patch time). What Falcon-H1 needed on top:
+
+- **A composite hybrid cache layer.** KV and conv/SSM state live at the SAME layer index, flattened as `k_i/v_i/mc_i/mr_i`. The class inherits the attention cache layer first (mask/timestamp semantics) and transformers' `LinearAttentionCacheLayerMixin` second — without the mixin, `Cache.has_previous_state(i)` refuses the layer as "an Attention layer". The runtime binds states by tensor name, so co-residency is just packaging.
+- **Re-inject the exporter's kwargs.** `FalconH1Model.forward`'s layer loop drops `**kwargs`, so the timestamp indices the export cache needs never reach attention. The patched model pops them and re-injects them at each attention call.
+- **`mamba_d_ssm` is not `expand × hidden`.** `FalconH1Config` defaults the SSM intermediate to its own width (and `mamba_d_head` resolves from `'auto'` against it) — shape inference must read the config, not assume the granite/bamba relation.
+- **`mup_vector` is a non-persistent model-level buffer** — a prime candidate for transformers 5.x meta-load zeroing (and a silently zeroed buffer would still "pass" parity when reference and export share the model object). The patch zero-checks it after load; the check cannot live in `forward()` because fake-tensor tracing cannot concretize `float(buffer.max())`.
+
+Ship verification (0.5B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 7.6e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **int8 = float = GPU** (all 6/8 with near-verbatim identical text; the two misses are the 0.5B's own level — the float graph misses them the same way); hermetic prompt-length sweep 41/41 clean; Pixel 8a (OpenCL) delegates every subgraph with zero rejections and correct output; iPhone 17 Pro (Metal) decode 52.7 tok/s vs 36.2 CPU. Mac M4 Max: GPU 2650 prefill / 127.5 decode tok/s, CPU 473 / 59.0 (`-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0). The 1.5B/3B siblings ride the same driver unchanged.
+
+## Nemotron-H (Mamba2 + MLP + attention, three layer kinds) — and the registry trap
+
+`nemotron_h_work/convert_nemotron_h.py` converts NVIDIA's Nemotron-H (the 4B: 24 Mamba2 + 24 plain-MLP + 4 attention layers) to `.litertlm`. Published: [litert-community/Nemotron-H-4B-Instruct-128K](https://huggingface.co/litert-community/Nemotron-H-4B-Instruct-128K). **Requires litert-lm ≥ 0.15 to run.**
+
+```bash
+cd nemotron_h_work
+git clone https://github.com/google-ai-edge/litert-torch litert-torch-nemotron
+git -C litert-torch-nemotron checkout 115a136
+git -C litert-torch-nemotron apply "$(pwd)/nemotron_h_litert_torch.patch"
+PYTHONPATH=litert-torch-nemotron python convert_nemotron_h.py nvidia/Nemotron-H-4B-Instruct-128K out_nemotron_4b
+# GPU ship shape: declare fp32 activations in the bundle TOML (repack, no re-export)
+python ../scripts/set_activation_type.py out_nemotron_4b/Nemotron-H-4B-Instruct-128K_int8.litertlm Nemotron-H-4B-Instruct-128K_int8.litertlm --type fp32
+```
+
+The folded scan is a **port, not reuse**: NemotronH's `torch_forward` is an older SSD spelling, not byte-identical to granite's. The lessons, in the order they cost time:
+
+- **Check how the block CONSTRUCTS its mixer before trusting a class swap.** `NemotronHBlock` picks mixer classes from a module-level `MIXER_TYPES` dict bound at import time, so swapping the module's class attribute exports the *unrewritten reference scan* — with no pad guard, and with every parity gate green (reference math is correct math). **A parity gate can never prove which scan form got traced**; only a pad sweep or the GPU sieve can. The patch swaps the dict entry and adds a loud zero-patched-mixers guard.
+- **A min-only dt clamp floors the pads.** NemotronH clamps `softplus(dt + dt_bias)` at `time_step_min` with no upper bound, so a zeroed pad input still decays the recurrent state by `exp(time_step_min · A)` per pad. The pad guard forces pads to exact identity (`dt = 0` applied *after* the clamp).
+- **`mlp` = a cache-less layer type.** Mamba/attention layers address the cache by absolute layer index, so MLP layers need a layer object that keeps the index while contributing ZERO tensors to the flatten. The dict fallback would have allocated 24 phantom KV buffers — and signatures pay RAM for every buffer that exists, called or not.
+- **Config vocabulary.** NemotronH spells the mamba geometry `mamba_num_heads`/`mamba_head_dim`/`ssm_state_size`/`conv_kernel`/`n_groups`, and the SSM intermediate is `heads × head_dim` — equal to `expand × hidden` on granite/bamba by construction, NOT here (7168 vs 6144 on the 4B).
+- **Reference forwards need `use_cache=False`** — transformers' own DynamicCache has no `mlp` layer type and KeyErrors on it.
+- **Sweep state-carrying models with a fresh engine per prompt length.** Reusing one engine across sweep conversations rewinds a shared prefix only partially; that corrupts linear-attention state and produces false failures indistinguishable from conversion bugs.
+
+Ship verification (4B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 5.8e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **8/8 on CPU and GPU**; hermetic sweep clean at the ship shape; iPhone 17 Pro (Metal) runs with GPU == CPU answers (peak 4.02 GB, increased-memory entitlement). Honest limit: a 4B does not fit an 8 GB Android phone — on a Pixel 8a, engine creation aborts on both backends. Mac M4 Max: GPU 724 prefill / 75.0 decode tok/s, CPU 99 / 20.1.
+
+## Bamba (arch reference — no published artifact)
+
+`bamba_work/bamba_litert_torch.patch` carries the same folded-scan machinery to IBM's Bamba. `BambaMixer.torch_forward` is byte-identical to granite's, so the extension is a thin wrapper that asserts the source identity at patch time. Arch-verified at tiny scale (E2E float parity correlation 1.000000; 5-path cache checker worst 5.5e-07), and the 9B converts and runs — but every published Bamba checkpoint is a 9B BASE model (no chat template), desktop-class, so nothing is shipped. The patch is here as the third data point on how far the granite scan form travels.
+
 ## LFM2.5-Encoder (bidirectional encoders → plain .tflite)
 
 `lfm_work/convert_lfm25_encoder.py` converts LiquidAI's LFM2.5-Encoder-350M/230M — multilingual (15-language) bidirectional masked-LM encoders on the same LFM2 hybrid backbone — to plain LiteRT `.tflite` for embeddings / retrieval / fill-mask, fully on CPU. These are NOT `export_hf` runs: the models have no KV cache, so the HF eager model (remote code = stock `Lfm2Model` + bidirectional patches) is traced directly with `litert_torch` multi-signature convert. Signatures: `encode_{64,128,256,512}` → `last_hidden_state` `[1,S,1024]` (padded positions zeroed), plus `mlm_128` → masked-LM logits. Published: [litert-community/LFM2.5-Encoder-350M](https://huggingface.co/litert-community/LFM2.5-Encoder-350M), [litert-community/LFM2.5-Encoder-230M](https://huggingface.co/litert-community/LFM2.5-Encoder-230M).
