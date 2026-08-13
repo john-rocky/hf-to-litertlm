@@ -705,10 +705,10 @@ index 0000000..c0f98a7
 +# ==============================================================================
 diff --git a/litert_torch/generative/export_hf/model_ext/granitemoehybrid/patch.py b/litert_torch/generative/export_hf/model_ext/granitemoehybrid/patch.py
 new file mode 100644
-index 0000000..f1ca26b
+index 0000000..11f5d3f
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/granitemoehybrid/patch.py
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,639 @@
 +# Copyright 2026 The LiteRT Torch Authors.
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
@@ -725,37 +725,71 @@ index 0000000..f1ca26b
 +# ==============================================================================
 +"""Patch for Granite-4-h (granitemoehybrid: Mamba2 selective-scan + attention hybrid).
 +
-+Beyond the original trace-guard patch, this adds the mamba prefill-pad guard:
-+the LiteRT-LM engine runs prefill chunks PARTIALLY FILLED (its chunk planner
-+pads the remainder chunk), and granite's own `apply_mask_to_padding_states`
-+is a no-op at batch size 1 — so without a guard, padding tokens poison the
-+conv/SSM state and corrupt generation at chunk-plan-dependent prompt lengths
-+(the mamba analog of the LFM2 ShortConv prefill-pad bug). The guard:
++Two things live here.
 +
-+  1. valid mask = `input_ids != 0` (the engine zero-fills pad tokens), routed
-+     to the mamba layers through `_update_mamba_mask`;
-+  2. pad positions' hidden states zeroed before/after the conv (so x/B/C
-+     contribute nothing to the scan);
-+  3. pad positions' dt forced to -30 pre-softplus -> dt ~ 0 -> exp(dt*A) ~ 1
-+     and dt*B*x ~ 0: the SSM update is an IDENTITY step on pads (a plain
-+     zeroed-input step would still decay the state by exp(dt_bias*A));
-+  4. the stored conv window is gathered ending at the last VALID column via
-+     an in-graph one-hot matmul (the upstream LFM2 0.9.2 technique), instead
-+     of the chunk's last K columns (which are pads).
++1. The mamba prefill-pad guard. The LiteRT-LM engine runs prefill chunks
++   PARTIALLY FILLED (its chunk planner pads the remainder chunk), and granite's
++   own `apply_mask_to_padding_states` is a no-op at batch size 1 — so without a
++   guard, padding tokens poison the conv/SSM state and corrupt generation at
++   chunk-plan-dependent prompt lengths (the mamba analog of the LFM2 ShortConv
++   prefill-pad bug). The guard:
 +
-+The guarded `torch_forward` is generated from the installed transformers
-+source with anchored string replacements (exec'd), so the ~200-line function
-+is not hand-vendored; anchors are asserted so a modeling change fails loudly
-+instead of silently skipping the guard.
++     1. valid mask = `input_ids != 0` (the engine zero-fills pad tokens),
++        stashed on each mixer by the patched model `forward`;
++     2. pad positions' hidden states zeroed before/after the conv (so x/B/C
++        contribute nothing to the scan);
++     3. pad positions' dt forced to -30 pre-softplus -> dt ~ 0 -> exp(dt*A) ~ 1
++        and dt*B*x ~ 0: the SSM update is an IDENTITY step on pads (a plain
++        zeroed-input step would still decay the state by exp(dt_bias*A));
++     4. the stored conv window is gathered ending at the last VALID column via
++        an in-graph one-hot matmul (the upstream LFM2 0.9.2 technique), instead
++        of the chunk's last K columns (which are pads).
++
++2. A rank<=4 rewrite of the SSD scan, which is what makes the layer GPU-eligible.
++   Upstream writes the five SSD contractions as broadcast-multiply-reduce ("begin
++   ssd naive implementation without einsums"), producing rank-5 and rank-6
++   intermediates. Every mobile GPU delegate we gate on refuses tensors above rank
++   4 ("Tensor dimensions must be less than 5"), which is why the published
++   granite int8 delegates 109/3673 ops and aborts. Writing the same contractions
++   as batched matmuls with the chunk and head axes folded into the batch axis
++   keeps every tensor at rank <= 4 — and it never materializes the naive form's
++   chunks*chunk_len^2*heads*d_state intermediates. Two more ops have to go, and
++   neither is about rank:
++
++     - BROADCAST_TO is refused outright. It arrives from `expand` (inside
++       `segment_sum`) and `repeat_interleave` (group->head replication of B/C).
++       Both are outer products with a ones vector, so a matmul against a ones row
++       is the same tensor through a supported op.
++     - PAD is refused on a rank-2 tensor ("expected 4x2 or 3x2, got 2x2"). Every
++       pad here is written as a `cat` with an explicit zero block instead.
++
++   The decode step (seq_len == 1) is written out for the same reason: upstream
++   `expand`s dt/A/B/C/D to [bsz, heads, head_dim, state] and each `expand` is a
++   BROADCAST_TO. Implicit (None-indexed) broadcasting produces the same rank-4
++   arithmetic with no BROADCAST_TO.
++
++   Set `LITERT_GRANITE_SSD=naive` to export the upstream scan instead (guard
++   still applied, via anchored source replacement). That is the pre-rewrite path,
++   kept so a quality regression can be bisected against a known-good graph.
++
++The rewrite is checked against the installed transformers implementation at
++patch time (`_selfcheck_folded_ssd`), so a modeling change that moves the math
++fails loudly instead of silently exporting something else.
 +"""
 +
 +import contextlib
 +import inspect
++import os
 +import textwrap
 +
 +import torch
 +from litert_torch.generative.export_hf.model_ext import patches as patches_lib
 +from transformers.models.granitemoehybrid import modeling_granitemoehybrid
++
++nn = torch.nn
++F = torch.nn.functional
++
++_PAD_DT = -30.0  # pre-softplus dt on pad positions -> identity SSM step
 +
 +
 +class PatchedGraniteMoeHybridModel(modeling_granitemoehybrid.GraniteMoeHybridModel):
@@ -769,7 +803,7 @@ index 0000000..f1ca26b
 +    # Engine pads prefill chunks with token id 0; derive the per-position valid
 +    # mask here and stash it directly on every mamba mixer instance — in
 +    # transformers 5.14 the mixers receive attention_mask=None (there is no
-+    # `_update_mamba_mask` route anymore), so the guarded torch_forward reads
++    # `_update_mamba_mask` route anymore), so torch_forward reads
 +    # `self._litert_valid` instead.
 +    valid = (input_ids != 0).to(torch.float32) if input_ids is not None else None
 +    for module in self.modules():
@@ -778,9 +812,367 @@ index 0000000..f1ca26b
 +    return super().forward(input_ids=input_ids, **kwargs)
 +
 +
++# ---------------------------------------------------------------------------
++# rank<=4 helpers
++# ---------------------------------------------------------------------------
++
++
++def _ones_row(like, n):
++  return torch.ones(1, n, device=like.device, dtype=like.dtype)
++
++
++def _cumsum_last(x):
++  """Inclusive cumulative sum along the last axis of a (batch, l) tensor.
++
++  CUMSUM by default. `LITERT_GRANITE_CUMSUM=matmul` swaps in a GEMM against a
++  constant upper-triangular ones matrix, which is the same values through a
++  different primitive — kept because "is the delegate's scan kernel wrong?" is a
++  question worth being able to ask in one env var. Measured 2026-08-13 on Mac
++  WebGPU: the GEMM form made the model's GPU output *worse* (token-0 spam rather
++  than wrong-but-formed text), so CUMSUM is not the broken op and the GEMM form
++  costs an l x l matmul for nothing.
++  """
++  if os.environ.get("LITERT_GRANITE_CUMSUM") != "matmul":
++    return torch.cumsum(x, dim=-1)
++  l = x.size(-1)
++  tri = torch.triu(torch.ones(l, l, device=x.device, dtype=x.dtype))
++  return torch.matmul(x[..., None, :], tri)[..., 0, :]
++
++
++def _exp_segment_sum_from_cumsum(cs):
++  """`exp(segment_sum(x))` given `cs = cumsum(x, -1)`: (batch, l) -> (batch, l, l).
++
++  `segment_sum(x)[i, j] = sum_{k=j+1..i} x[k] = cs[i] - cs[j]` for `i >= j`, so
++  the whole matrix comes from the cumulative sum we already compute along the
++  last axis. Three things upstream does are avoided, and none of them is about
++  rank:
++
++  - upstream's `expand` lowers to BROADCAST_TO, refused outright. A matmul
++    against a ones row builds the same tensor through a supported op, and its
++    transpose gives the other operand.
++  - upstream builds the matrix with a `cumsum` along a NON-INNERMOST axis of a
++    rank-3 tensor. Deriving it from the last-axis cumsum removes that op — it
++    was also the single largest tensor in the scan (chunks*heads x l x l with an
++    l-step scan).
++  - upstream fills the strict upper triangle with `-inf` before exponentiating.
++    Here the difference is masked to 0 BEFORE the exp (so nothing infinite ever
++    reaches it) and the triangle is zeroed after, which is the same matrix: on
++    and below the diagonal `cs` is non-increasing (A = -exp(A_log) < 0, dt > 0)
++    so the exponent is <= 0 and cannot overflow either.
++  """
++  l = cs.size(-1)
++  # Arithmetic broadcast, not `expand` (which is BROADCAST_TO) and not a matmul
++  # against a ones row (a K=1 batched matmul against a rank-2 operand — an edge
++  # case worth not depending on). SUB broadcasts natively.
++  diff = cs[..., :, None] - cs[..., None, :]  # diff[i, j] = cs[i] - cs[j]
++  keep = torch.tril(torch.ones(l, l, device=cs.device, dtype=cs.dtype), diagonal=0)
++  return torch.exp(diff * keep) * keep
++
++
++def _repeat_groups(t, rep):
++  """(b, s, g, n) -> (b, s, g*rep, n), each group repeated `rep` times.
++
++  Same tensor as `repeat_interleave(rep, dim=2)`, which lowers to BROADCAST_TO.
++  A concatenation of per-group slices is the same tensor through an op every
++  backend implements plainly.
++  """
++  g = t.shape[2]
++  return torch.cat(
++      [t[:, :, i : i + 1] for i in range(g) for _ in range(rep)], dim=2
++  )
++
++
++def _repeat_groups_step(t, n_groups, rep, n):
++  """(b, n_groups*n) -> (b, n_groups*rep, n) for the single-token path."""
++  b = t.shape[0]
++  t = torch.matmul(t.reshape(b * n_groups, n, 1), _ones_row(t, rep))  # (b*g, n, rep)
++  return t.transpose(1, 2).reshape(b, n_groups * rep, n)
++
++
++def _zeros_cat(t, pad_size, dim):
++  """`F.pad`-equivalent trailing zero pad, written as a cat (PAD is rejected on
++  rank-2 tensors and the cat form is what the delegate takes everywhere)."""
++  if pad_size == 0:
++    return t
++  shape = list(t.shape)
++  shape[dim] = pad_size
++  return torch.cat([t, torch.zeros(shape, device=t.device, dtype=t.dtype)], dim=dim)
++
++
++# ---------------------------------------------------------------------------
++# the rewritten mixer forward
++# ---------------------------------------------------------------------------
++
++
++def _folded_torch_forward(self, input_states, cache_params=None, attention_mask=None):
++  """rank<=4, BROADCAST_TO-free `GraniteMoeHybridMambaLayer.torch_forward`.
++
++  Numerically the upstream scan (checked at patch time); structurally a shape
++  every mobile GPU delegate accepts.
++  """
++  del attention_mask  # the pad mask arrives via `_litert_valid` (see model.forward)
++  batch_size, seq_len, _ = input_states.shape
++  dtype = input_states.dtype
++  H, P, N = self.num_heads, self.head_dim, self.ssm_state_size
++  n_groups = self.n_groups
++  rep = H // n_groups
++
++  # --- guard (1): zero pad positions, and only arm the guard on prefill. A
++  # legitimately generated token id 0 must not be masked during decode. ---
++  valid = getattr(self, "_litert_valid", None)
++  if valid is not None and seq_len > 1:
++    valid = valid.to(dtype)
++    input_states = input_states * valid[..., None]
++  else:
++    valid = None
++
++  projected_states = self.in_proj(input_states)
++  gate, hidden_states_B_C, dt = projected_states.split(
++      [self.intermediate_size, self.conv_dim, self.num_heads], dim=-1
++  )
++  hidden_states_B_C = hidden_states_B_C.transpose(1, 2)
++
++  # --- guard (3): identity SSM step on pads. ---
++  if valid is not None:
++    dt = dt * valid[..., None] + (1.0 - valid[..., None]) * _PAD_DT
++
++  use_precomputed_states = cache_params is not None and cache_params.has_previous_state(
++      self.layer_idx
++  )
++  # Diagnostic only (LITERT_GRANITE_IGNORE_STATE=1): trace the chunked path as
++  # if there were no incoming conv/SSM state. For a prompt that fits ONE chunk
++  # the result is unchanged (the state is zero there anyway), so a backend whose
++  # answer changes under this flag is handing the graph non-zero state buffers.
++  # It breaks multi-chunk continuation — never export a ship file with it.
++  ignore_state = os.environ.get("LITERT_GRANITE_IGNORE_STATE") == "1"
++  if ignore_state and seq_len > 1:
++    use_precomputed_states = False
++  if use_precomputed_states:
++    conv_state = cache_params.layers[self.layer_idx].conv_states[0]
++
++  single_step = use_precomputed_states and seq_len == 1
++
++  # 2. Convolution sequence transformation
++  if single_step:
++    conv_states = cache_params.update_conv_state(hidden_states_B_C, self.layer_idx)[
++        ..., -self.conv_kernel_size :
++    ]
++    hidden_states_B_C = torch.sum(
++        conv_states * self.conv1d.weight.squeeze(1), dim=-1
++    )
++    if self.use_conv_bias:
++      hidden_states_B_C = hidden_states_B_C + self.conv1d.bias
++    hidden_states_B_C = self.act(hidden_states_B_C)
++  else:
++    if use_precomputed_states:
++      hidden_states_B_C = torch.cat([conv_state, hidden_states_B_C], dim=-1)
++    if cache_params is not None:
++      # --- guard (4): store the conv window ending at the last VALID column,
++      # selected in-graph with a one-hot matmul. ---
++      # LITERT_GRANITE_CONV_GUARD=off stores the chunk's last K columns
++      # instead of the last VALID ones. That is the pre-guard behaviour
++      # (pad tokens poison the stored window at chunk-plan-dependent
++      # prompt lengths), kept ONLY to isolate this store on GPU.
++      if valid is not None and os.environ.get(
++          "LITERT_GRANITE_CONV_GUARD") != "off":
++        _w = hidden_states_B_C.shape[-1]
++        _K = self.conv_kernel_size
++        _seq = valid.shape[-1]
++        _lead = torch.zeros(
++            hidden_states_B_C.shape[:-1] + (_K,),
++            device=hidden_states_B_C.device,
++            dtype=hidden_states_B_C.dtype,
++        )
++        _padded = torch.cat([_lead, hidden_states_B_C], dim=-1)
++        # ⚠ KEEP THE BATCH DIMENSION. Reducing the mask to a RANK-0 scalar and
++        # broadcasting that against `arange` is what breaks this store on the
++        # GPU delegates: measured 2026-08-13 with tools/backend_diff, a bare
++        # `arange` matches CPU exactly, `100.0 + arange` matches exactly, and
++        # the mask and its sum match exactly — but `rank0_scalar + arange` does
++        # not (CPU [12,13,14,15], GPU max 12), the selector built from it comes
++        # back ALL ZERO, and every mamba layer's stored conv state is then
++        # exactly 0.0 on GPU while CPU has real values. Generation collapses
++        # because decode convolves against no history. With `keepdim=True` the
++        # whole chain — index, selector and gather — matches CPU exactly.
++        #
++        # int64 is separately fatal here: the CAST/ADD it produces is refused
++        # outright, and these nodes sit upstream of every mamba layer, so three
++        # of them cost 97% of the delegated graph. Every value is a small exact
++        # integer, so float32 index arithmetic is exact.
++        _valid_len = valid.sum(-1, keepdim=True).to(_padded.dtype)  # (B, 1)
++        _base = float(_w - _seq) + _valid_len  # (B, 1)
++        _idx = _base + torch.arange(
++            _K, device=_padded.device, dtype=_padded.dtype
++        )  # (B, K)
++        _cols = torch.arange(
++            _w + _K, device=_padded.device, dtype=_padded.dtype
++        )  # (P,)
++        # Selector by arithmetic distance rather than `==`: same tensor, and it
++        # keeps a bool/CAST pair out of the graph. Distances are exact integers.
++        _sel = torch.relu(
++            1.0 - torch.abs(_cols[None, :, None] - _idx[:, None, :])
++        )  # (B, P, K)
++        conv_states = torch.matmul(_padded, _sel)
++      else:
++        conv_states = F.pad(
++            hidden_states_B_C,
++            (self.conv_kernel_size - hidden_states_B_C.shape[-1], 0),
++        )
++      cache_params.update_conv_state(conv_states, self.layer_idx)
++
++    hidden_states_B_C = self.act(
++        self.conv1d(hidden_states_B_C)[..., : hidden_states_B_C.shape[-1]]
++    )
++    if use_precomputed_states:
++      hidden_states_B_C = hidden_states_B_C[..., -seq_len:]
++    hidden_states_B_C = hidden_states_B_C.transpose(1, 2)
++
++  # --- guard (2): zero x/B/C at pad positions for the scan. ---
++  if valid is not None:
++    hidden_states_B_C = hidden_states_B_C * valid[..., None]
++
++  hidden_states, B, C = torch.split(
++      hidden_states_B_C,
++      [self.intermediate_size, n_groups * N, n_groups * N],
++      dim=-1,
++  )
++
++  # 3. SSM transformation
++  A = -torch.exp(self.A_log.float())  # (H,)
++
++  if single_step:
++    # Single-token recurrence. Upstream `expand`s dt/A/B/C/D up to
++    # [bsz, heads, head_dim, state]; every one of those is a BROADCAST_TO, so
++    # use implicit (None-indexed) broadcasting instead — same rank-4 arithmetic,
++    # no BROADCAST_TO. n_groups == 1 broadcasts B/C over the head axis directly.
++    dt = F.softplus(dt[:, 0, :] + self.dt_bias)  # (b, H)
++    dt = torch.clamp(dt, self.time_step_limit[0], self.time_step_limit[1])
++    dA = torch.exp(dt * A)  # (b, H)
++
++    x = hidden_states.reshape(batch_size, H, P)  # (b, H, P)
++    if n_groups == 1:
++      # One group: leave the head axis at 1 and let the rank-4 arithmetic below
++      # broadcast it — cheaper than replicating, and no BROADCAST_TO either way.
++      Bh = B.reshape(batch_size, 1, N)
++      Ch = C.reshape(batch_size, 1, N)
++    elif rep > 1:
++      Bh = _repeat_groups_step(B, n_groups, rep, N)  # (b, H, N)
++      Ch = _repeat_groups_step(C, n_groups, rep, N)
++    else:
++      Bh = B.reshape(batch_size, H, N)  # one group per head
++      Ch = C.reshape(batch_size, H, N)
++
++    dBx = dt[:, :, None, None] * Bh[:, :, None, :] * x[:, :, :, None]  # (b,H,P,N)
++    prev = cache_params.layers[self.layer_idx].recurrent_states[0]
++    ssm_state = prev.to(dBx.dtype) * dA[:, :, None, None] + dBx  # rank-4 ADD
++    ssm_state = cache_params.update_recurrent_state(ssm_state, self.layer_idx)
++
++    y = (ssm_state.to(Ch.dtype) * Ch[:, :, None, :]).sum(-1)  # (b, H, P)
++    y = y + x * self.D[None, :, None]
++    y = y.reshape(batch_size, -1)[:, None, ...]  # (b, 1, intermediate)
++  else:
++    # Chunked scan. Same five contractions as upstream, written as batched
++    # matmuls with (batch, head, chunk) folded into one leading axis.
++    cl = self.chunk_size
++    pad_size = (cl - seq_len % cl) % cl
++    seq_p = seq_len + pad_size
++    c = seq_p // cl
++
++    dt = F.softplus(dt + self.dt_bias)  # (b, seq, H)
++    dt = torch.clamp(dt, self.time_step_limit[0], self.time_step_limit[1])
++
++    hidden_states = hidden_states.reshape(batch_size, seq_len, -1, P).float()
++    B = B.reshape(batch_size, seq_len, -1, N).float()
++    C = C.reshape(batch_size, seq_len, -1, N).float()
++    if rep > 1:
++      B = _repeat_groups(B, rep)
++      C = _repeat_groups(C, rep)
++
++    D_residual = self.D[..., None] * hidden_states  # (b, seq, H, P)
++    hidden_states = hidden_states * dt[..., None]
++    A = A.to(hidden_states.dtype) * dt  # (b, seq, H)
++
++    # Pad to a chunk boundary. Zero x contributes nothing and zero A decays
++    # nothing, so the real positions — and the stored end-of-chunk state — are
++    # unchanged; this is upstream's `reshape_into_chunks` pad, as a cat.
++    if pad_size > 0:
++      hidden_states = _zeros_cat(hidden_states, pad_size, 1)
++      B = _zeros_cat(B, pad_size, 1)
++      C = _zeros_cat(C, pad_size, 1)
++      A = _zeros_cat(A, pad_size, 1)
++
++    def fold(t, last):  # (b, seq_p, H, last) -> (b*H*c, cl, last)
++      return t.permute(0, 2, 1, 3).reshape(batch_size * H * c, cl, last)
++
++    xf = fold(hidden_states, P)
++    bf = fold(B, N)
++    cf = fold(C, N)
++    af = A.permute(0, 2, 1).reshape(batch_size * H * c, cl)
++
++    a_cumsum = _cumsum_last(af)  # (bhc, cl)
++    Lf = _exp_segment_sum_from_cumsum(a_cumsum)  # (bhc, cl, cl)
++
++    # 1. intra-chunk (diagonal blocks)
++    G = torch.matmul(cf, bf.transpose(1, 2))  # (bhc, cl, cl)
++    M = G * Lf
++    Y_diag = torch.matmul(M, xf)  # (bhc, cl, P)
++
++    # 2. per-chunk end state (kept as (N, P) — transposed against upstream's
++    # (P, N) — so the contraction is a plain matmul; transposed back at the
++    # cache boundary below).
++    decay_states = torch.exp(a_cumsum[:, -1:] - a_cumsum)  # (bhc, cl)
++    B_decay = bf * decay_states[..., None]
++    states = torch.matmul(B_decay.transpose(1, 2), xf)  # (bhc, N, P)
++
++    # 3. inter-chunk recurrence: a contraction over the chunk axis.
++    states_bh = states.reshape(batch_size * H, c, N * P)
++    if use_precomputed_states:
++      prev = cache_params.layers[self.layer_idx].recurrent_states[0]  # (b,H,P,N)
++      prev = (
++          prev.to(states_bh.dtype)
++          .permute(0, 1, 3, 2)
++          .reshape(batch_size * H, 1, N * P)
++      )
++    else:
++      prev = torch.zeros_like(states_bh[:, :1])
++    states_bh = torch.cat([prev, states_bh], dim=1)  # (bH, c+1, N*P)
++
++    chunk_tail = a_cumsum[:, -1].reshape(batch_size * H, c)
++    chunk_tail = torch.cat(
++        [torch.zeros_like(chunk_tail[:, :1]), chunk_tail], dim=1
++    )  # (bH, c+1)
++    decay_chunk = _exp_segment_sum_from_cumsum(
++        _cumsum_last(chunk_tail)
++    )  # (bH, c+1, c+1)
++    new_states = torch.matmul(decay_chunk, states_bh)  # (bH, c+1, N*P)
++    states_out, ssm_state = new_states[:, :-1], new_states[:, -1]
++
++    # 4. state -> output per chunk (off-diagonal blocks)
++    st = states_out.reshape(batch_size * H * c, N, P)
++    Y_off = torch.matmul(cf, st) * torch.exp(a_cumsum)[..., None]  # (bhc, cl, P)
++
++    y = Y_diag + Y_off
++    y = y.reshape(batch_size, H, seq_p, P).permute(0, 2, 1, 3)  # (b, seq_p, H, P)
++    if pad_size > 0:
++      y = y[:, :seq_len]
++    y = (y + D_residual).reshape(batch_size, seq_len, -1)
++
++    if cache_params is not None:
++      ssm_state = ssm_state.reshape(batch_size, H, N, P).permute(0, 1, 3, 2)
++      cache_params.update_recurrent_state(ssm_state, self.layer_idx)
++
++  scan_output = self.norm(y, gate)
++  return self.out_proj(scan_output.to(dtype))
++
++
++# ---------------------------------------------------------------------------
++# upstream scan + guard (bisect path), via anchored source replacement
++# ---------------------------------------------------------------------------
++
++
 +def _build_guarded_torch_forward():
-+  """Vendored `GraniteMoeHybridMambaLayer.torch_forward` with the pad guard,
-+  generated from the installed source via anchored replacements."""
++  """Upstream `torch_forward` with the pad guard, generated from the installed
++  source via anchored replacements (the pre-rewrite export path)."""
 +  src = inspect.getsource(
 +      modeling_granitemoehybrid.GraniteMoeHybridMambaLayer.torch_forward
 +  )
@@ -843,11 +1235,18 @@ index 0000000..f1ca26b
 +      "                _w = hidden_states_B_C.shape[-1]\n"
 +      "                _K = self.conv_kernel_size\n"
 +      "                _padded = nn.functional.pad(hidden_states_B_C, (_K, 0))\n"
-+      "                _valid_len = valid.sum(-1)[0].to(torch.long)\n"
-+      "                _base = _w - valid.shape[-1] + _valid_len\n"
-+      "                _idx = _base + torch.arange(_K, device=_padded.device)\n"
-+      "                _onehot = (torch.arange(_w + _K, device=_padded.device)[:, None]\n"
-+      "                           == _idx[None, :]).to(_padded.dtype)\n"
++      # float32 index arithmetic: an int64 CAST/ADD is refused by the OpenCL
++      # delegate and cuts the graph at every mamba layer (see the folded path).
++      "                _valid_len = valid.sum(-1)[0]\n"
++      "                _base = float(_w - valid.shape[-1]) + _valid_len\n"
++      "                _idx = _base + torch.arange(_K, device=_padded.device,\n"
++      "                                            dtype=_base.dtype)\n"
++      # relu(1 - |cols - idx|), not `==`: a bool EQUAL + CAST comes back
++      # all-false on the GPU delegates (see the folded path).
++      "                _cols = torch.arange(_w + _K, device=_padded.device,\n"
++      "                                     dtype=_base.dtype)\n"
++      "                _onehot = torch.relu(1.0 - torch.abs(\n"
++      "                    _cols[:, None] - _idx[None, :])).to(_padded.dtype)\n"
 +      "                conv_states = _padded @ _onehot\n"
 +      "            else:\n"
 +      "                conv_states = nn.functional.pad(\n"
@@ -863,16 +1262,81 @@ index 0000000..f1ca26b
 +  return namespace["torch_forward"]
 +
 +
++def _use_folded():
++  return os.environ.get("LITERT_GRANITE_SSD", "folded").lower() != "naive"
++
++
 +class PatchedGraniteMoeHybridMambaLayer(
 +    modeling_granitemoehybrid.GraniteMoeHybridMambaLayer
 +):
-+  torch_forward = _build_guarded_torch_forward()
++  torch_forward = (
++      _folded_torch_forward if _use_folded() else _build_guarded_torch_forward()
++  )
++
++
++# ---------------------------------------------------------------------------
++# patch-time self-check
++# ---------------------------------------------------------------------------
++
++
++def _selfcheck_folded_ssd(tol=2e-4):
++  """Run the rewritten scan against the installed transformers implementation.
++
++  Covers the cache-free chunked path at both a chunk multiple and a ragged
++  length. The cached/decode paths are covered by the model-level parity gate
++  (they need a real export cache), but this is what catches an upstream change
++  to the scan math — the anchored guard path asserts on its anchors instead.
++  """
++  from transformers.models.granitemoehybrid.configuration_granitemoehybrid import (
++      GraniteMoeHybridConfig,
++  )
++
++  torch.manual_seed(0)
++  cfg = GraniteMoeHybridConfig(
++      hidden_size=64,
++      num_hidden_layers=1,
++      mamba_n_heads=8,
++      mamba_d_head=16,
++      mamba_d_state=16,
++      mamba_expand=2,
++      mamba_chunk_size=8,
++      mamba_n_groups=2,
++  )
++  layer = modeling_granitemoehybrid.GraniteMoeHybridMambaLayer(cfg, layer_idx=0)
++  layer = layer.eval().float()
++  worst = 0.0
++  for seq in (16, 13):
++    x = torch.randn(1, seq, cfg.hidden_size)
++    with torch.no_grad():
++      ref = modeling_granitemoehybrid.GraniteMoeHybridMambaLayer.torch_forward(
++          layer, x
++      )
++      new = _folded_torch_forward(layer, x)
++    worst = max(worst, (ref - new).abs().max().item() / ref.abs().max().item())
++  if worst > tol:
++    raise AssertionError(
++        "granite folded SSD rewrite disagrees with the installed transformers "
++        f"implementation (relative max|diff| {worst:.2e} > {tol:.0e}). The "
++        "upstream scan changed; re-derive the folded form or export with "
++        "LITERT_GRANITE_SSD=naive."
++    )
++  return worst
 +
 +
 +@patches_lib.register_patch(["granitemoehybrid"])
 +@contextlib.contextmanager
 +def granitemoehybrid_litert_patch():
-+  print("Granite-4-h (granitemoehybrid) patch applied (with mamba pad guard).")
++  if _use_folded():
++    rel = _selfcheck_folded_ssd()
++    print(
++        "Granite-4-h (granitemoehybrid) patch applied "
++        f"(pad guard + rank<=4 SSD; self-check rel {rel:.1e})."
++    )
++  else:
++    print(
++        "Granite-4-h (granitemoehybrid) patch applied "
++        "(pad guard, upstream SSD — LITERT_GRANITE_SSD=naive)."
++    )
 +  original_model = modeling_granitemoehybrid.GraniteMoeHybridModel
 +  original_mixer = modeling_granitemoehybrid.GraniteMoeHybridMambaLayer
 +  modeling_granitemoehybrid.GraniteMoeHybridModel = PatchedGraniteMoeHybridModel

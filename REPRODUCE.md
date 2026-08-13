@@ -239,6 +239,8 @@ git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
 git -C litert-torch-granite checkout 115a136
 git -C litert-torch-granite apply "$(pwd)/granite_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-1b out_granite_1b
+# GPU ship shape (2026-08-13): declare fp32 activations in the bundle TOML (repack, no re-export)
+python ../scripts/set_activation_type.py out_granite_1b/granite-4.0-h-1b_int8.litertlm granite-4.0-h-1b_int8.litertlm --type fp32
 ```
 
 The patch (against the pinned litert-torch base above) is what makes a state-carrying hybrid convert *and generate correctly* end to end. The non-obvious parts, in the order they were needed:
@@ -248,6 +250,25 @@ The patch (against the pinned litert-torch base above) is what makes a state-car
 - **The mamba prefill-pad guard.** The runtime's chunk planner runs prefill chunks *partially filled* (the remainder chunk is padded), and granite's own `apply_mask_to_padding_states` is a no-op at batch 1 — so pads poison the conv/SSM state at chunk-plan-dependent prompt lengths (the Mamba2 analog of the LFM2 ShortConv prefill-pad bug). The guard derives a valid mask from `tokens != 0` (the engine zero-fills pads), makes pad positions identity SSM steps (dt → ~0), and gathers the stored conv window at the last *valid* column with an in-graph one-hot matmul.
 - **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (8Q sanity 5/8 vs 6/8 on the 350m — same rule as the LFM2.5 convs).
 - Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position; int8 sanity gate 8/8 (= the PyTorch reference); first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean.
+
+### 2026-08-13 update — the folded scan: 3.5× on CPU, and the GPU wall falls
+
+The published 1b was re-converted from the same weights with the patch's selective scan re-expressed: every contraction that the HF reference spells as broadcast-multiply-reduce (materializing intermediates that scale as `chunks × chunk_len² × heads × d_state`, some at rank 5–6) is rewritten as a **batched matmul with the chunk and head axes folded into the batch axis** — every tensor in the scan is rank ≤ 4, there is no `BROADCAST_TO`, no rank-2 `PAD`, and no int64 index math. The decode path drops its per-token `expand`-materializations for implicit broadcasting. The patch self-checks the folded form against the reference formulation numerically on every export.
+
+What this buys, same weights, same recipe (Mac M4 Max, `litert-lm benchmark -p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0):
+
+| granite-4.0-h-1b int8 | prefill | decode |
+|---|---|---|
+| previous file, CPU | 69 tok/s | 11.4 tok/s |
+| re-converted, CPU | **247 tok/s** | **39.2 tok/s** |
+| re-converted, GPU | **1684 tok/s** | **134.7 tok/s** |
+
+The CPU speedup is pure graph shape — the matmul form never builds the giant intermediates. The GPU part additionally needed two things:
+
+- **Keep the batch dimension in the pad guard's reductions** (`valid.sum(-1, keepdim=True)`, not `sum(-1)[0]`). A rank-0 tensor entering broadcast arithmetic is *silently miscomputed* by the GPU delegate — the graph is accepted, `is_fully_accelerated` stays true, and every layer's conv state quietly zeroes. If a hybrid delegates 100% and still generates garbage, suspect rank-0 scalars before anything else.
+- **Declare fp32 activations** (`scripts/set_activation_type.py`, above). The GPU executor's default fp16 activations overflow on the scan's intermediates; the failure mode is the engine's "Invalid decode and sample result" / all-zero tokens, not an error message.
+
+Ship verification on the re-converted file: float parity vs HF teacher-forced across 8 decode positions — per-position max|logit diff| ≤ 1.1e-4, correlation 1.000000, top-1 and top-5 identical; int8 8-question gate **8/8 on CPU and GPU, on litert-lm 0.15.0 and 0.16.0**; on iPhone 17 Pro (Metal) 8/8 with decode 29.8 tok/s vs 15.9 CPU; on Pixel 8a (OpenCL) every subgraph fully delegated (zero rejections) with correct output. Low-end Android GPU decode does not beat CPU (decode is bandwidth-bound and the fp32-activation path reads 4× the bytes) — the on-device GPU win is Apple hardware, plus prefill/TTFT everywhere.
 
 ### granite-4.0-h-350m (fp16 + int8) — and the start_token lesson
 
@@ -273,6 +294,8 @@ git clone https://github.com/google-ai-edge/litert-torch litert-torch-qwen35
 git -C litert-torch-qwen35 checkout 115a136
 git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-qwen35 python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
+# GPU ship shape (2026-08-13): declare fp32 activations in the bundle TOML (repack, no re-export)
+python ../scripts/set_activation_type.py out_qwen35_08b/Qwen3.5-0.8B_int8.litertlm Qwen3.5-0.8B_int8.litertlm --type fp32
 ```
 
 The patch (against the pinned litert-torch base, transformers ≥ 5.14) shares the granite hybrid machinery — export-cache layers for `layer_types == "linear_attention"`, state-continuation tracing (fused single-step decode branch + chunked-continuation prefill branch), and the prefill-pad guard (pads become identity delta-rule steps; the conv window is gathered at the last valid column). Qwen3.5-specific parts, in the order they were needed:
@@ -283,7 +306,16 @@ The patch (against the pinned litert-torch base, transformers ≥ 5.14) shares t
 - **Chat template replaced.** The stock template strips the `<think>` block from history assistant turns, which violates LiteRT-LM's incremental conversation rendering (each turn's render must string-extend the previous one) and hard-fails turn 2. The bundled simplified ChatML template keeps the empty think block in both the generation prompt and history renders — multi-turn then works exactly (`chat_template_simple.jinja`).
 - **Quantize convs never**: post-hoc dynamic int8 on linears + embedding (`wi8fc`), convs and the delta rule stay float — same rule as LFM2.5 / granite.
 
-Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position (max|logit diff| ≤ 3.7e-5); an 8-question sanity gate answered **word-for-word identically to HF fp32 by both the float and the published int8 build**; first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean; multi-turn state continuity verified. CPU-only for now (current GPU delegates reject the graph). Mac M4 Max CPU: prefill 501 tok/s @256, decode 48 tok/s.
+Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position (max|logit diff| ≤ 3.7e-5); an 8-question sanity gate answered **word-for-word identically to HF fp32 by both the float and the published int8 build**; first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean; multi-turn state continuity verified.
+
+### 2026-08-13 update — the GPU wall falls (and a delegate bug found on the way)
+
+The published 0.8B was re-converted from the same weights with the vendored chunk kernel re-expressed the same way as granite's scan: contractions as **batched matmuls with chunk and head axes folded into the batch axis**, every tensor rank ≤ 4, no `BROADCAST_TO`, no int64 index math. Two GPU-specific lessons came out of getting it not just delegated but *correct*:
+
+- **Never `PAD` a rank-3 tensor on a non-final axis.** The GPU delegate executes it wrong — a bit-exact one-row shift along the outermost axis (row 0 zeros), silently, with `is_fully_accelerated` still true. In this kernel that shifted every gate to the neighbouring head. Reported upstream with a 1-op repro: [LiteRT#9272](https://github.com/google-ai-edge/LiteRT/issues/9272). The kernel now writes every tail-pad as `torch.cat` with a zeros constant (unsqueezing to rank 4 before padding is also exact, if you prefer `PAD`).
+- **Declare fp32 activations** (`scripts/set_activation_type.py`, above). At fp16 the remaining failure is not the converter: one layer-0 head's real weights push fp16 intermediates over range — a property of the checkpoint.
+
+Re-ship verification: parity re-run on the ship export (48 positions, top-1/top-5 100%, Pearson 1.0000); 8-question gate **8/8 on CPU and GPU on both litert-lm 0.15.0 and 0.16.0**; prompt-length robustness with a fresh engine per length 40/40 CPU + 20/20 GPU; on iPhone 17 Pro (Metal) 8/8 with decode 41.4 tok/s vs 14.6 CPU. CPU speed is unchanged (the kernel was already matmul-form on CPU): Mac M4 Max CPU 666/46.7 tok/s, GPU 1972/161.8 (`-p 256 -d 256 --runs 3 --cache no`, 0.16.0). One honest limit: a Pixel 8a cannot compile the full prefill-ladder ship file on its GPU (fp32-expanded weights + ten compiled programs exceed ~3.8 GB available); a reduced dev shape of the same graph runs there fully delegated and correct, and CPU is unaffected.
 
 ## LFM2.5-Encoder (bidirectional encoders → plain .tflite)
 
