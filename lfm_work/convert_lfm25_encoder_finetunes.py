@@ -59,6 +59,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _rank4_repeat_kv  # rank-4 GQA repeat_kv respelling (GPU delegation)
+
 KIND = sys.argv[1] if len(sys.argv) > 1 else "router"
 R = 8  # static lane/rule slots for router/linter
 
@@ -97,6 +100,7 @@ def rebind_pad_mask():
 def load_model():
     from transformers import AutoModel, AutoModelForTokenClassification
 
+    _rank4_repeat_kv.install()
     if KIND == "pii":
         m = AutoModelForTokenClassification.from_pretrained(
             MODEL, trust_remote_code=True, dtype=torch.float32)
@@ -104,6 +108,7 @@ def load_model():
         m = AutoModel.from_pretrained(MODEL, trust_remote_code=True, dtype=torch.float32)
     m = m.eval()
     rebind_pad_mask()
+    _rank4_repeat_kv.rebind_all()
     # tf5.x meta-load trap: rope inv_freq must be real
     trunk = m.encoder if KIND == "gec" else m.lfm2
     assert float(trunk.rotary_emb.inv_freq.min()) > 0, "inv_freq zeroed by meta-load"
@@ -240,6 +245,8 @@ def main():
     it = Interpreter(model_path=FP32)
     hist = collections.Counter(d["op_name"] for d in it._get_ops_details())
     print(f"[{KIND}] ops:", dict(sorted(hist.items(), key=lambda kv: -kv[1])))
+    assert "BROADCAST_TO" not in hist, (
+        "rank-5 repeat_kv survived — the rank-4 patch missed the live call site")
 
     # smoke parity, primary signature
     S = SEQ_LENS[-1]

@@ -67,6 +67,9 @@ import sys
 import numpy as np
 import torch
 import torch.nn as nn
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _rank4_repeat_kv  # rank-4 GQA repeat_kv respelling (GPU delegation)
 import torch.nn.functional as F
 
 DEFAULT_MODEL = "LiquidAI/LFM2.5-Embedding-350M"
@@ -106,10 +109,12 @@ def load_model(model_id):
     from transformers import AutoModel
     from transformers.models.lfm2.modeling_lfm2 import Lfm2ShortConv
 
+    _rank4_repeat_kv.install()
     model = AutoModel.from_pretrained(
         model_id, trust_remote_code=True, dtype=torch.float32,
         attn_implementation="sdpa",
     ).eval()
+    _rank4_repeat_kv.rebind_all()
     assert type(model).__name__ == "Lfm2BidirectionalModel", type(model).__name__
 
     # tf5.x meta-load trap: init-computed buffers can materialize as zeros.
@@ -206,6 +211,8 @@ def op_report(path, tag):
     i64 = [d["name"] for d in it.get_tensor_details()
            if "int64" in str(d["dtype"]).lower()]
     print(f"{tag} int64 tensors: {len(i64)}", i64[:5])
+    assert "BROADCAST_TO" not in hist, (
+        "rank-5 repeat_kv survived — the rank-4 patch missed the live call site")
     for hostile in ("GATHER_ND", "LOGICAL_AND"):
         if hostile in hist:
             print(f"  note: {hostile} x{hist[hostile]} present (mobile-GPU hostile)")

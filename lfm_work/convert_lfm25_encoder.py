@@ -67,6 +67,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _rank4_repeat_kv  # rank-4 GQA repeat_kv respelling (GPU delegation)
+
 MODEL = sys.argv[1] if len(sys.argv) > 1 else "LiquidAI/LFM2.5-Encoder-230M"
 OUT_DIR = sys.argv[2] if len(sys.argv) > 2 else "out_lfm25_encoder_230m"
 SEQ_LENS = (512, 256, 128, 64)
@@ -80,6 +83,7 @@ WI8 = os.path.join(OUT_DIR, "encoder_wi8fc.tflite")
 def load_model():
     from transformers import AutoModelForMaskedLM
 
+    _rank4_repeat_kv.install()
     mlm = AutoModelForMaskedLM.from_pretrained(
         MODEL, trust_remote_code=True, dtype=torch.float32,
         attn_implementation="sdpa",
@@ -98,6 +102,7 @@ def load_model():
         return hidden_states
 
     remote_mod.apply_mask_to_padding_states = _apply_mask_always
+    _rank4_repeat_kv.rebind_all()
     return mlm
 
 
