@@ -749,10 +749,10 @@ index 0000000..c0f98a7
 +# ==============================================================================
 diff --git a/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
 new file mode 100644
-index 0000000..099f708
+index 0000000..3eaa6c0
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
-@@ -0,0 +1,384 @@
+@@ -0,0 +1,417 @@
 +# Copyright 2026 The LiteRT Torch Authors.
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
@@ -850,6 +850,18 @@ index 0000000..099f708
 +          [position_ids, position_ids, position_ids, position_ids], dim=0)
 +    return super().forward(input_ids=input_ids, position_ids=position_ids,
 +                           **kwargs)
++
++
++def _litert_interleave_heads(x, r):
++  """`repeat_interleave(r, dim=2)` for [b, s, h, d] without rank-5 tensors or
++  BROADCAST_TO: fold the batch dim (b == 1 in this export) so the copy axis
++  fits in rank 4, materialize the copies with concat, and reinterleave with
++  rank-4 reshapes. Flattening (h, r) h-major reproduces repeat_interleave's
++  [h0, h0, h1, h1, ...] order exactly (bitwise, checked vs the stock op)."""
++  b, s, h, d = x.shape
++  y = x.reshape(s, h, 1, d)
++  y = torch.cat([y] * r, dim=2)
++  return y.reshape(b, s, h * r, d)
 +
 +
 +def _unwrap_forward():
@@ -964,8 +976,29 @@ index 0000000..099f708
 +      "self.layer_idx)\n",
 +  )
 +
++  # (6) rank-4 head interleave (4B+: num_v_heads > num_k_heads; ratio 1 on the
++  # 0.8B never traces this branch). The stock `repeat_interleave(r, dim=2)` on
++  # rank-4 q/k lowers through rank-5 unsqueeze->expand->reshape and the GPU
++  # delegate rejects it ("RESHAPE: Tensor dimensions must be less than 5").
++  anchor = (
++      "    if self.num_v_heads // self.num_k_heads > 1:\n"
++      "        query = query.repeat_interleave("
++      "self.num_v_heads // self.num_k_heads, dim=2)\n"
++      "        key = key.repeat_interleave("
++      "self.num_v_heads // self.num_k_heads, dim=2)\n")
++  assert src.count(anchor) == 1, "head-interleave anchor not found"
++  src = src.replace(
++      anchor,
++      "    if self.num_v_heads // self.num_k_heads > 1:\n"
++      "        query = _litert_interleave_heads("
++      "query, self.num_v_heads // self.num_k_heads)\n"
++      "        key = _litert_interleave_heads("
++      "key, self.num_v_heads // self.num_k_heads)\n",
++  )
++
 +  namespace = dict(vars(modeling_qwen3_5))
 +  namespace["torch"] = torch
++  namespace["_litert_interleave_heads"] = _litert_interleave_heads
 +  exec(compile(src, "<qwen3_5_pad_guard>", "exec"), namespace)  # pylint: disable=exec-used
 +  return namespace["forward"]
 +

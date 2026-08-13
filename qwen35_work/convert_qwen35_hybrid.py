@@ -42,11 +42,17 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 # 1. Float export (bundled .litertlm), full prefill ladder, 4096-token KV for
 #    the 6 attention layers (the 18 gated-delta layers hold constant-size state).
+#    QWEN35_PREFILL_LADDER overrides the ladder: every signature is charged
+#    engine RAM even if never called, and on a 12 GB iPhone the 4B dies in
+#    jetsam at Metal-init #9 of 12 with the full ladder (the 248320-vocab
+#    programs are what pushes it past the nemotron-4B 6.7 GB precedent) —
+#    the 4B ships 1024,256,64,16,4,1.
 argv = [
     "litert-torch", "export_hf",
     "--model", model,
     "--output_dir", outdir,
-    "--prefill_lengths", "1024,512,256,128,64,32,16,8,4,2,1",
+    "--prefill_lengths",
+    os.environ.get("QWEN35_PREFILL_LADDER", "1024,512,256,128,64,32,16,8,4,2,1"),
     "--cache_length", "4096",
     "--quantization_recipe", "",
 ]
@@ -64,7 +70,7 @@ final = os.path.join(outdir, os.path.basename(model).replace("/", "_") + "_int8.
 
 # 2. Post-hoc int8 (linears + embedding only; convs/delta-rule float).
 subprocess.run([sys.executable,
-                os.path.join(here, "..", "minicpm_work", "quantize_litertlm.py"),
+                os.path.join(here, "..", "minicpm5_work", "quantize_minicpm5.py"),
                 "apply", fp, wi8fc, "--recipe", "wi8fc"], check=True)
 
 # 3. Replace the bundled template with the simple ChatML template (see module
