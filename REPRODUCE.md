@@ -319,7 +319,7 @@ Re-ship verification: parity re-run on the ship export (48 positions, top-1/top-
 
 ## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
 
-`falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct). **Requires litert-lm ≥ 0.15 to run.**
+`falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B, 24 on the 1.5B) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct) and [litert-community/Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct). **Requires litert-lm ≥ 0.15 to run.**
 
 ```bash
 cd falcon_h1_work
@@ -338,7 +338,9 @@ The patch shares the granite/Qwen3.5 hybrid machinery — the folded rank ≤ 4 
 - **`mamba_d_ssm` is not `expand × hidden`.** `FalconH1Config` defaults the SSM intermediate to its own width (and `mamba_d_head` resolves from `'auto'` against it) — shape inference must read the config, not assume the granite/bamba relation.
 - **`mup_vector` is a non-persistent model-level buffer** — a prime candidate for transformers 5.x meta-load zeroing (and a silently zeroed buffer would still "pass" parity when reference and export share the model object). The patch zero-checks it after load; the check cannot live in `forward()` because fake-tensor tracing cannot concretize `float(buffer.max())`.
 
-Ship verification (0.5B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 7.6e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **int8 = float = GPU** (all 6/8 with near-verbatim identical text; the two misses are the 0.5B's own level — the float graph misses them the same way); hermetic prompt-length sweep 41/41 clean; Pixel 8a (OpenCL) delegates every subgraph with zero rejections and correct output; iPhone 17 Pro (Metal) decode 52.7 tok/s vs 36.2 CPU. Mac M4 Max: GPU 2650 prefill / 127.5 decode tok/s, CPU 473 / 59.0 (`-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0). The 1.5B/3B siblings ride the same driver unchanged.
+Ship verification (0.5B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 7.6e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **int8 = float = GPU** (all 6/8 with near-verbatim identical text; the two misses are the 0.5B's own level — the float graph misses them the same way); hermetic prompt-length sweep 41/41 clean; Pixel 8a (OpenCL) delegates every subgraph with zero rejections and correct output; iPhone 17 Pro (Metal) decode 52.7 tok/s vs 36.2 CPU. Mac M4 Max: GPU 2650 prefill / 127.5 decode tok/s, CPU 473 / 59.0 (`-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0).
+
+The 1.5B rides the same driver unchanged: parity max|logit diff| 1.6e-04 / correlation 1.000000 / top-1+top-5 identical; 8-question gate CPU 7/8 (the miss is answered identically by the HF bf16 reference) and GPU 6/8 (one borderline int8 greedy flip); hermetic sweep clean; on iPhone 17 Pro the composite quality probe answers 8/8 on BOTH backends with identical text — Metal decode 25.8 tok/s vs 15.5 CPU, TTFT 0.88 s vs 3.16 s. Mac M4 Max: GPU 1447 / 102.9, CPU 238 / 33.7. The 3B sibling should ride the same rail (unconverted as of 2026-08-13).
 
 ## Nemotron-H (Mamba2 + MLP + attention, three layer kinds) — and the registry trap
 
