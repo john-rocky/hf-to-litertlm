@@ -523,9 +523,9 @@ Two runtime facts: `vision_backend` must be named explicitly (without it the eng
 
 **Letterbox images before passing them.** The runtime resizes to the declared H×W with no padding. On 100 labelled images, stretching cost 8.5 F1 against the source model where letterboxing cost 3.0, and agreement rose from 92% to 96% — a larger effect than the int8-vs-int4 choice.
 
-## LFM2.5-VL (3B / 450M — LFM2 hybrid text + SigLIP2 vision, native runtime image support)
+## LFM2.5-VL (3B / 1.6B / 450M — LFM2 hybrid text + SigLIP2 vision, native runtime image support)
 
-The first family where the vanilla `litert-torch` VLM path and the runtime's own image pipeline line up end-to-end: `LiquidAI/LFM2.5-VL-3B` and `-450M` convert with stock `export_hf --task image_text_to_text` and run **text + image on the released `litert-lm==0.16.0` pip runtime** (`litert-lm run model.litertlm --prompt "..." --attachment img.png`).
+The first family where the vanilla `litert-torch` VLM path and the runtime's own image pipeline line up end-to-end: `LiquidAI/LFM2.5-VL-3B`, `-1.6B` and `-450M` convert with stock `export_hf --task image_text_to_text` and run **text + image on the released `litert-lm==0.16.0` pip runtime** (`litert-lm run model.litertlm --prompt "..." --attachment img.png`).
 
 ```bash
 python -m venv .venv && .venv/bin/pip install litert-torch==0.9.3 "transformers==5.14.1" pillow "torch==2.12.1" "torchvision==0.27.1" litert-lm
@@ -545,9 +545,11 @@ LITERT_LM=.venv/bin/litert-lm python lfm_work/gate_lfm25_vl_image.py LFM2.5-VL-3
 
 ⚠ **The zero-scale int4 wall is inherited by the VL text stack.** The 3B checkpoint carries 746,432 all-zero 32-blocks across 26 tensors — the same dense-checkpoint signature as LFM2.5-2.6B — so the zero-scale fix (folded into `quantize_lfm25_vl.py`) is mandatory; the 450M has none.
 
-Vocab split inside one family: the 3B uses the 128k vocab (stops 124900/124895), the 450M the older 64k one (stops 7/2, same as the 1.2B family) — the converter picks the matching pbtext by model name and refuses sizes it does not know (check `generation_config.json` before adding one).
+Vocab split inside one family: the 3B uses the 128k vocab (stops 124900/124895), the 1.6B and 450M the older 64k one (stops 7/2, same as the 1.2B family) — the converter picks the matching pbtext by model name and refuses sizes it does not know (check `generation_config.json` before adding one).
 
-Gates on the 0.16.0 pip CLI (temperature 0, `--cache no`): 3B int8 AND int4 pass text 7/8 + image 5/5 on cpu and macOS gpu, with image answers verbatim identical to the HF bf16 reference (`verify_lfm25_vl_hf.py`); 450M int4 passes 8/8 + 4/5. iPhone GPU remains blocked for the ShortConv family (LiteRT-LM#3129); use CPU there.
+Gates on the 0.16.0 pip CLI (temperature 0, `--cache no`): 3B int8 AND int4 pass text 7/8 + image 5/5 on cpu and macOS gpu, with image answers verbatim identical to the HF bf16 reference (`verify_lfm25_vl_hf.py`); 1.6B passes text 8/8 on all four configs; 450M int4 passes 8/8 + 4/5. iPhone GPU remains blocked for the ShortConv family (LiteRT-LM#3129); use CPU there.
+
+⚠ **The 64k-vocab models (1.6B, 450M) deterministically miss fine shape/counting fixtures on-device while the torch reference answers them** — and every conversion-side suspect has been eliminated by experiment: exported vision tower AND projector match torch at cosine 1.0000 on identical inputs; an unquantized bundle reproduces the identical misses; runtime patchify layout equals the HF processor's (code-read, both (ph,pw,c) raster); the prompt/token streams match token-for-token (boi/eoi are single tokens in every vocab); double-BOS, fp16 decode, jpeg-level pixel perturbation and prefill-chunk-boundary alignment (probed by forcing the image block exactly onto a 256-token chunk edge via a custom chat template) all change nothing; geometry probes on-device (corner localization, stripe orientation) come back CORRECT. Coarse understanding, OCR and localization are intact — the residue is engine-internal precision on contour/counting answers, the 3B is unaffected, and the next step is instrumenting the runtime to diff the spliced embedding sequence against HF `inputs_embeds`.
 
 ## Verify a reproduction
 
