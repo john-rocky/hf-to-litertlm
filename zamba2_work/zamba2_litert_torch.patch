@@ -3273,10 +3273,10 @@ index 0000000..c0f98a7
 +# ==============================================================================
 diff --git a/litert_torch/generative/export_hf/model_ext/zamba2/patch.py b/litert_torch/generative/export_hf/model_ext/zamba2/patch.py
 new file mode 100644
-index 0000000..4fb4b44
+index 0000000..8f3243b
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/zamba2/patch.py
-@@ -0,0 +1,200 @@
+@@ -0,0 +1,294 @@
 +# Copyright 2026 The LiteRT Torch Authors.
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
@@ -3326,10 +3326,27 @@ index 0000000..4fb4b44
 +LiteRTLMMambaCacheLayer via the `n_mamba_heads` dispatch key, `hybrid` layers
 +to LiteRTLMHybridCacheLayer; both `create_from_config`s read the Zamba2
 +vocabulary (`n_mamba_heads` / `mamba_headdim` / `mamba_ngroups`).
++
++**num_mem_blocks > 1 (2.7B/7B) upstream structure bug**: upstream
++`Zamba2Model.get_layers` assigns `block_id = layer_id % num_mem_blocks` (the
++GLOBAL layer index) while both the checkpoint layout and the weight-tie cycle
++follow the hybrid OCCURRENCE order (`hybrid_layer_ids.index(layer_id) %
++num_mem_blocks`). On 2.7B (`hybrid_layer_ids = [6,12,18,24,30,36,42,47,51]` —
++even until 42, then 47/51) the two conventions disagree, the two unique blocks
++(layers 6 and 12, both `layer_id % 2 == 0`) come out structurally identical
++(both holding the even-index MLP-adapter slots), and `post_init` raises at
++tie-key expansion: the checkpoint stores layers.6 adapters at hybrid orders
++{0,2,4,6,8} and layers.12 at {1,3,5,7}. `_get_layers_hybrid_order` below is
++the upstream method verbatim with `block_id` computed from the hybrid order
++counter — which makes structure, tie cycle, and checkpoint agree (verified
++key-exact against the 2.7B safetensors index). num_mem_blocks == 1 (1.2B) is
++unaffected (block_id is 0 either way). Upstream main still has the bug as of
++2026-08-14 (anchor-asserted below so a future upstream fix surfaces here).
 +"""
 +
 +import contextlib
 +import inspect
++from itertools import cycle
 +
 +import torch
 +from litert_torch.generative.export_hf.model_ext import patches as patches_lib
@@ -3342,8 +3359,62 @@ index 0000000..4fb4b44
 +F = torch.nn.functional
 +
 +
++def _get_layers_hybrid_order(self):
++  """Upstream `Zamba2Model.get_layers` with block_id in hybrid-order convention.
++
++  Verbatim copy of transformers 5.14.1 except the marked line: `block_id`
++  counts hybrid OCCURRENCES (matching the checkpoint layout and the tie
++  cycle), not global layer ids. See module docstring.
++  """
++  layers = []
++  self._tied_weights_keys = {}
++  self.first_transformer_layer_id = 0
++  unique_hybrid_blocks = []
++  hybrid_order = 0
++
++  for layer_id, layer_type in enumerate(self.layers_block_type):
++    mamba_layer = modeling_zamba2.Zamba2MambaDecoderLayer(
++        self.config, layer_idx=layer_id
++    )
++    if layer_type == "hybrid":
++      prefix_pattern = f"layers.{layer_id}.shared_transformer"
++
++      # Zamba ties Hybrid module weights by repeating blocks after every
++      # `num_mem_blocks`. So if `num_mem_blocks=2`, the blocks looks like
++      # [1, 2, 1, 2, 1, 2] where all "ones" share the same set of weights.
++      if (
++          not isinstance(unique_hybrid_blocks, list)
++          or len(unique_hybrid_blocks) >= self.config.num_mem_blocks
++      ):
++        if isinstance(unique_hybrid_blocks, list):
++          unique_hybrid_blocks = cycle(unique_hybrid_blocks)
++        target_pattern = next(unique_hybrid_blocks)
++        self._tied_weights_keys.update({prefix_pattern: target_pattern})
++      else:
++        # Store source patterns to which the subsequent modules will be tied
++        unique_hybrid_blocks.append(prefix_pattern)
++
++      # FIX (upstream: `layer_id % num_mem_blocks`): hybrid-order convention.
++      block_id = hybrid_order % self.config.num_mem_blocks
++      hybrid_order += 1
++      attn_block = modeling_zamba2.Zamba2AttentionDecoderLayer(
++          self.config, block_id=block_id
++      )
++      linear_layer = nn.Linear(
++          self.config.hidden_size, self.config.hidden_size, bias=False
++      )
++      layers.append(
++          modeling_zamba2.Zamba2HybridLayer(attn_block, linear_layer, mamba_layer)
++      )
++    else:
++      layers.append(mamba_layer)
++  return nn.ModuleList(layers)
++
++
 +class PatchedZamba2Model(modeling_zamba2.Zamba2Model):
 +  """Export-friendly Zamba2 model (class swap; persists on the instance)."""
++
++  get_layers = _get_layers_hybrid_order
 +
 +  def train(self, mode: bool = True):
 +    # One-time real-buffer check on the eval() transition (outside tracing,
@@ -3405,6 +3476,28 @@ index 0000000..4fb4b44
 +    )
 +
 +
++def _assert_get_layers_convention():
++  """Anchor the upstream get_layers to the shape our fixed copy assumes.
++
++  If the block_id line disappears, upstream fixed (or changed) the
++  num_mem_blocks > 1 structure bug - re-diff `_get_layers_hybrid_order`
++  against the new upstream before exporting.
++  """
++  src = inspect.getsource(modeling_zamba2.Zamba2Model.get_layers)
++  for anchor in (
++      "block_id = layer_id % self.config.num_mem_blocks",
++      "unique_hybrid_blocks = cycle(unique_hybrid_blocks)",
++      "self._tied_weights_keys.update({prefix_pattern: target_pattern})",
++      "Zamba2HybridLayer(attn_block, linear_layer, mamba_layer)",
++  ):
++    if anchor not in src:
++      raise AssertionError(
++          f"Zamba2Model.get_layers lost anchor {anchor!r}; upstream changed"
++          " (possibly fixing the num_mem_blocks block_id bug) - re-diff"
++          " _get_layers_hybrid_order before exporting."
++      )
++
++
 +def _assert_scan_body_unchanged():
 +  """Anchor the upstream scan to the shape the NemotronH folded reuse assumes."""
 +  src = inspect.getsource(modeling_zamba2.Zamba2MambaMixer.torch_forward)
@@ -3462,6 +3555,7 @@ index 0000000..4fb4b44
 +@contextlib.contextmanager
 +def zamba2_litert_patch():
 +  _assert_projection_layout()
++  _assert_get_layers_convention()
 +  _assert_scan_body_unchanged()
 +  rel = _selfcheck_folded_zamba2()
 +  print(
