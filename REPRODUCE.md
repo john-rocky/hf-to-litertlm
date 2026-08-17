@@ -698,3 +698,22 @@ Gates on the 0.16.0 pip CLI (temperature 0, `--cache no`): 3B int8 AND int4 pass
 # parity (dense): scripts/parity_gsm8k.py  ·  reasoning models: run at --max-tokens 2048
 # single-token classifiers: label F1 + margin correlation vs the source model, not the 8-question gate
 ```
+
+## granite-4.1-3b (dense) — and the BOS a converted bundle must not prepend
+
+`granite41_work/convert_granite41_3b.sh` converts IBM's dense 3.4B instruct model to `.litertlm` on a pristine released stack (litert-torch 0.9.3 / litert-converter 0.3.1 / ai-edge-quantizer 0.8.0 / litert-lm-builder 0.16.0, transformers 5.14.1) — no patched checkout. Published: [litert-community/granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b). **Requires litert-lm ≥ 0.16 to run.**
+
+```bash
+cd granite41_work
+pip install "litert-torch==0.9.3" "litert-lm-builder==0.16.0" "transformers==5.14.1"
+python -c "from huggingface_hub import snapshot_download; snapshot_download('ibm-granite/granite-4.1-3b', local_dir='src_models/granite-4.1-3b')"
+./convert_granite41_3b.sh          # int4 (ship) + int8, six prefill signatures, NO_START_TOKEN=1
+```
+
+**The one thing that will bite you on this family.** `litert-lm-builder` writes a `start_token` into the bundle metadata from `tokenizer.bos_token` whenever that field is set, without consulting `add_bos_token`. Granite declares `add_bos_token: False` **and** its BOS is the same token as its EOS (`<|end_of_text|>`), so the runtime prepends a token the model reads as "this document has already ended": it answers by echoing the question back, and the 8-question sanity gate drops from 8/8 to 5/8. It looks exactly like quantization damage and is not — feeding the same rendered prompt to the bf16 PyTorch model with and without that leading token reproduces both halves.
+
+The conversion script sets `NO_START_TOKEN=1`, which clears `bos_token` before the metadata is built. For a bundle you have already built, `strip_start_token.py in.litertlm out.litertlm` unpacks it, drops the field and repacks — weights untouched, about 30 seconds. Check any model whose `tokenizer_config.json` says `add_bos_token: False`; bos == eos is the shape that hurts.
+
+**Six prefill signatures, not eleven.** Every exported signature is charged engine memory whether or not it is called. An eleven-signature build of these weights is killed by iOS during Metal initialisation unless the app caps the context at 1024; `1024,256,64,16,4,1` creates its engine at the bundle's full 4096 on an iPhone 17 Pro, for 12 MB more on disk.
+
+`hf_oracle.py` runs the same eight questions through the HF model in bf16 first, so a later miss on the converted file can be attributed to the conversion rather than to the model.
