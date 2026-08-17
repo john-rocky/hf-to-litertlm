@@ -1,0 +1,24 @@
+{#- Qwen2.5-Coder — ChatML with the vendor's default system prompt baked in.
+
+    The upstream chat_template inserts "You are Qwen, created by Alibaba Cloud. You are a
+    helpful assistant." whenever the caller supplies no system message, so a plain ChatML
+    template would ship a model that never sees the system turn it was tuned with. The
+    runtime applies structured per-role prefixes and has no place to put a default system
+    turn, so it goes in the user prefix — the same shape the Shieldstral bundle uses for
+    its fixed system block.
+
+    A caller who does send an explicit system message gets it rendered as its own turn
+    before the user turn; the default below is what a bare user turn expands to.
+-#}
+{%- for message in messages -%}
+{%- if message['role'] == 'system' -%}
+{{- '<|im_start|>system\n' + message['content'] + '<|im_end|>\n' -}}
+{%- elif message['role'] == 'user' -%}
+{{- '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n' + message['content'] + '<|im_end|>\n' -}}
+{%- elif message['role'] == 'assistant' -%}
+{{- '<|im_start|>assistant\n' + message['content'] + '<|im_end|>\n' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<|im_start|>assistant\n' -}}
+{%- endif -%}

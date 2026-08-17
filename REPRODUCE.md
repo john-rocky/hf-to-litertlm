@@ -717,3 +717,22 @@ The conversion script sets `NO_START_TOKEN=1`, which clears `bos_token` before t
 **Six prefill signatures, not eleven.** Every exported signature is charged engine memory whether or not it is called. An eleven-signature build of these weights is killed by iOS during Metal initialisation unless the app caps the context at 1024; `1024,256,64,16,4,1` creates its engine at the bundle's full 4096 on an iPhone 17 Pro, for 12 MB more on disk.
 
 `hf_oracle.py` runs the same eight questions through the HF model in bf16 first, so a later miss on the converted file can be attributed to the conversion rather than to the model.
+
+## Qwen2.5-Coder-1.5B-Instruct — a 1.5B code model at 1.12 GB, and why the size is the recipe
+
+`qwen25coder_work/convert_qwen25_coder.sh`. Published: [litert-community/Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct). **Requires litert-lm ≥ 0.16.**
+
+Decode on this runtime is memory-bandwidth-bound, which has a blunt consequence: putting a bigger model on the GPU does not make it fast, and halving the weights does. Measured on one machine and one protocol (M4 Max, `-p 256 -d 256 --cache no`, quiet, serialized) — this 1.12 GB build against a 2.19 GB 3B-class int4 build converted the same day:
+
+| | Qwen2.5-Coder-1.5B (1.12 GB) | 3B-class int4 (2.19 GB) |
+|---|---|---|
+| prefill | **3037 tok/s** | 1241 |
+| decode | **137.8 tok/s** | 86.3 |
+| TTFT | **0.099 s** | 0.233 s |
+| init | **2.38 s** | 5.96 s |
+
+**`EXTERNALIZE_EMBEDDER=1` is required.** This model ties its embedding and `lm_head`, so `BOCTAV4` — int4 on every FULLY_CONNECTED, int8 on EMBEDDING_LOOKUP — describes one tensor two ways. The quantizer resolves the conflict by copying the 151936×1536 table once per prefill signature: seven copies, 1.63 GB, **65% of a 2.53 GB file**, with nothing logged and "int4" still true of the linears. `check_bundle_sanity.py <bundle> --params N` makes that a one-line check (exit 1 on duplication); a healthy int4 build lands near 0.7 bytes/param.
+
+**The chat template carries a default system prompt.** Upstream inserts `You are Qwen, created by Alibaba Cloud. You are a helpful assistant.` whenever the caller supplies no system message. A generic ChatML template renders the markers without it, so the shipped bundle would run the model outside the state it was tuned in on every default-path request — quietly. `qwen25_coder_simple.jinja` bakes it into the user prefix and renders byte-identical to upstream for a single turn.
+
+**Gate a code model on code.** An 8-question general-knowledge check certifies nothing here. `eval_code.py` asks for six small functions and **executes** each against assertions — a task passes only if the code imports and every assertion holds, because generated code that reads correctly and raises on the second assertion is exactly how a damaged quantization survives a skim. This build scores 6/6, and 8/8 on the general gate.
