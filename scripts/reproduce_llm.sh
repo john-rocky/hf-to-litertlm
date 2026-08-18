@@ -39,6 +39,10 @@ reproduce() {
   r1-distill-qwen-1.5b) CACHE=4096 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;
   r1-distill-qwen-7b)  CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-7B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;  # desktop-only
   smollm3-3b)          CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT HuggingFaceTB/SmolLM3-3B out/$key templates/smollm3_think.jinja BOCTAV4 ;;
+  twil-lm3)            # A SmolLM3-3B finetune, so it rides the smollm3 rail unchanged - only the
+                       # model id differs. Non-commercial upstream license (webAI NC v1.0): if you
+                       # redistribute the result, its SS3.1 requires you to carry LICENSE.md with it.
+                       CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT webAI-Official/TwIL-LM3 out/$key templates/smollm3_think.jinja BOCTAV4 ;;
   jan-nano)            EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT Menlo/Jan-nano out/$key templates/qwen3_think.jinja BOCTAV4_128 ;;  # template: qwen3_think (card didn't name it; chatml_simple = alt)
   vibethinker-3b)      CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT WeiboAI/VibeThinker-3B out/$key templates/chatml_simple.jinja BOCTAV4 ;;  # block32 ONLY; runtime stop-token eos=[151643,151645]
   falcon3-3b)          CACHE=2048 $EXPORT tiiuae/Falcon3-3B-Instruct out/$key templates/falcon_simple.jinja BMIX4_128 ;;  # ship withheld/private (int4≠parity)
@@ -69,7 +73,7 @@ reproduce() {
 }
 
 KEYS="fastcontext-4b nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
-r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b jan-nano vibethinker-3b falcon3-3b llama32-3b \
+r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b"
 
 case "${1:-}" in

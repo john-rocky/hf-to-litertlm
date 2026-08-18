@@ -63,7 +63,11 @@ def run_case(verifier, model, prompt, test_src, max_tokens, extra):
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=400)
     except subprocess.TimeoutExpired:
         return False, "", "timeout"
-    m = re.search(r"^OUTPUT: \[(.*)\]$", p.stdout + "\n" + p.stderr, re.M | re.S)
+    # Non-greedy: the verifier keeps logging after `OUTPUT: [<reply>]` and many log lines end
+    # in `]`, so a greedy capture swallows kilobytes of warnings as if the model had said them.
+    # Harmless here whenever the model fenced its code (extract_code finds the fence first),
+    # which is why this survived unnoticed until eval_logic.py graded raw replies.
+    m = re.search(r"^OUTPUT: \[(.*?)\]$", p.stdout + "\n" + p.stderr, re.M | re.S)
     reply = m.group(1).replace("⏎", "\n") if m else ""
     code = extract_code(reply)
 
