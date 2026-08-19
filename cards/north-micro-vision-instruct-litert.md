@@ -54,6 +54,16 @@ Run the decoder on the GPU on 8 GB-class phones — the CPU backend pages agains
 
 iPhone 17 Pro (Metal decoder + Metal vision, cold, this exact 3.07 GB file): peak resident **2.9–3.0 GB** with the vision executor loaded (2.1 GB text-only); decode **13.6 tok/s** on a 39-token text turn; vision time-to-first-token 2.3–5.0 s cold (302-token image prompt, prefill 322–362 tok/s). Same phone, same model through Apple's Core AI runtime (own measurement, 2026-08-14, int8 decoder + fp16 tower): **18.2 tok/s** decode, 21.5 tok/s prefill, image oracle 24/24. Read it as "same class, Core AI ahead on decode (~1.3×), LiteRT-LM ahead on prefill and vision TTFT"; both numbers are cold single runs on the same device and the same day-class build, not a tuned benchmark.
 
+## On-device demo (Pixel 8a, this exact file, decoder on the OpenCL GPU + vision on CPU)
+
+| | |
+|---|---|
+| <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/coco_sample.png" width="330"/> | <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg" width="330"/> |
+| **Q:** Describe this image.<br>**A:** "The image shows two cats lying on a pink surface, which appears to be a couch or a cushion. Both cats are in a relaxed position, with their bodies stretched out and their heads resting on the surface. They are both wearing collars, indicating they are pets. The cats are positioned close to each other, suggesting a sense of companionship…" | **Q:** What is in this image? Mention the colors.<br>**A:** "The image shows a vintage Volkswagen Beetle car parked in front of a building with a yellow wall and two wooden doors. The car is painted in a light teal or turquoise color, and it has a classic design with round wheels and a rounded body shape. The building behind the car has a weathered appearance… The ground is paved with rectangular tiles." |
+| **Q:** How many cats are there, and what is between them?<br>**A:** "There are two cats in the image, and they are both lying on a pink surface. Between them, there are two remote controls." | **Q:** Where is the car parked, and what is behind it?<br>**A:** "The car is parked on a paved street, and behind it is a yellow wall with two wooden doors. The setting appears to be an urban or semi-urban area." |
+
+Verbatim outputs from `litert_lm_advanced_main` (litert-lm v0.16.1, `--backend=gpu --vision_backend=cpu --disable_cache`, greedy, 80-token cap) on a Pixel 8a; per turn: TTFT 2.5–2.8 s (≈270-token image prompt, prefill 110–128 tok/s), decode 2.9–3.6 tok/s. The photos are the Hugging Face documentation sample images (COCO cats / Beetle), resized by the runtime to the bundle's 512×512.
+
 ## Quality
 
 - **9-case COCO suite** (3 images × 3 questions, 48-token greedy) against a fp32 PyTorch oracle running the same single-embedding / 1-D-position contract: content-correct and image-grounded on 9/9 (cats on a pink couch with remotes, the two kitchens, colour palettes, "where is this scene"); the int8 vision encoder shifts token choices, so token-exact is 1/9 (the desktop fp16-vision build keeps 5/9 token-exact).
