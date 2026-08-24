@@ -5,7 +5,7 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 | package | where | status |
 |---|---|---|
 | `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 9 tests against the real shipped manifests) |
-| `litertlm_manifest` (Dart) | [`dart/`](dart/) | same logic and test suite; written without a local Dart SDK — run `dart test` before depending on it |
+| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 8 tests against the same fixtures, Dart 3.13) |
 
 ## Usage (TypeScript)
 
