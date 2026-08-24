@@ -160,7 +160,9 @@ Two things you need to know:
 
 **Quality gate before shipping:** an SRQ export is not automatically parity. Gate it on
 device against the fp32 reference before publishing. Of the two models we have run through
-this pipeline: gemma-3-270m (cache 896) passes and is shippable; Qwen3-0.6B currently
+this pipeline: gemma-3-270m (cache 896) passes and is published —
+[mlboydaisuke/gemma-3-270m-it-NPU-LiteRT](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT)
+(the card carries the measured numbers and the gate results); Qwen3-0.6B currently
 produces garbage on **both** the AOT and JIT paths (a pipeline quality issue, not a JIT
 one) and is withheld.
 
