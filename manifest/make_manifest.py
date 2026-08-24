@@ -74,7 +74,10 @@ def derive_capabilities(m):
   which = m.llm_model_type.WhichOneof("model_type") if m.HasField("llm_model_type") else None
   if which:
     sub = getattr(m.llm_model_type, which)
-    if which == "generic_model":
+    if which == "fast_vlm":
+      # FastVlm carries only image tensor dims — the type itself means vision.
+      caps["vision"] = True
+    elif which == "generic_model":
       caps["vision"] = bool(getattr(sub, "image_enabled", False))
       caps["audio"] = bool(getattr(sub, "audio_enabled", False))
     else:
