@@ -9,10 +9,10 @@ Convert **open-weight Hugging Face models → `.litertlm`** bundles for on-devic
 ```bash
 # a Python env with litert_torch + ai_edge_quantizer (conversions are toolchain-version sensitive)
 pip install litert-torch ai-edge-quantizer transformers huggingface_hub
-export PY=python            # or point at your env, e.g. ~/clipconv/bin/python
+export PY=python            # or point at your env, e.g. ~/venvs/ltconv040dev/bin/python
 ```
 
-The scripts default to `~/clipconv/bin/python`; override by editing the `PY=` line or exporting `PY`.
+The scripts default to `~/venvs/ltconv040dev/bin/python`; override by editing the `PY=` line or exporting `PY`.
 
 ## Convert (one command per model)
 

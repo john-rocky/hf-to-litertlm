@@ -81,7 +81,7 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
   (matches the sibling Qwen3-4B-Thinking and the reasoning-template-parity note); `chatml_simple.jinja`
   (what same-base FastContext used) is the alternative. Swap and re-gate if output rambles.
 - **`llama32-3b`** was originally exported through the **official litert-torch main** (BPE patch upstream) —
-  the current `~/clipconv` reproduces the same `BMIX4` recipe; expect equivalent, not bit-identical.
+  re-running with the current default env reproduces the same `BMIX4` recipe; expect equivalent, not bit-identical.
 - **`vibethinker-3b`** needs a runtime stop-token fix (`generation_config.eos_token_id=[151643,151645]` so
   `<|im_end|>` ends ChatML turns) and is **block32-only** (block128 collapses 90→64% GSM8K).
 - **`qwen3-4b-thinking`** is **block128-only** (block32 corrupts on iPhone GPU). Reasoning models: eval at
@@ -707,7 +707,7 @@ Gates on the 0.16.0 pip CLI (temperature 0, `--cache no`): 3B int8 AND int4 pass
 ## Verify a reproduction
 
 ```bash
-~/clipconv/bin/python scripts/verify_quality.py out/<key>/model.litertlm --json   # 8-question gate
+~/venvs/ltconv040dev/bin/python scripts/verify_quality.py out/<key>/model.litertlm --json   # 8-question gate
 # parity (dense): scripts/parity_gsm8k.py  ·  reasoning models: run at --max-tokens 2048
 # single-token classifiers: label F1 + margin correlation vs the source model, not the 8-question gate
 ```

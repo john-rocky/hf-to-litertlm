@@ -16,7 +16,7 @@
 #      GPTQREC_GCD_FIX (GPTQ ingest), CACHE (KV length), PREFILL.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PY="${PY:-$HOME/clipconv/bin/python}"
+PY="${PY:-$HOME/venvs/ltconv040dev/bin/python}"
 EXPORT="$PY scripts/export_simple_template.py"
 SM=src_models
 
