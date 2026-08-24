@@ -49,14 +49,15 @@ All recipes export with `use_jinja_template=False` (plain prefix/suffix turn mar
 ### Vision-language models (`fast_vlm` single image) → `.litertlm`
 
 ```bash
-bash scripts/reproduce_vlm.sh --list          # 8 VLMs
+bash scripts/reproduce_vlm.sh --list          # 13 VLMs
 bash scripts/reproduce_vlm.sh ovis2.5-2b      # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
-Covered: `internvl3-1b`, `internvl3.5-1b/2b/4b`, `llava-onevision-0.5b`, `ovis2.5-2b`,
+Covered: `granite-docling-258m`, `internvl3-1b`, `internvl3.5-1b/2b/4b`, `llava-onevision-0.5b`,
+`mage-vl`, `north-micro-vision`, `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`,
 `smolvlm2-500m`, `smolvlm2-2.2b`. Each downloads the source, converts the vision tower
-(encoder + adapter) and the decoder (int4), and assembles the fast_vlm bundle; see the matching
-`cards/<name>-litert.md`.
+(encoder + adapter) and the decoder (int4 unless the card says otherwise), and assembles the
+fast_vlm bundle; see the matching `cards/<name>-litert.md`.
 
 ## The int4 recipe (why it holds quality)
 

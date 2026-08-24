@@ -11,6 +11,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 case "${1:-}" in
+  granite-docling-258m)  bash scripts/ship_granite_docling.sh ;;  # SigLIP + granite Llama (DocTags, wi8-float)
   internvl3-1b)          bash scripts/ship_internvl_1b.sh ;;      # InternViT + Qwen2.5-0.5B
   internvl3.5-1b)        bash scripts/ship_internvl3_5_1b.sh ;;   # InternViT + Qwen3-0.6B
   internvl3.5-2b)        bash scripts/ship_internvl3_5_2b.sh ;;   # InternViT + Qwen3-1.7B
@@ -25,7 +26,7 @@ case "${1:-}" in
   smolvlm2-2.2b)         bash scripts/ship_smolvlm2_22b.sh ;;     # SigLIP + SmolLM2-1.7B (81 tokens)
   --list|"")
     echo "VLM keys (fast_vlm single-image):"
-    printf '  %s\n' internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
+    printf '  %s\n' granite-docling-258m internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
       llava-onevision-0.5b north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b
     echo; echo "each -> out/*-bundle/<Model>.litertlm ; details in cards/*-litert.md" ;;
   *) echo "unknown VLM key: '$1' (run --list)"; exit 2 ;;

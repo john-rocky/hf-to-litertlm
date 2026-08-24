@@ -105,6 +105,7 @@ bundle). Details per model in `cards/<name>-litert.md`.
 
 | key | vision | decoder | ship script |
 |---|---|---|---|
+| `granite-docling-258m` | SigLIP-512 (SmolVLM2 rail, 64 tok) | granite Llama 576h/30L (**wi8-float** — int4/int8-int corrupt DocTags), cache 4096 | `ship_granite_docling.sh` |
 | `internvl3-1b` | InternViT-448 | Qwen2.5-0.5B | `ship_internvl_1b.sh` |
 | `internvl3.5-1b` / `-2b` / `-4b` | InternViT-448 | Qwen3-0.6B / 1.7B / 4B | `ship_internvl3_5_{1b,2b,4b}.sh` |
 | `llava-onevision-0.5b` | SigLIP-384 (730 tok) | Qwen2-0.5B | `ship_llavaov.sh` |
@@ -114,6 +115,8 @@ bundle). Details per model in `cards/<name>-litert.md`.
 | `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — int4/int8 corrupt OCR) | `ship_paddleocr_vl.sh` |
 | `qwen2-vl-2b` | **static-672, no GATHER_ND** (576 tok) | Qwen2-1.5B int4 | `ship_qwen2vl_2b.sh` |
 | `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
+
+`granite-docling-258m` is IBM's document-conversion VLM (the Docling model): page image → DocTags markup (layout + OTSL table structure + formulas), convertible to Markdown/HTML with docling-core. It rides the SmolVLM2 rail **unchanged** (idefics3's vision tower is architecturally SmolVLM2's). Three things its scripts encode. (1) **Quantization: wi8-float only** — int4 and integer-compute int8 corrupt DocTags structure on the 258M decoder (PaddleOCR-VL pattern); int8 weights with float compute keep the table gate exact. (2) **The bundle jinja protects the newline after `<|end_of_text|>`** (`{% endfor -%}`, no leading trim): the model is format-exact, and a `{%-` that eats that one `\n` token turns every image turn into a hallucinated blank page — at every decoder precision, while text-only turns stay fine. (3) **App contract: pre-resize pages to 512×512 BILINEAR** before sending. The base model is trained with tiling; the single-global-512 path this bundle runs is resampling-sensitive *in eager too*, and the runtime's own downscale from larger inputs lands on the bad side. Backend is CPU (the GPU delegate rejects the quantized 576×576 FC at kernel init on macOS WebGPU and Android OpenCL alike; an fp16 decoder runs on Android OpenCL but ~4× slower than CPU). Device-verified: Galaxy S26 CPU converts the synthetic 5×6 table page exactly (25/25 cells, byte-identical across runs) at 35.4 s/page.
 
 `qwen2-vl-2b` is the general-purpose Qwen2-VL VLM (describe / VQA / OCR). Two gotchas baked into its scripts: (a) reordering patches into the merger's 2×2-block order with a gather emits a `GATHER_ND` op that the mobile GPU delegate can't compile (the vision executor then fails to create on-device) — so the encoder keeps raster order and the 2×2 merge is done with strided slices + concat in the adapter; (b) the fast_vlm runtime feeds 1-D positions (no M-RoPE), which preserves describe/VQA/OCR/count but degrades cross-cell *ranking* over 2-D tables.
 
