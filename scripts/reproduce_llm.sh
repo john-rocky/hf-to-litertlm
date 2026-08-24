@@ -67,12 +67,14 @@ reproduce() {
     [ -d $SM/qwen25-3b-gptq-dequant ] || $PY scripts/ingest_gptq_dequant.py Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4 Qwen/Qwen2.5-3B-Instruct $SM/qwen25-3b-gptq-dequant fp32clip
     CACHE=4096 $EXPORT $SM/qwen25-3b-gptq-dequant out/$key templates/chatml_simple.jinja BMIX4_128 ;;  # personal-namespace only (NC license)
 
+  s1-mini)             $PY s1mini_work/convert_s1mini.py out/$key ;;  # int8 ONLY (int4 flips punctuation + slower); dedicated script: bakes required system prompt + non-thinking scaffold, strips composite token_str stops; gate with s1mini_work/gate_normalize.py, NOT the 8-question gate
+
   *) echo "unknown model key: '$key' (run --list)"; return 2 ;;
   esac
   echo "REPRODUCED $key -> out/$key/model.litertlm"
 }
 
-KEYS="fastcontext-4b nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
+KEYS="fastcontext-4b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b"
 
