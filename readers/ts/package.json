@@ -1,0 +1,20 @@
+{
+  "name": "litertlm-manifest",
+  "version": "0.1.0",
+  "description": "Reference reader for litertlm_manifest.json — pick the right .litertlm file, backend, and settings for a device",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/john-rocky/hf-to-litertlm",
+    "directory": "readers/ts"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "npm run build && node --test test/resolve.test.mjs"
+  },
+  "keywords": ["litert-lm", "litertlm", "on-device", "llm", "manifest"]
+}
