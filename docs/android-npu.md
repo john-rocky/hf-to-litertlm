@@ -5,8 +5,9 @@ compiled **on the device (JIT)**. No precompiled NPU artifact is needed — you 
 normal model file plus a set of runtime libraries in your APK, and the first load compiles
 the model for whatever SoC it lands on.
 
-**Verified on:** Galaxy S26 (SM8850, Hexagon **v81**), QAIRT 2.47.0, LiteRT / LiteRT-LM
-0.16-line runtimes. Other SoCs, other Hexagon generations, and other runtime versions are
+**Verified on:** Galaxy S26 (SM8850, Hexagon **v81**), QAIRT 2.47.0, with LiteRT 2.2.0
+(the Android AAR) for classic `.tflite` models and a LiteRT-LM 0.16-line runtime for LLM
+bundles. Other SoCs, other Hexagon generations, and other runtime versions are
 **untested** — the mechanism should carry over, but none of the numbers below do.
 
 ---

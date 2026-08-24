@@ -31,17 +31,26 @@ ones — GPU-faster rows and does-not-compile rows stay on the card.
 
 | backend | inference (median) | load |
 |---|---:|---:|
-| Qualcomm NPU (HTP, JIT) | {npu_ms} ms | {npu_load_ms} ms |
+| Qualcomm NPU (HTP) | {npu_ms} ms | {npu_load_ms} ms |
 | GPU | {gpu_ms} ms | {gpu_load_ms} ms |
 
-Measured on {device} ({soc}), LiteRT {litert_ver} + QAIRT {qairt_ver}, JIT-compiled on
-device, N={n} median, thermal status NONE (headroom {headroom}) on both runs.
+Measured on {device} ({soc}), LiteRT {litert_ver} + QAIRT {qairt_ver}, N={n} median,
+thermal status NONE (headroom {headroom}) on both runs. The NPU row was
+{compiled_ahead_of_time_for_{soc} | compiled on the device at first load}.
 Verdict: {verdict_prose}.
 
 To run this model on the NPU or GPU in your own app, see the
 [NPU recipe](https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/android-npu.md)
 and [GPU recipe](https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/android-gpu.md).
 ```
+
+**Say which compile path the NPU row used.** On the one model measured both ways, a
+precompiled (AOT) artifact and an on-device (JIT) compile agreed on inference and on
+steady-state load, and differed only on the **first** load — 0.16 s against 11.6 s. They
+also differ in what the reader has to build: AOT means the file they download is not the
+file you measured. Naming the wrong path is the easiest way to put a number on a card
+nobody can reproduce. Check the harness, not the summary table: if the NPU and GPU rows
+were benched from two different files, the NPU file is an AOT artifact.
 
 Both load columns are mandatory whenever both backends run — load is a headline
 difference between the backends, not a footnote. For a one-sided verdict
