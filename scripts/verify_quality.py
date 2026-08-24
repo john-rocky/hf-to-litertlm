@@ -63,10 +63,13 @@ def degenerate(text):
     return False
 
 
-def run_verifier(verifier, model, prompt, max_tokens):
+def run_verifier(verifier, model, prompt, max_tokens, backend=None):
     """Run litert-mac-verify; return (output_text, decode_tok_s). Raises on failure."""
+    cmd = [str(verifier), str(model), prompt, "--max-tokens", str(max_tokens)]
+    if backend:
+        cmd += ["--backend", backend]
     proc = subprocess.run(
-        [str(verifier), str(model), prompt, "--max-tokens", str(max_tokens)],
+        cmd,
         capture_output=True, text=True, timeout=600,
     )
     combined = proc.stdout + "\n" + proc.stderr
@@ -102,6 +105,11 @@ def main():
                          "models need room to close their <think> block)")
     ap.add_argument("--verifier", default=str(DEFAULT_VERIFIER),
                     help="path to litert-mac-verify binary")
+    ap.add_argument("--backend", choices=["cpu", "gpu"],
+                    help="force the runtime backend. Hybrid-architecture bundles "
+                         "from the stock export (e.g. qwen3_5) are not GPU-"
+                         "delegable, and the verifier's default engine path "
+                         "fails outright instead of falling back — pass cpu")
     ap.add_argument("--json", help="write a JSON report to this path")
     ap.add_argument("--name", help="display name (default: parent dir name)")
     args = ap.parse_args()
@@ -123,7 +131,8 @@ def main():
     results, toks = [], []
     for label, q, pat in QUESTIONS:
         try:
-            raw, tok = run_verifier(args.verifier, model, q + SUFFIX, args.max_tokens)
+            raw, tok = run_verifier(args.verifier, model, q + SUFFIX, args.max_tokens,
+                                    backend=args.backend)
             # No final answer usually means the budget died inside the think
             # block (the runtime filters the thought channel, so a truncated
             # think arrives as EMPTY output, without a literal "<think>") — a
@@ -132,7 +141,8 @@ def main():
             retried = not strip_think(raw).strip()
             if retried:
                 raw, tok = run_verifier(args.verifier, model, q + SUFFIX,
-                                        args.max_tokens + 1200)
+                                        args.max_tokens + 1200,
+                                        backend=args.backend)
         except Exception as e:  # noqa: BLE001
             print(f"FAIL (harness) on '{label}': {e}", file=sys.stderr)
             return 2

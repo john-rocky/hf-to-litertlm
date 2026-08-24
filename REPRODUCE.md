@@ -229,6 +229,32 @@ python add_executor_metadata.py int4.litertlm LFM2.5-1.2B-Instruct_int4_gpu.lite
 - **`litert_lm_main --benchmark_prefill_tokens` / `--benchmark_decode_tokens` are silently ignored** (measured on the v0.16.0 tag build, both backends): runs that pass them still report `Processed 19 tokens` and ~50 decode tokens. A 19-token prefill reads about 3x slower than a 256-token one on the same file, so a row labelled "prefill 256" that came from those flags is mislabelled. Drive a real prompt with `--input_prompt_file` and cap generation with `--max_output_tokens`.
 - **litert-lm ≥ 0.15 needs an `ExecutorMetadata` section** for state-carrying (hybrid) models: 0.15 binds the per-layer conv/attention state buffers through a new `ExecutorMetadataProto` section, and files exported with litert-torch ≤ 0.9.2 don't have it — they run fine on 0.14 but fail at inference on 0.15 with `missing some output TensorBuffers` (attention-only models are unaffected). Fix an existing file in place with `python add_executor_metadata.py in.litertlm out.litertlm` (weights unchanged; the result runs on both 0.14 and 0.15 — this is how the published LFM2.5 repos were updated on 2026-08-04). Checking on the composite from the previous bullet: the 0.15 GPU delegate still rejects `odml.softmax`, so the strip default stays.
 
+### 2026-08-24 — Finetune intake: LFM2.5 derivatives ride the RELEASED litert-torch
+
+Finetunes of LFM2.5 go through `scripts/convert.py` in the standard `ltconv040dev`-class
+env (litert-torch 0.9.3 — the lfm2 model_ext ships in releases; litert-torch *main*'s
+lfm2 patch is currently incompatible with transformers 5.15, `Lfm2ShortConv` has no
+`L_cache`, so do NOT use the Qwen3.5 main-venv for this family). Measured on
+huihui-ai/Huihui-LFM2.5-1.2B-Instruct-abliterated (real behavioral finetune, old-
+generation 1,783 B chat template — the top derivatives all carry it):
+
+- Stock export succeeds in ~64 s, but **0.9.3's bundling emits no ExecutorMetadata
+  section** (3 sections), so litert-lm ≥ 0.15 fails at inference — convert.py now
+  retrofits it automatically after export (`ensure_executor_metadata()`, reusing
+  `lfm_work/add_executor_metadata.py`; 22 state buffers on the 1.2B; needs a
+  litert-lm ≥ 0.15 CLI: `$LITERT_LM_CLI`, else PATH, else `~/venvs/lt0160run`).
+- Proof: one command → `converted_pass`, gate **8/8** (verifier default backend — the
+  bundle runs on WebGPU at ~162 tok/s decode; the odml.softmax-composite GPU rejection
+  recorded above for litert-lm 0.14/0.15 does not reproduce on the 0.16 runtime),
+  embedded template byte-equal 1783/1783, greedy **A ≡ B** byte-identical.
+- Two method notes: the derivative's old-generation template renders IDENTICALLY to the
+  base's current one for every CLI-reachable input (system/user/assistant turns — they
+  diverge only in the tools path), so a C-lane contrast is structurally N/A for this
+  family's typical derivatives; and the B lane must strip the template's leading
+  `bos_token` before `--no-template` (the engine prepends BOS itself — double-BOS
+  changes the token stream and the greedy output, the `granite-4.1-3b` BOS trap in
+  A/B-proof form).
+
 ### LFM2.5-2.6B (the thinking flagship)
 
 `lfm_work/convert_lfm25_26b.py` converts [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) (22 ShortConv + 8 attention layers, vocab 128000, reasons in a `<think>` block by default). Published: [litert-community/LFM2.5-2.6B](https://huggingface.co/litert-community/LFM2.5-2.6B). Same env and mechanics as the 1.2B family above (litert-torch ≥ 0.9.2), plus three 2.6B-specific facts:
@@ -350,6 +376,72 @@ Same driver, same patch, one command (`convert_qwen35_hybrid.py Qwen/Qwen3.5-2B 
 - The **full prefill ladder fits on-phone** (11 prefill lengths + decode = 12 signatures): iPhone 17 Pro GPU peaks at ~5.3 GB during engine creation, comfortably under the 12 GB device's jetsam ceiling — the 4B's reduced-ladder workaround is not needed at this size.
 
 Ship verification (all on the shipped file or its float parent): teacher-forced parity vs HF fp32 across 48 positions — top-1/top-5 100%, Pearson 1.0000, KL ≈ 0; 8-question gate **8/8 on CPU and GPU on both litert-lm 0.15.0 and 0.16.0**; prompt-length robustness, fresh engine per length, 40/40 CPU + 20/20 GPU; iPhone 17 Pro (Metal) answers the composite 8-question probe **word-for-word identically to HF fp32 through answer 7** — including the model's own arithmetic slip on question 1 — then adds a correct 8th answer where fp32 ends its turn one token earlier, at 24.3 tok/s decode / 237.7 tok/s prefill / TTFT 0.73 s / 5.33 GB peak (CPU: 16.2 / 206.5 / 0.77 s / 1.52 GB). Mac M4 Max (`-p 256 -d 256 --runs 3 --cache no`, 0.16.0): GPU 1486 / 114.3 tok/s, CPU 592 / 37.6. Honest limits: on the composite probe the CPU int8 path degrades (3 of 8, deterministic, identical on Mac and iPhone; individual questions are 8/8 everywhere) — the GPU path is the fidelity path; and on a Pixel 8a the OpenCL delegate accepts the whole graph (zero rejections, full delegation on every compiled signature) but engine creation exhausts an 8 GB phone's memory before finishing — Apple-hardware-first, 12 GB+ for Android GPU.
+
+### 2026-08-24 — Finetune intake: stock litert-torch *main* converts Qwen3.5 derivatives
+
+The recipe above reproduces the shipped checkpoints; **finetunes of Qwen3.5 now go through
+`scripts/convert.py`** instead. Measured on the 0.8B base plus a real 4B product finetune:
+
+- **litert-torch main ships a `qwen3_5` model_ext** (absent from every released wheel — PyPI
+  tops out at 0.9.3, no nightly package, no tag contains it): full reauthored exportables
+  routed on `model_type in ('qwen3_5', 'qwen3_5_text')`, no patch, no template surgery.
+  One-command install into a **fresh venv**: `pip install 'litert-torch @
+  git+https://github.com/google-ai-edge/litert-torch.git'` (measured @ `8379afb` =
+  0.10.0.dev; its setup.py pins nightly ai-edge deps — do not share a venv with the released
+  0.9.3 pipelines). On 0.9.3 the generic path dies mid-trace
+  (`LiteRTLMConvCacheLayer.update_conv_state() takes 2 positional arguments but 3 were
+  given`); convert.py pre-empts that with a `model_ext_missing` refusal carrying the install
+  action, before any download.
+- **Stock export embeds the derivative's own template verbatim and emits the
+  ExecutorMetadata section** (conv/recurrent state binding, litert-lm ≥ 0.15) that the
+  recipe era added by hand. Qwen/Qwen3.5-0.8B: 226 s, 754 MiB int8, template byte-equal
+  7755/7755, CPU gate 6/8 PASS ~47 tok/s. The 6/8 — the shipped wi8fc build is 8/8
+  word-for-word — is the stock export-time int8 quantizing convs + delta rule against the
+  family rule; that quality notch is the price of the no-recipe path.
+- **CPU-only.** The GPU delegate rejects the stock GatedDeltaNet lowering (`TRANSPOSE:
+  Permutation for transpose is invalid`, 195/20239 ops delegated) and engine creation fails
+  outright — no fallback — so convert.py's exit gate runs `--backend cpu`
+  (verify_quality.py grew that flag). GPU-delegable Qwen3.5 remains the per-model recipe
+  above.
+- **≥3B derivatives get the 4B ship's reduced prefill ladder** (1024,256,64,16,4,1 + decode
+  = 7 signatures): signatures are charged in engine RAM even if never called (2026-08-14
+  above), and the full-ladder 4B export's converter passes were OOM-killed twice on a
+  128 GB host before the reduction (even reduced, the export peaks > 84 GB and swaps hard;
+  ~26 min).
+- **Proof finetune — numind/NuExtract3** (4.54B multimodal checkpoint, MTP weights in a
+  separate file, 123k DL): one command → `converted_pass`, gate **8/8** non-degenerate
+  ~20 tok/s CPU, embedded template byte-equal (6,692 chars — including its
+  `{% generation %}` blocks, which the current runtime parses), and greedy **A ≡ B**
+  byte-identical (runtime-applied template == HF-side render fed raw) with **C ≠ A** (the
+  base template's thinking-ON default yields a different answer — the template diff is
+  behavior-bearing, and the runtime is applying the derivative's).
+- Multi-turn honesty: the stock Qwen3.5 template strips `<think>` from history assistant
+  turns, which violates the runtime's incremental render contract (see the recipe above) —
+  derivatives inheriting it are single-turn-proven only.
+- ⭐ **Qwen3.5 checkpoints under-declare their stop tokens, and both of the stock
+  exporter's derivations miss the turn end.** The repos ship no generation_config.json and
+  declare only `text_config.eos_token_id = 248044` (`<|endoftext|>`); the exporter's
+  template-derived stop never fires because the stock template's probe render hits its own
+  `raise_exception` (the "Failed to parse chat template" line in the export log is
+  load-bearing). Every stock Qwen3.5 bundle stops ONLY at `<|endoftext|>` —
+  `<|im_end|>` = 248046 missing — which the base/NuExtract3 gates masked (those models
+  happen to emit `<|endoftext|>` after answering) and a thinking derivative exposed:
+  generation runs straight through `<|im_end|>` and the gate reads 0/8 empty.
+  `convert.py` now runs `ensure_turn_end_stop()` after every export: if the checkpoint
+  tokenizer's `eos_token_id` is missing from the bundle's stop_tokens, it is appended
+  (litert_lm_builder unpack → LlmMetadataProto.pbtext → repack); no-op when stops are
+  declared correctly (the dense rail).
+- **Adapter derivatives ride merge-first unchanged** (cs552-the-expendables/
+  patientagent-sft-glm5, r16 α32 targeting the GatedDeltaNet projections):
+  `AutoModelForCausalLM` on the multimodal base loads text-only (426 tensors, 0 vision;
+  config rewritten to `qwen3_5_text` — why HYBRID_STOCK keys both model_types), and the
+  merged hybrid-layer weights verify bitwise as `W + (α/r)·B@A`. That subject then FAILED
+  the gate 0/8 for a model-own reason worth knowing: it inherits the base 4B template
+  (thinking-ON default) but its SFT never learned to close `<think>` — measured identical
+  in HF (greedy emits the answer immediately and never `</think>`), so the runtime files
+  the whole answer into the filtered thought channel. The conversion is faithful; the gate
+  correctly refuses a model that cannot exit its think block. peft must be installed in
+  the export venv (peft 0.20.0 + accelerate 1.14.0 alongside the main stack import-clean).
 
 ## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
 

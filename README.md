@@ -40,6 +40,23 @@ base's when present; a full `model.safetensors` sitting in an adapter repo is ig
 such dumps can be a different training checkpoint than the published adapter). The refusals
 still apply to the **base**: a gated / remote-code / pre-quantized base is not converted on a guess.
 
+**Hybrid-architecture finetunes** route by `config.json` model_type. Measured 2026-08-24
+(Qwen3.5: 0.8B base 6/8, numind/NuExtract3 4.5B finetune 8/8 with template byte-equal and
+greedy A/B/C proven; LFM2.5: a 1.2B finetune 8/8, template byte-equal, A≡B):
+
+| model_type | env needed | gate backend | notes |
+|---|---|---|---|
+| `qwen3_5`, `qwen3_5_text` | litert-torch **main** (`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'`, fresh venv — nightly deps; `pip install peft` for adapter repos) | CPU (stock bundle is not GPU-delegable) | ≥3B: reduced 7-signature prefill ladder; released 0.9.3 → structured `model_ext_missing` refusal |
+| `lfm2` (LFM2.5 family) | released litert-torch 0.9.3 (main's lfm2 patch breaks on transformers 5.15) | default (GPU works on the 0.16 runtime) | ExecutorMetadata section retrofitted automatically after export (0.9.3 bundling omits it; needs a litert-lm ≥ 0.15 CLI — `$LITERT_LM_CLI`) |
+
+Single-turn proven: the stock Qwen3.5 template's history think-stripping violates the runtime's
+incremental multi-turn render (details in [REPRODUCE.md](REPRODUCE.md)). GPU-delegable Qwen3.5
+ships come from the per-model recipe (`qwen35_work/`), not this path. After every export a
+stop-token guard adds the tokenizer's `eos_token_id` to the bundle's stop list when missing —
+Qwen3.5 checkpoints declare only `<|endoftext|>`, so stock bundles never stopped at
+`<|im_end|>` (masked on models that emit `<|endoftext|>` after answering, fatal on thinking
+derivatives; measured 2026-08-24).
+
 ### Dense / reasoning LLMs → int4 `.litertlm`
 
 ```bash

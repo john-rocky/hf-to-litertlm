@@ -27,7 +27,15 @@ architecture handling. It adds only:
      degeneracy; plus a template lint that WARNS (does not block) when the
      embedded Jinja needs Python-style methods — current runtimes render
      them (verified 2026-08-24 on Mac 0.16.0 and an Android main build),
-     pre-2026 runtimes may die on the first message.
+     pre-2026 runtimes may die on the first message;
+  4. hybrid routing (HYBRID_STOCK) — architectures the stock export handles
+     only in specific envs (Qwen3.5/GatedDeltaNet: litert-torch main, not any
+     released wheel) are refused with the env action when the installed
+     litert-torch lacks the model_ext, gate on --backend cpu (their stock
+     bundles are not GPU-delegable), and at >=3B export with the shipped 4B's
+     reduced 7-signature prefill ladder. Measured 2026-08-24: base 0.8B 6/8;
+     numind/NuExtract3 (4.5B finetune) 8/8 with template byte-equal and
+     greedy A/B/C proven.
 
 Exit codes: 0 = converted and gate passed, 1 = converted but gate failed,
 2 = refused at the entry gate (see the printed JSON), 3 = harness error.
@@ -51,6 +59,125 @@ VERIFY = REPO_ROOT / "scripts" / "verify_quality.py"
 PY_METHOD_RE = re.compile(
     r"\.(get|startswith|endswith|split|rsplit|replace|strip|lstrip|rstrip|items|keys|values|append)\s*\("
 )
+
+# Hybrid architectures the stock export converts correctly, but only in specific
+# environments — keyed by config.json model_type, value = the model_ext module
+# the export needs. Measured 2026-08-24 on Qwen/Qwen3.5-0.8B:
+#   - released litert-torch 0.9.3 has no qwen3_5 model_ext; its generic path
+#     dies mid-trace (LiteRTLMConvCacheLayer.update_conv_state TypeError).
+#     litert-torch main (0.10.0.dev, pip install from git) exports it stock,
+#     template embedded verbatim, ExecutorMetadata emitted, CPU gate 6/8 PASS.
+#   - the stock bundle is CPU-only: the GPU delegate rejects the GatedDeltaNet
+#     kernel (invalid TRANSPOSE permutation) and the verifier's default engine
+#     path fails outright instead of falling back — the exit gate must run
+#     --backend cpu. (The GPU-delegable shipped models come from the per-model
+#     recipe in qwen35_work/, not from this stock path.)
+HYBRID_STOCK = {
+    "qwen3_5": "litert_torch.generative.export_hf.model_ext.qwen3_5",
+    "qwen3_5_text": "litert_torch.generative.export_hf.model_ext.qwen3_5",
+}
+
+# State-carrying hybrids whose stock export succeeds on the RELEASED litert-torch
+# (the lfm2 model_ext ships since 0.9.1) but whose 0.9.3 bundling emits no
+# ExecutorMetadata section — litert-lm >= 0.15 then fails at inference with
+# "missing some output TensorBuffers". Measured 2026-08-24 on an LFM2.5-1.2B
+# finetune: export 64 s, 3 sections; after the retrofit the SAME bundle gates
+# 8/8 (CPU ~75 tok/s, GPU probe fine — no gate backend override needed).
+# NOTE: litert-torch main's lfm2 patch is incompatible with transformers 5.15
+# (Lfm2ShortConv has no L_cache) — LFM2.5 converts from the released 0.9.3 env.
+HYBRID_EXEC_RETROFIT = {"lfm2"}
+
+
+def hybrid_gate_backend(report, cfg):
+    """Entry check for HYBRID_STOCK architectures. Returns the exit-gate
+    backend override (None = verifier default), refusing when the installed
+    litert-torch lacks the model_ext the architecture needs — before any
+    download or merge work."""
+    model_type = (cfg or {}).get("model_type")
+    report["decisions"]["model_type"] = model_type
+    ext = HYBRID_STOCK.get(model_type)
+    if not ext:
+        return None
+    import importlib.util
+    if importlib.util.find_spec(ext) is None:
+        refuse(report, "model_ext_missing",
+               f"model_type {model_type} needs the {ext.rsplit('.', 1)[-1]} model_ext, "
+               "which this litert-torch does not ship (the released 0.9.3 generic path "
+               "dies mid-trace: LiteRTLMConvCacheLayer.update_conv_state TypeError)",
+               "install litert-torch from main into a fresh venv and rerun there: "
+               "pip install 'litert-torch @ git+https://github.com/google-ai-edge/"
+               "litert-torch.git' (measured 2026-08-24 @ 8379afb)")
+    report["decisions"]["gate_backend"] = "cpu"
+    return "cpu"
+
+
+def ensure_turn_end_stop(bundle, tokenizer_src, report):
+    """Post-export guard: the tokenizer's eos_token_id must be in the bundle's
+    stop_tokens. Qwen3.5 checkpoints declare only <|endoftext|> (measured
+    2026-08-24: text_config.eos_token_id=248044, no generation_config.json,
+    and the stock template's probe render raise_exceptions so the exporter's
+    template-derived stop never fires) while the tokenizer's eos is
+    <|im_end|>=248046 — the bundle then never stops at the turn end, and a
+    thinking derivative burns the whole budget (measured gate 0/8, fixed
+    bundle answers and stops). No-op when the stop list is already right."""
+    from transformers import AutoTokenizer
+
+    eos_id = AutoTokenizer.from_pretrained(tokenizer_src).eos_token_id
+    if eos_id is None:
+        return
+    import re as _re
+    import tempfile
+    from litert_lm_builder import pack_litertlm_file, unpack_litertlm_file
+
+    with tempfile.TemporaryDirectory(dir=bundle.parent) as td:
+        unpack_litertlm_file(str(bundle), td)
+        pb = Path(td) / "LlmMetadataProto.pbtext"
+        text = pb.read_text()
+        declared = {int(m) for m in _re.findall(r"ids:\s*(\d+)", text)}
+        if eos_id in declared:
+            return
+        m = _re.search(r"stop_tokens \{.*?\n\}", text, flags=_re.DOTALL)
+        if not m:
+            print(f"WARNING: no stop_tokens block found; not adding eos {eos_id}")
+            return
+        block = m.group(0)
+        text = text.replace(
+            block, block + "\nstop_tokens {\n  token_ids {\n    ids: %d\n  }\n}" % eos_id, 1)
+        pb.write_text(text)
+        fixed = bundle.parent / (bundle.name + ".stopfix")
+        pack_litertlm_file(str(Path(td) / "model.toml"), str(fixed))
+        fixed.replace(bundle)
+    report["decisions"]["stop_tokens_added"] = [eos_id]
+    print(f"stop-token guard: added tokenizer eos {eos_id} to the bundle's stop_tokens")
+
+
+def ensure_executor_metadata(bundle, report):
+    """Post-export guard for HYBRID_EXEC_RETROFIT: retrofit the ExecutorMetadata
+    section the released exporter omits (see the dict's comment), reusing the
+    shipped lfm_work/add_executor_metadata.py. No-op when the section exists.
+    Needs a litert-lm >= 0.15 CLI: $LITERT_LM_CLI, else `litert-lm` on PATH,
+    else the ~/venvs/lt0160run default."""
+    import os
+    default_cli = Path.home() / "venvs/lt0160run/bin/litert-lm"
+    # which() can surface a pyenv shim that exits 127, so the known venv wins
+    cli = (os.environ.get("LITERT_LM_CLI")
+           or (str(default_cli) if default_cli.exists() else None)
+           or shutil.which("litert-lm"))
+    tool = REPO_ROOT / "lfm_work" / "add_executor_metadata.py"
+    fixed = bundle.parent / (bundle.name + ".execfix")
+    proc = subprocess.run(
+        [sys.executable, str(tool), str(bundle), str(fixed),
+         "--litert-lm", cli, "--python", sys.executable],
+        capture_output=True, text=True)
+    if proc.returncode == 0:
+        fixed.replace(bundle)
+        report["decisions"]["executor_metadata"] = "retrofitted"
+        print("executor-metadata guard: section retrofitted "
+              "(released stock bundling omits it for this architecture)")
+    elif "already has" in (proc.stdout + proc.stderr):
+        report["decisions"]["executor_metadata"] = "present"
+    else:
+        fail("add_executor_metadata failed: " + (proc.stdout + proc.stderr)[-500:])
 
 # The adapter merge MUST run in its own process: loading/merging the model with
 # peft+transformers and then calling the stock export in the SAME process
@@ -198,6 +325,7 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
                f"({base_cfg['quantization_config'].get('quant_method', '?')}) — "
                "LoRA cannot merge into quantized weights honestly",
                "convert from the full-precision base instead")
+    gate_backend = hybrid_gate_backend(report, base_cfg)
 
     from huggingface_hub import snapshot_download
 
@@ -224,7 +352,7 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
     report["decisions"]["adapter"] = {
         "base": base_id, **merge_info, "merged_dir": str(merged_dir),
     }
-    return merged_dir, base_info
+    return merged_dir, base_info, gate_backend
 
 
 def main():
@@ -266,9 +394,10 @@ def main():
                "accept the terms on huggingface.co and retry with a token")
 
     files = {s.rfilename for s in (info.siblings or [])}
-    merged_dir = base_info = None
+    merged_dir = base_info = gate_backend = None
     if "adapter_config.json" in files:
-        merged_dir, base_info = merge_adapter_first(report, args.model, files, out_dir, api)
+        merged_dir, base_info, gate_backend = merge_adapter_first(
+            report, args.model, files, out_dir, api)
     elif not any(f.endswith(".safetensors") or f.endswith(".bin") for f in files):
         refuse(report, "no_weights",
                "no safetensors/bin weight files in the repo",
@@ -288,6 +417,7 @@ def main():
             refuse(report, "pre_quantized",
                    f"weights are already quantized ({cfg['quantization_config'].get('quant_method', '?')})",
                    "convert from the full-precision source repo instead")
+        gate_backend = hybrid_gate_backend(report, cfg)
 
     # ---------------- opt-ins ----------------
     params = getattr(getattr(base_info or info, "safetensors", None), "total", None)
@@ -303,6 +433,18 @@ def main():
     if args.int4:
         export_kwargs["quantization_recipe"] = str(INT4_RECIPE)
     report["decisions"]["quantization"] = "int4_block32_octav" if args.int4 else "default_int8"
+
+    # ≥3B hybrids get the reduced prefill ladder the shipped Qwen3.5-4B uses
+    # (6 prefill lengths + decode = 7 signatures instead of 12). Two measured
+    # reasons: every signature costs engine RAM even if never called (a 12 GB
+    # iPhone jetsam-kills a 248k-vocab 4B at Metal program init with the full
+    # ladder — REPRODUCE 2026-08-14), and the export's converter passes scale
+    # with the merged module, which OOM-killed a full-ladder 4B export on a
+    # 128 GB host twice (2026-08-24). No correctness cost: the runtime plans
+    # coarser prefill chunks.
+    if gate_backend and externalize:
+        export_kwargs["prefill_lengths"] = [1024, 256, 64, 16, 4, 1]
+        report["decisions"]["prefill_ladder"] = "reduced_7sig_hybrid_3b"
 
     # ---------------- template lint (warn only) ----------------
     template = get_chat_template(args.model)
@@ -333,16 +475,21 @@ def main():
         write_report(report)
         fail("export finished without producing model.litertlm")
     report["bundle_bytes"] = bundle.stat().st_size
+    ensure_turn_end_stop(bundle, export_src, report)
+    if report["decisions"].get("model_type") in HYBRID_EXEC_RETROFIT:
+        ensure_executor_metadata(bundle, report)
 
     # ---------------- exit gate ----------------
     max_tokens = 3200 if is_think else 512
     gate_json = out_dir / "gate.json"
-    print(f"exit gate: verify_quality --max-tokens {max_tokens} --min-correct {args.min_correct}")
-    proc = subprocess.run(
-        [sys.executable, str(VERIFY), str(bundle),
-         "--max-tokens", str(max_tokens), "--min-correct", str(args.min_correct),
-         "--json", str(gate_json)],
-        text=True)
+    print(f"exit gate: verify_quality --max-tokens {max_tokens} --min-correct {args.min_correct}"
+          + (f" --backend {gate_backend}" if gate_backend else ""))
+    gate_cmd = [sys.executable, str(VERIFY), str(bundle),
+                "--max-tokens", str(max_tokens), "--min-correct", str(args.min_correct),
+                "--json", str(gate_json)]
+    if gate_backend:
+        gate_cmd += ["--backend", gate_backend]
+    proc = subprocess.run(gate_cmd, text=True)
     gate = json.loads(gate_json.read_text()) if gate_json.exists() else None
     report["gate"] = {k: gate[k] for k in ("score", "of", "degenerate", "passed")} if gate else None
     report["status"] = "converted_pass" if proc.returncode == 0 else "converted_gate_failed"
