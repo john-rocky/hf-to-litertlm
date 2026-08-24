@@ -14,6 +14,15 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## Running the converted models on-device (Android)
+
+- **[docs/android-npu.md](docs/android-npu.md)** — Qualcomm NPU (HTP) with on-device JIT
+  compilation: the 10 runtime libraries, the two Environment options, the silent-CPU-fallback
+  trap, and the SRQ export recipe for LLM bundles (verified on SM8850 / Hexagon v81).
+- **[docs/android-gpu.md](docs/android-gpu.md)** — GPU: the AI Edge Gallery import toggle
+  (default is CPU-only), the LiteRT-LM API path, and what to expect (prefill gains,
+  decode ≈ CPU, ~2× model size in RAM).
+
 ## Verified by running (2026-07-07)
 
 Every recipe below was **actually executed** and gated (`verify_quality.py`, 8-question gate, max-tokens 2048):
