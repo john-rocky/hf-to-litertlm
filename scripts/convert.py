@@ -6,7 +6,9 @@
 
 Measured basis (2026-08-24): stock `export(model, output_dir)` with no other
 arguments converts untouched finetunes correctly on both the model_ext path
-(qwen3: QVikhr-3-1.7B) and the generic path (smollm3: a SmolLM3-3B finetune) —
+(qwen3: QVikhr-3-1.7B) and the generic path (smollm3: a SmolLM3-3B finetune;
+2026-08-25 adds MiniCPM5-1B derivatives — plain llama, default path, 7/8,
+template byte-equal, A≡B) —
 the derivative's own chat template is embedded verbatim (including a
 `chat_template.jinja` that tokenizer_config.json doesn't reference) and the
 runtime applies it (greedy A/B/C proof). So this wrapper adds NO template or

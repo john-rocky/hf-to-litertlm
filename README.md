@@ -57,6 +57,12 @@ Qwen3.5 checkpoints declare only `<|endoftext|>`, so stock bundles never stopped
 `<|im_end|>` (masked on models that emit `<|endoftext|>` after answering, fatal on thinking
 derivatives; measured 2026-08-24).
 
+**MiniCPM5-1B finetunes need no routing at all** — the base is stock `LlamaForCausalLM`, so they
+ride the default path above unchanged (measured 2026-08-25 on the family's most-liked derivative:
+7/8 gate, template byte-equal, greedy A≡B; the stock exporter generates the same
+`X<|im_end|>\n` string-stop set the published base artifact carries). Details in
+[REPRODUCE.md](REPRODUCE.md).
+
 ### Dense / reasoning LLMs → int4 `.litertlm`
 
 ```bash
