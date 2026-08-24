@@ -16,6 +16,21 @@ The scripts default to `~/venvs/ltconv040dev/bin/python`; override by editing th
 
 ## Convert (one command per model)
 
+### Any untouched finetune → `.litertlm` (stock defaults + gates)
+
+```bash
+python scripts/convert.py <org>/<model>          # -> out/<model>/model.litertlm + convert_report.json
+python scripts/convert.py <org>/<model> --int4   # proven int4 recipe (blockwise-32 OCTAV + int8 embedding)
+```
+
+The stock litert-torch export already converts untouched finetunes correctly — measured
+2026-08-24 on a qwen3 and a smollm3 finetune: the derivative's own chat template is embedded
+verbatim (even when it lives only in `chat_template.jinja`) and applied at runtime.
+`convert.py` therefore adds no template or architecture handling. It refuses, with a structured
+JSON reason, what stock export cannot convert honestly (adapter-only, gated, remote-code, and
+pre-quantized repos), splits the embedder at ≥3B params (iOS ~2 GiB section limit), and gates
+the result with `verify_quality.py` (8 questions, bar 6/8; 3200-token budget for `<think>` models).
+
 ### Dense / reasoning LLMs → int4 `.litertlm`
 
 ```bash
@@ -29,7 +44,7 @@ Covered: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`, `ministral3-3b(+reason
 `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `qwen25-3b`. Full recipe table +
 per-model caveats in **[REPRODUCE.md](REPRODUCE.md)**.
 
-All recipes export with `use_jinja_template=False` (plain prefix/suffix turn markers, no embedded Jinja) — vendor HF chat templates often call Python-style methods (`.get()`, `.startswith()`) that the runtime's minijinja renderer rejects, crashing on the first message. See the template-safety note in [REPRODUCE.md](REPRODUCE.md).
+All recipes export with `use_jinja_template=False` (plain prefix/suffix turn markers, no embedded Jinja). Vendor HF chat templates often call Python-style methods (`.get()`, `.startswith()`); old LiteRT-LM runtimes crashed on those at the first message, current runtimes render them (measured 2026-08-24). See the template-safety note in [REPRODUCE.md](REPRODUCE.md).
 
 ### Vision-language models (`fast_vlm` single image) → `.litertlm`
 
