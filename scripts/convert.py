@@ -69,6 +69,10 @@ PY_METHOD_RE = re.compile(
 #     dies mid-trace (LiteRTLMConvCacheLayer.update_conv_state TypeError).
 #     litert-torch main (0.10.0.dev, pip install from git) exports it stock,
 #     template embedded verbatim, ExecutorMetadata emitted, CPU gate 6/8 PASS.
+#   - released 0.9.4 DOES ship the qwen3_5 exportables (the ext check passes
+#     there), but its stock output is degenerate — endless token repetition on
+#     a 2B export, cause not isolated (measured 2026-08-25). The exit gate
+#     catches it; until isolated, export Qwen3.5 from main.
 #   - the stock bundle is CPU-only: the GPU delegate rejects the GatedDeltaNet
 #     kernel (invalid TRANSPOSE permutation) and the verifier's default engine
 #     path fails outright instead of falling back — the exit gate must run
@@ -85,8 +89,10 @@ HYBRID_STOCK = {
 # "missing some output TensorBuffers". Measured 2026-08-24 on an LFM2.5-1.2B
 # finetune: export 64 s, 3 sections; after the retrofit the SAME bundle gates
 # 8/8 (CPU ~75 tok/s, GPU probe fine — no gate backend override needed).
-# NOTE: litert-torch main's lfm2 patch is incompatible with transformers 5.15
-# (Lfm2ShortConv has no L_cache) — LFM2.5 converts from the released 0.9.3 env.
+# NOTE: transformers 5.15.x breaks the lfm2 export on 0.9.3 AND 0.9.4
+# (Lfm2ShortConv.L_cache AttributeError) — pin transformers 5.14.x. Released
+# 0.9.4 emits ExecutorMetadata natively (measured 2026-08-25); the retrofit
+# then detects the existing section and no-ops.
 HYBRID_EXEC_RETROFIT = {"lfm2"}
 
 

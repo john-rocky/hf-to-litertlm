@@ -46,8 +46,8 @@ greedy A/B/C proven; LFM2.5: a 1.2B finetune 8/8, template byte-equal, A≡B):
 
 | model_type | env needed | gate backend | notes |
 |---|---|---|---|
-| `qwen3_5`, `qwen3_5_text` | litert-torch **main** (`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'`, fresh venv — nightly deps; `pip install peft` for adapter repos) | CPU (stock bundle is not GPU-delegable) | ≥3B: reduced 7-signature prefill ladder; released 0.9.3 → structured `model_ext_missing` refusal |
-| `lfm2` (LFM2.5 family) | released litert-torch 0.9.3 (main's lfm2 patch breaks on transformers 5.15) | default (GPU works on the 0.16 runtime) | ExecutorMetadata section retrofitted automatically after export (0.9.3 bundling omits it; needs a litert-lm ≥ 0.15 CLI — `$LITERT_LM_CLI`) |
+| `qwen3_5`, `qwen3_5_text` | litert-torch **main** (`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'`, fresh venv — nightly deps; `pip install peft` for adapter repos). 0.9.4 ships the exportables but its output is degenerate (measured 2026-08-25) — keep main | CPU (stock bundle is not GPU-delegable) | ≥3B: reduced 7-signature prefill ladder; released 0.9.3 → structured `model_ext_missing` refusal |
+| `lfm2` (LFM2.5 family) | released litert-torch 0.9.3 or 0.9.4, transformers pinned 5.14.x (5.15 breaks the lfm2 export on both) | default (GPU works on the 0.16 runtime) | ExecutorMetadata section retrofitted automatically after export when missing (0.9.3 bundling omits it; 0.9.4 emits it natively and the retrofit no-ops; needs a litert-lm ≥ 0.15 CLI — `$LITERT_LM_CLI`) |
 
 Single-turn proven: the stock Qwen3.5 template's history think-stripping violates the runtime's
 incremental multi-turn render (details in [REPRODUCE.md](REPRODUCE.md)). GPU-delegable Qwen3.5
@@ -58,10 +58,11 @@ Qwen3.5 checkpoints declare only `<|endoftext|>`, so stock bundles never stopped
 derivatives; measured 2026-08-24).
 
 **MiniCPM5-1B finetunes need no routing at all** — the base is stock `LlamaForCausalLM`, so they
-ride the default path above unchanged (measured 2026-08-25 on the family's most-liked derivative:
+ride the default path above unchanged (measured 2026-08-25 on huihui-ai/Huihui-MiniCPM5-1B-abliterated:
 7/8 gate, template byte-equal, greedy A≡B; the stock exporter generates the same
-`X<|im_end|>\n` string-stop set the published base artifact carries). Details in
-[REPRODUCE.md](REPRODUCE.md).
+`X<|im_end|>\n` string-stop set the published base artifact carries; a defective tool-use DPO
+derivative of the same base was correctly refused by the gate — the defect reproduces in HF
+transformers, so the conversion is faithful). Details in [REPRODUCE.md](REPRODUCE.md).
 
 ### Dense / reasoning LLMs → int4 `.litertlm`
 

@@ -202,11 +202,11 @@ MiniCPM5-1B is stock `LlamaForCausalLM` (`model_type: llama`), so its finetunes 
 `scripts/convert.py` with **no routing, no env change, no retrofit** — the plain dense rail in the
 standard `ltconv040dev`-class env (litert-torch 0.9.3). The per-model recipe above remains what
 reproduces the *published base* artifact (its post-hoc wi8 quantization); derivatives don't need it.
-Measured on GnLOLot/MiniCPM5-1B-Claude-Opus-Fable5-Thinking (the family's most-liked derivative,
-184 likes; attention/MLP weight slices differ from base = real training, structure identical):
+Measured on huihui-ai/Huihui-MiniCPM5-1B-abliterated (a real behavioral finetune — range-probed:
+attention/MLP projections differ from base, embeddings untouched, structure identical):
 
 - One command → `converted_pass`: stock export (export-time int8, cache 4096), gate **7/8**
-  non-degenerate at ~112 tok/s decode on the verifier's default backend — no gate-backend
+  non-degenerate at ~165 tok/s decode on the verifier's default backend — no gate-backend
   override, and the post-export stop-token guard is a no-op (generation_config already declares
   `[1, 130073]`).
 - The stock bundle's metadata converges with the published litert-community/MiniCPM5-1B artifact
@@ -214,11 +214,30 @@ Measured on GnLOLot/MiniCPM5-1B-Claude-Opus-Fable5-Thinking (the family's most-l
   exporter's punctuation-prefix expansion — see the corrected note above), thought channel
   auto-added (`<think>` in the template), `max_num_tokens` 4096 (the artifact says 1024).
 - Template proof: embedded jinja **byte-equal 9062/9062** to the checkpoint's
-  `chat_template.jinja`; greedy **A ≡ B byte-identical** (litert-lm 0.16.0 CLI, cpu, top-k 1).
-  On this family the B lane matched A both with and without the render's leading `<s>` — the
-  double-BOS shift that the LFM2.5 lane measured did not reproduce here.
+  `chat_template.jinja`; greedy **A ≡ B** (litert-lm 0.16.0 CLI, cpu, top-k 1: think content
+  832/832 chars + final answer verbatim-identical after normalizing the runtime's
+  `[thought]`/`[/thought]` channel rendering to the raw `<think>` markers). Two B-lane
+  requirements: strip the render's leading `<s>` (the engine prepends BOS itself — double-BOS
+  shifts the greedy continuation on this family exactly as the LFM2.5 lane measured), and the
+  channel normalization above for thinking outputs.
 - C-lane contrast is structurally N/A for this family too: every usable top derivative probed
   (7 of 7) ships the base's `chat_template.jinja` byte-identical (md5 65d7b88e).
+- **The exit gate refuses defective derivatives here too**: a tool-use DPO derivative of the
+  same base converts cleanly but fails the gate 4/8-degenerate — greedy on simple arithmetic
+  enters a repetition loop inside `<think>` and never closes it, and the same defect class
+  reproduces in HF transformers on the source checkpoint (bf16 greedy degenerates into
+  `32<|im_end|>` spam on the same prompt), so the conversion is faithful and the subject
+  itself is broken. Second measured case of the publish bar doing its job (after the Qwen3.5
+  adapter case above).
+
+**litert-torch 0.9.4 notes (measured 2026-08-25)**: 0.9.4 ships the `qwen3_5` exportables and
+emits the `ExecutorMetadata` section natively — for **LFM2.5**, new 0.9.4 exports no longer need
+the retrofit (convert.py's guard detects the existing section and no-ops), while the Qwen3.5
+env guidance is **unchanged**: the 0.9.4 native path exports and loads, but its output is
+degenerate (endless `<|iim_ending|>` repetition on a 2B stock export; cause not yet isolated) —
+keep exporting Qwen3.5 from litert-torch main. Also measured: transformers 5.15.x breaks the
+lfm2 export on both 0.9.3 and 0.9.4 (`Lfm2ShortConv.L_cache` AttributeError) — pin
+transformers 5.14.x for this family.
 
 ## LFM2.5 family (hybrid ShortConv + attention)
 
