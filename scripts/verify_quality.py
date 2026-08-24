@@ -124,6 +124,15 @@ def main():
     for label, q, pat in QUESTIONS:
         try:
             raw, tok = run_verifier(args.verifier, model, q + SUFFIX, args.max_tokens)
+            # No final answer usually means the budget died inside the think
+            # block (the runtime filters the thought channel, so a truncated
+            # think arrives as EMPTY output, without a literal "<think>") — a
+            # budget artifact, not a collapse. Retry that one question once
+            # with +1200 tokens; a real collapse is still empty/looping there.
+            retried = not strip_think(raw).strip()
+            if retried:
+                raw, tok = run_verifier(args.verifier, model, q + SUFFIX,
+                                        args.max_tokens + 1200)
         except Exception as e:  # noqa: BLE001
             print(f"FAIL (harness) on '{label}': {e}", file=sys.stderr)
             return 2
@@ -135,11 +144,11 @@ def main():
         degen = (not ans.strip()) or degenerate(ans)
         if tok:
             toks.append(tok)
-        results.append({"label": label, "question": q, "ok": ok,
+        results.append({"label": label, "question": q, "ok": ok, "retried": retried,
                         "degenerate": degen, "answer": ans, "raw": raw, "tok_s": tok})
         shown = ans if ans.strip() else "(no answer — <think> truncated)"
         print(f"   [{'✓' if ok else '·'}]{' ⚠️degen' if degen else '       '} {label:16s} "
-              f"-> {' '.join(shown.split())[:90]!r}")
+              f"{'↻ ' if retried else ''}-> {' '.join(shown.split())[:90]!r}")
 
     score = sum(r["ok"] for r in results)
     any_degen = any(r["degenerate"] for r in results)
@@ -158,7 +167,7 @@ def main():
             "score": score, "of": 8, "degenerate": any_degen,
             "median_decode_tok_s": median_tok,
             "min_correct": args.min_correct, "passed": passed,
-            "questions": [{k: r[k] for k in ("label", "ok", "degenerate", "answer")}
+            "questions": [{k: r[k] for k in ("label", "ok", "retried", "degenerate", "answer")}
                           for r in results],
         }
         Path(args.json).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")

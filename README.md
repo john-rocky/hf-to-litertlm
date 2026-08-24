@@ -27,9 +27,18 @@ The stock litert-torch export already converts untouched finetunes correctly —
 2026-08-24 on a qwen3 and a smollm3 finetune: the derivative's own chat template is embedded
 verbatim (even when it lives only in `chat_template.jinja`) and applied at runtime.
 `convert.py` therefore adds no template or architecture handling. It refuses, with a structured
-JSON reason, what stock export cannot convert honestly (adapter-only, gated, remote-code, and
-pre-quantized repos), splits the embedder at ≥3B params (iOS ~2 GiB section limit), and gates
-the result with `verify_quality.py` (8 questions, bar 6/8; 3200-token budget for `<think>` models).
+JSON reason, what stock export cannot convert honestly (gated, remote-code, and pre-quantized
+repos), splits the embedder at ≥3B params (iOS ~2 GiB section limit), and gates the result with
+`verify_quality.py` (8 questions, bar 6/8; 3200-token budget for `<think>` models, one +1200
+retry when a think block eats the whole budget).
+
+An **adapter-only repo** (LoRA/PEFT) is converted merge-first instead of refused: the adapter is
+merged into its base (`peft merge_and_unload` — measured bitwise equal to `W + (α/r)·BA`) in a
+temporary `out/<name>/merged/` dir (`--keep-merged` retains it) and stock-exported from there.
+The adapter repo's own tokenizer / `chat_template.jinja` / `generation_config.json` win over the
+base's when present; a full `model.safetensors` sitting in an adapter repo is ignored (measured:
+such dumps can be a different training checkpoint than the published adapter). The refusals
+still apply to the **base**: a gated / remote-code / pre-quantized base is not converted on a guess.
 
 ### Dense / reasoning LLMs → int4 `.litertlm`
 
