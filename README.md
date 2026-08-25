@@ -159,3 +159,6 @@ deployment layer: [`manifest/SCHEMA.md`](manifest/SCHEMA.md) (spec),
 ## License
 
 Code: Apache-2.0. Converted model bundles inherit their base model's license.
+
+This is an independent open-source project, not affiliated with or endorsed by Google.
+LiteRT and LiteRT-LM are Google projects; `.litertlm` names their runtime's bundle format.
