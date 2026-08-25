@@ -33,7 +33,7 @@ reproduce() {
   nanbeige4.2-3b)      FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/convert_nanbeige42.py Nanbeige/Nanbeige4.2-3B out/$key templates/chatml_think.jinja BOCTAV4 ;;  # looped transformer (num_loops=2, 44 KV slots); dedicated script; sampling REQUIRED (temp 0.6/topk 20, greedy collapses); CPU backend (GPU delegate miscomputes this graph)
   olmo2-1b)            CACHE=4096 $EXPORT allenai/OLMo-2-0425-1B-Instruct out/$key templates/olmo2_simple.jinja BOCTAV4 ;;
   olmo2-7b)            CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT allenai/OLMo-2-1124-7B-Instruct out/$key templates/olmo2_simple.jinja BOCTAV4 ;;  # desktop-only (>2GiB section)
-  polaris-4b)          EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT POLARIS-Project/Polaris-4B-Preview out/$key templates/qwen3_think.jinja BOCTAV4_128 ;;
+  polaris-4b)          FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT POLARIS-Project/Polaris-4B-Preview out/$key templates/qwen3_think.jinja BOCTAV4_128 ;;  # FORCE_SPM added 2026-08-25: the published bundle carries an SP_Tokenizer section, and FORCE_SPM is the only path that makes one from a BPE source
   qwen3-1.7b)          CACHE=4096 $EXPORT Qwen/Qwen3-1.7B out/$key templates/qwen3_think.jinja BOCTAV4 ;;  # ship dropped→private
   qwen3-4b-thinking)   EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT Qwen/Qwen3-4B-Thinking-2507 out/$key templates/qwen3_think.jinja BOCTAV4_128 ;;  # block128 ONLY
   r1-distill-qwen-1.5b) CACHE=4096 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;

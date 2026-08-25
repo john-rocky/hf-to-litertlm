@@ -54,7 +54,7 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 | `nanbeige4.2-3b` | Nanbeige/Nanbeige4.2-3B | chatml_think | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096; dedicated `convert_nanbeige42.py` (looped transformer: 22 shared-weight layers ×2 loops → 44 KV slots) | litert-community/Nanbeige4.2-3B |
 | `olmo2-1b` | allenai/OLMo-2-0425-1B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096 | mlboydaisuke/OLMo-2-1B-Instruct-LiteRT |
 | `olmo2-7b` | allenai/OLMo-2-1124-7B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096, EXTERNALIZE_EMBEDDER | *(desktop-only, not published — >2 GiB section)* |
-| `polaris-4b` | POLARIS-Project/Polaris-4B-Preview | qwen3_think | BOCTAV4_128 | EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Polaris-4B-Preview |
+| `polaris-4b` | POLARIS-Project/Polaris-4B-Preview | qwen3_think | BOCTAV4_128 | **FORCE_SPM**, EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Polaris-4B-Preview |
 | `qwen3-1.7b` | Qwen/Qwen3-1.7B | qwen3_think | BOCTAV4 | CACHE=4096 | mlboydaisuke *(dropped→private)* |
 | `qwen3-4b-thinking` | Qwen/Qwen3-4B-Thinking-2507 | qwen3_think | **BOCTAV4_128** | EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Qwen3-4B-Thinking-2507 |
 | `r1-distill-qwen-1.5b` | deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B | deepseek_r1_simple | BOCTAV4 | CACHE=4096 | mlboydaisuke/DeepSeek-R1-Distill-Qwen-1.5B-LiteRT |
@@ -80,6 +80,21 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 - **`jan-nano` template** ⚠ — no source names it. It's a Qwen3-4B thinking model, so `qwen3_think.jinja`
   (matches the sibling Qwen3-4B-Thinking and the reasoning-template-parity note); `chatml_simple.jinja`
   (what same-base FastContext used) is the alternative. Swap and re-gate if output rambles.
+- **`polaris-4b` FORCE_SPM** — added **2026-08-25**; the row shipped without it, and without it the
+  tokenizer section does not match the published file. The evidence is in the published bundle's own
+  header, which anyone can read with a ranged HTTP request: it carries an `SP_Tokenizer` section, and
+  `FORCE_SPM` is the only thing in `export_simple_template.py` that produces one from a BPE source (it
+  rebinds `export_lib.export_tokenizer`). Checked against four published controls read the same way —
+  `Nanbeige4.1-3B` and `Ministral-3-3B-Reasoning` (FORCE_SPM in recipe) carry `SP_Tokenizer`;
+  `Qwen3-4B-Thinking` and `FastContext-4B` (no FORCE_SPM) carry `HF_Tokenizer_Zlib`. `jan-nano` carries
+  `HF_Tokenizer_Zlib`, so its row is right as written.
+- **`polaris-4b` and `jan-nano` carry one post-export step** that these recipes do not perform: on
+  2026-08-22 both published files were repacked to declare a thought channel, so that a reasoning model's
+  `<think>...</think>` chain is addressable instead of streaming inline into the answer (without
+  `LlmMetadata.channels` a thinking budget is silently ignored). The step adds a `channels` block naming
+  the `<think>` / `</think>` markers and repacks; it is metadata-only — every tflite section comes out
+  byte-identical — so quality and speed are unaffected, but the published file's sha256 differs from what
+  these recipes produce. Bundle `creation_timestamp` reads 2026-08-22 for both.
 - **`llama32-3b`** was originally exported through the **official litert-torch main** (BPE patch upstream) —
   re-running with the current default env reproduces the same `BMIX4` recipe; expect equivalent, not bit-identical.
 - **`vibethinker-3b`** needs a runtime stop-token fix (`generation_config.eos_token_id=[151643,151645]` so
