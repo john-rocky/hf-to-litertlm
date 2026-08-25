@@ -120,6 +120,36 @@ bundle). Details per model in `cards/<name>-litert.md`.
 
 `qwen2-vl-2b` is the general-purpose Qwen2-VL VLM (describe / VQA / OCR). Two gotchas baked into its scripts: (a) reordering patches into the merger's 2×2-block order with a gather emits a `GATHER_ND` op that the mobile GPU delegate can't compile (the vision executor then fails to create on-device) — so the encoder keeps raster order and the 2×2 merge is done with strided slices + concat in the adapter; (b) the fast_vlm runtime feeds 1-D positions (no M-RoPE), which preserves describe/VQA/OCR/count but degrades cross-cell *ranking* over 2-D tables.
 
+**Qwen2-VL derivative intake** (`scripts/ship_qwen2vl_derivative.sh`, measured 2026-08-25 on
+[numind/NuExtract-2.0-2B](https://huggingface.co/numind/NuExtract-2.0-2B) — 32k downloads, the
+top generative Qwen2-VL-2B derivative). Two findings, one of them a wall:
+
+- **Family fact — VLM derivatives train the vision tower too.** Per-tensor diff vs the base:
+  339/391 `visual.*` and 315/338 `model.*` tensors differ. Unlike every LLM family measured,
+  a derivative conversion re-exports vision from the derivative's own weights (the ship script
+  and `convert_qwen2vl_vision.py`'s `MODEL` env encode this). The rails otherwise carry over
+  unchanged: decoder re-host is bit-exact (`text-only logits maxdiff=0.000000`), vision
+  static-672 export fp32 corr 0.99999998 / int8 end-to-end corr 0.896 — the same 0.90-class
+  int8 behavior as the shipped base. Tokenizer files differ only by serialization era
+  (added_tokens.json split out, a `#version` merges header; probe tokenization identical).
+- **The wall — the fast_vlm prompt path mis-encodes ChatML added-token specials.** Bundle
+  greedy output on a specials-free prompt is byte-identical to HF fp32 for 500+ tokens (encode,
+  embedder, int-free graph all exact); the moment the prompt carries `<|im_start|>`/`<|im_end|>`,
+  the bundle answers `{"names": []}` where HF extracts correctly — and HF *reproduces the
+  bundle's exact output* when those specials are substituted with wrong ids (id 0 and
+  `<|endoftext|>` both). Excluded by measurement: template rendering (identical raw string via
+  `--no-template`), start_token, SP vs HF vs base-era `tokenizer.json` sections, `token_str`
+  vs `token_ids` stop declarations, structured-template suffix strings, fp32 vs int4 decoder.
+  The llm (prefill_decode) pipeline encodes the very same marker style correctly (s1-mini and
+  the granite/falcon gates are byte-exact through `--no-template`), so this is fast_vlm-path
+  specific. Robust chat VLMs mask it — the bundle still answers "Tokyo" to the 8-question
+  probes, which is presumably why every shipped fast_vlm model gates clean — but a
+  format-exact extraction derivative is the canary that dies. **Verdict: Qwen2-VL derivative
+  conversions are mechanically complete (this pipeline produced a 1.78 GB int4+int8 bundle),
+  but format-exact derivatives cannot pass an honest HF-parity gate until the runtime's
+  fast_vlm special-token encode is fixed — not published.** `qwen2vl_work/gate_nuextract.py`
+  is the gate that catches it.
+
 `north-micro-vision` is Cohere's North-Micro-Vision-Instruct (2.48B, apache-2.0) — the first Cohere-family model on this rail, and its vision tower is the Qwen3-VL design (SigLIP2-SO400M dims, 27 blocks, three *deepstack* mergers). Three things the scripts encode. (1) **Deepstack folds into the single fast_vlm image embedding**: HF adds three extra vision embeddings to the residual stream after decoder layers 0/1/2; the fast_vlm contract carries one embedding, so the encoder emits `concat(h27, h8, h16, h24)` and the adapter computes `merger(h27) + Σ deepstack_merger_i(h_i)` — exactly representable, and the ablation (`northmv_work/phase0_deepstack_ablation.py`, `phase0_teacher_forced.py`) shows fold beats drop on every metric (teacher-forced top-1 0.96 fold / 0.93 fold+1-D positions vs the released model, no collapse). (2) **The decoder re-hosts as `Cohere2ForCausalLM` with a rope-layout patch** (`northmv_work/northmv_rope_patch.py`): CohereCompass rotates Llama-style half-split pairs while stock Cohere2 rotates interleaved pairs; patching Cohere2 to the Llama-style math loads the weights verbatim (text logits maxdiff 0.0) *and* replaces the `BROADCAST_TO` + 5-D `CONCATENATION` that stock Cohere2's rope lowers to — both rejected by the GPU delegate. (3) **Vision GPU rules learned the hard way** (all in `convert_northmv_vision.py`): keep every activation rank ≥3 with a leading batch dim (the Metal delegate computes rank-2 elementwise ops against a rank-2 constant *wrong*, silently — the symptom is "this image is a blank canvas"); pre-scale LayerNorm inputs by a calibrated power of two from block 9 on (register-scale activations |x|≈2000 overflow fp16 (x−m)²); and a `clamp` between LN and the following FC stops the converter folding LN-gamma into the int8 weight. Ship quant is int8 vision + int8 (dynamic) decoder with `prefer_activation_type="fp32_fp16"` declared on the decoder section — Mali-class GPUs accumulate fp16 and overflow at the 256 image-token positions, so an fp16 decoder answers image turns as if blind (echoes the question) while text-only stays perfect; the in-bundle declaration fixes it on every runtime without flags. Vision fp16 is desktop-only (compiling it on a Mali GPU hard-crashes the phone). Tokenizer: bundle the HF `tokenizer.json` — the sentencepiece conversion crashes on null-byte pieces and splits digits differently from Cohere's per-digit pre-tokenizer. The runtime's 1-D positions replace M-RoPE, with the same 2-D-table-ranking caveat as `qwen2-vl-2b`. Needs transformers ≥5.16 (`cohere_compass`) for the vision/prep side and the released litert-torch 0.9.3 stack for the decoder export.
 
 `mage-vl` is Microsoft's 4.7B general VLM (describe / VQA / full-page OCR). Its vision tower is the Qwen2-VL design, but two things make it *simpler* to convert: `temporal_patch_size=1` (the patch-embed already is a stride-16 `Conv2d` — no Conv3d fold) and the text decoder is a **stock Qwen3-4B fed plain 1-D positions**, so the fast_vlm runtime contract is mathematically exact (no M-RoPE caveat at all — the 2-D-table-ranking limitation of `qwen2-vl-2b` does not apply). Its 3-D rope splits head_dim 4:6:6 over (t,h,w) with *interleaved* rotation (not half-split); the scripts precompute it from raster positions with t=0 and verify the whole patch pipeline bit-identical against the model's own processor. Cache is 2048 on purpose: at 4096 the 36-layer/kv8 fp32 KV cache is ~1.2 GB, which more than doubles the on-device session footprint; 2048 keeps the whole phone session ~1.5 GiB. Env gotchas baked into the ship script: python 3.14 breaks torchao's import (use ≤3.13), and torchvision must be the torch-matched pair (`torch==2.12.1 torchvision==0.27.1`) or pip upgrades torch past litert-torch's pin. `magevl_work/precheck_magevl_vision.py` runs the full static-rewrite export precheck on a random-init tower — no checkpoint download — in minutes.

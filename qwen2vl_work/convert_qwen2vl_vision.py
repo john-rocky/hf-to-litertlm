@@ -36,7 +36,10 @@ from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-MODEL = os.path.join(ROOT, "src_models/qwen2-vl-2b")
+# MODEL env override: Qwen2-VL derivatives (e.g. NuExtract-2.0-2B) train the
+# vision tower too — measured 2026-08-25, 339/391 visual.* tensors differ from
+# the base — so derivative conversions re-export vision from their own weights.
+MODEL = os.environ.get("MODEL", os.path.join(ROOT, "src_models/qwen2-vl-2b"))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "out/qwen2vl-vision")
 os.makedirs(OUT, exist_ok=True)
 

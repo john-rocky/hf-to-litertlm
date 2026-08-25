@@ -73,7 +73,8 @@ def main():
   sp = [os.path.join(DEC, f) for f in os.listdir(DEC) if f.endswith((".spiece", ".model", ".spm"))]
   if tok_mode == "hf":
     sp = []
-  hf = os.path.join("src_models/internvl3-2b-llm", "tokenizer.json")
+  hf = os.environ.get("TOK_JSON",
+                      os.path.join("src_models/internvl3-2b-llm", "tokenizer.json"))
   print("embedder:", embedder)
   print("prefill_decode:", prefill_decode)
   print("vision_encoder:", vision_encoder, "vision_adapter:", vision_adapter)
@@ -95,7 +96,18 @@ def main():
       llm_model_type_pb2.LlmModelType(fast_vlm=llm_model_type_pb2.FastVlm()))
   md.llm_model_type.fast_vlm.image_tensor_height = IMAGE_SIZE
   md.llm_model_type.fast_vlm.image_tensor_width = IMAGE_SIZE
-  md.stop_tokens.add().token_str = "<|im_end|>"
+  # Stop token: STOP_ID env declares it by token id, matching the LLM-bundle
+  # convention (token_str stops are string-matched by the runtime and have
+  # measured sharp edges — the s1-mini punctuation-prefix lesson). NOTE
+  # (measured 2026-08-25 on NuExtract-2.0-2B): switching str->ids does NOT fix
+  # the fast_vlm special-token encode defect documented in REPRODUCE — the
+  # runtime's fast_vlm prompt path mis-encodes ChatML added-token specials
+  # regardless of the stop declaration or tokenizer section type.
+  stop_id = os.environ.get("STOP_ID")
+  if stop_id:
+    md.stop_tokens.add().token_ids.ids.append(int(stop_id))
+  else:
+    md.stop_tokens.add().token_str = "<|im_end|>"
   md_path = os.path.join(OUT, "llm_metadata.pb")
   with open(md_path, "wb") as f:
     f.write(md.SerializeToString())
