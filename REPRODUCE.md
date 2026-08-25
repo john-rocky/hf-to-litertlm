@@ -406,7 +406,9 @@ Gates on the published files (litert-lm 0.15 CPU, Mac + iPhone 17 Pro): fp16 = 8
 
 Measured 2026-08-25 on [Etherll/Tashkeel-350M-v2](https://huggingface.co/Etherll/Tashkeel-350M-v2)
 (Arabic diacritization SFT of granite-4.0-h-350m; the most-downloaded granite-4.0-h derivative
-on the Hub). Family fact, same as every LLM family measured so far: the finetune's
+on the Hub). Published: [mlboydaisuke/Tashkeel-350M-v2-LiteRT](https://huggingface.co/mlboydaisuke/Tashkeel-350M-v2-LiteRT)
+(fp16 exact-parity + int8, measured card + litertlm_manifest.json). Family fact, same as
+every LLM family measured so far: the finetune's
 `chat_template.jinja` is byte-equal to the base's, and the tokenizer/generation config diffs are
 cosmetic (`model_max_length`, eos as list) — so the base recipe applies verbatim:
 
@@ -1034,6 +1036,8 @@ Measured 2026-08-25 on [Kezmark/Mordant-3B-Think](https://huggingface.co/Kezmark
 (full SFT for image-prompt composition with chain-of-thought; the highest-download real
 granite-4.1-3b derivative after excluding a name-declared Claude distill and the
 unsloth/mlx mirrors). Hub demand: 19 finetunes + 15 adapters.
+Published: [mlboydaisuke/Mordant-3B-Think-LiteRT](https://huggingface.co/mlboydaisuke/Mordant-3B-Think-LiteRT)
+(int8, with the measured card and litertlm_manifest.json).
 
 ```bash
 python scripts/convert.py Kezmark/Mordant-3B-Think
