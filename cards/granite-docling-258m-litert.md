@@ -50,6 +50,16 @@ Structure gate (synthetic report page with a 5×6 table), greedy decoding:
 - **Galaxy S26 CPU** (SM8850, LiteRT-LM v0.16.1 CLI): same page — exact title, complete grid, **25/25 cells**, clean stop — **35.4 s/page** (1025 output tokens). Two runs byte-identical.
 - Conversion parity: the vision tower converts with corr 1.000 vs the original (fp32; shipped int8 corr 0.98, structurally identical output). Full-precision and int8-weight decoders produce the same table structure; **int4 was tested and rejected** — integer-compute quantization corrupts DocTags on this decoder, so the bundle ships int8 weights with float compute.
 
+### On-device demo (Galaxy S26, Google AI Edge Gallery 1.0.18, CPU)
+
+<img src="assets/gallery_demo_s26.gif" width="300"/>
+
+| Page + prompt | DocTags output (all 25 cells correct) |
+|---|---|
+| <img src="assets/gallery_demo_conversation.png" width="330"/> | <img src="assets/gallery_demo_doctags.png" width="330"/> |
+
+Captured live in the Gallery **Ask Image** task (imported via **+ → From local model file**, max tokens 4096, TopK 1, CPU): the synthetic table page converts to DocTags with the exact title, the complete 5×6 grid and every cell value, finishing in **34.7 s** — matching the 35.4 s CLI measurement on the same phone. The Gallery UI hides the `<otsl>`/`<fcel>` markup tags, so the table renders as concatenated text on screen; feed the raw output to docling-core for Markdown/HTML.
+
 ## Performance (measured)
 
 Text path, `litert-lm benchmark -p 256 -d 256 --runs 3 --cache no`; backend gated on a real docling generation first:
@@ -64,13 +74,14 @@ The vision encoder runs once per image (~0.5 s on the M4 Max CPU) and is not inc
 
 ## Run on Android — Google AI Edge Gallery
 
-Recent [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) builds import litert-lm models directly from Hugging Face (tap **+**), or sideload:
+Verified with [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) 1.0.18 on a Galaxy S26 (the demo above):
 
-1. `adb push granite-docling-258M.litertlm /sdcard/Download/`
-2. Tap **+**, pick the file, and in the Import dialog **check "Support image"**, set max tokens ≥ 2048, pick **CPU**.
-3. Open **Ask Image**, attach a **512×512 pre-resized** page, and prompt `Convert this page to docling.`
+1. Put `granite-docling-258M.litertlm` on the phone (e.g. `adb push … /sdcard/Download/`).
+2. In the Gallery: **☰ menu → Models → +** (bottom-right) **→ From local model file**, pick the file.
+3. In the Import dialog set **max tokens 4096** and **turn on "Support image"**, then Import. The model appears under **Imported models** in the Ask Image task (Accelerator: CPU).
+4. Open **Ask Image**, pick the model, attach a **512×512 pre-resized** page, and prompt `Convert this page to docling.` (TopK 1 in the model configs reproduces the greedy gate output.)
 
-The Gallery renders DocTags as plain text; convert it with docling-core for Markdown/HTML.
+The Gallery renders DocTags as plain text (markup tags hidden); convert the copied output with docling-core for Markdown/HTML.
 
 ## Run on iPhone / macOS
 
