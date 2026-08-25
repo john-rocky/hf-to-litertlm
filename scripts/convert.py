@@ -107,6 +107,19 @@ HYBRID_RECIPE = {
         # (REPRODUCE: the granite-4.0-h-350m start_token lesson)
         "drop_start_token": "granite_work/drop_start_token.py",
     },
+    "falcon_h1": {
+        "script": "falcon_h1_work/convert_falcon_h1.py",
+        "checkout": "falcon_h1_work/litert-torch-falcon",
+        "setup": (
+            "cd falcon_h1_work && "
+            "git clone https://github.com/google-ai-edge/litert-torch litert-torch-falcon && "
+            "git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-falcon apply \"$(pwd)/falcon_h1_litert_torch.patch\""
+        ),
+        # no start_token drop: the shipped Falcon-H1 bundles keep it and gate
+        # clean (6-8/8 with HF-identical text) at every size
+    },
 }
 
 # State-carrying hybrids whose stock export succeeds on the RELEASED litert-torch

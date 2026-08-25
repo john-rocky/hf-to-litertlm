@@ -575,6 +575,39 @@ The 1.5B-Deep variant takes the same one command as well. It is the deepest shap
 
 On an iPhone 17 Pro the Deep answers the composite probe **8/8 on GPU and 8/8 on CPU**, word for word identical apart from one function word: Metal decode 16.5 tok/s / prefill 140.3 / TTFT 1.19 s / 4.89 GB peak (CPU: 9.9 / 103.2 / 1.53 s / 1.74 GB). All 264 state buffers and the full ladder load with room to spare — depth costs nothing on the device side. Budget about a minute for GPU engine creation (8 s on CPU): every prefill signature's Metal kernels are built up front.
 
+### Falcon-H1 finetune intake — one command, and a gate refusal worth reading
+
+`scripts/convert.py` routes `model_type: falcon_h1` to this recipe the same way as granite
+(HYBRID_RECIPE; no start_token drop — the shipped Falcon-H1 bundles keep it and gate clean at
+every size). Measured 2026-08-25 on
+[megabytes/Falcon-H1-0.5B-Instruct-heretic](https://huggingface.co/megabytes/Falcon-H1-0.5B-Instruct-heretic)
+(Heretic v1.1.0 abliteration of the 0.5B, the most-downloaded real Falcon-H1 derivative):
+
+```bash
+python scripts/convert.py megabytes/Falcon-H1-0.5B-Instruct-heretic
+```
+
+One command from a clean shell: recipe export 796 s → 650 MB int8, 144 state buffers
+(72 conv/SSM + 72 KV) → generic 8-question gate on CPU → **5/8, verdict "do NOT publish",
+exit 1**. That verdict is the gate working, not the conversion failing — the misses decompose,
+measured:
+
+- The graph is faithful: on the divergence probes, the float export ≡ HF fp32 greedy once both
+  sides use the bundle's BOS convention (the metadata start_token `<|begin_of_text|>`,
+  prepended on the HF side too): `17+25 → "42"`, `thank-you-in-French → "Thank you."` —
+  token-identical.
+- Two misses are the abliterated model's own answers (`8×7 → "28."` verbatim on HF fp32; the
+  French miss is model-level under either BOS convention — abliteration's measured KL 0.0954
+  vs base costs real capability at 0.5B scale).
+- One miss is an int8 greedy flip (`17+25`: int8 `"22."` vs float/HF `"42"`) — the base 0.5B's
+  int8 did not flip this, so the ablated weights quantize worse.
+
+Family fact for derivative templates: the Heretic tool re-serializes `chat_template.jinja`
+with CRLF line endings (1167 bytes vs the base's 1151) — content-identical after
+universal-newline normalization, which is exactly the form the exporter embeds (bundle
+template = 1151 bytes = base's). Compare templates modulo newline convention, or you will
+flag re-serialized derivatives as template forks. `tokenizer.json` is byte-equal to the base.
+
 ## Zamba2 (Mamba2 backbone + a shared, LoRA-specialized transformer block) — and the metaspace tokenizer trap
 
 `zamba2_work/convert_zamba2.py` converts Zyphra's Zamba2 instruct models to `.litertlm`. The 1.2B is 38 layers: 32 Mamba2 selective-scan layers plus 6 `hybrid` positions where ONE shared transformer block — a single set of attention+MLP weights tied across all six positions, specialized by per-position LoRA adapters (rank 128) — attends over `concat(hidden, original_embedding)` and projects into that position's mamba input. Published: [litert-community/Zamba2-1.2B-instruct](https://huggingface.co/litert-community/Zamba2-1.2B-instruct) and [litert-community/Zamba2-2.7B-instruct](https://huggingface.co/litert-community/Zamba2-2.7B-instruct). **Requires litert-lm ≥ 0.15 to run.**
