@@ -134,10 +134,11 @@ interface Scored {
  *    matching device_class too ranks higher. The recommendation's backend is used
  *    unless the caller requested one the variant also lists.
  * 2. Otherwise a variant listing the requested backend wins.
- * 3. Otherwise the first variant, on its default_backend (else "cpu").
+ * 3. Otherwise the smallest variant (by size_bytes), on its default_backend (else "cpu").
  *
  * Ties break toward the smaller file. The resolver never returns a backend
- * absent from the variant's verified `backends` list.
+ * absent from the variant's verified `backends` list — recommendations naming
+ * an unlisted backend are ignored.
  */
 export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resolution {
   const scored: Scored[] = manifest.variants.map((v) => {
@@ -145,7 +146,7 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
     let backend: Backend | undefined;
     let reason = "fallback: first variant";
     if (opts.platform && v.recommended) {
-      const recs = v.recommended.filter((r) => r.platform === opts.platform);
+      const recs = v.recommended.filter((r) => r.platform === opts.platform && v.backends.includes(r.backend));
       const classRec = opts.deviceClass ? recs.find((r) => r.device_class === opts.deviceClass) : undefined;
       const rec = classRec ?? recs.find((r) => !r.device_class || !opts.deviceClass) ?? recs[0];
       if (rec) {

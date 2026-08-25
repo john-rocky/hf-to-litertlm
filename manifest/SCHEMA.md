@@ -106,6 +106,15 @@ Every row states its conditions and its provenance; a row without them does not 
 - `evidence` (optional, string) points at the primary log; it is stripped from published
   manifests (`--public`) and kept in the converter's own records.
 
+## Versioning
+
+`manifest_schema` is semver-style; the current line is `0.1.x`. While the schema is 0.x, the
+minor version is the compatibility line: a 0.1.x release may only add optional fields — nothing
+is removed, renamed, or changed in meaning short of `0.2.0`. Readers should pin a supported
+range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
+manifest fails validation rather than half-parsing, and both reference readers refuse it at
+parse time.
+
 ## What deliberately stays OUT of v0.1
 
 - Anything the bundle carries (templates, stop tokens, sampler params) — read the bundle.

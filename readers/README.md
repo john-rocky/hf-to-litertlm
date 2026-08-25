@@ -4,8 +4,8 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 
 | package | where | status |
 |---|---|---|
-| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 9 tests against the real shipped manifests) |
-| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 8 tests against the same fixtures, Dart 3.13) |
+| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 10 tests — fixtures include the real shipped manifests) |
+| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 9 tests against the same fixtures, Dart 3.13) |
 
 ## Usage (TypeScript)
 
@@ -29,11 +29,13 @@ Dart mirrors the API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 
 2. Otherwise a variant listing the requested backend wins.
 3. Otherwise the first variant, on its `default_backend` (else `cpu`).
 
-Ties break toward the smaller file. The resolver never returns a backend absent from the variant's verified `backends` list — that list means *verified to generate*, not merely to load.
+Ties break toward the smaller file. The resolver never returns a backend absent from the variant's verified `backends` list — that list means *verified to generate*, not merely to load — and a recommendation naming an unlisted backend is ignored.
 
 ## Live manifests to test against
+
+Every repo the converter has shipped carries one — 20 repos (33 variants) as of 2026-08-26. The two the test suites vendor as fixtures:
 
 - https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct/resolve/main/litertlm_manifest.json
 - https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507/resolve/main/litertlm_manifest.json
 
-The test suites use these two (vendored via `../../manifest/examples/`) as fixtures, so the tests break if the readers and the shipped manifests ever disagree.
+The fixtures live in `../../manifest/examples/`, so the tests break if the readers and the shipped manifests ever disagree.

@@ -48,6 +48,24 @@ test("Qwen ios recommendation picks the block-128 file", () => {
   assert.equal(r.file, "model.litertlm");
 });
 
+test("recommended row naming an unverified backend is ignored", () => {
+  const m = parseManifest({
+    manifest_schema: "0.1.0",
+    repo: "test/malformed",
+    generated: "2026-08-26",
+    model: { display_name: "Malformed" },
+    variants: [{
+      file: "m.litertlm",
+      quantization: "int8",
+      backends: ["cpu"],
+      default_backend: "cpu",
+      recommended: [{ platform: "android", backend: "gpu" }],
+    }],
+  });
+  const r = resolve(m, { platform: "android" });
+  assert.equal(r.backend, "cpu");
+});
+
 test("download URL points at the repo file", () => {
   const r = resolve(lfm, { platform: "macos" });
   assert.ok(r.url.startsWith("https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct/resolve/main/"));

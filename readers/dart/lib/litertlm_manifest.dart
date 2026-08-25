@@ -135,10 +135,12 @@ class LitertlmManifest {
   ///    [deviceClass] too ranks higher. The recommendation's backend is used
   ///    unless the caller requested one the variant also lists.
   /// 2. Otherwise a variant listing the requested [backend] wins.
-  /// 3. Otherwise the first variant, on its default_backend (else "cpu").
+  /// 3. Otherwise the smallest variant (by size_bytes), on its default_backend
+  ///    (else "cpu").
   ///
   /// Ties break toward the smaller file. Never returns a backend absent from
-  /// the variant's verified `backends` list.
+  /// the variant's verified `backends` list — recommendations naming an
+  /// unlisted backend are ignored.
   Resolution resolve({String? platform, String? backend, String? deviceClass}) {
     _Scored best = _Scored(variants.first, 'cpu', -1, 'fallback: first variant');
     final scored = <_Scored>[];
@@ -147,7 +149,9 @@ class LitertlmManifest {
       String? chosen;
       var reason = 'fallback: first variant';
       if (platform != null && v.recommended.isNotEmpty) {
-        final recs = v.recommended.where((r) => r.platform == platform).toList();
+        final recs = v.recommended
+            .where((r) => r.platform == platform && v.backends.contains(r.backend))
+            .toList();
         Recommendation? classRec;
         if (deviceClass != null) {
           for (final r in recs) {

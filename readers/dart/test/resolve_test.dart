@@ -54,6 +54,28 @@ void main() {
     expect(r.file, 'model.litertlm');
   });
 
+  test('recommended row naming an unverified backend is ignored', () {
+    final m = LitertlmManifest.fromJson({
+      'manifest_schema': '0.1.0',
+      'repo': 'test/malformed',
+      'generated': '2026-08-26',
+      'model': {'display_name': 'Malformed'},
+      'variants': [
+        {
+          'file': 'm.litertlm',
+          'quantization': 'int8',
+          'backends': ['cpu'],
+          'default_backend': 'cpu',
+          'recommended': [
+            {'platform': 'android', 'backend': 'gpu'},
+          ],
+        },
+      ],
+    });
+    final r = m.resolve(platform: 'android');
+    expect(r.backend, 'cpu');
+  });
+
   test('identity fields survive', () {
     final r = lfm.resolve(platform: 'android');
     expect(r.variant.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));

@@ -16,5 +16,8 @@
     "build": "tsc -p .",
     "test": "npm run build && node --test test/resolve.test.mjs"
   },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
   "keywords": ["litert-lm", "litertlm", "on-device", "llm", "manifest"]
 }
