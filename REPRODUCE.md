@@ -601,6 +601,41 @@ The recipe above reproduces the shipped checkpoints; **finetunes of Qwen3.5 now 
   correctly refuses a model that cannot exit its think block. peft must be installed in
   the export venv (peft 0.20.0 + accelerate 1.14.0 alongside the main stack import-clean).
 
+## Qwen3.5-2B VISION build — the shipped text model was half of a VLM
+
+The Qwen3.5 checkpoints are multimodal, and the text conversion above deliberately drops the vision tower. `qwen35vl_work/` keeps it: the checkpoint's own 24-layer, 1024-dim ViT (no DeepStack — `deepstack_visual_indexes` is empty upstream), wired to LiteRT-LM's `fast_vlm` contract at a static 512x512. Published alongside the text file: [litert-community/Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) (`Qwen3.5-2B-VL_int8.litertlm`).
+
+```bash
+cd qwen35vl_work
+# vision tower -> two tflites (encoder + adapter); ~10 min on an M4 Max
+IMG=512 python convert_qwen35_vision.py out/qwen35vl-vision
+python vision_quant_ab.py out/qwen35vl-vision          # fp32/fp16/int8 A/B on real images
+
+# decoder for the fast_vlm contract (externalised embedder), SIX prefill signatures
+PREFILL=1024,256,64,16,4,1 CACHE=4096 \
+  PYTHONPATH=../qwen35_work/litert-torch-qwen35 \
+  python export_qwen35vl_decoder.py Qwen/Qwen3.5-2B out/qwen35vl-decoder
+
+# assemble + bind the hybrid states
+DEC=out/qwen35vl-decoder VIS=out/qwen35vl-vision TOK=<tokenizer.json> \
+  VENC=vision_encoder_fp16.tflite VADP=vision_adapter_int8.tflite DEC_ACT=fp32 \
+  python build_qwen35vl_bundle.py
+python ../scripts/add_executor_metadata.py out/.../Qwen3.5-2B-VL.litertlm <final>.litertlm
+```
+
+Uses the same patched `litert-torch` worktree as the text build (clone + checkout + apply from the section above).
+
+**Six prefill signatures, not the text build's eleven.** Every exported signature is charged engine memory whether or not it is called. The text build's full 1–1024 ladder peaks around 5.3 GB on an iPhone 17 Pro and fits; attaching the vision tower pushes the same ladder past a 12 GB phone's jetsam ceiling — all three Metal legs were killed after initialising 11 of 12 signatures. Cutting to `1024,256,64,16,4,1` fixed it with no other change, and **also tripled CPU decode** (3.8 → 14.1 tok/s, first token 23.7 s → 5.1 s), because the runtime's XNNPACK weight repack is charged per signature too.
+
+**The pad guard stops arming when the embedder is externalised.** `fast_vlm` moves the embedder into its own tflite, which removes token ids from the decoder graph — so the gated-delta prefill-pad guard, which derived its valid mask from `input_ids != 0`, silently did nothing, and padding would have poisoned the recurrent state during multi-chunk prefill. It now falls back to position monotonicity (`pos[1:] > pos[:-1]`, first slot valid), the same contract the upstream exportable module uses. A hermetic prompt-length sweep (40/40 clean) is what proves the guard armed; nothing else in the gate set catches it.
+
+**Vision export traps, all encoded in `convert_qwen35_vision.py`.** The upstream tower is dynamic-resolution and its `grid_thw` preprocessing aborts `torch.export` outright, so it is re-authored for one static image: Conv3d patch-embed folded to Conv2d over the duplicated temporal frame, learned position embeddings bilinearly resampled to the static grid ahead of time, 2-D rope precomputed, explicit full attention instead of the variable-length split. Patches stay in raster order and the 2x2 merge happens in the adapter as four strided slices and a concat, so no `GATHER_ND` reaches the mobile GPU delegate. Two numerical guards matter: every activation keeps a leading batch dimension (Metal computes rank-2 elementwise against a rank-2 constant silently wrong), and LayerNorm is pre-scaled by a calibrated power of two, because from block 11 the residual stream carries values large enough to overflow fp16 accumulation.
+
+**Ship shape: fp16 encoder, int8 adapter.** The exported tower matches the model's own vision path at correlation 0.9999999992 in fp32. Quantizing the encoder to int8 drops that to 0.97–0.98 on real photographs while the adapter survives int8 at 0.9998, so only the adapter is quantized. An int8-encoder build is 300 MB smaller and still answers correctly — that is the variant to use on Mali, where an fp16 vision encoder is known to crash devices of this class.
+
+**Contract cost.** `fast_vlm` feeds sequential positions, so the checkpoint's M-RoPE collapses to plain RoPE. `hf_oracle_gen.py` measures it: against the full M-RoPE reference over nine image/prompt pairs, one generation is identical and the other eight are fluent same-content paraphrases that diverge deep in the answer. `suite_gate_vl.py` scores a bundle against both references.
+
+
 ## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
 
 `falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B, 24 on the 1.5B, 32 on the 3B, 66 on the 1.5B-Deep) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct), [litert-community/Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct), [litert-community/Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) and [litert-community/Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct). **Requires litert-lm ≥ 0.15 to run.**
