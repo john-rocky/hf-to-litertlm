@@ -41,9 +41,10 @@ One run does five things:
   the adapter's own tokenizer, chat template, and generation config win over the base's.
 - **Export.** Stock litert-torch defaults for dense models; pinned family recipes for the
   architectures no released exporter converts (table below). The derivative's own chat
-  template is embedded verbatim. ≥3B hybrids also get the reduced 7-signature prefill ladder.
-- **Post-export guards.** A missing turn-end stop token is added; the granite family recipes
-  drop the spurious start token; the ExecutorMetadata section is retrofitted where the
+  template is embedded verbatim. ≥3B models also get the reduced 7-signature prefill ladder.
+- **Post-export guards.** A missing turn-end stop token is added; a spurious start token is
+  dropped when the tokenizer says `add_bos_token: False` (or bos == eos) and the template
+  never renders a leading BOS; the ExecutorMetadata section is retrofitted where the
   exporter omits it.
 - **Exit gate.** `verify_quality.py` (8 questions, bar 6/8, think-aware budget) — or your
   `--gate-script` for models the generic gate cannot certify (an Arabic diacritizer answers
@@ -57,6 +58,7 @@ tags; mirrors included):
 |---|---|---:|---|---|
 | any dense arch the stock exporter handles | llama 3.x, qwen 2/2.5/3, smollm3, olmo2, phi, ministral, … | open-ended | default stack | stock export |
 | MiniCPM5 | 1B | 51 + 54 | default stack | stock export (plain llama rail) |
+| granite-4.1 (dense) | 3b | 19 + 15 | default stack | stock export; spurious-BOS guard fires (bos == eos) |
 | Qwen3.5 | 0.8B / 2B / 4B | 1,201 + 920 | litert-torch *main* | stock export; CPU gate |
 | LFM2.5 | 350M / 1.2B / 2.6B | 143 + 57 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
 | granite-4.0-h | 350m / 1b | 24 + 4 | pinned checkout | family recipe (`HYBRID_RECIPE`) |

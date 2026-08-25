@@ -329,6 +329,53 @@ def convert_via_recipe(report, recipe, export_src, out_dir, args):
     return bundle
 
 
+def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
+    """Post-export guard: the bundling writes LlmMetadata start_token from
+    tokenizer.bos_token without consulting add_bos_token or the chat template.
+    When the template's own rendering never leads with BOS and the tokenizer
+    says add_bos_token: False — or bos == eos, granite's shape, where the
+    prepended token reads as 'this document already ended' — the engine feeds
+    a token stream the model never saw in training. Measured on the base
+    granite-4.1-3b: 8/8 -> 5/8 with echo-the-question failures that look
+    exactly like quantization damage; measured on granite-4.0-h-350m and its
+    Tashkeel derivative: greedy flips to garbage. No-op for every other shape
+    (bos None, add_bos_token True, or a template that renders BOS itself)."""
+    import os
+    from transformers import AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained(tokenizer_src)
+    if tok.bos_token is None:
+        return
+    add_bos = getattr(tok, "add_bos_token", None)
+    bos_eq_eos = tok.bos_token_id is not None and tok.bos_token_id == tok.eos_token_id
+    if add_bos is not False and not bos_eq_eos:
+        return
+    try:
+        rendered = tok.apply_chat_template([{"role": "user", "content": "x"}],
+                                           tokenize=False, add_generation_prompt=True)
+        if rendered.startswith(tok.bos_token):
+            return  # the template leads with BOS on purpose
+    except Exception:
+        pass
+    cli = resolve_litert_lm_cli()
+    env = dict(os.environ)
+    if cli:
+        env["PATH"] = str(Path(cli).parent) + os.pathsep + env.get("PATH", "")
+    dropped = bundle.parent / (bundle.name + ".nobos")
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "granite_work" / "drop_start_token.py"),
+         str(bundle), str(dropped)], env=env, text=True, capture_output=True)
+    if proc.returncode == 0:
+        dropped.replace(bundle)
+        report["decisions"]["start_token"] = "dropped_spurious_bos"
+        print("start-token guard: dropped (template never leads with BOS and "
+              "add_bos_token is False / bos == eos)")
+    elif "no leading start_token" in (proc.stdout + proc.stderr):
+        report["decisions"]["start_token"] = "absent"
+    else:
+        fail("drop_start_token failed: " + (proc.stdout + proc.stderr)[-300:])
+
+
 # The adapter merge MUST run in its own process: loading/merging the model with
 # peft+transformers and then calling the stock export in the SAME process
 # produces a corrupted bundle (measured 2026-08-24 — identical merged dir,
@@ -594,17 +641,18 @@ def main():
         export_kwargs["quantization_recipe"] = str(INT4_RECIPE)
     report["decisions"]["quantization"] = "int4_block32_octav" if args.int4 else "default_int8"
 
-    # ≥3B hybrids get the reduced prefill ladder the shipped Qwen3.5-4B uses
-    # (6 prefill lengths + decode = 7 signatures instead of 12). Two measured
-    # reasons: every signature costs engine RAM even if never called (a 12 GB
-    # iPhone jetsam-kills a 248k-vocab 4B at Metal program init with the full
-    # ladder — REPRODUCE 2026-08-14), and the export's converter passes scale
-    # with the merged module, which OOM-killed a full-ladder 4B export on a
-    # 128 GB host twice (2026-08-24). No correctness cost: the runtime plans
-    # coarser prefill chunks.
-    if gate_backend and externalize:
+    # ≥3B models get the reduced prefill ladder the shipped Qwen3.5-4B and
+    # granite-4.1-3b use (6 prefill lengths + decode = 7 signatures instead of
+    # 12). Three measured reasons: every signature costs engine RAM even if
+    # never called (a 12 GB iPhone jetsam-kills a 248k-vocab hybrid 4B at Metal
+    # program init with the full ladder — REPRODUCE 2026-08-14 — and iOS kills
+    # the DENSE granite-4.1-3b at Metal init with 11 signatures too), and the
+    # export's converter passes scale with the merged module, which OOM-killed
+    # a full-ladder 4B export on a 128 GB host twice (2026-08-24). No
+    # correctness cost: the runtime plans coarser prefill chunks.
+    if externalize:
         export_kwargs["prefill_lengths"] = [1024, 256, 64, 16, 4, 1]
-        report["decisions"]["prefill_ladder"] = "reduced_7sig_hybrid_3b"
+        report["decisions"]["prefill_ladder"] = "reduced_7sig_3b"
 
     # ---------------- template lint (warn only) ----------------
     template = get_chat_template(args.model)
@@ -644,6 +692,7 @@ def main():
             fail("export finished without producing model.litertlm")
         report["bundle_bytes"] = bundle.stat().st_size
         ensure_turn_end_stop(bundle, export_src, report)
+        ensure_no_spurious_start_token(bundle, export_src, report)
         if report["decisions"].get("model_type") in HYBRID_EXEC_RETROFIT:
             ensure_executor_metadata(bundle, report)
 

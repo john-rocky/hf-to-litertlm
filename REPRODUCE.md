@@ -1028,6 +1028,45 @@ The conversion script sets `NO_START_TOKEN=1`, which clears `bos_token` before t
 
 `hf_oracle.py` runs the same eight questions through the HF model in bf16 first, so a later miss on the converted file can be attributed to the conversion rather than to the model.
 
+### granite-4.1 finetune intake — the BOS guard goes generic, and the family fact meets its first exception
+
+Measured 2026-08-25 on [Kezmark/Mordant-3B-Think](https://huggingface.co/Kezmark/Mordant-3B-Think)
+(full SFT for image-prompt composition with chain-of-thought; the highest-download real
+granite-4.1-3b derivative after excluding a name-declared Claude distill and the
+unsloth/mlx mirrors). Hub demand: 19 finetunes + 15 adapters.
+
+```bash
+python scripts/convert.py Kezmark/Mordant-3B-Think
+```
+
+One command, clean shell: export 1,621 s → 3.76 GB int8, reduced 7-signature ladder,
+externalized embedder, think-aware gate → **8/8 PASS, decode ~71 tok/s CPU**, template
+byte-equal 1474/1474, bundle stop = the tokenizer's `<|end_of_text|>` 100257.
+
+Two things this subject taught the intake:
+
+- **The BOS trap generalizes, so the guard did too.** Mordant has `bos == eos ==
+  <|end_of_text|>` and a template that never leads with BOS — the shape from the base
+  granite-4.1-3b lesson above. Measured on this subject: prepending that one token flips HF
+  bf16 greedy from a correct answer to an endless ``` ``` ``` loop. `convert.py` now runs
+  `ensure_no_spurious_start_token` after every stock export: it drops the metadata
+  start_token when the tokenizer says `add_bos_token: False` *or* bos == eos *and* the chat
+  template's own rendering never starts with BOS. Every other shape is a no-op (bos absent,
+  `add_bos_token: True`, or a template that renders BOS itself). The e2e report records
+  `start_token: dropped_spurious_bos`.
+- **The template family fact has its first measured exception.** Every LLM derivative
+  measured until now kept the base template byte-for-byte (modulo CRLF re-serialization);
+  Mordant *replaces* it with its own 1,474-byte think-form template. The stock path is
+  indifferent — it embeds the derivative's own template verbatim either way (byte-equal
+  measured) — but "derivative templates always equal the base" is now demonstrated folklore,
+  not fact. Same lesson one layer down: the trainer's re-save collapsed `tokenizer.json`'s
+  pre_tokenizer (granite's contraction-aware Split → plain ByteLevel); the derivative's own
+  tokenizer is what gets bundled and what both sides of any A/B must use.
+
+The reduced 7-signature prefill ladder is now applied to **every ≥3B export**, not just
+hybrids — the dense granite-4.1-3b's own 11-signature iOS Metal kill (documented above) is
+the same signature-memory law the hybrid 4B hit.
+
 ## Qwen2.5-Coder-1.5B-Instruct — a 1.5B code model at 1.12 GB, and why the size is the recipe
 
 `qwen25coder_work/convert_qwen25_coder.sh`. Published: [litert-community/Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct). **Requires litert-lm ≥ 0.16.**
