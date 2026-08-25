@@ -722,6 +722,12 @@ like the other pinned families. As of 2026-08-25 the Hub lists **zero** Nemotron
 derivatives (finetune or adapter) beyond our own mirror, so the routed path has no real
 subject yet; the recipe it routes to is the one that shipped the 4B above.
 
+Coverage boundary, stated rather than implied: **RWKV-7 is the one shipped LLM family with
+no derivative intake here.** The shipped 0.1B-world size has zero Hub derivatives (measured
+2026-08-25; the rwkv7-g1 line's ~27 "finetunes" are almost all the author's own size
+re-serializations), the architecture is not transformers-native, and its conversion never
+rode this repo's rails — so there is nothing to route until real derivative demand appears.
+
 ## Bamba (arch reference — no published artifact)
 
 `bamba_work/bamba_litert_torch.patch` carries the same folded-scan machinery to IBM's Bamba. `BambaMixer.torch_forward` is byte-identical to granite's, so the extension is a thin wrapper that asserts the source identity at patch time. Arch-verified at tiny scale (E2E float parity correlation 1.000000; 5-path cache checker worst 5.5e-07), and the 9B converts and runs — but every published Bamba checkpoint is a 9B BASE model (no chat template), desktop-class, so nothing is shipped. The patch is here as the third data point on how far the granite scan form travels.

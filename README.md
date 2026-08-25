@@ -1,147 +1,137 @@
 # hf-to-litertlm
 
-Convert **open-weight Hugging Face models → `.litertlm`** bundles for on-device inference with the
-**LiteRT-LM** runtime (CPU/GPU, iOS/Android/desktop). Covers **dense/reasoning LLMs** and
-**single-image VLMs**, with a one-command reproduction for every model listed here.
+Convert open-weight Hugging Face models to **`.litertlm`** bundles for the **LiteRT-LM**
+runtime (CPU/GPU on iOS, Android, desktop). Two things live here:
 
-## Install
+1. **A finetune converter.** `python scripts/convert.py <org>/<model>` — one command from Hub
+   id to a gated bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
+   Falcon-H1, and every dense architecture the stock exporter handles — about **2,470 tagged
+   derivatives** on the Hub as of 2026-08-25. LoRA/PEFT repos merge automatically. Every bundle
+   is gated before it is called done; broken models are refused with a machine-readable reason.
+2. **One-command reproductions** of the published litert-community models: **18 LLMs and
+   13 single-image VLMs**, with the full recipe record in [REPRODUCE.md](REPRODUCE.md).
+
+## Setup
 
 ```bash
-# a Python env with litert_torch + ai_edge_quantizer (conversions are toolchain-version sensitive)
-pip install litert-torch ai-edge-quantizer transformers huggingface_hub
-export PY=python            # or point at your env, e.g. ~/venvs/ltconv040dev/bin/python
+pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
+export PY=python    # scripts default to ~/venvs/ltconv040dev/bin/python; override with PY
 ```
 
-The scripts default to `~/venvs/ltconv040dev/bin/python`; override by editing the `PY=` line or exporting `PY`.
+One family needs a different stack: **Qwen3.5** exports only on litert-torch *main*
+(`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'` in a
+fresh venv — the released 0.9.4 ships the exportables but its output is degenerate).
+`convert.py` refuses with the exact install command when the installed toolchain can't
+convert the model honestly, so you can start without reading further.
 
-## Convert (one command per model)
-
-### Any untouched finetune → `.litertlm` (stock defaults + gates)
+## Convert a finetune
 
 ```bash
-python scripts/convert.py <org>/<model>          # -> out/<model>/model.litertlm + convert_report.json
-python scripts/convert.py <org>/<model> --int4   # proven int4 recipe (blockwise-32 OCTAV + int8 embedding)
+python scripts/convert.py <org>/<model>              # -> out/<model>/ bundle + convert_report.json
+python scripts/convert.py <org>/<model> --int4       # proven int4 recipe (blockwise-32 OCTAV)
+python scripts/convert.py <org>/<model> --gate-script my_gate.py   # task-specific models
 ```
 
-The stock litert-torch export already converts untouched finetunes correctly — measured
-2026-08-24 on a qwen3 and a smollm3 finetune: the derivative's own chat template is embedded
-verbatim (even when it lives only in `chat_template.jinja`) and applied at runtime.
-`convert.py` therefore adds no template or architecture handling. It refuses, with a structured
-JSON reason, what stock export cannot convert honestly (gated, remote-code, and pre-quantized
-repos), splits the embedder at ≥3B params (iOS ~2 GiB section limit), and gates the result with
-`verify_quality.py` (8 questions, bar 6/8; 3200-token budget for `<think>` models, one +1200
-retry when a think block eats the whole budget).
+One run does five things:
 
-An **adapter-only repo** (LoRA/PEFT) is converted merge-first instead of refused: the adapter is
-merged into its base (`peft merge_and_unload` — measured bitwise equal to `W + (α/r)·BA`) in a
-temporary `out/<name>/merged/` dir (`--keep-merged` retains it) and stock-exported from there.
-The adapter repo's own tokenizer / `chat_template.jinja` / `generation_config.json` win over the
-base's when present; a full `model.safetensors` sitting in an adapter repo is ignored (measured:
-such dumps can be a different training checkpoint than the published adapter). The refusals
-still apply to the **base**: a gated / remote-code / pre-quantized base is not converted on a guess.
+- **Entry gate.** Gated, remote-code, and pre-quantized repos — and pre-port Zamba2
+  serializations no modern stack can load — are refused with a structured JSON reason
+  before anything downloads.
+- **Adapter merge.** A LoRA/PEFT repo is merged into its base first (subprocess-isolated);
+  the adapter's own tokenizer, chat template, and generation config win over the base's.
+- **Export.** Stock litert-torch defaults for dense models; pinned family recipes for the
+  architectures no released exporter converts (table below). The derivative's own chat
+  template is embedded verbatim. ≥3B hybrids also get the reduced 7-signature prefill ladder.
+- **Post-export guards.** A missing turn-end stop token is added; the granite family recipes
+  drop the spurious start token; the ExecutorMetadata section is retrofitted where the
+  exporter omits it.
+- **Exit gate.** `verify_quality.py` (8 questions, bar 6/8, think-aware budget) — or your
+  `--gate-script` for models the generic gate cannot certify (an Arabic diacritizer answers
+  no trivia). Exit 0 = converted and gated, 1 = converted but gate failed, 2 = refused.
 
-**Hybrid-architecture finetunes** route by `config.json` model_type. Measured 2026-08-24
-(Qwen3.5: 0.8B base 6/8, numind/NuExtract3 4.5B finetune 8/8 with template byte-equal and
-greedy A/B/C proven; LFM2.5: a 1.2B finetune 8/8, template byte-equal, A≡B):
+Routing is automatic, by `config.json` model_type:
 
-| model_type | env needed | gate backend | notes |
-|---|---|---|---|
-| `qwen3_5`, `qwen3_5_text` | litert-torch **main** (`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'`, fresh venv — nightly deps; `pip install peft` for adapter repos). 0.9.4 ships the exportables but its output is degenerate (measured 2026-08-25) — keep main | CPU (stock bundle is not GPU-delegable) | ≥3B: reduced 7-signature prefill ladder; released 0.9.3 → structured `model_ext_missing` refusal |
-| `lfm2` (LFM2.5 family) | released litert-torch 0.9.3 or 0.9.4, transformers pinned 5.14.x (5.15 breaks the lfm2 export on both) | default (GPU works on the 0.16 runtime) | ExecutorMetadata section retrofitted automatically after export when missing (0.9.3 bundling omits it; 0.9.4 emits it natively and the retrofit no-ops; needs a litert-lm ≥ 0.15 CLI — `$LITERT_LM_CLI`) |
+| family | path | note |
+|---|---|---|
+| dense (llama, qwen, granite, …) | stock export | includes MiniCPM5 finetunes — no routing needed |
+| `qwen3_5` | stock export, litert-torch *main* | CPU gate; GPU-delegable ships come from `qwen35_work/` |
+| `lfm2` (LFM2.5) | stock export, released 0.9.3/0.9.4 | ExecutorMetadata retrofitted automatically |
+| `granitemoehybrid`, `falcon_h1`, `zamba2`, `nemotron_h` | pinned family recipe (`HYBRID_RECIPE`) | one-time checkout; the setup command is printed on refusal |
 
-Single-turn proven: the stock Qwen3.5 template's history think-stripping violates the runtime's
-incremental multi-turn render (details in [REPRODUCE.md](REPRODUCE.md)). GPU-delegable Qwen3.5
-ships come from the per-model recipe (`qwen35_work/`), not this path. After every export a
-stop-token guard adds the tokenizer's `eos_token_id` to the bundle's stop list when missing —
-Qwen3.5 checkpoints declare only `<|endoftext|>`, so stock bundles never stopped at
-`<|im_end|>` (masked on models that emit `<|endoftext|>` after answering, fatal on thinking
-derivatives; measured 2026-08-24).
+The measurements behind each row — template byte-equality, greedy A/B against the HF
+reference, and three gate refusals of genuinely defective derivatives — are in
+[REPRODUCE.md](REPRODUCE.md).
 
-**MiniCPM5-1B finetunes need no routing at all** — the base is stock `LlamaForCausalLM`, so they
-ride the default path above unchanged (measured 2026-08-25 on huihui-ai/Huihui-MiniCPM5-1B-abliterated:
-7/8 gate, template byte-equal, greedy A≡B; the stock exporter generates the same
-`X<|im_end|>\n` string-stop set the published base artifact carries; a defective tool-use DPO
-derivative of the same base was correctly refused by the gate — the defect reproduces in HF
-transformers, so the conversion is faithful). Details in [REPRODUCE.md](REPRODUCE.md).
+**VLM derivatives.** `bash scripts/ship_qwen2vl_derivative.sh <org>/<model>` builds the full
+bundle. Qwen2-VL derivatives train the vision tower too (measured: 339/391 vision tensors
+differ on the top derivative), so vision re-exports from the derivative's own weights. Honest
+limit: the fast_vlm runtime currently mis-encodes ChatML special tokens, so format-exact
+derivatives fail an HF-parity gate — measured and documented in REPRODUCE.md.
 
-### Dense / reasoning LLMs → int4 `.litertlm`
+## Reproduce a published model
 
 ```bash
-bash scripts/reproduce_llm.sh --list          # 18 models
+bash scripts/reproduce_llm.sh --list          # 18 LLMs
 bash scripts/reproduce_llm.sh olmo2-1b        # -> out/olmo2-1b/model.litertlm
-python scripts/verify_quality.py out/olmo2-1b/model.litertlm      # 8-question local gate
-```
-
-Covered: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`, `ministral3-3b(+reasoning)`, `olmo2-1b/7b`,
-`smollm3-3b`, `phi4-mini-reasoning`, `r1-distill-qwen-1.5b/7b`, `nanbeige4.1-3b`, `polaris-4b`,
-`vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `qwen25-3b`. Full recipe table +
-per-model caveats in **[REPRODUCE.md](REPRODUCE.md)**.
-
-All recipes export with `use_jinja_template=False` (plain prefix/suffix turn markers, no embedded Jinja). Vendor HF chat templates often call Python-style methods (`.get()`, `.startswith()`); old LiteRT-LM runtimes crashed on those at the first message, current runtimes render them (measured 2026-08-24). See the template-safety note in [REPRODUCE.md](REPRODUCE.md).
-
-### Vision-language models (`fast_vlm` single image) → `.litertlm`
-
-```bash
 bash scripts/reproduce_vlm.sh --list          # 13 VLMs
-bash scripts/reproduce_vlm.sh ovis2.5-2b      # -> out/*-bundle/Ovis2.5-2B.litertlm
+bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
-Covered: `granite-docling-258m`, `internvl3-1b`, `internvl3.5-1b/2b/4b`, `llava-onevision-0.5b`,
-`mage-vl`, `north-micro-vision`, `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`,
-`smolvlm2-500m`, `smolvlm2-2.2b`. Each downloads the source, converts the vision tower
-(encoder + adapter) and the decoder (int4 unless the card says otherwise), and assembles the
-fast_vlm bundle; see the matching `cards/<name>-litert.md`.
+Every LLM recipe was executed end-to-end and gated: **16/18 reproduce and pass** (the two
+exceptions are documented — one source repo went gated, one thinking model the strict gate
+over-flags). For one model the reproduced weights are **bit-identical** to the published
+artifact. Per-model recipes, caveats, and device measurements: [REPRODUCE.md](REPRODUCE.md);
+per-model cards: `cards/`.
 
-## The int4 recipe (why it holds quality)
+## Convert a new architecture
+
+- **A dense LLM** not listed: run the engine directly —
+  `EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/export_simple_template.py <hf_id> out/<name> templates/<t>.jinja BOCTAV4`
+  (pick a template from `templates/`; `FORCE_SPM=1` for thinking models with added tokens).
+  Then add a `case` to `scripts/reproduce_llm.sh` to keep it reproducible.
+- **A single-image VLM**: copy the closest `scripts/ship_*.sh` with its
+  `convert_*_vision.py` / `prep_*_decoder.py`, adjust dims and the image token.
+  `ovis_work/` shows how to make a dynamic-resolution (NaViT) vision tower export-able.
+- **A hybrid (SSM/attention) family**: the four pinned recipes under `granite_work/`,
+  `falcon_h1_work/`, `zamba2_work/`, and `nemotron_h_work/` are the working examples — each
+  is one litert-torch patch plus one driver script.
+
+## int4 recipes
 
 Defined in `scripts/export_simple_template.py`:
 
 | recipe | what | when |
 |---|---|---|
-| `BOCTAV4` | blockwise-32 int4 + **OCTAV** optimal-clipping + int8 embedding | best quality (Mac/Android) |
-| `BOCTAV4_128` | blockwise-128 variant | 4B models / iOS (fits the ~2 GiB section) |
-| `BMIX4[_128]` | blockwise int4 min-max + int8 embedding | GPTQ ingest / when OCTAV isn't needed |
+| `BOCTAV4` | blockwise-32 int4 + OCTAV optimal clipping + int8 embedding | best quality (Mac/Android) |
+| `BOCTAV4_128` | blockwise-128 variant | 4B models / iOS (~2 GiB section limit) |
+| `BMIX4[_128]` | blockwise int4 min-max + int8 embedding | GPTQ ingest, or when OCTAV isn't needed |
 
-OCTAV is **data-free** (no calibration set) and recovers a large chunk of the naive-int4 gap.
-`EXTERNALIZE_EMBEDDER=1` splits the embedding so 3B+ models load under the iOS section limit;
-reasoning models use a thinking template and `CACHE=4096`.
+OCTAV is data-free (no calibration set). `EXTERNALIZE_EMBEDDER=1` splits the embedding so 3B+
+models load under the iOS section limit; reasoning models use a thinking template and
+`CACHE=4096`.
 
-## Convert your own model
+## Deployment manifests
 
-- **A dense LLM** not listed: run the engine directly —
-  `EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/export_simple_template.py <hf_id> out/<name> templates/<template>.jinja BOCTAV4`
-  (pick a template from `templates/`; add `FORCE_SPM=1` for thinking models with special added tokens).
-  Then add a `case` to `scripts/reproduce_llm.sh` to keep it reproducible.
-- **A single-image VLM**: copy the closest `scripts/ship_*.sh` and its `convert_*_vision.py` /
-  `prep_*_decoder.py`, adjust dims + image token. Ovis's `ovis_work/` shows how to make a
-  dynamic-resolution (NaViT) vision tower export-able.
+A `.litertlm` bundle carries the conversation contract in its header, but nothing
+machine-readable says which of a repo's files fits which device, backend, and RAM budget, at
+what measured speed. `manifest/` defines a repo-level `litertlm_manifest.json` for that
+deployment layer: [`manifest/SCHEMA.md`](manifest/SCHEMA.md) (spec),
+[`manifest/make_manifest.py`](manifest/make_manifest.py) (generator),
+[`manifest/examples/`](manifest/examples/) (finished manifests for two published repos).
 
 ## Layout
 
 | path | what |
 |---|---|
+| `scripts/convert.py` | the finetune converter (entry gate → export → guards → exit gate) |
 | `scripts/export_simple_template.py` | the LLM engine (template + quant recipe + env knobs) |
-| `scripts/reproduce_llm.sh` · `REPRODUCE.md` | one-command LLM reproduction + recipe table |
-| `scripts/reproduce_vlm.sh` · `scripts/ship_*.sh` | one-command VLM reproduction (the fast_vlm pipeline) |
-| `scripts/convert_*_vision.py`, `prep_*_decoder*.py`, `build_*_bundle.py` | VLM building blocks |
-| `ovis_work/` | Ovis2.5 static-NaViT vision rewrite (dynamic-res → export-able) |
-| `templates/`, `recipes/` | ChatML/thinking templates + quant recipe JSONs |
+| `scripts/reproduce_llm.sh` · `scripts/reproduce_vlm.sh` | one-command reproductions |
+| `scripts/ship_*.sh`, `convert_*_vision.py`, `prep_*_decoder*.py`, `build_*_bundle.py` | the VLM pipeline |
+| `granite_work/` `falcon_h1_work/` `zamba2_work/` `nemotron_h_work/` | pinned hybrid-family recipes |
+| `qwen35_work/` `lfm_work/` `minicpm_work/` … | per-family recipes and gates |
+| `templates/`, `recipes/` | chat templates + quant recipe JSONs |
 | `cards/` | model cards for the converted bundles |
-
-## Reproducibility
-
-Every LLM recipe in `REPRODUCE.md` was executed end-to-end and gated: **16/18 reproduce and pass**
-(the 2 exceptions are documented — a source repo that went gated, and a thinking model the strict gate
-over-flags). For one model the reproduced bundle was byte-compared to the published artifact: the
-**model weights are bit-identical** (only ~377 bytes of container metadata differ).
-
-## Deployment manifests (`litertlm_manifest.json`)
-
-The `.litertlm` bundle carries the conversation contract (templates, stop tokens, thinking channels) in its header, but nothing machine-readable says which of a repo's several files fits which device, on which backend, with how much RAM, at what measured speed. `manifest/` defines a repo-level `litertlm_manifest.json` for exactly that deployment layer: variant selection, per-platform backend recommendations, requirements, and measured performance rows with their conditions.
-
-- [`manifest/SCHEMA.md`](manifest/SCHEMA.md) — the spec and the layering rule (nothing the bundle already carries is duplicated by hand; bundle-derived fields are generated by reading the published file's header with two HTTP range requests).
-- [`manifest/make_manifest.py`](manifest/make_manifest.py) — the generator (HF LFS identity + bundle header + curated deployment data, validated against [`manifest/litertlm_manifest.schema.json`](manifest/litertlm_manifest.schema.json)).
-- [`manifest/examples/`](manifest/examples/) — finished manifests for [LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct) (a repo where one int4 file can create a GPU engine and its sibling cannot) and [Qwen3-4B-Thinking-2507](https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507) (block-128 vs block-32 int4, and a reasoning model that needs `max_output_tokens >= 2048`).
+| [REPRODUCE.md](REPRODUCE.md) | the full measurement record behind every claim above |
 
 ## License
 
