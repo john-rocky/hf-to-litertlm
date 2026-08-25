@@ -120,7 +120,50 @@ HYBRID_RECIPE = {
         # no start_token drop: the shipped Falcon-H1 bundles keep it and gate
         # clean (6-8/8 with HF-identical text) at every size
     },
+    "zamba2": {
+        "script": "zamba2_work/convert_zamba2.py",
+        "checkout": "zamba2_work/litert-torch-zamba2",
+        "setup": (
+            "cd zamba2_work && "
+            "git clone https://github.com/google-ai-edge/litert-torch litert-torch-zamba2 && "
+            "git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-zamba2 checkout 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-zamba2 apply \"$(pwd)/zamba2_litert_torch.patch\""
+        ),
+    },
+    "nemotron_h": {
+        "script": "nemotron_h_work/convert_nemotron_h.py",
+        "checkout": "nemotron_h_work/litert-torch-nemotron",
+        "setup": (
+            "cd nemotron_h_work && "
+            "git clone https://github.com/google-ai-edge/litert-torch litert-torch-nemotron && "
+            "git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-nemotron checkout 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-nemotron apply \"$(pwd)/nemotron_h_litert_torch.patch\""
+        ),
+    },
 }
+
+
+def zamba2_preport_guard(report, cfg):
+    """Zamba2 derivatives finetuned from Zyphra's ORIGINAL release are
+    serialized in the pre-transformers-port format: config vocabulary from the
+    4.43 era (layers_block_type ['m','g'], state_size, use_mamba_kernels...)
+    AND the old weight layout (model.mamba_layers.*). Current transformers
+    rejects the config outright (strict validate_layer_type), and under a
+    translated config the state_dict is still a different generation
+    (measured 2026-08-25 on ssmits/Zamba2-1.2B-instruct-Dutch: 684 missing /
+    404 unexpected keys). No thin bridge is honest here — refuse before
+    downloading a checkpoint no modern stack can construct."""
+    lbt = (cfg or {}).get("layers_block_type") or []
+    if set(lbt) & {"m", "g"}:
+        refuse(report, "preport_serialization",
+               "the checkpoint is serialized in the pre-port Zamba2 format "
+               "(transformers 4.4x-era config vocabulary and model.mamba_layers.* "
+               "weight layout) — current transformers cannot construct it, so no "
+               "converter downstream of transformers can either",
+               "ask the model author to re-serialize: load with transformers <=4.48 "
+               "and save_pretrained with >=4.49, then convert the re-serialized repo")
 
 # State-carrying hybrids whose stock export succeeds on the RELEASED litert-torch
 # (the lfm2 model_ext ships since 0.9.1) but whose 0.9.3 bundling emits no
@@ -433,6 +476,8 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
                "LoRA cannot merge into quantized weights honestly",
                "convert from the full-precision base instead")
     gate_backend = hybrid_gate_backend(report, base_cfg)
+    if base_cfg.get("model_type") == "zamba2":
+        zamba2_preport_guard(report, base_cfg)
 
     from huggingface_hub import snapshot_download
 
@@ -531,6 +576,8 @@ def main():
                    f"weights are already quantized ({cfg['quantization_config'].get('quant_method', '?')})",
                    "convert from the full-precision source repo instead")
         gate_backend = hybrid_gate_backend(report, cfg)
+        if cfg.get("model_type") == "zamba2":
+            zamba2_preport_guard(report, cfg)
 
     # ---------------- opt-ins ----------------
     params = getattr(getattr(base_info or info, "safetensors", None), "total", None)

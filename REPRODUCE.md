@@ -635,6 +635,31 @@ Ship verification (2.7B): parity 48 positions top-1/top-5 100%, Pearson 1.0000, 
 
 That last result is worth a measurement habit, because it is cheap and it saves a conversion. **The Metal path resides the weights in fp32, so phone GPU peak memory runs at a multiple of the int8 file** — 3.98× on the 1.2B (1364 MB file → 5432 MB peak; its CPU run is 1.34×), and 2.80× on Falcon-H1-1.5B-Deep. The multiple is architecture-dependent — Zamba2's wide shared-attention KV inflates its own — so measure it on a sibling that fits, and budget the pessimistic end. At 2.80 GB the 2.7B projects to ≈ 11 GB against 11.7 GB of phone RAM, which is what happens. The tempting fix — cut the prefill ladder — does nothing here: going from 12 signatures to 6 changed neither the failure nor its timing, because the weight term, not the variant term, is what overflows.
 
+### Zamba2 finetune intake — the pre-port serialization wall (measured refusal)
+
+`scripts/convert.py` routes `model_type: zamba2` through HYBRID_RECIPE like the other pinned
+families. But the only real Zamba2 derivative on the Hub today
+([ssmits/Zamba2-1.2B-instruct-Dutch](https://huggingface.co/ssmits/Zamba2-1.2B-instruct-Dutch))
+is serialized in **Zyphra's pre-transformers-port format**, and that is a wall no converter
+can cross, measured 2026-08-25 on transformers 5.14.1:
+
+- Its `config.json` speaks the 4.43-era vocabulary (`layers_block_type: ['m','g',…]`,
+  `state_size`, `use_mamba_kernels`, …) — current transformers rejects it at construction
+  (strict `validate_layer_type`).
+- The key VALUES all pair off exactly with the base's modern re-serialization (state_size ↔
+  mamba_d_state 128, lora_rank ↔ adapter_rank 128, …), so we tried the honest translation:
+  construct under the base's config and load the derivative's weights. The state_dict is a
+  different generation too — `model.mamba_layers.*` layout, **684 missing / 404 unexpected
+  keys**. Bridging that layout is the transformers port itself, not a converter's thin layer
+  (and the port still has open construction bugs upstream:
+  [transformers#47994](https://github.com/huggingface/transformers/issues/47994), which breaks
+  every `num_mem_blocks > 1` checkpoint even in the modern format).
+
+`convert.py` therefore refuses pre-port checkpoints at the entry gate, before any download
+(`preport_serialization`, exit 2), with the concrete action: the model author re-serializes by
+loading with transformers ≤ 4.48 and `save_pretrained` with ≥ 4.49. A future new-format
+derivative rides the same pinned recipe that shipped the two litert-community Zamba2 models.
+
 
 ## Nemotron-H (Mamba2 + MLP + attention, three layer kinds) — and the registry trap
 
@@ -661,6 +686,11 @@ The folded scan is a **port, not reuse**: NemotronH's `torch_forward` is an olde
 - **Sweep state-carrying models with a fresh engine per prompt length.** Reusing one engine across sweep conversations rewinds a shared prefix only partially; that corrupts linear-attention state and produces false failures indistinguishable from conversion bugs.
 
 Ship verification (4B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 5.8e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **8/8 on CPU and GPU**; hermetic sweep clean at the ship shape; iPhone 17 Pro (Metal) runs with GPU == CPU answers (peak 4.02 GB, increased-memory entitlement). Honest limit: a 4B does not fit an 8 GB Android phone — on a Pixel 8a, engine creation aborts on both backends. Mac M4 Max: GPU 724 prefill / 75.0 decode tok/s, CPU 99 / 20.1.
+
+Derivative intake: `scripts/convert.py` routes `model_type: nemotron_h` through HYBRID_RECIPE
+like the other pinned families. As of 2026-08-25 the Hub lists **zero** Nemotron-H-4B
+derivatives (finetune or adapter) beyond our own mirror, so the routed path has no real
+subject yet; the recipe it routes to is the one that shipped the 4B above.
 
 ## Bamba (arch reference — no published artifact)
 
