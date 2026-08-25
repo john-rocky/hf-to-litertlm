@@ -8,8 +8,10 @@ runtime (CPU/GPU on iOS, Android, desktop). Two things live here:
    Falcon-H1, and every dense architecture the stock exporter handles — about **2,470 tagged
    derivatives** on the Hub as of 2026-08-25. LoRA/PEFT repos merge automatically. Every bundle
    is gated before it is called done; broken models are refused with a machine-readable reason.
-2. **One-command reproductions** of the published litert-community models: **18 LLMs and
-   13 single-image VLMs**, with the full recipe record in [REPRODUCE.md](REPRODUCE.md).
+2. **One-command reproductions** of the published litert-community models: **56 chat/task
+   models** (dense LLMs, hybrid families, single-image VLMs) plus 11 more conversions
+   (encoder/embedding, TTS, image generation), with the full recipe record in
+   [REPRODUCE.md](REPRODUCE.md).
 
 ## Setup
 
@@ -80,31 +82,37 @@ derivatives fail an HF-parity gate — measured and documented in REPRODUCE.md.
 ## Reproduce a published model
 
 ```bash
-bash scripts/reproduce_llm.sh --list          # 18 LLMs
+bash scripts/reproduce_llm.sh --list          # 21 LLM keys
 bash scripts/reproduce_llm.sh olmo2-1b        # -> out/olmo2-1b/model.litertlm
 bash scripts/reproduce_vlm.sh --list          # 13 VLMs
 bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
-Every LLM recipe was executed end-to-end and gated: **16/18 reproduce and pass** (the two
-exceptions are documented — one source repo went gated, one thinking model the strict gate
-over-flags). For one model the reproduced weights are **bit-identical** to the published
-artifact. Per-model recipes, caveats, and device measurements: [REPRODUCE.md](REPRODUCE.md);
-per-model cards: `cards/`.
+The 2026-08 verification sweep executed every then-current LLM recipe end-to-end and gated
+it: **16/18 reproduced and passed** (the two exceptions are documented — one source repo
+went gated, one thinking model the strict gate over-flags). For one model the reproduced
+weights are **bit-identical** to the published artifact. Per-model recipes, caveats, and
+device measurements: [REPRODUCE.md](REPRODUCE.md); per-model cards: `cards/`.
 
 What the lists contain:
 
-- **`reproduce_llm.sh` (18)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
-  `ministral3-3b` (+`-reasoning`), `olmo2-1b`/`7b`, `smollm3-3b`, `phi4-mini-reasoning`,
-  `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `polaris-4b`, `vibethinker-3b`, `jan-nano`,
-  `fastcontext-4b`, `falcon3-3b`, `qwen25-3b`.
+- **`reproduce_llm.sh` (21)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
+  `qwen25-3b`, `ministral3-3b` (+`-reasoning`), `olmo2-1b`/`7b`, `smollm3-3b`, `twil-lm3`,
+  `phi4-mini-reasoning`, `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `nanbeige4.2-3b`,
+  `polaris-4b`, `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `s1-mini`.
 - **`reproduce_vlm.sh` (13)**: `granite-docling-258m`, `internvl3-1b`,
   `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl`, `north-micro-vision`,
   `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`, `smolvlm2-2.2b`.
-- **Family recipes** (one command each, documented per family in REPRODUCE.md):
+- **Family recipes (22)** (one command each, documented per family in REPRODUCE.md):
   granite-4.0-h-1b/-350m, granite-4.1-3b, Falcon-H1-0.5B/1.5B/1.5B-Deep/3B-Instruct,
-  Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, Qwen3.5-0.8B, the LFM2.5 family,
-  MiniCPM5-1B / MiniCPM4-0.5B / MiniCPM4.1-8B, Qwen2.5-Coder-1.5B-Instruct, s1-mini.
+  Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, **Qwen3.5-0.8B/2B/4B**,
+  LFM2.5-1.2B-Instruct/-Thinking/-JP and 2.6B, MiniCPM5-1B / MiniCPM4-0.5B / MiniCPM4.1-8B,
+  Qwen2.5-Coder-1.5B-Instruct, Shieldstral-1.0-3B.
+- **Beyond chat (11)**: LFM2.5-Encoder-350M/-230M and the four 350M task encoders
+  (PII / policy-linter / prompt-router / spellchecker), LFM2.5-Embedding-350M,
+  LFM2.5-ColBERT-350M, granite-embedding-311m — plain LiteRT `.tflite` encoders — plus
+  Qwen3-TTS-12Hz-0.6B (speech) and Bonsai-Image-ternary-4B (FLUX.2-klein image generation),
+  which run as LiteRT graphs under host loops rather than `.litertlm` bundles.
 
 ## Convert a new architecture
 
