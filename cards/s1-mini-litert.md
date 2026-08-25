@@ -79,8 +79,8 @@ Two honest caveats, both measured rather than assumed:
 
 | Backend | Prefill (256) | Decode | TTFT | Init |
 |---|---|---|---|---|
-| GPU (Metal) | 3777 tok/s | 146.7 tok/s | 0.075 s | 2.5 s |
-| CPU | 466 tok/s | 34.6 tok/s | 0.58 s | 5.8 s |
+| GPU (Metal) | 3673 tok/s | 144.6 tok/s | 0.077 s | 2.8 s |
+| CPU | 427 tok/s | 33.3 tok/s | 0.63 s | 6.4 s |
 
 Pixel 8a (Tensor G3), `litert_lm_advanced_main` from the v0.16.0 kit, 205-token prompt, `--benchmark`:
 
@@ -96,9 +96,9 @@ iPhone 17 Pro, single 180-token prompt, cold start:
 | Backend | Prefill | Decode | TTFT | Peak memory |
 |---|---|---|---|---|
 | GPU (Metal) | 768–801 tok/s | 32.0 tok/s | 0.31 s | 1.7 GB |
-| CPU | 281 tok/s | 15.5 tok/s | 0.74 s | — |
+| CPU | 281 tok/s | 15.5 tok/s | 0.74 s | 1.4 GB |
 
-The Metal row is a two-run retake on a cooled phone (both runs agreed to 0.1 tok/s). The CPU row was measured with the device already reporting a `serious` thermal state, so treat it as a floor.
+Every iPhone run above was recorded with the device reporting a `serious` thermal state, so read them as floors rather than peaks. The Metal row is the pair of runs that agreed (32.02 and 32.01 tok/s); an earlier Metal run of the same build read 30.2 tok/s.
 
 In practice a short dictation turn — one or two sentences in, one or two out — completes in about 3 seconds on a Pixel 8a CPU.
 
