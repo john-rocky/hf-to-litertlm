@@ -49,15 +49,22 @@ One run does five things:
   `--gate-script` for models the generic gate cannot certify (an Arabic diacritizer answers
   no trivia). Exit 0 = converted and gated, 1 = converted but gate failed, 2 = refused.
 
-Routing is automatic, by `config.json` model_type:
+Routing is automatic, by `config.json` model_type. What the converter accepts, with the
+Hub derivative counts behind the coverage claim (measured 2026-08-24/25 via `base_model`
+tags; mirrors included):
 
-| family | path | note |
-|---|---|---|
-| dense (llama, qwen, granite, …) | stock export | includes MiniCPM5 finetunes — no routing needed |
-| `qwen3_5` | stock export, litert-torch *main* | CPU gate; GPU-delegable ships come from `qwen35_work/` |
-| `lfm2` (LFM2.5) | stock export, released 0.9.3/0.9.4 | ExecutorMetadata retrofitted automatically |
-| `granitemoehybrid`, `falcon_h1`, `zamba2`, `nemotron_h` | pinned family recipe (`HYBRID_RECIPE`) | one-time checkout; the setup command is printed on refusal |
+| base family | bases | Hub finetunes + adapters | toolchain | path |
+|---|---|---:|---|---|
+| any dense arch the stock exporter handles | llama 3.x, qwen 2/2.5/3, smollm3, olmo2, phi, ministral, … | open-ended | default stack | stock export |
+| MiniCPM5 | 1B | 51 + 54 | default stack | stock export (plain llama rail) |
+| Qwen3.5 | 0.8B / 2B / 4B | 1,201 + 920 | litert-torch *main* | stock export; CPU gate |
+| LFM2.5 | 350M / 1.2B / 2.6B | 143 + 57 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
+| granite-4.0-h | 350m / 1b | 24 + 4 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
+| Falcon-H1 | 0.5B / 1.5B / 1.5B-Deep / 3B | 14 + 2 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
+| Zamba2 | 1.2B / 2.7B | 2 + 0; the only real one is pre-port-serialized | pinned checkout | routed; pre-port checkpoints are refused with re-serialization instructions |
+| Nemotron-H | 4B | 0 | pinned checkout | routed; no real derivative exists yet |
 
+For `HYBRID_RECIPE` families the one-time checkout setup command is printed on refusal.
 The measurements behind each row — template byte-equality, greedy A/B against the HF
 reference, and three gate refusals of genuinely defective derivatives — are in
 [REPRODUCE.md](REPRODUCE.md).
@@ -82,6 +89,20 @@ exceptions are documented — one source repo went gated, one thinking model the
 over-flags). For one model the reproduced weights are **bit-identical** to the published
 artifact. Per-model recipes, caveats, and device measurements: [REPRODUCE.md](REPRODUCE.md);
 per-model cards: `cards/`.
+
+What the lists contain:
+
+- **`reproduce_llm.sh` (18)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
+  `ministral3-3b` (+`-reasoning`), `olmo2-1b`/`7b`, `smollm3-3b`, `phi4-mini-reasoning`,
+  `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `polaris-4b`, `vibethinker-3b`, `jan-nano`,
+  `fastcontext-4b`, `falcon3-3b`, `qwen25-3b`.
+- **`reproduce_vlm.sh` (13)**: `granite-docling-258m`, `internvl3-1b`,
+  `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl`, `north-micro-vision`,
+  `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`, `smolvlm2-2.2b`.
+- **Family recipes** (one command each, documented per family in REPRODUCE.md):
+  granite-4.0-h-1b/-350m, granite-4.1-3b, Falcon-H1-0.5B/1.5B/1.5B-Deep/3B-Instruct,
+  Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, Qwen3.5-0.8B, the LFM2.5 family,
+  MiniCPM5-1B / MiniCPM4-0.5B / MiniCPM4.1-8B, Qwen2.5-Coder-1.5B-Instruct, s1-mini.
 
 ## Convert a new architecture
 
