@@ -1049,7 +1049,7 @@ Decode on this runtime is memory-bandwidth-bound, which has a blunt consequence:
 
 ## S1-mini (0.6B ASR-transcript normalizer) — the template flag a runtime can't pass, and the stop strings that eat your punctuation
 
-`s1mini_work/convert_s1mini.py` converts [superwhisper/s1-mini](https://huggingface.co/superwhisper/s1-mini) — Superwhisper's Qwen3-0.6B finetune that rewrites raw dictation into clean written text — on the released stack (litert-torch 0.9.3, litert-lm-builder ≥ 0.15). One command, int8, 688 MB. License note: Apache 2.0 plus a naming clause — any distribution must keep identifying the model as "S1-mini" by "Superwhisper".
+`s1mini_work/convert_s1mini.py` converts [superwhisper/s1-mini](https://huggingface.co/superwhisper/s1-mini) (published: [mlboydaisuke/S1-mini-LiteRT](https://huggingface.co/mlboydaisuke/S1-mini-LiteRT)) — Superwhisper's Qwen3-0.6B finetune that rewrites raw dictation into clean written text — on the released stack (litert-torch 0.9.3, litert-lm-builder ≥ 0.15). One command, int8, 688 MB. License note: Apache 2.0 plus a naming clause — any distribution must keep identifying the model as "S1-mini" by "Superwhisper".
 
 ```bash
 pip install "litert-torch==0.9.3" "litert-lm-builder>=0.15" "transformers>=4.51" torch
