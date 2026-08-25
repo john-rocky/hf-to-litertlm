@@ -3,7 +3,8 @@
 
   # one-time setup: litert-torch at the pinned base + the hybrid patch
   git clone https://github.com/google-ai-edge/litert-torch litert-torch-falcon
-  git -C litert-torch-falcon checkout 115a136
+  git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
+  git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d
   git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
 
   # convert (float export -> post-hoc int8 on linears+embedding -> executor metadata)

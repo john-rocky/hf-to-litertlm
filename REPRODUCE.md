@@ -321,7 +321,10 @@ python convert_lfm25_26b.py LiquidAI/LFM2.5-2.6B out_26b_fp --fp    # for the in
 ```bash
 cd granite_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
-git -C litert-torch-granite checkout 115a136
+# the pinned base is no longer reachable from main (measured 2026-08-25), so a
+# plain short-SHA checkout fails — fetch the commit by full SHA first
+git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-granite apply "$(pwd)/granite_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-1b out_granite_1b
 # GPU ship shape (2026-08-13): declare fp32 activations in the bundle TOML (repack, no re-export)
@@ -368,6 +371,60 @@ python make_fp16_variant.py out_granite_350m/model_fp_meta.litertlm granite-4.0-
 ```
 
 Gates on the published files (litert-lm 0.15 CPU, Mac + iPhone 17 Pro): fp16 = 8/8 sanity, greedy output token-identical to the HF fp32 reference on our probes, prompt-length sweep 12–200 clean; int8 = 8/8 sanity, sweep clean except a known 33–37-token band where replies can end early (int8 noise interacting with one prefill chunk shape — fp16 is clean there; documented on the card). On phones ship int8: the CPU runtime unpacks fp16 weights to fp32 in RAM (~3.7 GB peak on iPhone vs ~2.1 GB for int8).
+
+### granite-4.0-h finetune intake (Tashkeel-350M-v2) — the recipe rides derivatives unchanged
+
+Measured 2026-08-25 on [Etherll/Tashkeel-350M-v2](https://huggingface.co/Etherll/Tashkeel-350M-v2)
+(Arabic diacritization SFT of granite-4.0-h-350m; the most-downloaded granite-4.0-h derivative
+on the Hub). Family fact, same as every LLM family measured so far: the finetune's
+`chat_template.jinja` is byte-equal to the base's, and the tokenizer/generation config diffs are
+cosmetic (`model_max_length`, eos as list) — so the base recipe applies verbatim:
+
+```bash
+cd granite_work
+PYTHONPATH=litert-torch-granite python convert_granite4h.py Etherll/Tashkeel-350M-v2 out_tashkeel
+python drop_start_token.py out_tashkeel/Tashkeel-350M-v2_int8.litertlm Tashkeel-350M-v2_int8.litertlm
+# exact-parity variant (the int8 flips two diacritics on the 10-case gate; fp16 is clean)
+python ../lfm_work/add_executor_metadata.py out_tashkeel/model.litertlm out_tashkeel/model_fp_meta.litertlm
+python make_fp16_variant.py out_tashkeel/model_fp_meta.litertlm Tashkeel-350M-v2_fp16.litertlm --drop-start-token
+python gate_tashkeel.py Tashkeel-350M-v2_fp16.litertlm --backend cpu
+```
+
+Three-point proof (litert-lm 0.16.0 CLI, CPU): (a) export ✓ — 481 MB int8, 64 state buffers
+(56 conv/SSM + 8 KV), ExecutorMetadata present, stop token = the tokenizer's
+`<|end_of_text|>` 100257; (b) embedded template byte-equal 6418/6418 to the checkpoint's;
+(c) greedy A/B vs HF fp32 on the model's own task (`gate_tashkeel.py`: the card's worked
+example + 9 undiacritized MSA probes, both sides rendering the identical string):
+**float 10/10 and fp16 10/10 byte-exact**, int8 8/10 — the two int8 misses are
+single-diacritic greedy flips (one also over-runs past the natural end), and both probes are
+byte-exact on the float parent, so they are quantization cost, not conversion error — the same
+350M-scale int8 sensitivity the base model's card documents (fp16 is the exact-parity variant
+there too).
+The start_token drop is REQUIRED here as on the base: an HF BOS A/B flips the greedy output
+from correct diacritization to garbage (`صلى السلام عليكم`).
+Honest note: the model card's own worked example (`اَلسَلَامُ عَلَيْكُمْ`) matches neither the
+bundle nor HF fp32 greedy (`السَّلَامُ عَلَيْكُمْ`) — the card example disagrees with the
+checkpoint's own greedy output, so HF parity, not the card string, is the certification.
+
+Stock-export failure shape for the record (why the pinned checkout stays): released
+litert-torch 0.9.4 has zero mamba support in the wheel; its generic path maps granite's mamba
+layers onto the qwen3.5-era linear-attention cache and dies before tracing —
+`AttributeError: 'GraniteMoeHybridConfig' object has no attribute 'linear_key_head_dim'`
+(`export_hf/core/cache.py`, `create_from_config`). `scripts/convert.py` now routes
+`model_type: granitemoehybrid` to this recipe automatically (HYBRID_RECIPE) when the pinned
+checkout is present, and refuses with the exact setup command when it is not; task-specific
+derivatives gate through `--gate-script` (the generic 8-question gate certifies nothing on a
+model that diacritizes its input instead of answering). One-command run, measured end-to-end
+from a clean shell:
+
+```bash
+python scripts/convert.py Etherll/Tashkeel-350M-v2 --gate-script granite_work/gate_tashkeel.py
+```
+
+recipe export 454 s → start_token dropped → task gate on CPU → int8 8/10 (the same two
+single-diacritic flips, reproduced deterministically) → exit 1 `converted_gate_failed` with the
+bundle and `convert_report.json` written. The exit code is the honest int8-at-350M verdict, not
+a conversion failure — the fp16 flow above is the exact-parity finish.
 
 ## Qwen3.5 (GatedDeltaNet + attention hybrid) — first Qwen3.5 in LiteRT form
 
@@ -493,7 +550,8 @@ The recipe above reproduces the shipped checkpoints; **finetunes of Qwen3.5 now 
 ```bash
 cd falcon_h1_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-falcon
-git -C litert-torch-falcon checkout 115a136
+git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
 PYTHONPATH=litert-torch-falcon python convert_falcon_h1.py tiiuae/Falcon-H1-0.5B-Instruct out_falcon_05b
 # GPU ship shape: declare fp32 activations in the bundle TOML (repack, no re-export)
@@ -524,7 +582,8 @@ On an iPhone 17 Pro the Deep answers the composite probe **8/8 on GPU and 8/8 on
 ```bash
 cd zamba2_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-zamba2
-git -C litert-torch-zamba2 checkout 115a136
+git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-zamba2 checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-zamba2 apply "$(pwd)/zamba2_litert_torch.patch"
 PYTHONPATH=litert-torch-zamba2 python convert_zamba2.py Zyphra/Zamba2-1.2B-instruct out_zamba2_12b
 # GPU ship shape: declare fp32 activations in the bundle TOML (repack, no re-export)
@@ -551,7 +610,8 @@ That last result is worth a measurement habit, because it is cheap and it saves 
 ```bash
 cd nemotron_h_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-nemotron
-git -C litert-torch-nemotron checkout 115a136
+git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-nemotron checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-nemotron apply "$(pwd)/nemotron_h_litert_torch.patch"
 PYTHONPATH=litert-torch-nemotron python convert_nemotron_h.py nvidia/Nemotron-H-4B-Instruct-128K out_nemotron_4b
 # GPU ship shape: declare fp32 activations in the bundle TOML (repack, no re-export)

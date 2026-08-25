@@ -2,8 +2,10 @@
 """Convert IBM granite-4.0-h dense-hybrid models (Mamba2 + attention) to .litertlm.
 
   # one-time setup: litert-torch at the pinned base + the hybrid patch
+  # (the base is unreachable from main since 2026-08; fetch the full SHA)
   git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
-  git -C litert-torch-granite checkout 115a136
+  git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
+  git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d
   git -C litert-torch-granite apply "$(pwd)/granite_hybrid_litert_torch.patch"
 
   # convert (float export -> post-hoc int8 on linears+embedding -> executor metadata)

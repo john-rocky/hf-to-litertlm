@@ -83,6 +83,32 @@ HYBRID_STOCK = {
     "qwen3_5_text": "litert_torch.generative.export_hf.model_ext.qwen3_5",
 }
 
+# Hybrid families NO released litert-torch converts at all — the wheels ship
+# no Mamba2 cache layer (0.9.4: zero mamba support; measured 2026-08-25 on a
+# granite-4.0-h-350m finetune: the generic path maps the mamba layers to the
+# qwen3.5-era linear-attention cache and dies before tracing with
+# AttributeError: 'GraniteMoeHybridConfig' object has no attribute
+# 'linear_key_head_dim'). This repo carries a pinned patched checkout + a
+# family recipe script instead; convert.py routes to it when the checkout is
+# present and refuses with the exact setup command when it is not.
+HYBRID_RECIPE = {
+    "granitemoehybrid": {
+        "script": "granite_work/convert_granite4h.py",
+        "checkout": "granite_work/litert-torch-granite",
+        "setup": (
+            "cd granite_work && "
+            "git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite && "
+            "git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d && "
+            "git -C litert-torch-granite apply \"$(pwd)/granite_hybrid_litert_torch.patch\""
+        ),
+        # granite's template has no leading BOS; the engine-prepended
+        # start_token measurably flips 350M-scale greedy decoding
+        # (REPRODUCE: the granite-4.0-h-350m start_token lesson)
+        "drop_start_token": "granite_work/drop_start_token.py",
+    },
+}
+
 # State-carrying hybrids whose stock export succeeds on the RELEASED litert-torch
 # (the lfm2 model_ext ships since 0.9.1) but whose 0.9.3 bundling emits no
 # ExecutorMetadata section — litert-lm >= 0.15 then fails at inference with
@@ -159,18 +185,22 @@ def ensure_turn_end_stop(bundle, tokenizer_src, report):
     print(f"stop-token guard: added tokenizer eos {eos_id} to the bundle's stop_tokens")
 
 
+def resolve_litert_lm_cli():
+    """A litert-lm >= 0.15 CLI: $LITERT_LM_CLI, else the ~/venvs/lt0160run
+    default, else `litert-lm` on PATH (last — which() can surface a pyenv shim
+    that exits 127, so the known venv wins)."""
+    import os
+    default_cli = Path.home() / "venvs/lt0160run/bin/litert-lm"
+    return (os.environ.get("LITERT_LM_CLI")
+            or (str(default_cli) if default_cli.exists() else None)
+            or shutil.which("litert-lm"))
+
+
 def ensure_executor_metadata(bundle, report):
     """Post-export guard for HYBRID_EXEC_RETROFIT: retrofit the ExecutorMetadata
     section the released exporter omits (see the dict's comment), reusing the
-    shipped lfm_work/add_executor_metadata.py. No-op when the section exists.
-    Needs a litert-lm >= 0.15 CLI: $LITERT_LM_CLI, else `litert-lm` on PATH,
-    else the ~/venvs/lt0160run default."""
-    import os
-    default_cli = Path.home() / "venvs/lt0160run/bin/litert-lm"
-    # which() can surface a pyenv shim that exits 127, so the known venv wins
-    cli = (os.environ.get("LITERT_LM_CLI")
-           or (str(default_cli) if default_cli.exists() else None)
-           or shutil.which("litert-lm"))
+    shipped lfm_work/add_executor_metadata.py. No-op when the section exists."""
+    cli = resolve_litert_lm_cli()
     tool = REPO_ROOT / "lfm_work" / "add_executor_metadata.py"
     fixed = bundle.parent / (bundle.name + ".execfix")
     proc = subprocess.run(
@@ -186,6 +216,62 @@ def ensure_executor_metadata(bundle, report):
         report["decisions"]["executor_metadata"] = "present"
     else:
         fail("add_executor_metadata failed: " + (proc.stdout + proc.stderr)[-500:])
+
+def convert_via_recipe(report, recipe, export_src, out_dir, args):
+    """HYBRID_RECIPE path: run the family recipe converter as a subprocess with
+    the pinned patched litert-torch checkout on PYTHONPATH, then the family's
+    post-steps (start_token drop). Returns the bundle path; these families gate
+    on CPU (the Mamba2 5-D SSM ops exceed the GPU delegate's rank limit)."""
+    import os
+    checkout = REPO_ROOT / recipe["checkout"]
+    script = REPO_ROOT / recipe["script"]
+    if args.int4:
+        refuse(report, "recipe_no_int4",
+               "this family's recipe ships post-hoc int8 over linears+embedding only "
+               "(export-time conv-int8 measurably costs quality on it)",
+               "rerun without --int4")
+    if not (checkout / "litert_torch").exists():
+        refuse(report, "recipe_checkout_missing",
+               f"model_type {report['decisions']['model_type']} converts only via the "
+               f"pinned patched litert-torch checkout in {recipe['checkout']} — no "
+               "released litert-torch ships a Mamba2 cache layer (measured 2026-08-25 "
+               "on 0.9.4: dies at cache construction, GraniteMoeHybridConfig has no "
+               "attribute 'linear_key_head_dim')",
+               "one-time setup: " + recipe["setup"] + " ; then rerun")
+    print(f"recipe export ({recipe['script']}, pinned checkout): {export_src} -> {out_dir}")
+    env = dict(os.environ, PYTHONPATH=str(checkout))
+    # the recipe's sub-steps shell out to litert-lm-builder / litert-lm by bare
+    # name — put the interpreter's venv bin and the resolved CLI's dir on PATH
+    # so the routed path works from a clean shell (measured: exit 127 otherwise)
+    bindirs = [str(Path(sys.executable).parent)]
+    cli = resolve_litert_lm_cli()
+    if cli:
+        bindirs.append(str(Path(cli).parent))
+    env["PATH"] = os.pathsep.join(bindirs + [env.get("PATH", "")])
+    t0 = time.time()
+    proc = subprocess.run([sys.executable, str(script), export_src, str(out_dir)],
+                          env=env, text=True)
+    if proc.returncode:
+        report["status"] = "export_failed"
+        write_report(report)
+        fail(f"recipe converter failed (exit {proc.returncode})")
+    report["export_seconds"] = round(time.time() - t0)
+    bundle = out_dir / (Path(export_src).name + "_int8.litertlm")
+    if not bundle.exists():
+        fail(f"recipe converter finished without producing {bundle.name}")
+    if recipe.get("drop_start_token"):
+        dropped = bundle.parent / (bundle.name + ".nobos")
+        proc = subprocess.run(
+            [sys.executable, str(REPO_ROOT / recipe["drop_start_token"]),
+             str(bundle), str(dropped)], env=env, text=True)
+        if proc.returncode:
+            fail("drop_start_token failed")
+        dropped.replace(bundle)
+        report["decisions"]["start_token"] = "dropped"
+        print("start-token guard: dropped (family template has no leading BOS)")
+    report["decisions"]["recipe"] = recipe["script"]
+    return bundle
+
 
 # The adapter merge MUST run in its own process: loading/merging the model with
 # peft+transformers and then calling the stock export in the SAME process
@@ -372,6 +458,12 @@ def main():
     ap.add_argument("--min-correct", type=int, default=6, help="exit-gate bar (of 8)")
     ap.add_argument("--keep-merged", action="store_true",
                     help="keep the temporary merged dir of an adapter conversion")
+    ap.add_argument("--gate-script",
+                    help="task-model gate: run this script (args: bundle --backend B "
+                         "--litert-lm CLI --out JSON; exit 0 = pass) instead of the "
+                         "generic 8-question gate — for finetunes that transform their "
+                         "input rather than answer questions (s1-mini/Tashkeel), where "
+                         "the generic gate certifies nothing")
     args = ap.parse_args()
 
     out_dir = Path(args.out) if args.out else REPO_ROOT / "out" / args.model.split("/")[-1]
@@ -469,37 +561,59 @@ def main():
               "renders on current runtimes (verified 2026-08-24), pre-2026 runtimes may fail "
               "on the first message")
 
-    # ---------------- stock export ----------------
+    # ---------------- export (stock, or family recipe) ----------------
     export_src = str(merged_dir) if merged_dir else args.model
-    print(f"exporting {export_src} -> {out_dir}  (stock defaults"
-          + (f", opts={export_kwargs}" if export_kwargs else "") + ")")
-    from litert_torch.generative.export_hf.export import export
-    t0 = time.time()
-    export(model=export_src, output_dir=str(out_dir), **export_kwargs)
-    report["export_seconds"] = round(time.time() - t0)
-    bundle = out_dir / "model.litertlm"
-    if not bundle.exists():
-        report["status"] = "export_failed"
-        write_report(report)
-        fail("export finished without producing model.litertlm")
-    report["bundle_bytes"] = bundle.stat().st_size
-    ensure_turn_end_stop(bundle, export_src, report)
-    if report["decisions"].get("model_type") in HYBRID_EXEC_RETROFIT:
-        ensure_executor_metadata(bundle, report)
+    recipe = HYBRID_RECIPE.get(report["decisions"].get("model_type"))
+    if recipe:
+        gate_backend = "cpu"
+        report["decisions"]["gate_backend"] = "cpu"
+        bundle = convert_via_recipe(report, recipe, export_src, out_dir, args)
+        report["bundle_bytes"] = bundle.stat().st_size
+        ensure_turn_end_stop(bundle, export_src, report)
+    else:
+        print(f"exporting {export_src} -> {out_dir}  (stock defaults"
+              + (f", opts={export_kwargs}" if export_kwargs else "") + ")")
+        from litert_torch.generative.export_hf.export import export
+        t0 = time.time()
+        export(model=export_src, output_dir=str(out_dir), **export_kwargs)
+        report["export_seconds"] = round(time.time() - t0)
+        bundle = out_dir / "model.litertlm"
+        if not bundle.exists():
+            report["status"] = "export_failed"
+            write_report(report)
+            fail("export finished without producing model.litertlm")
+        report["bundle_bytes"] = bundle.stat().st_size
+        ensure_turn_end_stop(bundle, export_src, report)
+        if report["decisions"].get("model_type") in HYBRID_EXEC_RETROFIT:
+            ensure_executor_metadata(bundle, report)
 
     # ---------------- exit gate ----------------
-    max_tokens = 3200 if is_think else 512
     gate_json = out_dir / "gate.json"
-    print(f"exit gate: verify_quality --max-tokens {max_tokens} --min-correct {args.min_correct}"
-          + (f" --backend {gate_backend}" if gate_backend else ""))
-    gate_cmd = [sys.executable, str(VERIFY), str(bundle),
-                "--max-tokens", str(max_tokens), "--min-correct", str(args.min_correct),
-                "--json", str(gate_json)]
-    if gate_backend:
-        gate_cmd += ["--backend", gate_backend]
-    proc = subprocess.run(gate_cmd, text=True)
-    gate = json.loads(gate_json.read_text()) if gate_json.exists() else None
-    report["gate"] = {k: gate[k] for k in ("score", "of", "degenerate", "passed")} if gate else None
+    if args.gate_script:
+        print(f"exit gate: task gate {args.gate_script}"
+              + (f" --backend {gate_backend}" if gate_backend else ""))
+        gate_cmd = [sys.executable, args.gate_script, str(bundle),
+                    "--backend", gate_backend or "cpu", "--out", str(gate_json)]
+        cli = resolve_litert_lm_cli()
+        if cli:
+            gate_cmd += ["--litert-lm", cli]
+        proc = subprocess.run(gate_cmd, text=True)
+        gate = json.loads(gate_json.read_text()) if gate_json.exists() else None
+        report["gate"] = {"script": args.gate_script, "passed": proc.returncode == 0}
+        if gate:
+            report["gate"].update({k: gate[k] for k in ("match_hf", "n") if k in gate})
+    else:
+        max_tokens = 3200 if is_think else 512
+        print(f"exit gate: verify_quality --max-tokens {max_tokens} --min-correct {args.min_correct}"
+              + (f" --backend {gate_backend}" if gate_backend else ""))
+        gate_cmd = [sys.executable, str(VERIFY), str(bundle),
+                    "--max-tokens", str(max_tokens), "--min-correct", str(args.min_correct),
+                    "--json", str(gate_json)]
+        if gate_backend:
+            gate_cmd += ["--backend", gate_backend]
+        proc = subprocess.run(gate_cmd, text=True)
+        gate = json.loads(gate_json.read_text()) if gate_json.exists() else None
+        report["gate"] = {k: gate[k] for k in ("score", "of", "degenerate", "passed")} if gate else None
     report["status"] = "converted_pass" if proc.returncode == 0 else "converted_gate_failed"
     if merged_dir and not args.keep_merged:
         shutil.rmtree(merged_dir, ignore_errors=True)

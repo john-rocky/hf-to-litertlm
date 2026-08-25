@@ -3,7 +3,8 @@
 
   # one-time setup: litert-torch at the pinned base + the hybrid patch
   git clone https://github.com/google-ai-edge/litert-torch litert-torch-qwen35
-  git -C litert-torch-qwen35 checkout 115a136
+  git -C litert-torch-qwen35 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
+  git -C litert-torch-qwen35 checkout 115a13607c730c81018bb9789138a3e5e5119e3d
   git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
 
   # convert (float export -> post-hoc int8 on linears+embedding -> template -> metadata)
