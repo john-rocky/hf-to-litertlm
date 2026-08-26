@@ -5,9 +5,10 @@ runtime (CPU/GPU on iOS, Android, desktop). Two things live here:
 
 1. **A finetune converter.** `python scripts/convert.py <org>/<model>` — one command from Hub
    id to a gated bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
-   Falcon-H1, and every dense architecture the stock exporter handles — about **2,470 tagged
-   derivatives** on the Hub as of 2026-08-25. LoRA/PEFT repos merge automatically. Every bundle
-   is gated before it is called done; broken models are refused with a machine-readable reason.
+   Falcon-H1, Nemotron-H/Nemotron-3-Nano, and every dense architecture the stock exporter
+   handles — about **2,670 tagged derivatives** on the Hub as of 2026-08-26. LoRA/PEFT repos
+   merge automatically. Every bundle is gated before it is called done; broken models are
+   refused with a machine-readable reason.
 2. **One-command reproductions** of the published litert-community models: **56 chat/task
    models** (dense LLMs, hybrid families, single-image VLMs) plus 11 more conversions
    (encoder/embedding, TTS, image generation), with the full recipe record in
@@ -38,12 +39,15 @@ One run does five things:
 
 - **Entry gate.** Gated, remote-code, and pre-quantized repos — and pre-port Zamba2
   serializations no modern stack can load — are refused with a structured JSON reason
-  before anything downloads.
+  before anything downloads. A repo that declares `auto_map` for a model_type transformers
+  now registers natively is *not* remote-code: the pinned library implementation loads and
+  the repo's Python is never imported, so it converts (measured on Nemotron-3-Nano-4B).
 - **Adapter merge.** A LoRA/PEFT repo is merged into its base first (subprocess-isolated);
   the adapter's own tokenizer, chat template, and generation config win over the base's.
 - **Export.** Stock litert-torch defaults for dense models; pinned family recipes for the
   architectures no released exporter converts (table below). The derivative's own chat
-  template is embedded verbatim. ≥3B models also get the reduced 7-signature prefill ladder.
+  template is embedded verbatim. ≥3B models also get the reduced 7-signature prefill ladder,
+  on both the stock and the family-recipe path.
 - **Post-export guards.** A missing turn-end stop token is added; a spurious start token is
   dropped when the tokenizer says `add_bos_token: False` (or bos == eos) and the template
   never renders a leading BOS; the ExecutorMetadata section is retrofitted where the
@@ -53,20 +57,20 @@ One run does five things:
   no trivia). Exit 0 = converted and gated, 1 = converted but gate failed, 2 = refused.
 
 Routing is automatic, by `config.json` model_type. What the converter accepts, with the
-Hub derivative counts behind the coverage claim (measured 2026-08-24/25 via `base_model`
-tags; mirrors included):
+Hub derivative counts behind the coverage claim (recounted 2026-08-26 via `base_model`
+tags over the bases named in each row; mirrors included):
 
 | base family | bases | Hub finetunes + adapters | toolchain | path |
 |---|---|---:|---|---|
 | any dense arch the stock exporter handles | llama 3.x, qwen 2/2.5/3, smollm3, olmo2, phi, ministral, … | open-ended | default stack | stock export |
-| MiniCPM5 | 1B | 51 + 54 | default stack | stock export (plain llama rail) |
-| granite-4.1 (dense) | 3b | 19 + 15 | default stack | stock export; spurious-BOS guard fires (bos == eos) |
-| Qwen3.5 | 0.8B / 2B / 4B | 1,201 + 920 | litert-torch *main* | stock export; CPU gate |
-| LFM2.5 | 350M / 1.2B / 2.6B | 143 + 57 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
+| MiniCPM5 | 1B | 53 + 54 | default stack | stock export (plain llama rail) |
+| granite-4.1 (dense) | 3b | 20 + 15 | default stack | stock export; spurious-BOS guard fires (bos == eos) |
+| Qwen3.5 | 0.8B / 2B / 4B | 1,214 + 928 | litert-torch *main* | stock export; CPU gate |
+| LFM2.5 | 350M / 1.2B / 2.6B | 210 + 94 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
 | granite-4.0-h | 350m / 1b | 24 + 4 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
 | Falcon-H1 | 0.5B / 1.5B / 1.5B-Deep / 3B | 14 + 2 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
-| Zamba2 | 1.2B / 2.7B | 2 + 0; the only real one is pre-port-serialized | pinned checkout | routed; pre-port checkpoints are refused with re-serialization instructions |
-| Nemotron-H | 4B | 0 | pinned checkout | routed; no real derivative exists yet |
+| Zamba2 | 1.2B / 2.7B | 3 + 0; the only real one is pre-port-serialized | pinned checkout | routed; pre-port checkpoints are refused with re-serialization instructions |
+| Nemotron-H | Nemotron-H-4B / Nemotron-3-Nano-4B | 19 + 14 | pinned checkout | family recipe (`HYBRID_RECIPE`); measured on Nemotron-3-Nano-4B |
 
 For `HYBRID_RECIPE` families the one-time checkout setup command is printed on refusal.
 The measurements behind each row — template byte-equality, greedy A/B against the HF

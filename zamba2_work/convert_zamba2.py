@@ -30,7 +30,9 @@ repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # (signature-count RAM law: every exported signature costs RAM even unused —
 # the 2.7B full ladder jetsams an iPhone 17 Pro at GPU load, and the AGX
 # compiled-variants footprint limit trips on 12 signatures).
-ladder = os.environ.get("ZAMBA2_PREFILL_LADDER", "1024,512,256,128,64,32,16,8,4,2,1")
+ladder = (os.environ.get("PREFILL_LENGTHS")            # generic knob convert.py sets
+          or os.environ.get("ZAMBA2_PREFILL_LADDER",   # documented family-specific name
+                            "1024,512,256,128,64,32,16,8,4,2,1"))
 
 argv = [
     "litert-torch", "export_hf",

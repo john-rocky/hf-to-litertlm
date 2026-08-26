@@ -16,7 +16,11 @@ architecture handling. It adds only:
 
   1. an entry gate — refuse, with a structured reason, what stock export
      cannot convert honestly (gated repos, remote-code architectures,
-     pre-quantized weights); never convert on a guess. Adapter (LoRA/PEFT)
+     pre-quantized weights); never convert on a guess. "Remote-code" means
+     auto_map for a model_type transformers does NOT register: when it does
+     register one, the repo's Python is a back-compat shim that never loads
+     (measured 2026-08-25 on Nemotron-3-Nano-4B) and the model converts.
+     Adapter (LoRA/PEFT)
      repos are no longer refused: the adapter is merged into its base
      (peft merge_and_unload, measured 2026-08-24 bitwise == W + (a/r)*BA)
      into a temporary hub-format dir and stock-exported from there — unless
@@ -82,6 +86,18 @@ HYBRID_STOCK = {
     "qwen3_5": "litert_torch.generative.export_hf.model_ext.qwen3_5",
     "qwen3_5_text": "litert_torch.generative.export_hf.model_ext.qwen3_5",
 }
+
+def native_model_type(model_type):
+    """True when the installed transformers registers this model_type natively.
+    A repo that declares auto_map AND a registered model_type ships the repo
+    code as a back-compat shim for older transformers: without
+    trust_remote_code the library implementation loads and the repo code is
+    never imported (measured 2026-08-25 on nvidia/NVIDIA-Nemotron-3-Nano-4B-
+    BF16 — AutoConfig returns transformers' native NemotronHConfig). Only an
+    UNREGISTERED model_type actually requires executing the repo's code."""
+    from transformers.models.auto.configuration_auto import CONFIG_MAPPING_NAMES
+    return model_type in CONFIG_MAPPING_NAMES
+
 
 # Hybrid families NO released litert-torch converts at all — the wheels ship
 # no Mamba2 cache layer (0.9.4: zero mamba support; measured 2026-08-25 on a
@@ -304,6 +320,17 @@ def convert_via_recipe(report, recipe, export_src, out_dir, args):
     if cli:
         bindirs.append(str(Path(cli).parent))
     env["PATH"] = os.pathsep.join(bindirs + [env.get("PATH", "")])
+    # ≥3B recipe models get the same reduced 7-signature prefill ladder as the
+    # stock path (convert.py's stock-path comment has the three measured
+    # reasons; the 12 GB-iPhone jetsam datapoint there IS a hybrid 4B of this
+    # family). The drivers read PREFILL_LENGTHS and default to the full ladder.
+    if (report["decisions"].get("params") or 0) >= 3e9:
+        env["PREFILL_LENGTHS"] = "1024,256,64,16,4,1"
+        report["decisions"]["prefill_ladder"] = "reduced_7sig_3b"
+    # the recipe drivers keep the embedding in the main section — record that
+    # honestly instead of the stock-path opt-in set earlier
+    if report["decisions"].get("externalize_embedder"):
+        report["decisions"]["externalize_embedder"] = "not_on_recipe_path"
     t0 = time.time()
     proc = subprocess.run([sys.executable, str(script), export_src, str(out_dir)],
                           env=env, text=True)
@@ -371,7 +398,9 @@ def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
         print("start-token guard: dropped (template never leads with BOS and "
               "add_bos_token is False / bos == eos)")
     elif "no leading start_token" in (proc.stdout + proc.stderr):
-        report["decisions"]["start_token"] = "absent"
+        # setdefault, not assignment: on the recipe path a family that already
+        # dropped its start token must keep saying "dropped", not "absent"
+        report["decisions"].setdefault("start_token", "absent")
     else:
         fail("drop_start_token failed: " + (proc.stdout + proc.stderr)[-300:])
 
@@ -512,10 +541,17 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
         fail(f"could not fetch base config.json for {base_id}")
     base_cfg = json.loads(base_cfg_text)
     if base_cfg.get("auto_map"):
-        refuse(report, "remote_code",
-               f"base {base_id} declares auto_map ({list(base_cfg['auto_map'])}) — the "
-               "architecture lives in repo code, outside transformers",
-               "not converted: remote-code architectures are out of scope for the stock exporter")
+        if native_model_type(base_cfg.get("model_type")):
+            report["decisions"]["auto_map"] = "compat_shim_ignored_native_arch"
+            print(f"NOTE: base {base_id} declares auto_map but model_type "
+                  f"{base_cfg.get('model_type')!r} is native in transformers — the repo "
+                  "code is a back-compat shim and is never loaded")
+        else:
+            refuse(report, "remote_code",
+                   f"base {base_id} declares auto_map ({list(base_cfg['auto_map'])}) and "
+                   f"model_type {base_cfg.get('model_type')!r} is not in transformers — "
+                   "the architecture lives in repo code",
+                   "not converted: remote-code architectures are out of scope for the stock exporter")
     if base_cfg.get("quantization_config"):
         refuse(report, "pre_quantized",
                f"base {base_id} is already quantized "
@@ -614,10 +650,17 @@ def main():
             fail("could not fetch config.json")
         cfg = json.loads(cfg_text)
         if cfg.get("auto_map"):
-            refuse(report, "remote_code",
-                   f"config.json declares auto_map ({list(cfg['auto_map'])}) — the architecture "
-                   "lives in repo code, outside transformers",
-                   "not converted: remote-code architectures are out of scope for the stock exporter")
+            if native_model_type(cfg.get("model_type")):
+                report["decisions"]["auto_map"] = "compat_shim_ignored_native_arch"
+                print(f"NOTE: config declares auto_map but model_type "
+                      f"{cfg.get('model_type')!r} is native in transformers — the repo "
+                      "code is a back-compat shim and is never loaded")
+            else:
+                refuse(report, "remote_code",
+                       f"config.json declares auto_map ({list(cfg['auto_map'])}) and model_type "
+                       f"{cfg.get('model_type')!r} is not in transformers — the architecture "
+                       "lives in repo code",
+                       "not converted: remote-code architectures are out of scope for the stock exporter")
         if cfg.get("quantization_config"):
             refuse(report, "pre_quantized",
                    f"weights are already quantized ({cfg['quantization_config'].get('quant_method', '?')})",
@@ -678,6 +721,17 @@ def main():
         bundle = convert_via_recipe(report, recipe, export_src, out_dir, args)
         report["bundle_bytes"] = bundle.stat().st_size
         ensure_turn_end_stop(bundle, export_src, report)
+        # The same generic guard the stock path runs. Its condition reproduces
+        # every hand-made per-family choice here (measured 2026-08-25: fires on
+        # granite — which the family flag above already dropped — and on
+        # nemotron_h; stays silent on Falcon-H1 and Zamba2, whose templates
+        # render their BOS themselves). nemotron_h was the family with the
+        # condition and no guard: its bundles (the shipped 4B included) prepend
+        # <s> to a template that starts <SPECIAL_10>/<|im_start|>, with
+        # add_bos_token False. At 4B the model is robust — gate 7/8 either way,
+        # HF greedy identical on 2 of 3 probes — but the mismatch is real and
+        # granite-350m showed it bites at small scale.
+        ensure_no_spurious_start_token(bundle, export_src, report)
     else:
         print(f"exporting {export_src} -> {out_dir}  (stock defaults"
               + (f", opts={export_kwargs}" if export_kwargs else "") + ")")

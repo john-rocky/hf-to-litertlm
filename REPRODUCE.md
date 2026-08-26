@@ -781,15 +781,87 @@ The folded scan is a **port, not reuse**: NemotronH's `torch_forward` is an olde
 Ship verification (4B): float parity vs HF teacher-forced across 8 decode positions — max|logit diff| 5.8e-05, correlation 1.000000, top-1/top-5 identical; 8-question gate **8/8 on CPU and GPU**; hermetic sweep clean at the ship shape; iPhone 17 Pro (Metal) runs with GPU == CPU answers (peak 4.02 GB, increased-memory entitlement). Honest limit: a 4B does not fit an 8 GB Android phone — on a Pixel 8a, engine creation aborts on both backends. Mac M4 Max: GPU 724 prefill / 75.0 decode tok/s, CPU 99 / 20.1.
 
 Derivative intake: `scripts/convert.py` routes `model_type: nemotron_h` through HYBRID_RECIPE
-like the other pinned families. As of 2026-08-25 the Hub lists **zero** Nemotron-H-4B
-derivatives (finetune or adapter) beyond our own mirror, so the routed path has no real
-subject yet; the recipe it routes to is the one that shipped the 4B above.
+like the other pinned families. The 4B above still has no real derivative, but the family
+gained a **new base** in 2026 — `nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16` (3.4M downloads,
+19 finetunes + 14 adapters, the most-downloaded ≤4B model released in 2026 by a wide margin)
+— and it rides the same recipe unchanged. Measured 2026-08-26, one command, no new patch:
+
+```bash
+python scripts/convert.py nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16
+```
+
+export 1645 s → 3.84 GiB int8 (4,126,697,184 B), 50 state buffers (42 mamba conv+SSM,
+8 KV), **CPU gate 7/8 PASS**, decode ~28 tok/s on the Mac. Chat template embedded
+**byte-equal** to the repo's `chat_template.jinja` (10,504/10,504 — note the repo's
+`tokenizer_config.json` copy is a *different* 10,497-byte string; the exporter embeds the
+one `AutoTokenizer` actually resolves). Reasoning model: ChatML turns, `<think>`,
+`eos = <|im_end|>` (id 11) added by the stop-token guard on top of the exported `ids: 2`.
+
+Three things this intake fixed or established, each measured:
+
+- **`auto_map` is not proof of remote code.** The repo declares `auto_map`, and the entry
+  gate refused it outright (exit 2) — wrongly. transformers 5.14.1 registers `nemotron_h`
+  natively, so without `trust_remote_code` the library class loads and the repo's Python is
+  never imported (`AutoConfig.from_pretrained` returns transformers' own `NemotronHConfig`;
+  the export ran with `trust_remote_code: False`). The gate now refuses only when `auto_map`
+  is present **and** the model_type is absent from `CONFIG_MAPPING` — verified in both
+  directions: this model converts, and `kakaocorp/kanana-2-1.3b-instruct` (`kanana2_tiny`,
+  unregistered) still refuses with the same structured reason.
+- **The ≥3B reduced prefill ladder now reaches the recipe path too.** It was wired only into
+  the stock export, so a 4B hybrid — exactly the shape whose signature-count RAM law is
+  documented above — was still getting the full 11-signature ladder. `convert_via_recipe`
+  passes `PREFILL_LENGTHS` to the driver, and all four drivers read it (Zamba2 keeps its
+  older `ZAMBA2_PREFILL_LADDER` name as an alias). This export used 6 prefill + decode.
+- **nemotron_h was the one recipe family with a spurious start token and no guard.** Its
+  tokenizer says `add_bos_token: False` and its template opens with `<|im_start|>`
+  (`<SPECIAL_10>` on the 4B), yet the bundle's `LlmMetadata` carries `start_token: "<s>"` —
+  **including the published 4B bundle**, checked directly. Running the stock path's generic
+  guard over all four families reproduces every hand-made choice here: it fires on granite
+  (which the family flag already dropped) and on nemotron_h, and stays silent on Falcon-H1
+  and Zamba2, whose templates render their own BOS. So the guard is now wired into the
+  recipe path instead of a fifth per-family flag. Honest limit on the impact: at 4B this
+  model is **robust** to the mismatch — the gate scores 7/8 with the start token and 7/8
+  without it (same single miss, a rhyme judgment), and HF greedy is byte-identical on 2 of
+  3 probes, diverging mid-thought on the third but reaching the same answer. The fix aligns
+  the runtime stream with the training stream; it does not rescue a broken model. The
+  granite-350m lesson is why it still matters — that mismatch bites at small scale.
+
+Trap already recorded above and confirmed again here: HF reference forwards for this family
+need `use_cache=False` (transformers' generic `DynamicCache` KeyErrors on the `mlp` layer
+type), which is what the greedy A/B above ran with.
 
 Coverage boundary, stated rather than implied: **RWKV-7 is the one shipped LLM family with
 no derivative intake here.** The shipped 0.1B-world size has zero Hub derivatives (measured
 2026-08-25; the rwkv7-g1 line's ~27 "finetunes" are almost all the author's own size
 re-serializations), the architecture is not transformers-native, and its conversion never
 rode this repo's rails — so there is nothing to route until real derivative demand appears.
+
+### What a 2026 sweep of the phone band actually finds
+
+To keep the coverage claim honest rather than asserted, the ≤4.5B text-generation models
+created in 2026 were enumerated mechanically (2026-08-25/26, HfApi, five angles — trending,
+downloads, likes, new-and-recent, and a direct sweep of ~70 major model orgs; parameter
+counts read from each repo's own safetensors metadata). Union: **835 models across 93
+`model_type` values**, of which **589 (70.5%)** route through a path documented above. Of
+the rest, most are research checkpoints (`gpt2`, `opensci`, `ceno`, one-off student models).
+What is genuinely outside, in demand order, with the reason:
+
+| model | why it is out |
+|---|---|
+| `sapientinc/HRM-Text-1B` (248k dl) | transformers-native, but hierarchical recurrence (`H_cycles`/`L_cycles`) with `prefix_lm` — not a prefill/decode contract |
+| `tencent/Hy-MT2-1.8B` (226k dl, 1.2k likes) | the one real new-family gap: native `hunyuan_v1_dense`, GQA + qk-norm, dynamic-NTK rope. No blocker found — untried, not refused |
+| `CohereLabs/tiny-aya-*` (55 ft + 55 ad) | the bases are **gated**; the entry gate refuses on principle, not on capability |
+| `ai21labs/AI21-Jamba2-3B` (65k dl) | Mamba-**1** hybrid; the four pinned patches are all Mamba2/SSD, so this needs a new port rather than a recipe |
+| `kakaocorp/kanana-2-*`, `ibm-granite/granite-swash-*` | genuinely remote-code / not yet registered in transformers 5.14.1 |
+| `Zyphra/ZUNA`, `stabilityai/SAME-*` | not transformers-format checkpoints |
+
+Two things this refuted about the previous session's summary: the phone band's gaps are
+**not** only MoE and Gemma (Hy-MT2 and Jamba2 are dense-ish, ungated, and in demand), and
+one apparent gap — the most-downloaded 2026 model in the whole band — was this converter's
+own false refusal, fixed above. Separately, the MoE boundary is getting load-bearing:
+`facebook/MobileMoE-S/M`, `LFM2.5-8B-A1B`, `ibm-granite/granite-switch-4.1-3b`, and
+`arcee-ai` afmoe all landed in the phone band in 2026, and the runtime still ships no MoE
+kernel.
 
 ## Bamba (arch reference — no published artifact)
 

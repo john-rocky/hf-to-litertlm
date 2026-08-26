@@ -40,7 +40,10 @@ argv = [
     "litert-torch", "export_hf",
     "--model", model,
     "--output_dir", outdir,
-    "--prefill_lengths", "1024,512,256,128,64,32,16,8,4,2,1",
+    # Full 11-length ladder by default; convert.py sets PREFILL_LENGTHS to the
+    # reduced 7-signature ladder for ≥3B models (signature-count RAM law).
+    "--prefill_lengths", os.environ.get("PREFILL_LENGTHS",
+                                        "1024,512,256,128,64,32,16,8,4,2,1"),
     "--cache_length", "4096",
     "--bundle_litert_lm", "True",
     "--use_jinja_template", "True",
