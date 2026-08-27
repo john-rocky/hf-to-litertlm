@@ -15,16 +15,32 @@ class ThinkingChannel {
   const ThinkingChannel(this.start, this.end);
 }
 
+/// One entry of the bundle's declared channel set (manifest 0.1.1+).
+class DeclaredChannel {
+  final String name;
+  final String start;
+  final String end;
+  final bool isReasoning;
+  const DeclaredChannel(this.name, this.start, this.end, {this.isReasoning = false});
+}
+
 class Capabilities {
   final bool vision;
   final bool audio;
   final bool thinkingDeclared;
   final ThinkingChannel? thinkingChannel;
+
+  /// Full bundle-declared channel set (0.1.1+) — thinking, tool-call, or
+  /// anything else a model declares. Empty for 0.1.0 manifests; fall back to
+  /// [thinkingChannel] plus your runtime's default channels.
+  final List<DeclaredChannel> channels;
+
   const Capabilities({
     this.vision = false,
     this.audio = false,
     this.thinkingDeclared = false,
     this.thinkingChannel,
+    this.channels = const [],
   });
 
   factory Capabilities.fromJson(Map<String, dynamic>? j) {
@@ -38,6 +54,15 @@ class Capabilities {
       thinkingChannel: ch == null
           ? null
           : ThinkingChannel(ch['start'] as String? ?? '', ch['end'] as String? ?? ''),
+      channels: ((j['channels'] as List?) ?? const [])
+          .map((e) => e as Map<String, dynamic>)
+          .map((e) => DeclaredChannel(
+                e['name'] as String? ?? '',
+                e['start'] as String? ?? '',
+                e['end'] as String? ?? '',
+                isReasoning: e['is_reasoning'] == true,
+              ))
+          .toList(),
     );
   }
 }
@@ -142,6 +167,11 @@ class LitertlmManifest {
   /// The model's declared thinking markers (exact strings, whitespace included).
   ThinkingChannel? get thinkingMarkers =>
       capabilities.thinkingDeclared ? capabilities.thinkingChannel : null;
+
+  /// The bundle's full declared channel set (manifest 0.1.1+). Empty for
+  /// 0.1.0 manifests — fall back to [thinkingMarkers] plus your runtime's
+  /// default channels.
+  List<DeclaredChannel> get declaredChannels => capabilities.channels;
 
   /// Pick the variant + backend for a device. v0.1 algorithm, deterministic —
   /// identical to the TypeScript reference:

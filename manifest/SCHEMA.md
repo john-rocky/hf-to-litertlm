@@ -65,6 +65,7 @@ is curated and must carry evidence.
 | `context_length` | *(derived)* | bundle `max_num_tokens` |
 | `capabilities.vision` / `.audio` | *(derived)* | from bundle `llm_model_type` |
 | `capabilities.thinking` | *(derived)* | `{declared, channel:{start,end}}` from bundle `channels` |
+| `capabilities.channels` | *(derived, 0.1.1+)* | the bundle's **full** declared channel set, `[{name, start, end, is_reasoning?}]` — the header's `channels` block is a generic named list (a model may declare e.g. tool-call markers there, though nothing shipped today does); `thinking` keeps mirroring the first channel for 0.1.0 readers |
 | `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints). Readers take keys by name and ignore what they don't consume |
 
 ## `variants[]` — one entry per `.litertlm` file
@@ -114,7 +115,9 @@ Every row states its conditions and its provenance; a row without them does not 
 
 `manifest_schema` is semver-style; the current line is `0.1.x`. While the schema is 0.x, the
 minor version is the compatibility line: a 0.1.x release may only add optional fields — nothing
-is removed, renamed, or changed in meaning short of `0.2.0`. Readers should pin a supported
+is removed, renamed, or changed in meaning short of `0.2.0`. `0.1.1` adds
+`model.capabilities.channels[]` (the full bundle channel mirror) and declares
+`session_defaults`' in-the-wild keys; both are optional, so 0.1.0 manifests stay valid. Readers should pin a supported
 range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
 manifest fails validation rather than half-parsing, and both reference readers refuse it at
 parse time.

@@ -4,8 +4,8 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 
 | package | where | status |
 |---|---|---|
-| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 17 tests — fixtures include the real shipped manifests) |
-| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 16 tests against the same fixtures, Dart 3.13) |
+| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 18 tests — fixtures include the real shipped manifests) |
+| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 17 tests against the same fixtures, Dart 3.13) |
 
 ## Usage (TypeScript)
 
@@ -19,6 +19,9 @@ const r = resolve(manifest, { platform: "android", deviceClass: "midrange-2023+"
 // r.thinkingChannel -> the model's exact <think> markers, whitespace included
 // r.sessionDefaults -> e.g. { max_output_tokens_min: 2048 } for reasoning models
 // r.notes    -> platform caveats + known issues to surface to the developer
+
+declaredChannels(manifest); // 0.1.1+: the bundle's full channel set (thinking, tool-call, ...)
+                            // — empty for 0.1.0 manifests; Dart: manifest.declaredChannels
 ```
 
 Dart mirrors the API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 'ios')`.

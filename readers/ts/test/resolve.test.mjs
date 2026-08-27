@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { parseManifest, resolve, thinkingMarkers } from "../dist/index.js";
+import { declaredChannels, parseManifest, resolve, thinkingMarkers } from "../dist/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const examples = join(here, "..", "..", "..", "manifest", "examples");
@@ -90,6 +90,29 @@ test("Qwen session defaults carry the 2048 output budget", () => {
 test("Qwen ios recommendation picks the block-128 file", () => {
   const r = resolve(qwen, { platform: "ios" });
   assert.equal(r.file, "model.litertlm");
+});
+
+test("0.1.1 declared channel set flows through, tool-call included; absent -> empty", () => {
+  const m = parseManifest({
+    manifest_schema: "0.1.1",
+    repo: "test/channels",
+    generated: "2026-08-27",
+    model: {
+      display_name: "Channels",
+      capabilities: {
+        thinking: { declared: true, channel: { start: "<think>", end: "</think>" } },
+        channels: [
+          { name: "thought", start: "<think>", end: "</think>", is_reasoning: true },
+          { name: "tool_call", start: "<tool_call>", end: "</tool_call>" },
+        ],
+      },
+    },
+    variants: [{ file: "a.litertlm", quantization: "q", backends: ["cpu"] }],
+  });
+  const chans = declaredChannels(m);
+  assert.equal(chans.length, 2);
+  assert.equal(chans[1].name, "tool_call");
+  assert.deepEqual(declaredChannels(lfm), []);
 });
 
 test("recommended row naming an unverified backend is ignored", () => {

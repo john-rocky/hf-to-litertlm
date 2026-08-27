@@ -35,6 +35,19 @@
                   "properties": {"start": {"type": "string"}, "end": {"type": "string"}}
                 }
               }
+            },
+            "channels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "start", "end"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "start": {"type": "string"},
+                  "end": {"type": "string"},
+                  "is_reasoning": {"type": "boolean"}
+                }
+              }
             }
           }
         },

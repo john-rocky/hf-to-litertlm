@@ -16,10 +16,20 @@ export interface ThinkingChannel {
   end: string;
 }
 
+/** One entry of the bundle's declared channel set (manifest 0.1.1+). */
+export interface DeclaredChannel {
+  name: string;
+  start: string;
+  end: string;
+  is_reasoning?: boolean;
+}
+
 export interface Capabilities {
   vision?: boolean;
   audio?: boolean;
   thinking?: { declared: boolean; channel?: ThinkingChannel };
+  /** Full bundle-declared channel set (0.1.1+); `thinking` mirrors the first entry. */
+  channels?: DeclaredChannel[];
 }
 
 export interface Recommendation {
@@ -222,4 +232,13 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
 export function thinkingMarkers(manifest: Manifest): ThinkingChannel | undefined {
   const t = manifest.model.capabilities?.thinking;
   return t?.declared ? t.channel : undefined;
+}
+
+/**
+ * The bundle's full declared channel set (manifest 0.1.1+) — thinking,
+ * tool-call, or anything else a model declares. Empty for 0.1.0 manifests;
+ * fall back to thinkingMarkers() plus your runtime's default channels.
+ */
+export function declaredChannels(manifest: Manifest): DeclaredChannel[] {
+  return manifest.model.capabilities?.channels ?? [];
 }

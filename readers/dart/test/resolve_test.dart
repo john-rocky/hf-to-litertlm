@@ -119,6 +119,38 @@ void main() {
     expect(r.file, 'model.litertlm');
   });
 
+  test('0.1.1 declared channel set flows through, tool-call included; absent -> empty', () {
+    final m = LitertlmManifest.fromJson({
+      'manifest_schema': '0.1.1',
+      'repo': 'test/channels',
+      'generated': '2026-08-27',
+      'model': {
+        'display_name': 'Channels',
+        'capabilities': {
+          'thinking': {
+            'declared': true,
+            'channel': {'start': '<think>', 'end': '</think>'},
+          },
+          'channels': [
+            {'name': 'thought', 'start': '<think>', 'end': '</think>', 'is_reasoning': true},
+            {'name': 'tool_call', 'start': '<tool_call>', 'end': '</tool_call>'},
+          ],
+        },
+      },
+      'variants': [
+        {
+          'file': 'a.litertlm',
+          'quantization': 'q',
+          'backends': ['cpu'],
+        },
+      ],
+    });
+    expect(m.declaredChannels.length, 2);
+    expect(m.declaredChannels[1].name, 'tool_call');
+    expect(m.declaredChannels[0].isReasoning, isTrue);
+    expect(lfm.declaredChannels, isEmpty);
+  });
+
   test('recommended row naming an unverified backend is ignored', () {
     final m = LitertlmManifest.fromJson({
       'manifest_schema': '0.1.0',

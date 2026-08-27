@@ -90,6 +90,15 @@ def derive_capabilities(m):
     ch = m.channels[0]
     caps["thinking"] = {"declared": True,
                         "channel": {"start": ch.start, "end": ch.end}}
+    # 0.1.1: mirror the full declared channel set, not just the first one —
+    # a model declaring e.g. non-default tool-call markers flows through.
+    chans = []
+    for c in m.channels:
+      row = {"name": c.channel_name, "start": c.start, "end": c.end}
+      if c.is_reasoning_channel:
+        row["is_reasoning"] = True
+      chans.append(row)
+    caps["channels"] = chans
   else:
     caps["thinking"] = {"declared": False}
   return caps
@@ -176,7 +185,7 @@ def main():
     model["capabilities"] = derive_capabilities(model_meta)
 
   manifest = {
-      "manifest_schema": "0.1.0",
+      "manifest_schema": "0.1.1",
       "repo": args.repo,
       "generated": datetime.date.today().isoformat(),
       "generator": "make_manifest.py",
