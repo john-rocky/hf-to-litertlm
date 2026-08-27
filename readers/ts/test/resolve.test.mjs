@@ -76,3 +76,19 @@ test("identity fields survive", () => {
   assert.match(r.variant.sha256, /^[0-9a-f]{64}$/);
   assert.ok(r.variant.size_bytes > 0);
 });
+
+test("nested variant paths keep their structure in the url", () => {
+  const m = parseManifest({
+    manifest_schema: "0.1.0",
+    repo: "test/nested",
+    generated: "2026-08-27",
+    model: { display_name: "Nested" },
+    variants: [
+      { file: "int4/model v2.litertlm", quantization: "int4", backends: ["cpu"], default_backend: "cpu" },
+    ],
+  });
+  assert.equal(
+    resolve(m).url,
+    "https://huggingface.co/test/nested/resolve/main/int4/model%20v2.litertlm",
+  );
+});

@@ -173,7 +173,9 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
   const caps = manifest.model.capabilities;
   return {
     file: v.file,
-    url: `https://huggingface.co/${manifest.repo}/resolve/main/${encodeURIComponent(v.file)}`,
+    // Encode per path segment so a repo that nests variants in subfolders
+    // (file containing '/') keeps its structure — '%2F' would 404.
+    url: `https://huggingface.co/${manifest.repo}/resolve/main/${v.file.split("/").map(encodeURIComponent).join("/")}`,
     backend: best.backend,
     variant: v,
     sessionDefaults: manifest.model.session_defaults,

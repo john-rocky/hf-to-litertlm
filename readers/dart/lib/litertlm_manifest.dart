@@ -186,7 +186,10 @@ class LitertlmManifest {
     final v = best.variant;
     return Resolution(
       file: v.file,
-      url: 'https://huggingface.co/$repo/resolve/main/${Uri.encodeComponent(v.file)}',
+      // Encode per path segment so a repo that nests variants in subfolders
+      // (file containing '/') keeps its structure — '%2F' would 404.
+      url:
+          'https://huggingface.co/$repo/resolve/main/${v.file.split('/').map(Uri.encodeComponent).join('/')}',
       backend: best.backend,
       variant: v,
       sessionDefaults: sessionDefaults,

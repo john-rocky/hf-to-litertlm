@@ -76,6 +76,27 @@ void main() {
     expect(r.backend, 'cpu');
   });
 
+  test('nested variant paths keep their structure in the url', () {
+    final m = LitertlmManifest.fromJson({
+      'manifest_schema': '0.1.0',
+      'repo': 'test/nested',
+      'generated': '2026-08-27',
+      'model': {'display_name': 'Nested'},
+      'variants': [
+        {
+          'file': 'int4/model v2.litertlm',
+          'quantization': 'int4',
+          'backends': ['cpu'],
+          'default_backend': 'cpu',
+        },
+      ],
+    });
+    expect(
+        m.resolve().url,
+        'https://huggingface.co/test/nested/resolve/main/'
+        'int4/model%20v2.litertlm');
+  });
+
   test('identity fields survive', () {
     final r = lfm.resolve(platform: 'android');
     expect(r.variant.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
