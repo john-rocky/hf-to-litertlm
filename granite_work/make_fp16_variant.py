@@ -13,7 +13,7 @@ variant and ship int8 for mobile.
 Usage: python make_fp16_variant.py in_fp32.litertlm out_fp16.litertlm [--drop-start-token]
 Needs the `litert-lm` CLI and ai-edge-quantizer installed.
 """
-import os, shutil, subprocess, sys, tempfile
+import glob, os, shutil, subprocess, sys, tempfile
 
 LITERT_LM = shutil.which("litert-lm") or sys.exit("litert-lm CLI not on PATH (pip install litert-lm)")
 src, dst = sys.argv[1], sys.argv[2]
@@ -29,7 +29,14 @@ if drop_bos:
     assert s.startswith("start_token {"), "expected a leading start_token block"
     open(meta, "w").write(s.split("}\n", 1)[1])
 
-tfl = os.path.join(unpack, "Section3_TFLiteModel_tf_lite_prefill_decode.tflite")
+# Locate the TFLite section by pattern, not by index: the section number depends
+# on how many sections precede it, so a float export straight out of the
+# exporter (no ExecutorMetadata yet) names it Section2 while a bundle that
+# already carries ExecutorMetadata names it Section3.
+matches = glob.glob(os.path.join(unpack, "Section*_TFLiteModel_*.tflite"))
+if len(matches) != 1:
+    sys.exit(f"expected exactly one TFLiteModel section, found {matches}")
+tfl = matches[0]
 from ai_edge_quantizer import quantizer, recipe_manager, qtyping
 
 rm = recipe_manager.RecipeManager()
