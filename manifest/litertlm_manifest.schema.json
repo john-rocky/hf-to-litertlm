@@ -38,7 +38,16 @@
             }
           }
         },
-        "session_defaults": {"type": "object"}
+        "session_defaults": {
+          "type": "object",
+          "properties": {
+            "max_output_tokens_min": {"type": "integer", "minimum": 1},
+            "notes": {"type": "string"},
+            "temperature": {"type": "number"},
+            "top_k": {"type": "integer", "minimum": 1},
+            "top_p": {"type": "number"}
+          }
+        }
       }
     },
     "variants": {

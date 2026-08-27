@@ -65,7 +65,7 @@ is curated and must carry evidence.
 | `context_length` | *(derived)* | bundle `max_num_tokens` |
 | `capabilities.vision` / `.audio` | *(derived)* | from bundle `llm_model_type` |
 | `capabilities.thinking` | *(derived)* | `{declared, channel:{start,end}}` from bundle `channels` |
-| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer, e.g. `{"max_output_tokens_min": 2048}` for reasoning models |
+| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints). Readers take keys by name and ignore what they don't consume |
 
 ## `variants[]` — one entry per `.litertlm` file
 
