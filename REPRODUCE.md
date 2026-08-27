@@ -889,6 +889,15 @@ python scripts/convert.py tencent/Hy-MT2-1.8B
 byte-equal 654/654 (this repo carries only `chat_template.jinja` — no
 tokenizer_config copy to disagree with).
 
+Published: [litert-community/Hy-MT2-1.8B](https://huggingface.co/litert-community/Hy-MT2-1.8B)
+(2026-08-27; to our knowledge the first Hy-MT2 in LiteRT form — the Hub otherwise carries
+GGUF, MLX and FP8 conversions). Gates on the shipped file: 6/8 on CPU **and** GPU with the
+same two misses, so the drops are a property of this translation-tuned 1.8B, not a backend.
+M4 Max `benchmark -p 256 -d 256 --runs 3 --cache no`: GPU 2008 prefill / 105.8 decode
+tok/s (TTFT 0.14 s, after a ≥300 s rest), CPU 211 / 34.0 (TTFT 1.24 s); both backends
+gated on real generations before quoting. Unlike the Nemotron hybrids, GPU works with the
+default compiled-graph cache on this dense bundle.
+
 **Why stock failed, and why the fix is exact.** The stock export dies in
 `torch.export` with `GuardOnDataDependentSymNode` at transformers'
 `dynamic_frequency_update` (`if seq_len > max_seq_len_cached`). But transformers
