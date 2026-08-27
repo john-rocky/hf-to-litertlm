@@ -418,6 +418,12 @@ Ship verification on the re-converted file: float parity vs HF teacher-forced ac
 
 Published: [litert-community/granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) (fp16 723 MB + int8 436 MB). The 350m initially looked like it had "quantization jitter" (replies ending after a few tokens at some prompt lengths; multi-question prompts answered only at the last question). The actual root cause was **our packaging, not the model or the runtime**: the bundle's `LlmMetadata start_token` makes the engine prepend `<|end_of_text|>` to every prompt, Granite's official chat template has no leading BOS, and at 350M scale that one token flips the greedy trajectory (prepending the same token to the HF reference reproduces the degraded output verbatim — the graph was faithful all along). The 1b is robust to it; the 350m is not.
 
+*Followed up 2026-08-27:* robustness is not fidelity, and the 1b's bundle was
+left carrying that start_token. The audit of all published bundles confirms
+`granite-4.0-h-1b` still prepends `<|end_of_text|>` where the reference stream
+has no BOS at all — the same defect the 350m was fixed for, on a model that
+merely tolerates it better. Same one-command fix (`drop_start_token.py`).
+
 ```bash
 cd granite_work
 PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-350m out_granite_350m
@@ -427,6 +433,49 @@ python make_fp16_variant.py out_granite_350m/model_fp_meta.litertlm granite-4.0-
 ```
 
 Gates on the published files (litert-lm 0.15 CPU, Mac + iPhone 17 Pro): fp16 = 8/8 sanity, greedy output token-identical to the HF fp32 reference on our probes, prompt-length sweep 12–200 clean; int8 = 8/8 sanity, sweep clean except a known 33–37-token band where replies can end early (int8 noise interacting with one prefill chunk shape — fp16 is clean there; documented on the card). On phones ship int8: the CPU runtime unpacks fp16 weights to fp32 in RAM (~3.7 GB peak on iPhone vs ~2.1 GB for int8).
+
+#### The GPU variant, and why the published two are not it
+
+The two files above are CPU files, and the reason is in the graph rather than in the runtime. `transformers`
+writes the Mamba2 SSD contractions as broadcast-multiply-reduce, which materialises rank-5 and rank-6
+intermediates; every mobile GPU delegate refuses tensors above rank 4. Measured on the published lineage,
+`prefill_1024` carries 411 rank-6 and 739 rank-5 tensors, and the Adreno delegate takes 109 of its 3673 ops
+before the engine gives up.
+
+The exporter patch has since rewritten those five contractions as batched matmuls with the chunk and head axes
+folded into the batch axis. Re-exporting on it gives a graph that is rank ≤ 4 everywhere, and one extra
+declaration takes it the rest of the way:
+
+```bash
+cd granite_work
+PYTHONPATH=litert-torch-granite python convert_granite4h.py ibm-granite/granite-4.0-h-350m out_granite_350m
+python drop_start_token.py out_granite_350m/granite-4.0-h-350m_int8.litertlm g350_nobos.litertlm
+python ../scripts/set_activation_type.py g350_nobos.litertlm granite-4.0-h-350m_int8_gpu.litertlm --type fp32
+```
+
+`prefer_activation_type = "fp32"` is not optional at this size. Without it the file still delegates, but int8
+activation noise on the GPU costs real quality and speed — measured on an M4 Max, 5/8 on the 8-question gate
+at 76 tok/s decode, against **8/8 at 148 tok/s** with the declaration. The archive had this recorded as a
+1b-only rescue; that was single-gate evidence and it did not survive re-measurement.
+
+Gate, Galaxy S26 (Adreno), `litert_lm_advanced_main` v0.16.0: **every one of 12 subgraphs fully delegated in a
+single partition, no XNNPack split, correct answer.** 205-token benchmark, n=2: 486 / 484 tok/s prefill,
+48.8 / 47.9 tok/s decode, TTFT 0.48 s, peak VmHWM ~2.13 GB. Engine init is 8.6–9.6 s and is separate from TTFT.
+
+Two things this does **not** fix:
+
+- **fp16 stays CPU-only.** The rank wall is gone from it too, but float-casting `EMBEDDING_LOOKUP` leaves
+  `Empty quantization params` and a `DEQUANTIZE` the delegate will not take — 3326 of 3536 ops, engine refused.
+  The int8 recipe quantizes the same table and delegates. There is no fp16 GPU variant.
+- **The engine-reuse band moves, it does not close.** The published int8 file breaks at chat-templated lengths
+  33–37 when one `Engine` is reused across a growing shared prefix; on the re-export the band is **37–41**. It
+  is the runtime carrying recurrent state across conversations ([LiteRT-LM#3165](https://github.com/google-ai-edge/LiteRT-LM/issues/3165)),
+  not the weights, and a fresh `Engine` per conversation is clean at every length tested either way (35–45 on the re-export;
+  the hermetic probe's template overhead puts its own floor at 18).
+
+The cheapest way to check a re-export before spending device time is to unpack it and histogram tensor ranks
+per subgraph: rank ≥ 5 anywhere in a prefill graph means the delegate will refuse, and no phone is needed to
+know it.
 
 ### granite-4.0-h finetune intake (Tashkeel-350M-v2) — the recipe rides derivatives unchanged
 
@@ -919,13 +968,26 @@ discriminator that decides runs entirely inside the runtime: `[start_token]+rest
 (original bundle, `--no-template`, rendered text minus its BOS string) generates
 byte-identical greedy output to `[template-BOS]+rest` (dropped bundle, normal
 templating) on 3 of 3 probes — same id, same stream, so the default export was
-feeding BOS twice. The start-token guard now drops this shape too
-(`dropped_duplicate_bos`): template renders BOS + tokenizer does not auto-add →
-drop. This supersedes the 2026-08-25 note that the guard's silence on
-BOS-rendering templates reproduced the right choice — that silence kept a double
-BOS. Falcon-H1 and Zamba2 also render BOS in their templates; their bundles are
-unmeasured on this axis, and a re-export under the extended guard will drop their
-start tokens.
+feeding BOS twice. This supersedes the 2026-08-25 note that the guard's silence
+on BOS-rendering templates reproduced the right choice — that silence kept a
+double BOS.
+
+*Corrected 2026-08-27, after auditing all 88 published bundles.* "The template
+renders BOS" is not one shape but two, and only one of them duplicates. The
+engine renders the template with **minijinja, which leaves `bos_token`
+unbound**, so `{{ bos_token }}` renders **empty** on device and only a BOS
+written as a **literal** survives. Read straight out of the runtime:
+`Conversation.render_message_to_string` returns `<start_of_turn>user…` for a
+template whose source begins `{{ bos_token }}`, and the benchmark prefill
+counter reads 16 tokens with a `start_token` against 15 without — one token,
+always prepended. The engine's own `tokenize()` adds no special tokens either,
+so a tokenizer's `add_bos_token` / post-processor never applies on device.
+
+So Hy-MT2 (a literal) really was doubled, but **Falcon-H1 and LFM2.5 write
+`{{ bos_token }}` and are faithful** — their `start_token` supplies the single
+BOS the model expects, and dropping it would ship a bundle with no BOS at all.
+The families that were actually doubled are the ones with a literal BOS at the
+head of the template: Zamba2, SmolVLM2, and Nanbeige (via its affixes).
 
 Honest numbers on the fix: the double-BOS bundle scored 8/8 on the gate; the
 stream-faithful bundle scores 6/8 (misses: "Cool" for opposite-of-hot, "pink" for
@@ -1290,11 +1352,15 @@ Two things this subject taught the intake:
   <|end_of_text|>` and a template that never leads with BOS — the shape from the base
   granite-4.1-3b lesson above. Measured on this subject: prepending that one token flips HF
   bf16 greedy from a correct answer to an endless ``` ``` ``` loop. `convert.py` now runs
-  `ensure_no_spurious_start_token` after every stock export: it drops the metadata
-  start_token when the tokenizer says `add_bos_token: False` *or* bos == eos *and* the chat
-  template's own rendering never starts with BOS. Every other shape is a no-op (bos absent,
-  `add_bos_token: True`, or a template that renders BOS itself). The e2e report records
-  `start_token: dropped_spurious_bos`.
+  `ensure_no_spurious_start_token` after every stock export. *Rewritten 2026-08-27:* it
+  renders the chat template **twice** — once with `bos_token` bound (what transformers
+  serves, the reference) and once with it empty (what minijinja does on device) — and drops
+  the metadata start_token only when `1 + literal-BOS-in-the-device-render` exceeds the
+  reference count. That separates `{{ bos_token }}` from a literal BOS, which the earlier
+  `add_bos_token` / auto-add test conflated in both directions: it would have dropped
+  Falcon-H1's start token (leaving zero BOS) and left Zamba2's genuine duplicate in place.
+  The e2e report records `start_token: dropped_spurious_bos` / `dropped_duplicate_bos` /
+  `kept_matches_reference`, plus the two counts under `start_token_bos`.
 - **The template family fact has its first measured exception.** Every LLM derivative
   measured until now kept the base template byte-for-byte (modulo CRLF re-serialization);
   Mordant *replaces* it with its own 1,474-byte think-form template. The stock path is
@@ -1307,6 +1373,72 @@ Two things this subject taught the intake:
 The reduced 7-signature prefill ladder is now applied to **every ≥3B export**, not just
 hybrids — the dense granite-4.1-3b's own 11-signature iOS Metal kill (documented above) is
 the same signature-memory law the hybrid 4B hit.
+
+### 2026-08-27 — auditing every published bundle's first token, and what the engine really does
+
+The Hy-MT2 double-BOS finding raised an obvious question about everything already
+shipped, so all **88 published `.litertlm` files across 64 repos** were swept. Only the
+header is needed — `LlmMetadata` sits in the first few KB, so two HTTP range requests per
+file read the `start_token` and the embedded template without downloading any weights
+(`make_manifest.py` uses the same pattern). Zero files failed to parse.
+
+**Read the engine, not the output.** The earlier discriminator compared generated text,
+which is why it took three probes to survive int8 coincidence. The runtime exposes the
+answer directly: `Conversation.render_message_to_string` returns the minijinja render
+verbatim, `Engine.tokenize` returns the exact ids, and with `enable_benchmark=True` the
+prefill counter returns the assembled prompt length. Repacking one local bundle's metadata
+three ways settles the mechanics with no generation at all:
+
+| `start_token` | resolves to | prefill tokens |
+|---|---|---|
+| `<bos>` | id 2 | **16** |
+| the string `"None"` | **id 9336, the word `None`** | **16** |
+| absent | — | **15** |
+
+`len(tokenize(render))` is 15 in all three. So: the engine prepends the start token and it
+costs exactly one token; the render it prepends onto **does not contain the BOS** even
+though the template source begins `{{ bos_token }}` — minijinja leaves `bos_token`
+unbound; and `tokenize("hello world")` returns `[23391, 1902]`, so the engine's encode
+adds no special tokens regardless of what the tokenizer's post-processor says. (The
+bundle's own `tokenizer.json` *does* carry a `TemplateProcessing` that would add `<bos>`;
+it is simply not applied.)
+
+The count a bundle actually feeds is therefore `(1 if start_token is the bos) + literal
+BOS at the head of the render`, and the reference it must equal is the same template
+rendered with `bos_token` bound — what transformers serves, since its chat path encodes
+with `add_special_tokens=False`.
+
+**19 of 88 bundles were feeding a first token the model was never trained on**, in three
+shapes:
+
+- **The literal string `"None"` (10 bundles)** — `str(None)` reached the metadata for
+  models whose tokenizer has no BOS at all, and the engine resolves it to a real vocab
+  token. Measured on the published `InternVL3-1B`, the prompt began
+  `['None', '<|im_start|>', 'user', …]`. InternVL3-1B/2B, InternVL3_5-1B/2B/4B,
+  LLaVA-OneVision-0.5B, Mage-VL, Ovis2.5-2B, Qwen2-VL-2B, SmolLM3-3B.
+- **A genuine double BOS (6 bundles)** — the template writes the BOS as a *literal*, so
+  the start token lands on top of it. Measured on the published `SmolVLM2-500M`:
+  `['<|im_start|>', '<|im_start|>', 'User', …]` against a reference of one. Zamba2-1.2B/2.7B,
+  SmolVLM2-500M/2.2B, Nanbeige4.1-3B/4.2-3B.
+- **A BOS where the reference has none (3 bundles)** — granite-4.0-h-1b, Nemotron-H-4B,
+  Phi-4-mini-reasoning. The 350m was fixed for exactly this in August; the 1b was left
+  because it tolerates the token, which is not the same as being faithful to training.
+
+**Falcon-H1, LFM2.5 and gemma-3-270m are clean** — they write `{{ bos_token }}`, which
+renders empty on device, so their start token supplies the one BOS the model expects.
+Dropping it would have shipped a bundle with *no* BOS. Two more read as defects until the
+reference was taken from real token ids rather than declared strings: North-Micro-Vision's
+`start_token: ids[2]` **is** `<BOS_TOKEN>`, and PaddleOCR-VL's canonical head is
+`<|begin_of_sentence|>`, not the `<s>` its config declares.
+
+**The fix is metadata-only.** `drop_start_token.py` unpacks, removes the block, and
+repacks; `section_identity.py` then sha256s every section and requires everything except
+`LlmMetadataProto` to be byte-identical, so no requantization can hide in a repack and the
+card's measured numbers still stand — only the file's own sha256 changes. Nanbeige needs a
+second edit: its affix `system.prefix` is `system\n`, i.e. the leading `<|im_start|>` was
+coming from the start token, so a bare drop fixes the no-system path and breaks the system
+one. Dropping the start token *and* rewriting that prefix to `<|im_start|>system\n` leaves
+the system path's prompt identical (prefill 24 before and after) while fixing the other.
 
 ## Qwen2.5-Coder-1.5B-Instruct — a 1.5B code model at 1.12 GB, and why the size is the recipe
 
