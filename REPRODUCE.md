@@ -874,6 +874,62 @@ no derivative intake here.** The shipped 0.1B-world size has zero Hub derivative
 re-serializations), the architecture is not transformers-native, and its conversion never
 rode this repo's rails — so there is nothing to route until real derivative demand appears.
 
+### 2026-08-27 — Hy-MT2-1.8B intake: one config bake closes the sweep's real gap, and the engine's start_token prepend gets proven
+
+The sweep below left one in-demand family untried with no blocker found:
+`tencent/Hy-MT2-1.8B` (`hunyuan_v1_dense`, 226k downloads, 1.2k likes — a 33-language
+translation model). It now converts with the standard one command:
+
+```bash
+python scripts/convert.py tencent/Hy-MT2-1.8B
+```
+
+`converted_pass`: export 120 s → 1.69 GiB int8 (1,815,622,960 B, 2.04B params), gate
+6/8 non-degenerate (~50 tok/s decode on the verifier's default backend), template
+byte-equal 654/654 (this repo carries only `chat_template.jinja` — no
+tokenizer_config copy to disagree with).
+
+**Why stock failed, and why the fix is exact.** The stock export dies in
+`torch.export` with `GuardOnDataDependentSymNode` at transformers'
+`dynamic_frequency_update` (`if seq_len > max_seq_len_cached`). But transformers
+5.14.1 resolves this family's rope STATICALLY at init — its hunyuan modeling computes
+`base = rope_theta * alpha**(head_dim/(head_dim-2))` once ("DynamicNTKAlphaRotary")
+and never rescales below `max_position_embeddings`. Only the dead growth branch is
+untraceable. `convert.py` therefore bakes the resolved base into `rope_theta`
+(11,158,839.925) and drops `rope_scaling` before export
+(`normalize_static_alpha_rope`). Measured equivalence: `inv_freq` bitwise-equal,
+teacher-forced logits bitwise-equal (max |diff| 0.0). Faithful for all positions
+≤ 262144 — far past the bundle's 4096 context.
+
+**The engine prepends `start_token` unconditionally — proven, not assumed.** This
+family's template renders `<|hy_begin_of_sentence|>` itself and its tokenizer adds no
+BOS at encode time, so the exported metadata `start_token` looked like a double BOS.
+Output-vs-HF comparison could not decide it: int8 greedy divergence coincidentally
+matched the extra-BOS reference on 2 of 3 probes even after the drop. The
+discriminator that decides runs entirely inside the runtime: `[start_token]+rest`
+(original bundle, `--no-template`, rendered text minus its BOS string) generates
+byte-identical greedy output to `[template-BOS]+rest` (dropped bundle, normal
+templating) on 3 of 3 probes — same id, same stream, so the default export was
+feeding BOS twice. The start-token guard now drops this shape too
+(`dropped_duplicate_bos`): template renders BOS + tokenizer does not auto-add →
+drop. This supersedes the 2026-08-25 note that the guard's silence on
+BOS-rendering templates reproduced the right choice — that silence kept a double
+BOS. Falcon-H1 and Zamba2 also render BOS in their templates; their bundles are
+unmeasured on this axis, and a re-export under the extended guard will drop their
+start tokens.
+
+Honest numbers on the fix: the double-BOS bundle scored 8/8 on the gate; the
+stream-faithful bundle scores 6/8 (misses: "Cool" for opposite-of-hot, "pink" for
+the rhyme — noise-level for a translation-tuned 1.8B, no degeneration). The ship
+follows the training stream, not the lucky gate. On the model's actual task,
+runtime greedy matches HF bf16 byte-for-byte on 1 of 3 translation probes; the
+other two are valid alternates of the int8-vs-bf16 class (cross-checked: the
+no-BOS control arm lands on the plain-HF string on one of them).
+
+Trap for the next family: do not diagnose BOS handling by comparing outputs
+against HF arms — quantization noise can mimic the wrong arm. Compare token
+streams inside the runtime (`--no-template` against normal templating).
+
 ### What a 2026 sweep of the phone band actually finds
 
 To keep the coverage claim honest rather than asserted, the ≤4.5B text-generation models
@@ -887,14 +943,15 @@ What is genuinely outside, in demand order, with the reason:
 | model | why it is out |
 |---|---|
 | `sapientinc/HRM-Text-1B` (248k dl) | transformers-native, but hierarchical recurrence (`H_cycles`/`L_cycles`) with `prefix_lm` — not a prefill/decode contract |
-| `tencent/Hy-MT2-1.8B` (226k dl, 1.2k likes) | the one real new-family gap: native `hunyuan_v1_dense`, GQA + qk-norm, dynamic-NTK rope. No blocker found — untried, not refused |
+| ~~`tencent/Hy-MT2-1.8B`~~ | was listed here as "no blocker found — untried"; converted 2026-08-27, see the intake above |
 | `CohereLabs/tiny-aya-*` (55 ft + 55 ad) | the bases are **gated**; the entry gate refuses on principle, not on capability |
 | `ai21labs/AI21-Jamba2-3B` (65k dl) | Mamba-**1** hybrid; the four pinned patches are all Mamba2/SSD, so this needs a new port rather than a recipe |
 | `kakaocorp/kanana-2-*`, `ibm-granite/granite-swash-*` | genuinely remote-code / not yet registered in transformers 5.14.1 |
 | `Zyphra/ZUNA`, `stabilityai/SAME-*` | not transformers-format checkpoints |
 
 Two things this refuted about the previous session's summary: the phone band's gaps are
-**not** only MoE and Gemma (Hy-MT2 and Jamba2 are dense-ish, ungated, and in demand), and
+**not** only MoE and Gemma (Hy-MT2 and Jamba2 were dense-ish, ungated, and in demand;
+Hy-MT2 has since been converted — the intake above — and Jamba2 still stands), and
 one apparent gap — the most-downloaded 2026 model in the whole band — was this converter's
 own false refusal, fixed above. Separately, the MoE boundary is getting load-bearing:
 `facebook/MobileMoE-S/M`, `LFM2.5-8B-A1B`, `ibm-granite/granite-switch-4.1-3b`, and

@@ -43,6 +43,12 @@ architecture handling. It adds only:
      numind/NuExtract3 (4.5B finetune) 8/8 with template byte-equal and
      greedy A/B/C proven.
 
+  5. one source normalization — hunyuan_v1_dense's `rope_scaling` (dynamic +
+     alpha) resolves to a STATIC rope in transformers, but the leftover
+     data-dependent growth branch kills torch.export; the baked-theta
+     snapshot it exports instead is bitwise-equal to the HF reference
+     (measured 2026-08-27, see normalize_static_alpha_rope).
+
 Exit codes: 0 = converted and gate passed, 1 = converted but gate failed,
 2 = refused at the entry gate (see the printed JSON), 3 = harness error.
 Every run writes <out>/convert_report.json with the decisions taken.
@@ -180,6 +186,48 @@ def zamba2_preport_guard(report, cfg):
                "converter downstream of transformers can either",
                "ask the model author to re-serialize: load with transformers <=4.48 "
                "and save_pretrained with >=4.49, then convert the re-serialized repo")
+
+def normalize_static_alpha_rope(report, model_id, cfg, out_dir):
+    """hunyuan_v1_dense ships `rope_scaling: {type: dynamic, alpha: ...}`, but
+    transformers 5.14.1 resolves it STATICALLY at init —
+    modeling_hunyuan_v1_dense ("DynamicNTKAlphaRotary - unique to this model")
+    computes base = rope_theta * alpha**(head_dim/(head_dim-2)) once. The
+    forward still carries the generic @dynamic_rope_update growth branch, and
+    its data-dependent `seq_len > max_seq_len_cached` guard is what kills
+    torch.export (GuardOnDataDependentSymNode on Eq(u0, 1), measured
+    2026-08-27 on tencent/Hy-MT2-1.8B). Baking the resolved base into
+    rope_theta and dropping rope_scaling is bitwise-identical to the HF
+    reference (inv_freq and teacher-forced logits, measured) for all
+    seq_len <= max_position_embeddings — the dropped branch only fires past
+    that, far beyond any bundle context. Returns a local hub-format dir whose
+    config carries the baked value; everything else symlinks into the HF
+    cache."""
+    from huggingface_hub import snapshot_download
+    snap = Path(snapshot_download(model_id, ignore_patterns=["*.png", "*.jpg", "train/*"]))
+    norm = out_dir / "rope_normalized_src"
+    norm.mkdir(parents=True, exist_ok=True)
+    for f in snap.iterdir():
+        if f.name == "config.json" or f.is_dir():
+            continue
+        dst = norm / f.name
+        if not dst.exists():
+            dst.symlink_to(f.resolve())
+    dim = cfg["head_dim"]
+    baked = cfg["rope_theta"] * cfg["rope_scaling"]["alpha"] ** (dim / (dim - 2))
+    norm_cfg = {k: v for k, v in cfg.items() if k != "rope_scaling"}
+    norm_cfg["rope_theta"] = baked
+    (norm / "config.json").write_text(json.dumps(norm_cfg, indent=1))
+    report["decisions"]["rope_normalization"] = {
+        "from": dict(cfg["rope_scaling"]),
+        "baked_rope_theta": baked,
+        "faithful_up_to": cfg.get("max_position_embeddings"),
+    }
+    print(f"NOTE: rope_scaling type=dynamic alpha={cfg['rope_scaling']['alpha']} "
+          f"resolves statically in transformers — baked rope_theta={baked:.6g} and "
+          "dropped the untraceable growth branch (bitwise-equal below "
+          f"{cfg.get('max_position_embeddings')} positions)")
+    return norm
+
 
 # State-carrying hybrids whose stock export succeeds on the RELEASED litert-torch
 # (the lfm2 model_ext ships since 0.9.1) but whose 0.9.3 bundling emits no
@@ -358,15 +406,25 @@ def convert_via_recipe(report, recipe, export_src, out_dir, args):
 
 def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
     """Post-export guard: the bundling writes LlmMetadata start_token from
-    tokenizer.bos_token without consulting add_bos_token or the chat template.
-    When the template's own rendering never leads with BOS and the tokenizer
-    says add_bos_token: False — or bos == eos, granite's shape, where the
-    prepended token reads as 'this document already ended' — the engine feeds
-    a token stream the model never saw in training. Measured on the base
-    granite-4.1-3b: 8/8 -> 5/8 with echo-the-question failures that look
-    exactly like quantization damage; measured on granite-4.0-h-350m and its
-    Tashkeel derivative: greedy flips to garbage. No-op for every other shape
-    (bos None, add_bos_token True, or a template that renders BOS itself)."""
+    tokenizer.bos_token without consulting add_bos_token or the chat template,
+    and the engine prepends that start_token to every rendered prompt
+    unconditionally (proved inside the runtime 2026-08-27 on Hy-MT2-1.8B:
+    [start_token]+rest and [template-BOS]+rest generate byte-identical greedy
+    output — same id, so a template that renders BOS itself gets it TWICE).
+    Two measured shapes therefore feed a stream the model never saw:
+      - the template never leads with BOS and the tokenizer says
+        add_bos_token: False — or bos == eos, granite's shape, where the
+        prepended token reads as 'this document already ended'. Measured on
+        granite-4.1-3b: 8/8 -> 5/8 with echo-the-question failures; on
+        granite-4.0-h-350m and its Tashkeel derivative greedy flips to garbage.
+      - the template DOES lead with BOS and the tokenizer does not auto-add
+        one at encode time: the engine's start_token lands on top of the
+        template's, double-BOS. Measured on Hy-MT2-1.8B: greedy matches the
+        HF reference with an extra BOS (2 of 3 translation probes diverge
+        from the true stream); dropping the start token restores it.
+    No-op when bos is None, or when the tokenizer auto-adds BOS at encode
+    time (with a template that also renders it, an unmeasured shape left
+    alone; without, the start_token reproduces the training stream)."""
     import os
     from transformers import AutoTokenizer
 
@@ -375,15 +433,24 @@ def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
         return
     add_bos = getattr(tok, "add_bos_token", None)
     bos_eq_eos = tok.bos_token_id is not None and tok.bos_token_id == tok.eos_token_id
-    if add_bos is not False and not bos_eq_eos:
-        return
     try:
         rendered = tok.apply_chat_template([{"role": "user", "content": "x"}],
                                            tokenize=False, add_generation_prompt=True)
-        if rendered.startswith(tok.bos_token):
-            return  # the template leads with BOS on purpose
     except Exception:
-        pass
+        rendered = None
+    if rendered and rendered.startswith(tok.bos_token):
+        enc = tok("x").input_ids
+        if enc and enc[0] == tok.bos_token_id:
+            return  # tokenizer ALSO auto-adds — unmeasured shape, leave alone
+        decision = "dropped_duplicate_bos"
+        note = ("start-token guard: dropped (the template renders BOS itself "
+                "and the engine prepends start_token on top of it)")
+    else:
+        if add_bos is not False and not bos_eq_eos:
+            return
+        decision = "dropped_spurious_bos"
+        note = ("start-token guard: dropped (template never leads with BOS and "
+                "add_bos_token is False / bos == eos)")
     cli = resolve_litert_lm_cli()
     env = dict(os.environ)
     if cli:
@@ -394,9 +461,8 @@ def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
          str(bundle), str(dropped)], env=env, text=True, capture_output=True)
     if proc.returncode == 0:
         dropped.replace(bundle)
-        report["decisions"]["start_token"] = "dropped_spurious_bos"
-        print("start-token guard: dropped (template never leads with BOS and "
-              "add_bos_token is False / bos == eos)")
+        report["decisions"]["start_token"] = decision
+        print(note)
     elif "no leading start_token" in (proc.stdout + proc.stderr):
         # setdefault, not assignment: on the recipe path a family that already
         # dropped its start token must keep saying "dropped", not "absent"
@@ -635,7 +701,7 @@ def main():
                "accept the terms on huggingface.co and retry with a token")
 
     files = {s.rfilename for s in (info.siblings or [])}
-    merged_dir = base_info = gate_backend = None
+    merged_dir = base_info = gate_backend = normalized_dir = None
     if "adapter_config.json" in files:
         merged_dir, base_info, gate_backend = merge_adapter_first(
             report, args.model, files, out_dir, api)
@@ -668,6 +734,10 @@ def main():
         gate_backend = hybrid_gate_backend(report, cfg)
         if cfg.get("model_type") == "zamba2":
             zamba2_preport_guard(report, cfg)
+        rope = cfg.get("rope_scaling") or {}
+        if (cfg.get("model_type") == "hunyuan_v1_dense" and cfg.get("head_dim")
+                and rope.get("type") == "dynamic" and rope.get("alpha")):
+            normalized_dir = normalize_static_alpha_rope(report, args.model, cfg, out_dir)
 
     # ---------------- opt-ins ----------------
     params = getattr(getattr(base_info or info, "safetensors", None), "total", None)
@@ -713,7 +783,7 @@ def main():
               "on the first message")
 
     # ---------------- export (stock, or family recipe) ----------------
-    export_src = str(merged_dir) if merged_dir else args.model
+    export_src = str(merged_dir or normalized_dir or args.model)
     recipe = HYBRID_RECIPE.get(report["decisions"].get("model_type"))
     if recipe:
         gate_backend = "cpu"
@@ -781,6 +851,9 @@ def main():
     if merged_dir and not args.keep_merged:
         shutil.rmtree(merged_dir, ignore_errors=True)
         print(f"removed temporary merged dir {merged_dir} (--keep-merged retains it)")
+    if normalized_dir and not args.keep_merged:
+        shutil.rmtree(normalized_dir, ignore_errors=True)
+        print(f"removed temporary rope-normalized dir {normalized_dir} (--keep-merged retains it)")
     write_report(report)
     print(f"{report['status']}: {bundle} ({report['bundle_bytes']:,} B); "
           f"report: {out_dir / 'convert_report.json'}")
