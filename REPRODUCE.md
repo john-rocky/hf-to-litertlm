@@ -801,14 +801,35 @@ Derivative intake: `scripts/convert.py` routes `model_type: nemotron_h` through 
 like the other pinned families. The 4B above still has no real derivative, but the family
 gained a **new base** in 2026 — `nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16` (3.4M downloads,
 19 finetunes + 14 adapters, the most-downloaded ≤4B model released in 2026 by a wide margin)
-— and it rides the same recipe unchanged. Measured 2026-08-26, one command, no new patch:
+— and it rides the same recipe unchanged. Measured 2026-08-26, one command, no new patch.
+Published: [litert-community/Nemotron-3-Nano-4B](https://huggingface.co/litert-community/Nemotron-3-Nano-4B)
+(2026-08-27; to our knowledge the first Nemotron-3-Nano in LiteRT form — the Hub otherwise
+carries only GGUF conversions).
 
 ```bash
 python scripts/convert.py nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16
+# ship step (as for the 4B above): declare fp32 activations so the GPU executor keeps range
+python scripts/set_activation_type.py out/.../NVIDIA-Nemotron-3-Nano-4B-BF16_int8.litertlm \
+    Nemotron-3-Nano-4B_int8.litertlm --type fp32
 ```
 
 export 1645 s → 3.84 GiB int8 (4,126,697,184 B), 50 state buffers (42 mamba conv+SSM,
-8 KV), **CPU gate 7/8 PASS**, decode ~28 tok/s on the Mac. Chat template embedded
+8 KV; 21 mamba + 17 MLP + 4 GQA layers). Gates on the **shipped file**: **CPU 7/8 PASS**
+(the one miss is the rhyme item — "violets are purple"), **GPU 8/8** with `--cache no`.
+M4 Max `benchmark -p 256 -d 256 --runs 3`: GPU 696 prefill / 74.5 decode tok/s,
+CPU 395 / 28.4.
+
+**GPU on this bundle needs `--cache no`** — one-variable measurement, same runner and file
+with only the cache flag flipped: with the compiled-graph cache, `litert-lm run --backend
+gpu` dies on WebGPU `Invalid BindGroup` validation errors and the 8-question sweep through
+`litert-mac-verify` returns token soup (0/8); with `--cache no` the same file answers 8/8.
+The cache path is where it goes wrong; the root cause is not isolated further. Note the
+exit gate calls `litert-mac-verify`, which has no cache flag — so a routed `convert.py`
+run gates this family on CPU and a green CPU gate says nothing about GPU here. The sibling
+4B's card documents the same `--cache no` invocation, so treat it as a family-level caveat
+rather than a property of this checkpoint.
+
+Chat template embedded
 **byte-equal** to the repo's `chat_template.jinja` (10,504/10,504 — note the repo's
 `tokenizer_config.json` copy is a *different* 10,497-byte string; the exporter embeds the
 one `AutoTokenizer` actually resolves). Reasoning model: ChatML turns, `<think>`,
