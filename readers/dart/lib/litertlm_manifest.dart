@@ -131,47 +131,63 @@ class LitertlmManifest {
   /// Pick the variant + backend for a device. v0.1 algorithm, deterministic —
   /// identical to the TypeScript reference:
   ///
-  /// 1. A variant with a `recommended` entry matching [platform] wins; matching
-  ///    [deviceClass] too ranks higher. The recommendation's backend is used
-  ///    unless the caller requested one the variant also lists.
-  /// 2. Otherwise a variant listing the requested [backend] wins.
-  /// 3. Otherwise the smallest variant (by size_bytes), on its default_backend
-  ///    (else "cpu").
+  /// 1. An explicit [backend] request is a filter, not a score: only variants
+  ///    listing it compete, the result keeps that backend, and resolve()
+  ///    returns null when no variant lists it — it never substitutes another
+  ///    backend.
+  /// 2. A variant with a `recommended` entry matching [platform] wins;
+  ///    matching [deviceClass] too ranks higher. When a backend was requested,
+  ///    only recommendations naming that backend count.
+  /// 3. Otherwise the smallest variant (by size_bytes), on the requested
+  ///    backend (else its default_backend, else the first listed backend).
   ///
   /// Ties break toward the smaller file. Never returns a backend absent from
   /// the variant's verified `backends` list — recommendations naming an
   /// unlisted backend are ignored.
-  Resolution resolve({String? platform, String? backend, String? deviceClass}) {
-    _Scored best = _Scored(variants.first, 'cpu', -1, 'fallback: first variant');
+  Resolution? resolve({String? platform, String? backend, String? deviceClass}) {
+    final candidates = backend != null
+        ? variants.where((v) => v.backends.contains(backend)).toList()
+        : variants;
+    if (candidates.isEmpty) return null;
+
     final scored = <_Scored>[];
-    for (final v in variants) {
+    for (final v in candidates) {
       var score = 0;
-      String? chosen;
-      var reason = 'fallback: first variant';
+      String? chosen = backend;
+      var reason = backend != null
+          ? 'supports requested backend $backend'
+          : 'fallback: smallest variant';
       if (platform != null && v.recommended.isNotEmpty) {
         final recs = v.recommended
-            .where((r) => r.platform == platform && v.backends.contains(r.backend))
+            .where((r) =>
+                r.platform == platform &&
+                v.backends.contains(r.backend) &&
+                (backend == null || r.backend == backend))
             .toList();
         Recommendation? classRec;
         if (deviceClass != null) {
           for (final r in recs) {
-            if (r.deviceClass == deviceClass) classRec = r;
+            if (r.deviceClass == deviceClass) {
+              classRec = r;
+              break;
+            }
           }
         }
-        final rec = classRec ?? (recs.isNotEmpty ? recs.first : null);
+        Recommendation? classFree;
+        for (final r in recs) {
+          if (r.deviceClass == null || deviceClass == null) {
+            classFree = r;
+            break;
+          }
+        }
+        final rec = classRec ?? classFree ?? (recs.isNotEmpty ? recs.first : null);
         if (rec != null) {
           score = classRec != null ? 300 : 200;
-          chosen = rec.backend;
+          chosen = backend ?? rec.backend;
           reason = 'recommended for $platform'
               '${classRec != null ? "/$deviceClass" : ""}: ${rec.reason ?? ""}';
         }
       }
-      if (score == 0 && backend != null && v.backends.contains(backend)) {
-        score = 100;
-        chosen = backend;
-        reason = 'supports requested backend $backend';
-      }
-      if (backend != null && v.backends.contains(backend)) chosen = backend;
       chosen ??= (v.defaultBackend != null && v.backends.contains(v.defaultBackend))
           ? v.defaultBackend!
           : (v.backends.isNotEmpty ? v.backends.first : 'cpu');
@@ -182,7 +198,7 @@ class LitertlmManifest {
       if (s != 0) return s;
       return (a.variant.sizeBytes ?? 1 << 62).compareTo(b.variant.sizeBytes ?? 1 << 62);
     });
-    best = scored.first;
+    final best = scored.first;
     final v = best.variant;
     return Resolution(
       file: v.file,

@@ -83,6 +83,10 @@ is curated and must carry evidence.
 | `known_issues[]` | curated | short, factual, with upstream links where they exist |
 | `sections` | *(derived)* | bundle section table: type, size, `model_type`, `backend_constraint` |
 
+**Resolution rule:** an explicitly requested backend is a *filter*, not a preference — a resolver
+only considers variants listing it, and reports failure (`null`) rather than substituting a backend
+the caller didn't ask for.
+
 ## `measured[]` rows — the honesty rules
 
 Every row states its conditions and its provenance; a row without them does not go in.

@@ -80,7 +80,10 @@ export interface Manifest {
 
 export interface ResolveOptions {
   platform?: Platform;
-  /** Caller's backend preference; the resolver never picks a backend the variant doesn't list. */
+  /**
+   * Explicit backend request. A filter, not a preference: only variants listing
+   * it are considered, and resolve() returns null when none does.
+   */
   backend?: Backend;
   deviceClass?: string;
 }
@@ -130,37 +133,42 @@ interface Scored {
 /**
  * Pick the variant + backend for a device. v0.1 algorithm, deterministic:
  *
- * 1. A variant with a `recommended` entry matching the requested platform wins;
- *    matching device_class too ranks higher. The recommendation's backend is used
- *    unless the caller requested one the variant also lists.
- * 2. Otherwise a variant listing the requested backend wins.
- * 3. Otherwise the smallest variant (by size_bytes), on its default_backend (else "cpu").
+ * 1. An explicit `backend` request is a filter, not a score: only variants
+ *    listing it compete, the result keeps that backend, and resolve() returns
+ *    null when no variant lists it — it never substitutes another backend.
+ * 2. A variant with a `recommended` entry matching the requested platform wins;
+ *    matching device_class too ranks higher. When a backend was requested,
+ *    only recommendations naming that backend count.
+ * 3. Otherwise the smallest variant (by size_bytes), on the requested backend
+ *    (else its default_backend, else the first listed backend).
  *
  * Ties break toward the smaller file. The resolver never returns a backend
  * absent from the variant's verified `backends` list — recommendations naming
  * an unlisted backend are ignored.
  */
-export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resolution {
-  const scored: Scored[] = manifest.variants.map((v) => {
+export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resolution | null {
+  const requested = opts.backend;
+  const candidates = requested
+    ? manifest.variants.filter((v) => v.backends.includes(requested))
+    : manifest.variants;
+  if (candidates.length === 0) return null;
+
+  const scored: Scored[] = candidates.map((v) => {
     let score = 0;
-    let backend: Backend | undefined;
-    let reason = "fallback: first variant";
+    let backend: Backend | undefined = requested;
+    let reason = requested ? `supports requested backend ${requested}` : "fallback: smallest variant";
     if (opts.platform && v.recommended) {
-      const recs = v.recommended.filter((r) => r.platform === opts.platform && v.backends.includes(r.backend));
+      const recs = v.recommended.filter(
+        (r) => r.platform === opts.platform && v.backends.includes(r.backend) && (!requested || r.backend === requested),
+      );
       const classRec = opts.deviceClass ? recs.find((r) => r.device_class === opts.deviceClass) : undefined;
       const rec = classRec ?? recs.find((r) => !r.device_class || !opts.deviceClass) ?? recs[0];
       if (rec) {
         score = classRec ? 300 : 200;
-        backend = rec.backend;
+        backend = requested ?? rec.backend;
         reason = `recommended for ${opts.platform}${classRec ? `/${opts.deviceClass}` : ""}: ${rec.reason ?? ""}`.trim();
       }
     }
-    if (score === 0 && opts.backend && v.backends.includes(opts.backend)) {
-      score = 100;
-      backend = opts.backend;
-      reason = `supports requested backend ${opts.backend}`;
-    }
-    if (opts.backend && v.backends.includes(opts.backend)) backend = opts.backend;
     if (!backend) backend = v.default_backend && v.backends.includes(v.default_backend) ? v.default_backend : v.backends[0] ?? "cpu";
     return { variant: v, backend, score, reason };
   });

@@ -25,9 +25,9 @@ Dart mirrors the API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 
 
 ## The v0.1 resolution algorithm (identical in both readers)
 
-1. A variant with a `recommended` entry matching the requested platform wins; matching `device_class` too ranks higher. The recommendation's backend is used unless the caller requested one the variant also lists.
-2. Otherwise a variant listing the requested backend wins.
-3. Otherwise the first variant, on its `default_backend` (else `cpu`).
+1. An explicit `backend` request is a **filter**, not a score: only variants listing it compete, the result keeps that backend, and resolution returns `null` when no variant lists it — never a substitute backend.
+2. A variant with a `recommended` entry matching the requested platform wins; matching `device_class` too ranks higher. When a backend was requested, only recommendations naming that backend count.
+3. Otherwise the smallest variant (by `size_bytes`), on the requested backend (else its `default_backend`, else the first listed backend).
 
 Ties break toward the smaller file. The resolver never returns a backend absent from the variant's verified `backends` list — that list means *verified to generate*, not merely to load — and a recommendation naming an unlisted backend is ignored.
 

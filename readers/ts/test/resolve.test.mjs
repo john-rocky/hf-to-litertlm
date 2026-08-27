@@ -21,10 +21,31 @@ test("LFM ios -> cpu, never Metal", () => {
   assert.equal(r.backend, "cpu");
 });
 
-test("LFM requested backend outside variant's verified list is never returned", () => {
+test("LFM explicit gpu request survives the variant pick (android has a cpu-variant recommendation too)", () => {
+  const r = resolve(lfm, { platform: "android", backend: "gpu" });
+  assert.equal(r.file, "LFM2.5-1.2B-Instruct_int4_gpu.litertlm");
+  assert.equal(r.backend, "gpu");
+});
+
+test("LFM explicit backend wins over the platform recommendation; caveats surface in notes", () => {
   const r = resolve(lfm, { platform: "ios", backend: "gpu" });
-  assert.notEqual(r.backend === "gpu" && !r.variant.backends.includes("gpu"), true);
+  assert.equal(r.file, "LFM2.5-1.2B-Instruct_int4_gpu.litertlm");
+  assert.equal(r.backend, "gpu");
   assert.ok(r.variant.backends.includes(r.backend));
+  assert.ok(r.notes.some((n) => /Metal/.test(n)));
+});
+
+test("LFM explicit backend counts only recommendations naming it", () => {
+  // _int4_gpu carries a macos/gpu recommendation; for a cpu request the
+  // macos/cpu-recommended int8 must win, not the gpu file on cpu.
+  const r = resolve(lfm, { platform: "macos", backend: "cpu" });
+  assert.equal(r.file, "LFM2.5-1.2B-Instruct_int8.litertlm");
+  assert.equal(r.backend, "cpu");
+});
+
+test("LFM backend no variant lists resolves to null, never a substitute", () => {
+  assert.equal(resolve(lfm, { backend: "npu" }), null);
+  assert.equal(resolve(lfm, { platform: "android", backend: "npu" }), null);
 });
 
 test("LFM gpu-only request without platform picks a gpu-capable variant", () => {

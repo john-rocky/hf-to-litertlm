@@ -16,23 +16,43 @@ void main() {
   final qwen = load('litert-community__Qwen3-4B-Thinking-2507.json');
 
   test('LFM android midrange -> GPU re-export on gpu', () {
-    final r = lfm.resolve(platform: 'android', deviceClass: 'midrange-2023+');
+    final r = lfm.resolve(platform: 'android', deviceClass: 'midrange-2023+')!;
     expect(r.file, 'LFM2.5-1.2B-Instruct_int4_gpu.litertlm');
     expect(r.backend, 'gpu');
   });
 
   test('LFM ios -> cpu, never Metal', () {
-    final r = lfm.resolve(platform: 'ios');
+    final r = lfm.resolve(platform: 'ios')!;
     expect(r.backend, 'cpu');
   });
 
-  test('resolved backend is always in the verified backends list', () {
-    final r = lfm.resolve(platform: 'ios', backend: 'gpu');
+  test('explicit gpu request survives the variant pick', () {
+    final r = lfm.resolve(platform: 'android', backend: 'gpu')!;
+    expect(r.file, 'LFM2.5-1.2B-Instruct_int4_gpu.litertlm');
+    expect(r.backend, 'gpu');
+  });
+
+  test('explicit backend wins over the platform recommendation; caveats surface in notes', () {
+    final r = lfm.resolve(platform: 'ios', backend: 'gpu')!;
+    expect(r.file, 'LFM2.5-1.2B-Instruct_int4_gpu.litertlm');
+    expect(r.backend, 'gpu');
     expect(r.variant.backends, contains(r.backend));
+    expect(r.notes.any((n) => n.contains('Metal')), isTrue);
+  });
+
+  test('explicit backend counts only recommendations naming it', () {
+    final r = lfm.resolve(platform: 'macos', backend: 'cpu')!;
+    expect(r.file, 'LFM2.5-1.2B-Instruct_int8.litertlm');
+    expect(r.backend, 'cpu');
+  });
+
+  test('backend no variant lists resolves to null, never a substitute', () {
+    expect(lfm.resolve(backend: 'npu'), isNull);
+    expect(lfm.resolve(platform: 'android', backend: 'npu'), isNull);
   });
 
   test('gpu-only request picks a gpu-capable variant', () {
-    final r = lfm.resolve(backend: 'gpu');
+    final r = lfm.resolve(backend: 'gpu')!;
     expect(r.file, 'LFM2.5-1.2B-Instruct_int4_gpu.litertlm');
     expect(r.backend, 'gpu');
   });
@@ -45,12 +65,12 @@ void main() {
   });
 
   test('Qwen session defaults carry the 2048 output budget', () {
-    final r = qwen.resolve(platform: 'macos');
+    final r = qwen.resolve(platform: 'macos')!;
     expect(r.sessionDefaults?['max_output_tokens_min'], 2048);
   });
 
   test('Qwen ios recommendation picks the block-128 file', () {
-    final r = qwen.resolve(platform: 'ios');
+    final r = qwen.resolve(platform: 'ios')!;
     expect(r.file, 'model.litertlm');
   });
 
@@ -72,7 +92,7 @@ void main() {
         },
       ],
     });
-    final r = m.resolve(platform: 'android');
+    final r = m.resolve(platform: 'android')!;
     expect(r.backend, 'cpu');
   });
 
@@ -92,13 +112,13 @@ void main() {
       ],
     });
     expect(
-        m.resolve().url,
+        m.resolve()!.url,
         'https://huggingface.co/test/nested/resolve/main/'
         'int4/model%20v2.litertlm');
   });
 
   test('identity fields survive', () {
-    final r = lfm.resolve(platform: 'android');
+    final r = lfm.resolve(platform: 'android')!;
     expect(r.variant.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
     expect(r.variant.sizeBytes, greaterThan(0));
   });
