@@ -1,6 +1,6 @@
 name: litertlm_manifest
 description: Reference reader for litertlm_manifest.json — pick the right .litertlm file, backend, and settings for a device.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/john-rocky/hf-to-litertlm
 homepage: https://github.com/john-rocky/hf-to-litertlm/tree/main/readers/dart
 

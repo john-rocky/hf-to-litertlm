@@ -4,8 +4,8 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 
 | package | where | status |
 |---|---|---|
-| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 10 tests — fixtures include the real shipped manifests) |
-| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 9 tests against the same fixtures, Dart 3.13) |
+| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | tested (`npm test`, 17 tests — fixtures include the real shipped manifests) |
+| `litertlm_manifest` (Dart) | [`dart/`](dart/) | tested (`dart test`, 16 tests against the same fixtures, Dart 3.13) |
 
 ## Usage (TypeScript)
 
@@ -30,6 +30,8 @@ Dart mirrors the API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 
 3. Otherwise the smallest variant (by `size_bytes`), on the requested backend (else its `default_backend`, else the first listed backend).
 
 Ties break toward the smaller file. The resolver never returns a backend absent from the variant's verified `backends` list — that list means *verified to generate*, not merely to load — and a recommendation naming an unlisted backend is ignored.
+
+Two more contract points: `parseManifest` rejects a variant with an empty `backends` list (the schema's `minItems: 1`), so a resolver can never invent an unverified pick; and resolution URLs follow the revision the manifest was fetched at (`fetchManifest(repo, rev)` in TS, `LitertlmManifest.fromJson(json, revision: rev)` in Dart, both overridable per resolve call) instead of hardcoding `main`.
 
 ## Live manifests to test against
 

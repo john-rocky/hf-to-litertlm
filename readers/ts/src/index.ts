@@ -65,6 +65,11 @@ export interface Manifest {
   manifest_schema: string;
   repo: string;
   generated: string;
+  /**
+   * Not part of the file: the revision the manifest was fetched at, stamped by
+   * fetchManifest() so resolve() URLs follow a pinned fetch. Defaults to "main".
+   */
+  revision?: string;
   model: {
     display_name: string;
     base_model?: string;
@@ -86,6 +91,8 @@ export interface ResolveOptions {
    */
   backend?: Backend;
   deviceClass?: string;
+  /** Repo revision for the download URL; overrides the manifest's fetched revision (default "main"). */
+  revision?: string;
 }
 
 export interface Resolution {
@@ -112,15 +119,22 @@ export function parseManifest(input: string | object): Manifest {
   if (!/^0\.1\./.test(m.manifest_schema)) {
     throw new Error(`unsupported manifest_schema ${m.manifest_schema} (reader supports 0.1.x)`);
   }
+  for (const v of m.variants) {
+    if (!Array.isArray(v.backends) || v.backends.length === 0) {
+      throw new Error(`variant ${v?.file ?? "?"} lists no backends (schema requires minItems: 1)`);
+    }
+  }
   return m;
 }
 
-/** Fetch <repo>'s manifest from the Hugging Face Hub. */
+/** Fetch <repo>'s manifest from the Hugging Face Hub. resolve() URLs follow the revision fetched here. */
 export async function fetchManifest(repo: string, revision = "main"): Promise<Manifest> {
-  const url = `https://huggingface.co/${repo}/resolve/${revision}/litertlm_manifest.json`;
+  const url = `https://huggingface.co/${repo}/resolve/${encodeURIComponent(revision)}/litertlm_manifest.json`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`no litertlm_manifest.json at ${url} (HTTP ${res.status})`);
-  return parseManifest(await res.text());
+  const m = parseManifest(await res.text());
+  m.revision = revision;
+  return m;
 }
 
 interface Scored {
@@ -166,7 +180,11 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
       if (rec) {
         score = classRec ? 300 : 200;
         backend = requested ?? rec.backend;
-        reason = `recommended for ${opts.platform}${classRec ? `/${opts.deviceClass}` : ""}: ${rec.reason ?? ""}`.trim();
+        const classNote =
+          !classRec && opts.deviceClass && rec.device_class
+            ? ` (no ${opts.deviceClass} entry; using the ${rec.device_class} recommendation)`
+            : "";
+        reason = `recommended for ${opts.platform}${classRec ? `/${opts.deviceClass}` : ""}${classNote}: ${rec.reason ?? ""}`.trim();
       }
     }
     if (!backend) backend = v.default_backend && v.backends.includes(v.default_backend) ? v.default_backend : v.backends[0] ?? "cpu";
@@ -179,11 +197,12 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
   const best = scored[0];
   const v = best.variant;
   const caps = manifest.model.capabilities;
+  const revision = encodeURIComponent(opts.revision ?? manifest.revision ?? "main");
   return {
     file: v.file,
     // Encode per path segment so a repo that nests variants in subfolders
     // (file containing '/') keeps its structure — '%2F' would 404.
-    url: `https://huggingface.co/${manifest.repo}/resolve/main/${v.file.split("/").map(encodeURIComponent).join("/")}`,
+    url: `https://huggingface.co/${manifest.repo}/resolve/${revision}/${v.file.split("/").map(encodeURIComponent).join("/")}`,
     backend: best.backend,
     variant: v,
     sessionDefaults: manifest.model.session_defaults,

@@ -13,4 +13,6 @@ r.thinkingChannel; // the model's exact <think> markers, whitespace included
 r.sessionDefaults; // e.g. { max_output_tokens_min: 2048 }
 ```
 
+`resolve()` returns `null` when an explicitly requested backend is not listed by any variant — it never substitutes a backend you did not ask for.
+
 Spec and schema: https://github.com/john-rocky/hf-to-litertlm/blob/main/manifest/SCHEMA.md

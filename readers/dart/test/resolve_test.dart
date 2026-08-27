@@ -57,6 +57,51 @@ void main() {
     expect(r.backend, 'gpu');
   });
 
+  test('deviceClass with no matching entry falls back with a note in reason', () {
+    final r = lfm.resolve(platform: 'android', deviceClass: 'budget-2019')!;
+    expect(r.reason, contains('no budget-2019 entry; using the midrange recommendation'));
+  });
+
+  test('resolution URLs follow the fetched revision', () {
+    final base = {
+      'manifest_schema': '0.1.0',
+      'repo': 'test/rev',
+      'generated': '2026-08-27',
+      'model': {'display_name': 'Rev'},
+      'variants': [
+        {
+          'file': 'a.litertlm',
+          'quantization': 'q',
+          'backends': ['cpu'],
+        },
+      ],
+    };
+    final pinned = LitertlmManifest.fromJson(base, revision: 'abc123');
+    expect(pinned.resolve()!.url, contains('/resolve/abc123/'));
+    expect(pinned.resolve(revision: 'deadbeef')!.url, contains('/resolve/deadbeef/'));
+    expect(lfm.resolve()!.url, contains('/resolve/main/'));
+  });
+
+  test('parse rejects a variant with no backends (schema minItems: 1)', () {
+    Map<String, dynamic> withVariants(List<Map<String, dynamic>> vs) => {
+          'manifest_schema': '0.1.0',
+          'repo': 't/x',
+          'generated': '2026-08-27',
+          'model': {'display_name': 'X'},
+          'variants': vs,
+        };
+    expect(
+        () => LitertlmManifest.fromJson(withVariants([
+              {'file': 'a.litertlm', 'quantization': 'q', 'backends': <String>[]},
+            ])),
+        throwsFormatException);
+    expect(
+        () => LitertlmManifest.fromJson(withVariants([
+              {'file': 'a.litertlm', 'quantization': 'q'},
+            ])),
+        throwsFormatException);
+  });
+
   test('Qwen thinking markers keep exact whitespace', () {
     final t = qwen.thinkingMarkers;
     expect(t, isNotNull);

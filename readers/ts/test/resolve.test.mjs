@@ -54,6 +54,29 @@ test("LFM gpu-only request without platform picks a gpu-capable variant", () => 
   assert.equal(r.backend, "gpu");
 });
 
+test("deviceClass with no matching entry falls back with a note in reason", () => {
+  const r = resolve(lfm, { platform: "android", deviceClass: "budget-2019" });
+  assert.match(r.reason, /no budget-2019 entry; using the midrange recommendation/);
+});
+
+test("resolution URLs follow the fetched revision", () => {
+  assert.ok(resolve({ ...lfm, revision: "abc123" }, {}).url.includes("/resolve/abc123/"));
+  assert.ok(resolve(lfm, { revision: "deadbeef" }).url.includes("/resolve/deadbeef/"));
+  assert.ok(resolve(lfm, {}).url.includes("/resolve/main/"));
+});
+
+test("parse rejects a variant with no backends (schema minItems: 1)", () => {
+  const base = { manifest_schema: "0.1.0", repo: "t/x", generated: "2026-08-27", model: { display_name: "X" } };
+  assert.throws(
+    () => parseManifest({ ...base, variants: [{ file: "a.litertlm", quantization: "q", backends: [] }] }),
+    /no backends/,
+  );
+  assert.throws(
+    () => parseManifest({ ...base, variants: [{ file: "a.litertlm", quantization: "q" }] }),
+    /no backends/,
+  );
+});
+
 test("Qwen thinking markers keep exact whitespace", () => {
   const t = thinkingMarkers(qwen);
   assert.deepEqual(t, { start: "<think>\n", end: "\n</think>" });

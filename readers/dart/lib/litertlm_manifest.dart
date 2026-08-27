@@ -75,7 +75,7 @@ class Variant {
         sha256 = j['sha256'] as String?,
         sizeBytes = j['size_bytes'] as int?,
         quantization = j['quantization'] as String? ?? '',
-        backends = (j['backends'] as List?)?.cast<String>() ?? const ['cpu'],
+        backends = _requireBackends(j),
         defaultBackend = j['default_backend'] as String?,
         minRuntimeVersion = j['min_runtime_version'] as String?,
         recommended = ((j['recommended'] as List?) ?? const [])
@@ -87,6 +87,15 @@ class Variant {
             const [],
         knownIssues = (j['known_issues'] as List?)?.cast<String>() ?? const [],
         raw = j;
+
+  static List<String> _requireBackends(Map<String, dynamic> j) {
+    final b = (j['backends'] as List?)?.cast<String>();
+    if (b == null || b.isEmpty) {
+      throw FormatException(
+          'variant ${j['file']} lists no backends (schema requires minItems: 1)');
+    }
+    return b;
+  }
 }
 
 class LitertlmManifest {
@@ -98,10 +107,15 @@ class LitertlmManifest {
   final Map<String, dynamic>? sessionDefaults;
   final List<Variant> variants;
 
-  LitertlmManifest._(this.schemaVersion, this.repo, this.displayName, this.contextLength,
-      this.capabilities, this.sessionDefaults, this.variants);
+  /// Not part of the file: the revision the manifest was fetched at (the app
+  /// does its own HTTP), so resolve() URLs follow a pinned fetch. Defaults to
+  /// "main".
+  final String? revision;
 
-  factory LitertlmManifest.fromJson(dynamic input) {
+  LitertlmManifest._(this.schemaVersion, this.repo, this.displayName, this.contextLength,
+      this.capabilities, this.sessionDefaults, this.variants, this.revision);
+
+  factory LitertlmManifest.fromJson(dynamic input, {String? revision}) {
     final m = (input is String ? jsonDecode(input) : input) as Map<String, dynamic>;
     final schema = m['manifest_schema'] as String?;
     final vs = m['variants'] as List?;
@@ -121,6 +135,7 @@ class LitertlmManifest {
       Capabilities.fromJson(model['capabilities'] as Map<String, dynamic>?),
       model['session_defaults'] as Map<String, dynamic>?,
       vs.map((e) => Variant.fromJson(e as Map<String, dynamic>)).toList(),
+      revision,
     );
   }
 
@@ -144,7 +159,8 @@ class LitertlmManifest {
   /// Ties break toward the smaller file. Never returns a backend absent from
   /// the variant's verified `backends` list — recommendations naming an
   /// unlisted backend are ignored.
-  Resolution? resolve({String? platform, String? backend, String? deviceClass}) {
+  Resolution? resolve(
+      {String? platform, String? backend, String? deviceClass, String? revision}) {
     final candidates = backend != null
         ? variants.where((v) => v.backends.contains(backend)).toList()
         : variants;
@@ -184,8 +200,11 @@ class LitertlmManifest {
         if (rec != null) {
           score = classRec != null ? 300 : 200;
           chosen = backend ?? rec.backend;
+          final classNote = classRec == null && deviceClass != null && rec.deviceClass != null
+              ? ' (no $deviceClass entry; using the ${rec.deviceClass} recommendation)'
+              : '';
           reason = 'recommended for $platform'
-              '${classRec != null ? "/$deviceClass" : ""}: ${rec.reason ?? ""}';
+              '${classRec != null ? "/$deviceClass" : ""}$classNote: ${rec.reason ?? ""}';
         }
       }
       chosen ??= (v.defaultBackend != null && v.backends.contains(v.defaultBackend))
@@ -200,12 +219,13 @@ class LitertlmManifest {
     });
     final best = scored.first;
     final v = best.variant;
+    final rev = Uri.encodeComponent(revision ?? this.revision ?? 'main');
     return Resolution(
       file: v.file,
       // Encode per path segment so a repo that nests variants in subfolders
       // (file containing '/') keeps its structure — '%2F' would 404.
       url:
-          'https://huggingface.co/$repo/resolve/main/${v.file.split('/').map(Uri.encodeComponent).join('/')}',
+          'https://huggingface.co/$repo/resolve/$rev/${v.file.split('/').map(Uri.encodeComponent).join('/')}',
       backend: best.backend,
       variant: v,
       sessionDefaults: sessionDefaults,
