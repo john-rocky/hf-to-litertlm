@@ -52,6 +52,34 @@ int4 min-max (no OCTAV) + int8 embedding. **Env:** `FORCE_SPM` (BPE→SP tokeniz
 | `fastcontext-4b` | microsoft/FastContext-1.0-4B-SFT | chatml_simple | BOCTAV4 | EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/FastContext-1.0-4B-SFT |
 | `nanbeige4.1-3b` | Nanbeige/Nanbeige4.1-3B | chatml_simple | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Nanbeige4.1-3B |
 | `nanbeige4.2-3b` | Nanbeige/Nanbeige4.2-3B | chatml_think | BOCTAV4 | FORCE_SPM, EXTERNALIZE_EMBEDDER, CACHE=4096; dedicated `convert_nanbeige42.py` (looped transformer: 22 shared-weight layers ×2 loops → 44 KV slots) | litert-community/Nanbeige4.2-3B |
+
+#### Nanbeige4.2 on a GPU: one TOML line, and it is not the graph
+
+`Nanbeige4.2-3B` shipped CPU-only because its GPU output was a flood of `<unk>` on every backend tried. The
+graph was never the problem — it delegates in full, 4716 of 4716 ops, on Adreno and on Metal alike. What
+breaks is the **activation dtype**: at fp16 the unrolled loop's second pass reads the graph input instead of
+the first pass's output, so the model computes from nothing. Declaring fp32 activations fixes it with the
+weights untouched:
+
+```bash
+python scripts/set_activation_type.py model.litertlm model_fp32act.litertlm --type fp32
+```
+
+Published as `model_fp32act.litertlm` alongside the original. Measured the same day on the same machines:
+Apple M4 Max Metal 409 tok/s prefill and 39.7 decode against 57 and 12.9 on CPU — a GPU win both ways; on a
+Galaxy S26 the GPU decodes at 3.9 tok/s against the CPU's 3.45, a wash, with the GPU's only clear advantage
+being peak memory (2590 MB against 4152 MB).
+
+Two traps this lane paid for, both worth copying:
+
+- **`litert-lm benchmark` reports throughput for a backend that produced no text.** The published card carried
+  556 / 52.6 tok/s for the file that emits `<unk>`; the number is real and meaningless. Confirm generation
+  before quoting any figure.
+- **Neither file starts on an iPhone 17 Pro** at a 512-token budget under an 8-question on-device harness: the
+  GPU leg fails at state-buffer allocation and the CPU leg is killed by the OS after engine init. Both fail
+  identically, so fp32 activations are not the cause — a 3B at this cache size does not fit that app's budget.
+  A smaller cache or a lower token budget may well succeed; this is one configuration, not a verdict on the
+  device.
 | `olmo2-1b` | allenai/OLMo-2-0425-1B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096 | mlboydaisuke/OLMo-2-1B-Instruct-LiteRT |
 | `olmo2-7b` | allenai/OLMo-2-1124-7B-Instruct | olmo2_simple | BOCTAV4 | CACHE=4096, EXTERNALIZE_EMBEDDER | *(desktop-only, not published — >2 GiB section)* |
 | `polaris-4b` | POLARIS-Project/Polaris-4B-Preview | qwen3_think | BOCTAV4_128 | **FORCE_SPM**, EXTERNALIZE_EMBEDDER, CACHE=4096 | litert-community/Polaris-4B-Preview |
