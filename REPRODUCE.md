@@ -668,6 +668,23 @@ The 1.5B-Deep variant takes the same one command as well. It is the deepest shap
 
 On an iPhone 17 Pro the Deep answers the composite probe **8/8 on GPU and 8/8 on CPU**, word for word identical apart from one function word: Metal decode 16.5 tok/s / prefill 140.3 / TTFT 1.19 s / 4.89 GB peak (CPU: 9.9 / 103.2 / 1.53 s / 1.74 GB). All 264 state buffers and the full ladder load with room to spare — depth costs nothing on the device side. Budget about a minute for GPU engine creation (8 s on CPU): every prefill signature's Metal kernels are built up front.
 
+### 2026-08-27 — Qwen3.5-4B Mixed INT4: the block size is the only knob that matters
+
+Requested in [LiteRT-LM #1658](https://github.com/google-ai-edge/LiteRT-LM/issues/1658) for 8 GB Android phones: the int8 file is 4.10 GB and cannot fit; a Mixed INT4 build is 2.57 GB. Two commands on top of the recipe above (same pinned base + patch, same float export):
+
+```bash
+QWEN35_PREFILL_LADDER=1024,256,64,16,4,1 PYTHONPATH=litert-torch-qwen35 \
+  python convert_qwen35_hybrid.py Qwen/Qwen3.5-4B out_qwen35_4b   # float export (reuse if you have it)
+python make_int4_4b.py out_qwen35_4b/model.litertlm out_qwen35_4b b32   # -> Qwen3.5-4B_mixed_int4_b32.litertlm
+```
+
+`make_int4_4b.py` (this directory) applies `minicpm5_work/quantize_minicpm5.py` post-hoc — int4 **blockwise-32 min-max** on every FULLY_CONNECTED, overridden to int8 channelwise on the lm_head and embedding lookup — then the same template/stop-token/ExecutorMetadata/fp32act steps as the int8 ship. Two things worth copying from how this was chosen:
+
+- **Pick the block size by measurement, not by family habit.** All four candidates (b32/b128 × min-max/OCTAV) were built from the *same* float export and scored on GSM8K n=100, greedy, 2048-token budget, identical harness: int8 control 97, **b32 min-max 93**, b32 OCTAV 92, b128 min-max 90, b128 OCTAV 90. OCTAV bought nothing here; blockwise-128 (the faster-decode habit from dense 4B ships) costs 3 more points on this hybrid. And on today's runtime the iPhone decode gap between b32 and b128 has vanished (11.4 vs 11.9 tok/s Metal) — the historical reason to prefer b128 no longer holds on this rail.
+- **Budget ≥2048 tokens when you score a Qwen3.5 on GSM8K, even with thinking disabled.** At 512 the model's verbose step-by-step runs past the budget before the `#### N` line and the extractor grabs stray numbers — it reads as a quantization collapse and is actually truncation (measured: the same questions come back correct at 2048).
+
+Ship verification (all on the shipped file): 8-question gate **8/8 on CPU and GPU on both litert-lm 0.15.0 and 0.16.0**; prompt-length robustness, fresh engine per length, 40/40 CPU + 20/20 GPU; iPhone 17 Pro answers the composite 8-question probe **8/8 on both Metal and CPU** (the int8 file's CPU path answers 6 of 8 on this probe) — Metal decode 11.4 tok/s / prefill 88.7 / TTFT 1.89 s / 5.74 GB peak, CPU 8.9 / 46.7 / 3.12 s / 1.68 GB. Mac M4 Max (`-p 256 -d 256 --runs 3 --cache no`, 0.16.0): GPU 669 / 68.5 tok/s, CPU 100 / 20.1. Honest limits: the GSM8K gap vs int8 is real (93 vs 97); Mac CPU prefill is ~2.4× slower than int8's (int4 unpack cost — decode is equal or faster everywhere); and we have not yet run it on an actual 8 GB Android phone — the 2.57 GB file + ~1.7 GB CPU working set is the sizing evidence, measured on iPhone.
+
 ### Falcon-H1 finetune intake — one command, and a gate refusal worth reading
 
 `scripts/convert.py` routes `model_type: falcon_h1` to this recipe the same way as granite
