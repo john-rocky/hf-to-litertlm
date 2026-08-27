@@ -1266,6 +1266,34 @@ CACHE=4096 python scripts/export_internvl_decoder.py src_models/shieldstral-3b-t
 DEC=out_decoder VIS=out_vision python shieldstral_work/vision/build_shieldstral_bundle.py
 ```
 
+#### The vision bundle needs a different exporter flag than the text one
+
+The published `Shieldstral-1.0-3B-vision_int4.litertlm` does not load on a mobile GPU: the delegate takes 52
+of 1187 ops on `prefill_2048` and the engine is refused, on `STABLEHLO_COMPOSITE: odml.softmax`. The text
+bundles are unaffected — and the difference is not the vision tower, it is which exporter each lane used.
+litert-torch 0.9.2 marks the attention softmax as an `odml.softmax` composite unconditionally, and
+litert-converter 0.3.0 has no lowering for it. `scripts/export_simple_template.py` carries an env-gated strip
+for exactly this; `scripts/export_internvl_decoder.py`, which the vision lane calls, does not.
+
+Two ways out. The strip is one. The better one needs no source change: **litert-converter 0.3.1 lowers the
+composite natively**, so re-exporting the decoder on it produces a builtin `SOFTMAX` and an otherwise
+identical graph.
+
+```bash
+CACHE=4096 PREFILL=2048,1024,512,256,128,64,32,16,8,4,2,1 RECIPE=BOCTAV4 \
+  python scripts/export_internvl_decoder.py src_models/shieldstral-3b-text out_decoder   # on a 0.3.1 venv
+DEC=out_decoder VIS=out_vision python shieldstral_work/vision/build_shieldstral_bundle.py
+```
+
+⚠ The `PREFILL=` and `RECIPE=` above are not optional. The exporter defaults to `128,512`, which does not
+reproduce the shipped bundle — its largest subgraph is `prefill_2048`.
+
+Check the result without a device: the re-exported decoder's subgraphs should be 1187 ops for `prefill_2048`
+through `prefill_2`, 1058 for `prefill_1` and 1087 for `decode` — identical, one for one, to the text sibling
+that already delegates in full. A whole-file scan should find zero `odml.softmax`; the ~2660 `odml.rms_norm`
+occurrences stay, and are not a blocker. On a Galaxy S26 the rebundled file then delegates 15202 of 15202 ops
+across all 13 subgraphs, the same numbers as the text file.
+
 ⚠ **The position ids must keep indexing the trained grid.** They are `h * max_width + w` with `max_width = config.image_size // patch_size` (110 here) — substituting the *new* grid width silently re-indexes the rope table and the output stays plausible.
 
 ⚠ **The token expansion does not fit the runtime's injection contract as-is.** Pixtral expands one `[IMG]` into a grid of image tokens with `[IMG_BREAK]` ending every row and one `[IMG_END]` at the end, and those markers keep their ordinary *text* embeddings — but the runtime injects one contiguous block at the soft-token position. The escape is to fold the marker embeddings into the adapter: they are constant rows of the decoder's embedding table, so the adapter emits the full block (a `cat` with a constant column — no gather, no dynamic shape). Verify against `inputs_embeds` for the same image.
