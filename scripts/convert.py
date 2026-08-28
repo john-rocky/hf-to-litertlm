@@ -404,53 +404,102 @@ def convert_via_recipe(report, recipe, export_src, out_dir, args):
     return bundle
 
 
+def _render_template(source, bos, msgs):
+    """Render a chat template the way a given consumer binds `bos_token`.
+
+    `{% generation %}` is a transformers-only tag (assistant masking) that
+    emits nothing, so dropping it leaves the rendered text unchanged.
+    """
+    import jinja2
+
+    env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True,
+                             extensions=["jinja2.ext.loopcontrols"])
+    env.globals["raise_exception"] = lambda m: (_ for _ in ()).throw(RuntimeError(m))
+    env.globals["strftime_now"] = lambda f: "01 Jan 2026"
+    source = re.sub(r"\{%-?\s*(end)?generation\s*-?%\}", "", source)
+    return env.from_string(source).render(messages=msgs, add_generation_prompt=True,
+                                          bos_token=bos, eos_token="", tools=None)
+
+
+def _leading(text, token):
+    """How many times `token` repeats at the very start of `text`."""
+    n = 0
+    while token and text.startswith(token):
+        text = text[len(token):]
+        n += 1
+    return n
+
+
 def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
     """Post-export guard: the bundling writes LlmMetadata start_token from
     tokenizer.bos_token without consulting add_bos_token or the chat template,
-    and the engine prepends that start_token to every rendered prompt
-    unconditionally (proved inside the runtime 2026-08-27 on Hy-MT2-1.8B:
-    [start_token]+rest and [template-BOS]+rest generate byte-identical greedy
-    output — same id, so a template that renders BOS itself gets it TWICE).
-    Two measured shapes therefore feed a stream the model never saw:
-      - the template never leads with BOS and the tokenizer says
-        add_bos_token: False — or bos == eos, granite's shape, where the
-        prepended token reads as 'this document already ended'. Measured on
-        granite-4.1-3b: 8/8 -> 5/8 with echo-the-question failures; on
-        granite-4.0-h-350m and its Tashkeel derivative greedy flips to garbage.
-      - the template DOES lead with BOS and the tokenizer does not auto-add
-        one at encode time: the engine's start_token lands on top of the
-        template's, double-BOS. Measured on Hy-MT2-1.8B: greedy matches the
-        HF reference with an extra BOS (2 of 3 translation probes diverge
-        from the true stream); dropping the start token restores it.
-    No-op when bos is None, or when the tokenizer auto-adds BOS at encode
-    time (with a template that also renders it, an unmeasured shape left
-    alone; without, the start_token reproduces the training stream)."""
+    and the engine prepends that start_token to every rendered prompt.
+
+    Everything below is measured on the runtime itself (2026-08-27 audit of all
+    88 published bundles, reports/bos_audit_20260827.md in the source repo):
+
+      R1  the assembled prompt is [start_token] + tokenize(render), the start
+          token contributing exactly ONE token (prefill 16 vs 15 with/without).
+      R2  the engine renders the template with minijinja, which leaves
+          `bos_token` UNBOUND — `{{ bos_token }}` renders EMPTY. Only a BOS
+          written as a LITERAL in the template survives into the prompt.
+      R3  the engine's own encode adds no special tokens, so the tokenizer's
+          add_bos_token / post-processor never applies on device.
+
+    So the count the model actually receives is
+
+        (1 if start_token is the bos) + literal BOS at the head of the render
+
+    and the reference it should equal is what transformers serves, which is the
+    same template with `bos_token` BOUND (the chat path encodes with
+    add_special_tokens=False, so add_bos_token does not enter there either).
+
+    Rendering the template twice — bos bound and bos empty — separates the two
+    shapes that used to be conflated:
+      - `{{ bos_token }}` (Falcon-H1, LFM2.5, gemma): the renders differ, the
+        engine contributes nothing, the start_token supplies the single BOS.
+        KEEP — dropping it would ship a bundle with no BOS at all.
+      - a literal BOS (Hy-MT2, Zamba2, SmolVLM2): the renders are identical,
+        the template supplies one and the start_token a second. DROP.
+      - no BOS anywhere upstream (granite, Nemotron-H, Phi-4): reference 0,
+        bundle 1. DROP.
+    """
     import os
     from transformers import AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(tokenizer_src)
     if tok.bos_token is None:
         return
-    add_bos = getattr(tok, "add_bos_token", None)
-    bos_eq_eos = tok.bos_token_id is not None and tok.bos_token_id == tok.eos_token_id
+    bos = tok.bos_token
+    msgs = [{"role": "user", "content": "x"}]
+    source = getattr(tok, "chat_template", None)
     try:
-        rendered = tok.apply_chat_template([{"role": "user", "content": "x"}],
-                                           tokenize=False, add_generation_prompt=True)
-    except Exception:
-        rendered = None
-    if rendered and rendered.startswith(tok.bos_token):
-        enc = tok("x").input_ids
-        if enc and enc[0] == tok.bos_token_id:
-            return  # tokenizer ALSO auto-adds — unmeasured shape, leave alone
-        decision = "dropped_duplicate_bos"
-        note = ("start-token guard: dropped (the template renders BOS itself "
-                "and the engine prepends start_token on top of it)")
-    else:
-        if add_bos is not False and not bos_eq_eos:
-            return
-        decision = "dropped_spurious_bos"
-        note = ("start-token guard: dropped (template never leads with BOS and "
-                "add_bos_token is False / bos == eos)")
+        reference = _render_template(source, bos, msgs) if source else None
+        runtime = _render_template(source, "", msgs) if source else None
+    except Exception as e:
+        reference = runtime = None
+        report["decisions"]["start_token_guard"] = f"unverified ({type(e).__name__})"
+    if reference is None or runtime is None:
+        print("start-token guard: template did not render — left alone")
+        return
+
+    want = _leading(reference, bos)          # what the model was served
+    from_template = _leading(runtime, bos)   # what the engine's render supplies
+    have = from_template + 1                 # + the metadata start_token (R1)
+    report["decisions"]["start_token_bos"] = {"reference": want, "bundle": have}
+    if have == want:
+        report["decisions"].setdefault("start_token", "kept_matches_reference")
+        print(f"start-token guard: kept (BOS count {have} matches the reference)")
+        return
+    if have < want:
+        # Cannot happen while a start_token exists and the template renders the
+        # BOS as a literal; surfaced rather than silently shipped.
+        fail(f"start-token guard: bundle would feed {have} BOS but the reference "
+             f"has {want} — the template renders BOS through a variable and no "
+             f"start_token supplies it")
+    decision = ("dropped_duplicate_bos" if want >= 1 else "dropped_spurious_bos")
+    note = (f"start-token guard: dropped (bundle would feed {have} leading BOS, "
+            f"the reference has {want})")
     cli = resolve_litert_lm_cli()
     env = dict(os.environ)
     if cli:
