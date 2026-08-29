@@ -77,6 +77,23 @@ test("parse rejects a variant with no backends (schema minItems: 1)", () => {
   );
 });
 
+test("parse checks string-list elements eagerly: a non-string in backends, platform_notes or known_issues fails at parse", () => {
+  const withVariant = (v) => ({
+    manifest_schema: "0.1.0",
+    repo: "t/x",
+    generated: "2026-08-29",
+    model: { display_name: "X" },
+    variants: [v],
+  });
+  for (const v of [
+    { file: "a.litertlm", quantization: "q", backends: ["cpu", 42] },
+    { file: "a.litertlm", quantization: "q", backends: ["cpu"], requirements: { platform_notes: ["ok", 42] } },
+    { file: "a.litertlm", quantization: "q", backends: ["cpu"], known_issues: ["ok", 42] },
+  ]) {
+    assert.throws(() => parseManifest(withVariant(v)), /must be a list of strings/, JSON.stringify(v));
+  }
+});
+
 test("Qwen thinking markers keep exact whitespace", () => {
   const t = thinkingMarkers(qwen);
   assert.deepEqual(t, { start: "<think>\n", end: "\n</think>" });

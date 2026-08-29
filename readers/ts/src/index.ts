@@ -133,6 +133,18 @@ export function parseManifest(input: string | object): Manifest {
     if (!Array.isArray(v.backends) || v.backends.length === 0) {
       throw new Error(`variant ${v?.file ?? "?"} lists no backends (schema requires minItems: 1)`);
     }
+    // String lists are checked here, at parse, so a wrong-typed element fails
+    // before it can reach a resolve() result (same rule as the Dart reader).
+    const lists: [string, unknown][] = [
+      ["backends", v.backends],
+      ["requirements.platform_notes", v.requirements?.platform_notes],
+      ["known_issues", v.known_issues],
+    ];
+    for (const [name, list] of lists) {
+      if (list !== undefined && (!Array.isArray(list) || list.some((s) => typeof s !== "string"))) {
+        throw new Error(`variant ${v?.file ?? "?"}: ${name} must be a list of strings`);
+      }
+    }
   }
   return m;
 }

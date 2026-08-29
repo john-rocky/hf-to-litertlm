@@ -102,6 +102,35 @@ void main() {
         throwsFormatException);
   });
 
+  test('parse checks string-list elements eagerly: a non-string in backends, '
+      'platform_notes or known_issues fails at parse, not inside resolve()', () {
+    Map<String, dynamic> withVariant(Map<String, dynamic> v) => {
+          'manifest_schema': '0.1.0',
+          'repo': 't/x',
+          'generated': '2026-08-29',
+          'model': {'display_name': 'X'},
+          'variants': [v],
+        };
+    for (final v in <Map<String, dynamic>>[
+      {'file': 'a.litertlm', 'quantization': 'q', 'backends': ['cpu', 42]},
+      {
+        'file': 'a.litertlm',
+        'quantization': 'q',
+        'backends': ['cpu'],
+        'requirements': {'platform_notes': ['ok', 42]},
+      },
+      {
+        'file': 'a.litertlm',
+        'quantization': 'q',
+        'backends': ['cpu'],
+        'known_issues': ['ok', 42],
+      },
+    ]) {
+      expect(() => LitertlmManifest.fromJson(withVariant(v)), throwsA(isA<TypeError>()),
+          reason: jsonEncode(v));
+    }
+  });
+
   test('Qwen thinking markers keep exact whitespace', () {
     final t = qwen.thinkingMarkers;
     expect(t, isNotNull);

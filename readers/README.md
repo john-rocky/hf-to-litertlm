@@ -34,7 +34,7 @@ Dart mirrors the API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 
 
 Ties break toward the smaller file. The resolver never returns a backend absent from the variant's verified `backends` list — that list means *verified to generate*, not merely to load — and a recommendation naming an unlisted backend is ignored.
 
-Two more contract points: `parseManifest` rejects a variant with an empty `backends` list (the schema's `minItems: 1`), so a resolver can never invent an unverified pick; and resolution URLs follow the revision the manifest was fetched at (`fetchManifest(repo, rev)` in TS, `LitertlmManifest.fromJson(json, revision: rev)` in Dart, both overridable per resolve call) instead of hardcoding `main`.
+Two more contract points: `parseManifest` rejects a variant with an empty `backends` list (the schema's `minItems: 1`), so a resolver can never invent an unverified pick — and it checks the string lists (`backends`, `requirements.platform_notes`, `known_issues`) element by element, so a wrong-typed manifest fails at parse rather than inside `resolve()`; and resolution URLs follow the revision the manifest was fetched at (`fetchManifest(repo, rev)` in TS, `LitertlmManifest.fromJson(json, revision: rev)` in Dart, both overridable per resolve call) instead of hardcoding `main`.
 
 ## Live manifests to test against
 
