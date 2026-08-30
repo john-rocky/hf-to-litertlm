@@ -12,6 +12,7 @@ piece is pad/eos). Nothing here needs a `.litertlm` bundle or LiteRT-LM.
 | `fix_candidate_lib.py` | a patched copy of the lib: the 256 byte-level tokens become `<0xXX>` BYTE pieces with `byte_fallback` on, only the tokenizer's own `unk_token` is typed UNKNOWN (a dedicated `<unk>` is appended when there is none), specials stay USER_DEFINED. Changes are marked `# FIX`. |
 | `fix_candidate_test.py` | converts with the original lib and with the patch, then counts mismatches against the HF tokenizer over the probes, the 223 standalone characters U+00A1–U+017F and every added token. Output: `fix_candidate_test.out`, `fix_candidate_results.json`. |
 | `probes.py` | the shared probe strings. |
+| `swap_tokenizer_section.py` | repairs an already-built `.litertlm`: replaces only its tokenizer section with an HF `tokenizer.json` (`litert-lm unpack` → edit `model.toml` → `litert-lm pack`) and checks every other section stayed byte-identical. `python swap_tokenizer_section.py in.litertlm tokenizer.json out.litertlm` |
 
 ## Run
 
