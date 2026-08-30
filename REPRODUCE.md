@@ -14,6 +14,22 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## 2026-08-30 — tokenizer section re-ship (17 files, weights unchanged)
+
+An audit of every published `.litertlm` (91 files) against the upstream tokenizers found that the 14 bundles whose tokenizer was a SentencePiece conversion of a byte-level BPE vocabulary (litert-torch `tokenizer_to_sentencepiece_lib`, our `FORCE_SPM` recipe) mis-tokenize standalone accented/special characters, turn characters without a whole-character piece (emoji, most of Latin Extended-A) into the token the conversion had reused as UNK, and — for `SmolLM3-3B.litertlm` — never match `<|im_end|>` in the prompt (reported upstream as [litert-torch #1205](https://github.com/google-ai-edge/litert-torch/issues/1205); repro and a measured converter patch in [`tools/tokenizer_parity/`](tools/tokenizer_parity/)). Two OLMo-2 bundles carried a re-serialized `tokenizer.json` with the GPT-2 default pre-tokenizer instead of the model's regex, and PaddleOCR-VL's vendor SentencePiece model typed `</s>` as a control symbol the template writes as text.
+
+**Fix = replace only the tokenizer section**, everything else byte-identical (checked per section):
+
+```
+# SP-converted bundles and OLMo-2: embed the upstream tokenizer.json (HF tokenizer path)
+python tools/tokenizer_parity/swap_tokenizer_section.py in.litertlm <upstream>/tokenizer.json out.litertlm
+# PaddleOCR-VL: retype the CONTROL-typed added tokens of the vendor .spiece as USER_DEFINED, then repack
+```
+
+Gate on the LiteRT-LM runtime (0.16.1, CPU), old file vs new file: default turn, 7 probe strings, the 223 standalone characters U+00A1–U+017F and every special token tokenize identically to the upstream tokenizer; prefill token count equals the upstream count; the ASCII-only test questions whose ids do not change answer byte-identically old→new; VLM bundles caption an image. Files: InternVL3-1B/2B, InternVL3_5-1B/2B/4B, LLaVA-OneVision-0.5B, Mage-VL, Ministral-3-3B-Reasoning-2512, Ovis2.5-2B, Polaris-4B-Preview, Qwen2-VL-2B, SmolLM3-3B (`SmolLM3-3B.litertlm`), SmolVLM2-2.2B/500M, PaddleOCR-VL-1.6, OLMo-2-1B-Instruct (litert-community and mlboydaisuke). On-device rows on the cards were measured on the previous files; the runtime's tokenizer code is the same on macOS and on device, and the weights and graph are byte-identical.
+
+**Recipe change going forward:** `FORCE_SPM` is retired for byte-level BPE vocabularies — export with the HF tokenizer path (the default), or, if a SentencePiece section is required, convert with `tools/tokenizer_parity/fix_candidate_lib.py` and gate the built bundle with `engine.tokenize` parity on specials, accented characters and emoji.
+
 ## Running the converted models on-device (Android)
 
 - **[docs/android-npu.md](docs/android-npu.md)** — Qualcomm NPU (HTP) with on-device JIT
