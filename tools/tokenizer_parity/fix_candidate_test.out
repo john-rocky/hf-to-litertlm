@@ -1,0 +1,80 @@
+### HuggingFaceTB/SmolLM3-3B [original] load=ok pieces=128256 unk=[(128012, '<|im_end|>')] byte_pieces=0 byte_fallback=False
+    probes identical 2/7 {'latin1_s24': False, 'digits': False, 'text_en': True, 'text_eu': False, 'text_world': True, 'emoji': False, 'code': False}
+    sweep mismatch 198/223  sweep->UNK 71  specials split ['<|im_end|>'] (1)
+      '<|im_end|>'     hf=[128012] sp=[27, 91, 318, 6345, 91, 29] MISMATCH
+      '<|endoftext|>'  hf=[27, 91, 8862, 728, 428, 91, 29] sp=[27, 91, 8862, 728, 428, 91, 29] OK
+      'é'              hf=[978] sp=[165] MISMATCH
+      '·'              hf=[14260] sp=[115] MISMATCH
+      'Łódź'           hf=[129, 223, 21151, 40611] sp=[253, 21151, 40611] MISMATCH
+      '😀'              hf=[76460, 222] sp=[128012] MISMATCH
+      '2025'           hf=[2366, 20] sp=[508, 914] MISMATCH
+### HuggingFaceTB/SmolLM3-3B [fixed] load=ok pieces=128257 unk=[(128256, '<unk>')] byte_pieces=256 byte_fallback=True
+    probes identical 2/7 {'latin1_s24': False, 'digits': False, 'text_en': True, 'text_eu': False, 'text_world': True, 'emoji': False, 'code': False}
+    sweep mismatch 0/223  sweep->UNK 0  specials split [] (0)
+      '<|im_end|>'     hf=[128012] sp=[128012] OK
+      '<|endoftext|>'  hf=[27, 91, 8862, 728, 428, 91, 29] sp=[27, 91, 8862, 728, 428, 91, 29] OK
+      'é'              hf=[978] sp=[978] OK
+      '·'              hf=[14260] sp=[14260] OK
+      'Łódź'           hf=[129, 223, 21151, 40611] sp=[129, 223, 21151, 40611] OK
+      '😀'              hf=[76460, 222] sp=[172, 253, 246, 222] MISMATCH
+      '2025'           hf=[2366, 20] sp=[508, 914] MISMATCH
+### Qwen/Qwen2.5-0.5B-Instruct [original] load=ok pieces=151665 unk=[(151643, '<|endoftext|>')] byte_pieces=0 byte_fallback=False
+    probes identical 3/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': False, 'emoji': True, 'code': False}
+    sweep mismatch 163/223  sweep->UNK 36  specials split ['<|endoftext|>'] (1)
+      '<|im_end|>'     hf=[151645] sp=[151645] OK
+      '<|endoftext|>'  hf=[151643] sp=[27, 91, 8691, 723, 427, 91, 29] MISMATCH
+      'é'              hf=[963] sp=[165] MISMATCH
+      '·'              hf=[13935] sp=[115] MISMATCH
+      'Łódź'           hf=[129003, 20511, 39511] sp=[253, 20511, 39511] MISMATCH
+      '😀'              hf=[141334] sp=[141334] OK
+      '2025'           hf=[17, 15, 17, 20] sp=[17, 15, 17, 20] OK
+### Qwen/Qwen2.5-0.5B-Instruct [fixed] load=ok pieces=151666 unk=[(151665, '<unk>')] byte_pieces=256 byte_fallback=True
+    probes identical 3/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': False, 'emoji': True, 'code': False}
+    sweep mismatch 0/223  sweep->UNK 0  specials split [] (0)
+      '<|im_end|>'     hf=[151645] sp=[151645] OK
+      '<|endoftext|>'  hf=[151643] sp=[151643] OK
+      'é'              hf=[963] sp=[963] OK
+      '·'              hf=[13935] sp=[13935] OK
+      'Łódź'           hf=[129003, 20511, 39511] sp=[129003, 20511, 39511] OK
+      '😀'              hf=[141334] sp=[141334] OK
+      '2025'           hf=[17, 15, 17, 20] sp=[17, 15, 17, 20] OK
+### HuggingFaceTB/SmolVLM2-500M-Video-Instruct [original] load=ok pieces=49280 unk=[(0, '<|endoftext|>')] byte_pieces=0 byte_fallback=False
+    probes identical 2/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': False, 'emoji': False, 'code': False}
+    sweep mismatch 204/223  sweep->UNK 92  specials split ['<|endoftext|>'] (1)
+      '<|im_end|>'     hf=[2] sp=[2] OK
+      '<|endoftext|>'  hf=[0] sp=[44, 108, 486, 1714, 2692, 108, 46] MISMATCH
+      'é'              hf=[2756] sp=[180] MISMATCH
+      '·'              hf=[8547] sp=[132] MISMATCH
+      'Łódź'           hf=[144, 219, 7342, 84, 144, 135] sp=[249, 188, 84, 0] MISMATCH
+      '😀'              hf=[10813, 242, 218] sp=[0] MISMATCH
+      '2025'           hf=[34, 32, 34, 37] sp=[34, 32, 34, 37] OK
+### HuggingFaceTB/SmolVLM2-500M-Video-Instruct [fixed] load=ok pieces=49301 unk=[(0, '<|endoftext|>')] byte_pieces=256 byte_fallback=True
+    probes identical 2/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': False, 'emoji': False, 'code': False}
+    sweep mismatch 0/223  sweep->UNK 0  specials split ['<|endoftext|>'] (1)
+      '<|im_end|>'     hf=[2] sp=[2] OK
+      '<|endoftext|>'  hf=[0] sp=[44, 108, 486, 1714, 2692, 108, 46] MISMATCH
+      'é'              hf=[2756] sp=[2756] OK
+      '·'              hf=[8547] sp=[8547] OK
+      'Łódź'           hf=[144, 219, 7342, 84, 144, 135] sp=[144, 219, 7342, 84, 144, 135] OK
+      '😀'              hf=[10813, 242, 218] sp=[187, 249, 242, 218] MISMATCH
+      '2025'           hf=[34, 32, 34, 37] sp=[34, 32, 34, 37] OK
+### mistralai/Ministral-3-3B-Reasoning-2512 [original] load=ok pieces=131072 unk=[(0, '<unk>')] byte_pieces=0 byte_fallback=False
+    probes identical 2/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': False, 'emoji': False, 'code': False}
+    sweep mismatch 196/223  sweep->UNK 69  specials split ['<unk>'] (1)
+      '<|im_end|>'     hf=[1060, 1124, 1329, 23836, 1124, 1062] sp=[1060, 1124, 1329, 23836, 1124, 1062] OK
+      '<|endoftext|>'  hf=[1060, 1124, 1474, 2935, 2149, 1124, 1062] sp=[1060, 1124, 1474, 2935, 2149, 1124, 1062] OK
+      'é'              hf=[1337] sp=[1233] MISMATCH
+      '·'              hf=[8891] sp=[1183] MISMATCH
+      'Łódź'           hf=[1197, 1129, 112214] sp=[1159, 112214] MISMATCH
+      '😀'              hf=[1240, 1159, 1152, 1128] sp=[0] MISMATCH
+      '2025'           hf=[1050, 1048, 1050, 1053] sp=[1050, 1048, 1050, 1053] OK
+### mistralai/Ministral-3-3B-Reasoning-2512 [fixed] load=ok pieces=131072 unk=[(0, '<unk>')] byte_pieces=256 byte_fallback=True
+    probes identical 3/7 {'latin1_s24': False, 'digits': True, 'text_en': True, 'text_eu': False, 'text_world': True, 'emoji': False, 'code': False}
+    sweep mismatch 0/223  sweep->UNK 0  specials split ['<unk>'] (1)
+      '<|im_end|>'     hf=[1060, 1124, 1329, 23836, 1124, 1062] sp=[1060, 1124, 1329, 23836, 1124, 1062] OK
+      '<|endoftext|>'  hf=[1060, 1124, 1474, 2935, 2149, 1124, 1062] sp=[1060, 1124, 1474, 2935, 2149, 1124, 1062] OK
+      'é'              hf=[1337] sp=[1337] OK
+      '·'              hf=[8891] sp=[8891] OK
+      'Łódź'           hf=[1197, 1129, 112214] sp=[1197, 1129, 112214] OK
+      '😀'              hf=[1240, 1159, 1152, 1128] sp=[1240, 1159, 1152, 1128] OK
+      '2025'           hf=[1050, 1048, 1050, 1053] sp=[1050, 1048, 1050, 1053] OK

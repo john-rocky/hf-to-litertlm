@@ -1,0 +1,39 @@
+transformers 5.14.1  sentencepiece 0.2.0  litert-torch checkout /Users/majimadaisuke/code/litert-torch
+
+=== HuggingFaceTB/SmolLM3-3B: unk=None pad='<|im_end|>' eos='<|im_end|>'
+pieces=128256  UNKNOWN piece(s)=[(128012, '<|im_end|>')]  unk_id=0
+  HF token    165 spelled 'é'    decode='�'    -> SP piece[165] = 'é' (NORMAL)
+  HF token    978 spelled 'Ã©'   decode='é'    -> SP piece[978] = 'Ã©' (NORMAL)
+  HF token    115 spelled '·'    decode='�'    -> SP piece[115] = '·' (NORMAL)
+  HF token  14260 spelled 'Â·'   decode='·'    -> SP piece[14260] = 'Â·' (NORMAL)
+  string             HF ids                           SentencePiece ids
+  '<|im_end|>'       [128012]                         [27, 91, 318, 6345, 91, 29]   MISMATCH
+  '<|im_start|>'     [128011]                         [128011]   OK
+  '<|endoftext|>'    [27, 91, 8862, 728, 428, 91, 29] [27, 91, 8862, 728, 428, 91, 29]   OK
+  'é'                [978]                            [165]   MISMATCH
+  '·'                [14260]                          [115]   MISMATCH
+  'ü'                [2448]                           [184]   MISMATCH
+  'café'             [936, 59958]                     [936, 59958]   OK
+  'Zürich'           [57, 5297, 718]                  [57, 5297, 718]   OK
+  'Łódź'             [129, 223, 21151, 40611]         [253, 21151, 40611]   MISMATCH
+  '2025'             [2366, 20]                       [508, 914]   MISMATCH
+  "It's 5 o'clock"   [2181, 596, 220, 20, 297, 63510] [2181, 596, 220, 20, 297, 63510]   OK
+
+=== Qwen/Qwen2.5-0.5B-Instruct: unk=None pad='<|endoftext|>' eos='<|im_end|>'
+pieces=151665  UNKNOWN piece(s)=[(151643, '<|endoftext|>')]  unk_id=0
+  HF token    165 spelled 'é'    decode='�'    -> SP piece[165] = 'é' (NORMAL)
+  HF token    963 spelled 'Ã©'   decode='é'    -> SP piece[963] = 'Ã©' (NORMAL)
+  HF token    115 spelled '·'    decode='�'    -> SP piece[115] = '·' (NORMAL)
+  HF token  13935 spelled 'Â·'   decode='·'    -> SP piece[13935] = 'Â·' (NORMAL)
+  string             HF ids                           SentencePiece ids
+  '<|im_end|>'       [151645]                         [151645]   OK
+  '<|im_start|>'     [151644]                         [151644]   OK
+  '<|endoftext|>'    [151643]                         [27, 91, 8691, 723, 427, 91, 29]   MISMATCH
+  'é'                [963]                            [165]   MISMATCH
+  '·'                [13935]                          [115]   MISMATCH
+  'ü'                [2391]                           [184]   MISMATCH
+  'café'             [924, 58858]                     [924, 58858]   OK
+  'Zürich'           [57, 5186, 713]                  [57, 5186, 713]   OK
+  'Łódź'             [129003, 20511, 39511]           [253, 20511, 39511]   MISMATCH
+  '2025'             [17, 15, 17, 20]                 [17, 15, 17, 20]   OK
+  "It's 5 o'clock"   [2132, 594, 220, 20, 297, 62410] [2132, 594, 220, 20, 297, 62410]   OK
