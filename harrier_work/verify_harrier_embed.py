@@ -1,32 +1,27 @@
 #!/usr/bin/env python3
-"""Quality gates for the converted bekko-embedding-v1-a25m LiteRT artifacts.
+"""Quality gates for the converted harrier-oss-v1-0.6b LiteRT artifacts.
 
-    python verify_bekko_embed.py <out_dir> [--gates A,B,C,D]
+    python verify_harrier_embed.py <out_dir> [--gates A,D,B,C] [--prefix-ab]
 
 Gates
-  A  card oracle   — reproduce the model card's documented quickstart scores
-                     (external truth, not our own harness). NO prefixes: bekko
-                     is trained without query:/passage: prefixes (README FAQ).
-  B  STS          — JSTS (JGLUE v1.3 valid, the headline Japanese-RAG market)
-                     Spearman, plus STS17 multilingual subset, plus Matryoshka
-                     truncation (384/256/128/64) on JSTS. Graded metrics:
-                     cannot saturate to a flattering floor.
-  C  JSQuAD       — Japanese retrieval nDCG@10 / recall@5 / hit@1: question ->
-                     Wikipedia paragraph, i.e. the RAG task the demand is for.
+  A  card example  — the README's own MS-MARCO example (2 queries x 2 docs):
+                     diagonal must win; torch-vs-variant agreement is the anchor
+                     (the card documents no exact scores).
+  B  STS          — JSTS (JGLUE v1.3 valid) + STS17 subset, Spearman, with the
+                     vendor's `sts_query` instruction on BOTH sides.
+  C  JSQuAD       — Japanese retrieval: `web_search_query` instruction on the
+                     query side only, documents raw (README contract).
   D  mechanics     — cross-signature agreement, pad-content invariance, mask
-                     liveness and finiteness on the shipped artifacts. The
-                     cross-signature probe deliberately puts a SHORT text into
-                     the 512 signature: pad queries past n_valid+64 have empty
-                     sliding windows, the exact shape that NaNs if the
-                     diagonal guard is missing.
+                     liveness. For a LAST-token pool these also prove the pool
+                     rebinds to sum(mask)-1 rather than reading position S-1.
+  E  cross-variant — docs encoded by torch, queries by each variant (the RAG
+                     deployment shape).
 
-Every gate runs on each variant (torch fp32 reference, fp32/wi8fc/embt8/fp16
-tflite) so the numbers are comparable; a variant is judged against the
-reference, never against an absolute threshold.
+--prefix-ab additionally measures the instruction contract (README FAQ says
+dropping it degrades): JSTS and JSQuAD queries WITHOUT the instruction.
 
-JGLUE fixtures are cached in bekko_work/fixtures/ (downloaded from
-github.com/yahoojapan/JGLUE, datasets/{jsts,jsquad}-v1.3, CC BY-SA 4.0 —
-evaluation only, not shipped).
+Instructions come from config_sentence_transformers.json (read 2026-08-31).
+JGLUE fixtures cached in harrier_work/fixtures/ (CC BY-SA 4.0, eval-only).
 """
 import argparse
 import gzip
@@ -39,44 +34,36 @@ import urllib.request
 import numpy as np
 import torch
 
-MODEL_DIR = os.environ.get("BEKKO_EMBED_MODEL", "hotchpotch/bekko-embedding-v1-a25m")
-PAD_ID = 0
-DIM = 384
+MODEL_DIR = os.environ.get("HARRIER_EMBED_MODEL", "microsoft/harrier-oss-v1-0.6b")
+PAD_ID = 151643
+DIM = 1024
 SEQ_LENS = (64, 128, 256, 512)
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
 JGLUE_RAW = "https://raw.githubusercontent.com/yahoojapan/JGLUE/main/datasets"
 
-# README quickstart, read 2026-08-31 ("exact scores vary slightly by backend").
-CARD_QUERY = "What are the characteristics of sushi?"
+WEB_Q = ("Instruct: Given a web search query, retrieve relevant passages that "
+         "answer the query\nQuery: ")
+STS_Q = "Instruct: Retrieve semantically similar text\nQuery: "
+
+CARD_QUERIES = ["how much protein should a female eat", "summit define"]
 CARD_DOCS = [
-    "A warm noodle soup served in broth with sliced toppings.",
-    "天ぷらは魚や野菜に衣をつけて揚げた料理です。",
-    "Une fine crepe garnie de sucre, de beurre ou de fruits.",
-    "A Japanese dish made with vinegared rice, often shaped with seafood, vegetables, or egg.",
-]
-CARD_SCORES = np.array([0.2953, 0.2785, 0.3209, 0.4378])
-CARD_CORPUS = [
-    "Sushi is a Japanese dish of vinegared rice topped with seafood.",
-    "The Eiffel Tower is a wrought-iron lattice tower in Paris, France.",
-    "Mount Fuji is the highest mountain in Japan, at 3,776 meters.",
-    "Python is a programming language known for its readability.",
-    "La Sagrada Família es una basílica de Barcelona diseñada por Antoni Gaudí.",
-]
-CARD_XLING = [
-    ("日本で一番高い山は？", 2, 0.457),
-    ("Who designed the famous basilica in Barcelona?", 4, 0.563),
+    "As a general guideline, the CDC's average requirement of protein for women "
+    "ages 19 to 70 is 46 grams per day. But, as you can see from this chart, "
+    "you'll need to increase that if you're expecting or training for a marathon. "
+    "Check out the chart below to see how much protein you should be eating each day.",
+    "Definition of summit for English Language Learners. : 1  the highest point "
+    "of a mountain : the top of a mountain. : 2  the highest level. : 3  a "
+    "meeting or series of meetings between the leaders of two or more governments.",
 ]
 STS17_PAIRS = ["en-en", "es-en", "ko-ko", "en-ar"]
-MATRYOSHKA_DIMS = (384, 256, 128, 64)
 
 
-# --------------------------------------------------------------------------
 class TorchEncoder:
     name = "torch_fp32"
 
     def __init__(self, tok):
         from transformers import AutoModel
-        from convert_bekko_embed import Embedder
+        from convert_harrier_embed import Embedder
 
         m = AutoModel.from_pretrained(
             MODEL_DIR, dtype=torch.float32, attn_implementation="sdpa"
@@ -113,7 +100,11 @@ class TfliteEncoder:
         return self.lens[-1]
 
     def encode_ids(self, ids):
-        """Right-pad to the smallest signature that fits; truncate past the max."""
+        """Right-pad to the smallest signature that fits; truncate past the max.
+
+        Truncation keeps the TAIL-most valid content decision simple: we cut at
+        the max signature length, so the pooled last token is the last kept one.
+        """
         S = self.pick(len(ids))
         ids = ids[:S]
         n = len(ids)
@@ -125,11 +116,11 @@ class TfliteEncoder:
         return list(r.values())[0][0]
 
 
-def encode_texts(enc, tok, texts, max_tokens=512, log_every=0):
+def encode_texts(enc, tok, texts, prefix="", max_tokens=512, log_every=0):
     out = np.empty((len(texts), DIM), dtype=np.float32)
     t0 = time.time()
     for i, t in enumerate(texts):
-        ids = tok(t, add_special_tokens=True)["input_ids"][:max_tokens]
+        ids = tok(prefix + t)["input_ids"][:max_tokens]
         out[i] = enc.encode_ids(ids)
         if log_every and (i + 1) % log_every == 0:
             el = time.time() - t0
@@ -138,7 +129,6 @@ def encode_texts(enc, tok, texts, max_tokens=512, log_every=0):
     return out
 
 
-# --------------------------------------------------------------------------
 def spearman(a, b):
     def rank(x):
         order = np.argsort(x, kind="mergesort")
@@ -167,12 +157,6 @@ def ndcg_at_k(ranked_rel, ideal_rel, k=10):
     return dcg(ranked_rel) / idcg if idcg > 0 else 0.0
 
 
-def truncate_renorm(V, d):
-    W = V[:, :d].astype(np.float64)
-    n = np.linalg.norm(W, axis=1, keepdims=True)
-    return (W / np.where(n == 0, 1, n)).astype(np.float32)
-
-
 def fetch(name, rel):
     os.makedirs(FIXTURES, exist_ok=True)
     p = os.path.join(FIXTURES, name)
@@ -181,34 +165,6 @@ def fetch(name, rel):
         print(f"  downloading {url}")
         urllib.request.urlretrieve(url, p)
     return p
-
-
-# --------------------------------------------------------------------------
-def gate_a(encoders, tok, report):
-    print("\n=== GATE A: model-card oracle (external truth, no prefixes) ===")
-    for enc in encoders:
-        q = encode_texts(enc, tok, [CARD_QUERY])
-        d = encode_texts(enc, tok, CARD_DOCS)
-        s = (q @ d.T)[0]
-        vs_card = float(np.abs(s - CARD_SCORES).max())
-        argmax_ok = bool(s.argmax() == 3)
-
-        C = encode_texts(enc, tok, CARD_CORPUS)
-        xl = []
-        xl_ok = True
-        for text, gold_idx, gold_score in CARD_XLING:
-            v = encode_texts(enc, tok, [text])[0]
-            sims = C @ v
-            xl.append(round(float(sims[gold_idx]), 4))
-            xl_ok &= bool(sims.argmax() == gold_idx)
-        row = {"scores": [round(float(x), 4) for x in s],
-               "max_abs_vs_card": round(vs_card, 4), "argmax_ok": argmax_ok,
-               "xling_gold_sims": xl, "xling_argmax_ok": xl_ok}
-        report.setdefault("A_card", {})[enc.name] = row
-        print(f"  {enc.name:11s} scores {row['scores']} max|d| vs card {vs_card:.4f} "
-              f"argmax {argmax_ok} | xling {xl} argmax {xl_ok}")
-    print(f"  card scores: {[float(x) for x in CARD_SCORES]}  card xling: "
-          f"{[g for _, _, g in CARD_XLING]}")
 
 
 def load_jsts(limit):
@@ -240,31 +196,6 @@ def load_sts17(limit):
     return data
 
 
-def gate_b(encoders, tok, report, limit):
-    print(f"\n=== GATE B: JSTS Spearman + Matryoshka + STS17 subset "
-          f"(<= {limit} pairs/set) ===")
-    jsts = load_jsts(limit)
-    sts17 = load_sts17(min(limit, 100))
-    print(f"  JSTS {len(jsts)} pairs; STS17 {sorted(sts17)}")
-    for enc in encoders:
-        s1 = encode_texts(enc, tok, [r[0] for r in jsts], log_every=200)
-        s2 = encode_texts(enc, tok, [r[1] for r in jsts])
-        gold = np.array([r[2] for r in jsts])
-        by_dim = {}
-        for d in MATRYOSHKA_DIMS:
-            pred = (truncate_renorm(s1, d) * truncate_renorm(s2, d)).sum(1)
-            by_dim[str(d)] = round(spearman(pred, gold), 4)
-        per_lang = {}
-        for pair, rows in sts17.items():
-            a = encode_texts(enc, tok, [r[0] for r in rows])
-            b = encode_texts(enc, tok, [r[1] for r in rows])
-            per_lang[pair] = round(
-                spearman((a * b).sum(1), np.array([r[2] for r in rows])), 4)
-        report.setdefault("B_sts", {})[enc.name] = {
-            "jsts_by_dim": by_dim, "sts17": per_lang}
-        print(f"  {enc.name:11s} JSTS by dim {by_dim}  STS17 {per_lang}")
-
-
 def load_jsquad(n_docs, n_queries):
     with open(fetch("jsquad_valid_v1.3.json", "jsquad-v1.3/valid-v1.3.json")) as f:
         data = json.load(f)["data"]
@@ -290,37 +221,88 @@ def load_jsquad(n_docs, n_queries):
             [(q, remap[g]) for q, g in queries])
 
 
-def gate_c(encoders, tok, report, n_docs, n_queries=150):
+def retrieval_scores(sims, queries):
+    ndcgs, r5, r1 = [], [], []
+    for qi, (_, gold) in enumerate(queries):
+        order = np.argsort(-sims[qi])
+        rel = [1.0 if j == gold else 0.0 for j in order[:10]]
+        ndcgs.append(ndcg_at_k(rel, [1.0], 10))
+        r5.append(float(any(rel[:5])))
+        r1.append(float(rel[0]))
+    return {"ndcg@10": round(float(np.mean(ndcgs)), 4),
+            "recall@5": round(float(np.mean(r5)), 4),
+            "hit@1": round(float(np.mean(r1)), 4)}
+
+
+def gate_a(encoders, tok, report):
+    print("\n=== GATE A: README example (web_search_query instruction) ===")
+    ref = None
+    for enc in encoders:
+        q = encode_texts(enc, tok, CARD_QUERIES, prefix=WEB_Q)
+        d = encode_texts(enc, tok, CARD_DOCS)
+        s = (q @ d.T) * 100
+        argmax_ok = bool((s.argmax(1) == np.arange(2)).all())
+        row = {"scores_x100": [[round(float(x), 2) for x in r] for r in s],
+               "argmax_ok": argmax_ok}
+        if ref is None:
+            ref = s
+        else:
+            row["max_abs_vs_torch_x100"] = round(float(np.abs(s - ref).max()), 3)
+        report.setdefault("A_card", {})[enc.name] = row
+        print(f"  {enc.name:11s} {row['scores_x100']} argmax {argmax_ok}"
+              + (f"  max|d| vs torch {row['max_abs_vs_torch_x100']}"
+                 if "max_abs_vs_torch_x100" in row else ""))
+
+
+def gate_b(encoders, tok, report, limit, prefix_ab=False):
+    print(f"\n=== GATE B: JSTS + STS17 Spearman (sts_query both sides, "
+          f"<= {limit} pairs/set) ===")
+    jsts = load_jsts(limit)
+    sts17 = load_sts17(min(limit, 100))
+    print(f"  JSTS {len(jsts)} pairs; STS17 {sorted(sts17)}")
+    for enc in encoders:
+        s1 = encode_texts(enc, tok, [r[0] for r in jsts], prefix=STS_Q, log_every=200)
+        s2 = encode_texts(enc, tok, [r[1] for r in jsts], prefix=STS_Q)
+        gold = np.array([r[2] for r in jsts])
+        row = {"jsts": round(spearman((s1 * s2).sum(1), gold), 4)}
+        per_lang = {}
+        for pair, rows in sts17.items():
+            a = encode_texts(enc, tok, [r[0] for r in rows], prefix=STS_Q)
+            b = encode_texts(enc, tok, [r[1] for r in rows], prefix=STS_Q)
+            per_lang[pair] = round(
+                spearman((a * b).sum(1), np.array([r[2] for r in rows])), 4)
+        row["sts17"] = per_lang
+        if prefix_ab:
+            n1 = encode_texts(enc, tok, [r[0] for r in jsts])
+            n2 = encode_texts(enc, tok, [r[1] for r in jsts])
+            row["jsts_no_instruction"] = round(
+                spearman((n1 * n2).sum(1), gold), 4)
+        report.setdefault("B_sts", {})[enc.name] = row
+        print(f"  {enc.name:11s} JSTS {row['jsts']}  STS17 {per_lang}"
+              + (f"  JSTS-no-instr {row['jsts_no_instruction']}"
+                 if prefix_ab else ""))
+
+
+def gate_c(encoders, tok, report, n_docs, n_queries=150, prefix_ab=False):
     print(f"\n=== GATE C: JSQuAD retrieval (corpus {n_docs} docs, "
-          f"{n_queries} questions) ===")
+          f"{n_queries} questions; web_search_query on queries) ===")
     docs, queries = load_jsquad(n_docs, n_queries)
     print(f"  {len(queries)} queries, {len(docs)} unique paragraphs")
     for enc in encoders:
         D = encode_texts(enc, tok, docs, log_every=200)
-        Q = encode_texts(enc, tok, [q for q, _ in queries])
-        sims = Q @ D.T
-        ndcgs, r5, r1 = [], [], []
-        for qi, (_, gold) in enumerate(queries):
-            order = np.argsort(-sims[qi])
-            rel = [1.0 if j == gold else 0.0 for j in order[:10]]
-            ndcgs.append(ndcg_at_k(rel, [1.0], 10))
-            r5.append(float(any(rel[:5])))
-            r1.append(float(rel[0]))
-        row = {"ndcg@10": round(float(np.mean(ndcgs)), 4),
-               "recall@5": round(float(np.mean(r5)), 4),
-               "hit@1": round(float(np.mean(r1)), 4), "n_queries": len(queries)}
+        Q = encode_texts(enc, tok, [q for q, _ in queries], prefix=WEB_Q)
+        row = retrieval_scores(Q @ D.T, queries)
+        if prefix_ab:
+            Qn = encode_texts(enc, tok, [q for q, _ in queries])
+            row["no_instruction"] = retrieval_scores(Qn @ D.T, queries)
         report.setdefault("C_retrieval", {})[enc.name] = row
         print(f"  {enc.name:11s} nDCG@10 {row['ndcg@10']:.4f} "
-              f"recall@5 {row['recall@5']:.4f} hit@1 {row['hit@1']:.4f}")
+              f"recall@5 {row['recall@5']:.4f} hit@1 {row['hit@1']:.4f}"
+              + (f"  | no-instr nDCG@10 {row['no_instruction']['ndcg@10']:.4f}"
+                 if prefix_ab else ""))
 
 
 def gate_e(encoders, tok, report, n_docs, n_queries=150):
-    """Mixed-variant retrieval: documents encoded by the TORCH reference,
-    queries by each tflite variant. This is the actual RAG deployment shape
-    (index built on desktop with the upstream model, queried on device) and it
-    is the gate that separates per-vector fidelity from task fidelity: a
-    variant can be task-lossless same-variant (gate C) and still sit in a
-    slightly rotated space that degrades cross-variant lookup."""
     print(f"\n=== GATE E: cross-variant retrieval (docs=torch_fp32, "
           f"queries=variant; corpus {n_docs}) ===")
     torch_enc = next((e for e in encoders if e.name == "torch_fp32"), None)
@@ -330,18 +312,8 @@ def gate_e(encoders, tok, report, n_docs, n_queries=150):
     docs, queries = load_jsquad(n_docs, n_queries)
     D = encode_texts(torch_enc, tok, docs, log_every=200)
     for enc in encoders:
-        Q = encode_texts(enc, tok, [q for q, _ in queries])
-        sims = Q @ D.T
-        ndcgs, r5, r1 = [], [], []
-        for qi, (_, gold) in enumerate(queries):
-            order = np.argsort(-sims[qi])
-            rel = [1.0 if j == gold else 0.0 for j in order[:10]]
-            ndcgs.append(ndcg_at_k(rel, [1.0], 10))
-            r5.append(float(any(rel[:5])))
-            r1.append(float(rel[0]))
-        row = {"ndcg@10": round(float(np.mean(ndcgs)), 4),
-               "recall@5": round(float(np.mean(r5)), 4),
-               "hit@1": round(float(np.mean(r1)), 4)}
+        Q = encode_texts(enc, tok, [q for q, _ in queries], prefix=WEB_Q)
+        row = retrieval_scores(Q @ D.T, queries)
         report.setdefault("E_cross_variant", {})[enc.name] = row
         print(f"  {enc.name:11s} nDCG@10 {row['ndcg@10']:.4f} "
               f"recall@5 {row['recall@5']:.4f} hit@1 {row['hit@1']:.4f}")
@@ -349,10 +321,8 @@ def gate_e(encoders, tok, report, n_docs, n_queries=150):
 
 def gate_d(encoders, tok, report):
     print("\n=== GATE D: graph mechanics on the shipped artifacts ===")
-    # SHORT text on purpose: in the 512 signature, pad queries past n+64 have
-    # empty sliding windows — the NaN shape if the diagonal guard is missing.
     text = "富士山は日本で一番高い山です。"
-    ids = tok(text, add_special_tokens=True)["input_ids"]
+    ids = tok(text)["input_ids"]
     n = len(ids)
     print(f"  probe text = {n} tokens (short by design)")
     for enc in encoders:
@@ -371,26 +341,27 @@ def gate_d(encoders, tok, report):
             base = vecs[min(vecs)]
             row["cross_sig_max_abs"] = {
                 str(S): float(np.abs(v - base).max()) for S, v in vecs.items()}
-            row["cross_sig_cos"] = {
-                str(S): round(float(v @ base), 8) for S, v in vecs.items()}
 
-            S = max(vecs)  # scribble the LONG signature's pad region
+            S = max(vecs)
             a = np.full((1, S), PAD_ID, dtype=np.int32)
             m = np.zeros((1, S), dtype=np.int32)
             a[0, :n] = ids; m[0, :n] = 1
             v1 = list(enc.runners[S](input_ids=a, attention_mask=m).values())[0][0]
             a2 = a.copy()
-            a2[0, n:] = np.random.default_rng(1).integers(10, 255000, S - n)
+            a2[0, n:] = np.random.default_rng(1).integers(10, 151000, S - n)
             v2 = list(enc.runners[S](input_ids=a2, attention_mask=m).values())[0][0]
             row["pad_invariance_max_abs"] = float(np.abs(v1 - v2).max())
 
-            m3 = m.copy(); m3[0, n - 4:] = 0
+            # mask liveness doubles as the pool-rebind proof: dropping the last
+            # real token MUST move a last-token embedding a lot.
+            m3 = m.copy(); m3[0, n - 1:] = 0
             v3 = list(enc.runners[S](input_ids=a, attention_mask=m3).values())[0][0]
             row["mask_live_max_abs"] = float(np.abs(v1 - v3).max())
 
             print(f"  {enc.name:11s} cross-sig max|d| {row['cross_sig_max_abs']}")
             print(f"  {'':11s} pad-invariance {row['pad_invariance_max_abs']:.3e} "
-                  f"(must be 0) | mask-live {row['mask_live_max_abs']:.3e} (must be >0)")
+                  f"(must be 0) | drop-last-token {row['mask_live_max_abs']:.3e} "
+                  f"(must be >>0)")
         report.setdefault("D_mechanics", {})[enc.name] = row
 
 
@@ -402,7 +373,8 @@ def main():
     ap.add_argument("--sts-limit", type=int, default=300)
     ap.add_argument("--docs", type=int, default=800)
     ap.add_argument("--no-torch", action="store_true")
-    ap.add_argument("--variants", default="fp32,wi8fc,embt8,fp16")
+    ap.add_argument("--variants", default="fp32,wi8fc,fp16")
+    ap.add_argument("--prefix-ab", action="store_true")
     ap.add_argument("--report", default="verify_report.json")
     args = ap.parse_args()
 
@@ -428,9 +400,9 @@ def main():
     if "D" in gates:
         gate_d(encoders, tok, report)
     if "B" in gates:
-        gate_b(encoders, tok, report, args.sts_limit)
+        gate_b(encoders, tok, report, args.sts_limit, args.prefix_ab)
     if "C" in gates:
-        gate_c(encoders, tok, report, args.docs)
+        gate_c(encoders, tok, report, args.docs, prefix_ab=args.prefix_ab)
     if "E" in gates:
         gate_e(encoders, tok, report, args.docs)
 

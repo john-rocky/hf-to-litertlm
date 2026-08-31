@@ -1225,6 +1225,29 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. What is new relati
 - **Mechanics**: cross-signature outputs bitwise identical on every variant (the 11-token probe in `embed_512` is also the empty-sliding-window NaN shape — finite everywhere, so the diagonal fix holds), pad-content invariance exactly 0.0, zero int64 tensors, no `GATHER_ND`.
 
 
+## harrier-oss-v1-0.6b (a causal decoder pooled at the last token — the e5-mistral shape, statically)
+
+`harrier_work/convert_harrier_embed.py` converts [microsoft/harrier-oss-v1-0.6b](https://huggingface.co/microsoft/harrier-oss-v1-0.6b) — Microsoft's multilingual (100+ languages) instruction-prompted embedding model, 596M params, 1024-d — to plain LiteRT `.tflite`. Same encoder lane (direct multi-signature trace), but the opposite attention contract to the bidirectional embedders above: the body is a bare `Qwen3Model` and attention stays **causal** — nothing is flipped; the embedding is the LAST non-padding token's hidden state, L2-normalized, both in-graph. Signatures `embed_{64,128,256,512}` → `output_0` `[1,1024]`.
+
+```bash
+cd harrier_work
+python convert_harrier_embed.py microsoft/harrier-oss-v1-0.6b out_harrier_0p6b   # fp32 + wi8fc + fp16
+python -u verify_harrier_embed.py out_harrier_0p6b --prefix-ab                   # README example + JSTS/STS17 + JSQuAD + mechanics
+python -u verify_harrier_embed.py out_harrier_0p6b --gates E --report verify_report_e.json
+python bench_harrier_embed.py  out_harrier_0p6b
+```
+
+Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious parts:
+
+- **`Qwen3Model` accepts the same `{layer_type: bias}` mask dict as ModernBERT** (`causal_mask_mapping := attention_mask` walrus, key `"full_attention"`), so the hand-built causal+padding bias `[1,1,S,S]` (`allowed(q,k) = (k <= q) & valid[k]`) bypasses `sdpa_mask` entirely — no GATHER of any kind in the graph. No NaN guard is needed in the causal direction: every query row can reach position 0.
+- **A last-token pool must rebind to the mask, not to position S−1.** With right padding the pooled position is `sum(mask) − 1`. The static-graph form — `onehot = (arange(S) == sum(mask) − 1); pooled = sum(h * onehot)` — lowers to a single `ONE_HOT` + `SUM`, no dynamic gather. Gate both directions: scribbling pad ids must move nothing (0.0 measured), dropping the last REAL token must move the output a lot (0.13 measured). A graph that unconditionally reads position S−1 passes every all-valid smoke test and silently pools pad garbage in production.
+- **The tokenizer appends `<|endoftext|>` itself** (a `TemplateProcessing` post-processor: `tok("summit define")` → `[1242, 1763, 6979, 151643]`), and that appended token is what gets pooled — the e5-mistral EOS convention, delivered by the tokenizer while the vendor's own usage snippet never mentions it. Tokenize with the repo's `tokenizer.json` and the contract is automatic; a hand-rolled BPE without the post-processor pools the last *text* token instead, which is a different (untrained) contract. It is also the same id as PAD — the mask is what distinguishes them.
+- **The instruction prefix is mandatory and the degradation is now a number.** Queries carry `Instruct: {task}\nQuery: ` (documents raw; prompts ship in `config_sentence_transformers.json`). Measured with `--prefix-ab` on both torch and the int8 artifact: dropping it costs 0.018 JSTS Spearman and **0.028 JSQuAD nDCG@10**. Note the contrast with granite-r2 above, where an *uninvited* prefix helped STS and hurt retrieval — the prefix contract is per-model in sign as well as size; measure it, never assume it.
+- **Quality is quantization-flat, and fp32/fp16 are digit-exact.** fp32 and fp16 tflite reproduce the torch reference to every printed digit on JSTS (0.8553), STS17 (en-en 0.8893 / es-en 0.8345 / ko-ko 0.8874 / en-ar 0.8517) and JSQuAD (nDCG@10 0.9363); wi8fc lands within 0.004 everywhere (JSTS 0.8559, nDCG@10 0.9360), and querying a torch-built index with int8 embeddings scores at the all-torch control (0.9389 vs 0.9363) — the RAG shape of index-on-server, query-on-device holds.
+- **wi8fc = FC int8 DRQ + EMBEDDING_LOOKUP int8 channelwise.** 596M params → fp32 2390 MB (fine intermediate), int8 626 MB, fp16 1199 MB. Per-vector smoke cos on random ids reads 0.989–0.997 for int8 — the task gates above are the ones that matter.
+- **Signature count is NOT always the RAM lever.** Unlike the 1.14B Nemotron build (~846 MiB/signature), the int8 peak here is signature-independent: 2401 MiB with 4 signatures vs 2351 MiB with 2 (Mac, load+invoke). Ship the flexible 4-signature file. fp16 is still the RAM disaster (11.9 GiB, XNNPACK expands fp16→fp32 per subgraph) — desktop only.
+
+
 ## BitCPM-CANN (ternary / 1.58-bit LLMs — int4 blockwise is a lossless container)
 
 `bitcpm_work/` converts openbmb's BitCPM-CANN family (BitNet-b1.58-style ternary QAT LLMs, Apache-2.0). LiteRT has no native 1-bit/ternary type ([feature request #7713](https://github.com/google-ai-edge/LiteRT/issues/7713)), but it doesn't need one to run these losslessly: BitCPM's QAT quantizer produces weights in {-α, 0, +α} per group of 128 input channels (α from absmean), released "pseudo-quantized" — the ternary values materialized in a plain bf16 checkpoint. Min-max symmetric int4 `BLOCKWISE_32` (blocks subdivide the 128-groups along the same axis) maps every weight onto {-7, 0, +7} with **zero rounding decisions**; the only residual is fp16 rounding of the per-block scale (≤4e-4 relative). `verify_ternary.py` checks both properties on the actual checkpoint before you convert. You pay 4 bits/weight instead of the native ~1.6 (≈2.5× their packed GGUF), but 4× under f16, on stock CPU/GPU int4 kernels.
