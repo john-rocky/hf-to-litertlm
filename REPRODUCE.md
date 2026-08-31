@@ -729,6 +729,36 @@ Uses the same patched `litert-torch` worktree as the text build (clone + checkou
 **Contract cost.** `fast_vlm` feeds sequential positions, so the checkpoint's M-RoPE collapses to plain RoPE. `hf_oracle_gen.py` measures it: against the full M-RoPE reference over nine image/prompt pairs, one generation is identical and the other eight are fluent same-content paraphrases that diverge deep in the answer. `suite_gate_vl.py` scores a bundle against both references.
 
 
+
+### The 0.8B rides the same script — but not the same numbers
+
+Published as `Qwen3.5-0.8B-VL_int8.litertlm` on [litert-community/Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) (1.30 GB). Identical commands, with the model id and output dirs swapped:
+
+```bash
+cd qwen35vl_work
+MODEL=Qwen/Qwen3.5-0.8B IMG=512 python convert_qwen35_vision.py out/qwen35vl08-vision
+MODEL=Qwen/Qwen3.5-0.8B python vision_quant_ab.py out/qwen35vl08-vision
+
+PREFILL=1024,256,64,16,4,1 CACHE=4096 \
+  PYTHONPATH=../qwen35_work/litert-torch-qwen35 \
+  python export_qwen35vl_decoder.py Qwen/Qwen3.5-0.8B out/qwen35vl08-decoder
+
+DEC=out/qwen35vl08-decoder VIS=out/qwen35vl08-vision TOK=<tokenizer.json> \
+  VENC=vision_encoder_fp16.tflite VADP=vision_adapter_int8.tflite DEC_ACT=fp32 \
+  OUT_NAME=Qwen3.5-0.8B-VL_int8.litertlm python build_qwen35vl_bundle.py
+python ../scripts/add_executor_metadata.py <out>.litertlm <final>.litertlm
+```
+
+**The tower is a different size, so two measured values must be re-derived rather than inherited.** The 0.8B ViT is **12 layers at 768 dim** against the 2B's 24 at 1024. The script calibrates the fp16-safe LayerNorm scales per run, so nothing needs editing — but the resulting table is genuinely different (16 from block 6 on, 512 at the final norm, versus 32 from block 11 for the 2B), and hand-copying a sibling's table would silently mis-scale the tower. The int8 encoder also behaves better here: correlation **0.9916-0.9951** on real photographs against the 2B's 0.974-0.984, so the int8-vision variant is on firmer ground at this size. fp32 parity is 0.9999999999.
+
+**Build the vision tflites with litert-converter 0.4.0, not 0.3.1.** On 0.3.1 the adapter's 2x2 merge (`f[:, 0::2, 0::2, :]`) lowers to **six `GATHER_ND` ops** — a mobile-GPU hard wall — where 0.4.0 gives six `STRIDED_SLICE`, matching the shipped 2B adapter. This happens at every shape including the 2B's, so it is a toolchain variable rather than a geometry one, and **parity is bit-identical across both builds**: no accuracy check catches it. Gate the op histogram (the script prints `enc ops` / `adp ops`) and require `gather`, `flex` and `custom` all empty before anything downstream consumes the file.
+
+**`add_executor_metadata.py` is not optional on a litert-torch 0.9.3 export.** 0.9.3 emits no `ExecutorMetadataProto`, and a fresh bundle dies at engine creation with `INTERNAL: ... No KV cache inputs found.` even though its decoder tflite carries all 48 `kv_cache` inputs. That is what the `_final` suffix means on these artifacts. When it happens, run a known-good sibling bundle on the same CLI first — that exonerates the runtime and the venv in one command.
+
+**The six-signature ladder fit iPhone Metal on the first export**, with no jetsam and no `maxNumTokens` override — unlike the 2B, which needed the ladder cut after three killed Metal legs. Measured on an iPhone 17 Pro: vision turns 65.8 tok/s with grounding 2/2, text probe 45.7 tok/s on Metal at ~3.8 GB peak.
+
+**Where the device and the desktop disagree, run the same prompt on the desktop before blaming the file.** On the composite 8-question probe this bundle answers 8/8 on Mac GPU *and* 8/8 on Mac CPU, while the phone scores 6/8 on Metal and 3/8 on CPU. None of the device misses reproduce on Mac, so they are device-side and not the conversion — the opposite of the 2B, whose arithmetic slip did reproduce on Mac and was therefore the model. The iPhone CPU result was re-run cold three days later after an app reinstall and came back byte-identical, so it is deterministic rather than thermal.
+
 ## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
 
 `falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B, 24 on the 1.5B, 32 on the 3B, 66 on the 1.5B-Deep) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct), [litert-community/Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct), [litert-community/Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) and [litert-community/Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct). **Requires litert-lm ≥ 0.15 to run.**
