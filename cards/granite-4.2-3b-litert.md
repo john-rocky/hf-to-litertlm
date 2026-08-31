@@ -30,7 +30,9 @@ The **int4 file is the one to use on a phone**: on Apple hardware it is smaller 
 
 Both files score **8/8 on an 8-question sanity gate on both CPU and GPU** (Apple M4 Max, litert-lm 0.16.0 runtime lineage), with every answer arriving as a clean final answer through the thought channel — no reasoning leakage, no degeneration. The bf16 PyTorch reference scores 8/8 on the same questions under the same template.
 
-On a **Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno)** both files generate correctly on GPU and CPU, with **full OpenCL delegation — 1783/1783 nodes on every prefill signature and decode, zero rejected ops** — and the runtime separates the reasoning on-device exactly as intended: the answer arrives as a labeled thought block followed by the clean final answer. iPhone results will be added when measured.
+On a **Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno)** both files generate correctly on GPU and CPU, with **full OpenCL delegation — 1783/1783 nodes on every prefill signature and decode, zero rejected ops** — and the runtime separates the reasoning on-device exactly as intended: the answer arrives as a labeled thought block followed by the clean final answer.
+
+On an **iPhone 17 Pro** the int4 file passes the same gate on both backends (on-device byte count verified against the source file): **Metal GPU 7/8** (engine created at the bundle's full 4096-token budget, init 13.0 s; the one miss is the rhyme line at the end of the composite 8-question prompt — the model answers that question correctly when asked on its own, on every other platform) and **CPU 8/8** (init 5.5 s). Available process memory never dropped below ~4.2 GB during either leg.
 
 ## Usage
 
