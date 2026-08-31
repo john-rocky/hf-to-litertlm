@@ -1278,6 +1278,51 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious pa
 - **Signature count is NOT always the RAM lever.** Unlike the 1.14B Nemotron build (~846 MiB/signature), the int8 peak here is signature-independent: 2401 MiB with 4 signatures vs 2351 MiB with 2 (Mac, load+invoke). Ship the flexible 4-signature file. fp16 is still the RAM disaster (11.9 GiB, XNNPACK expands fp16→fp32 per subgraph) — desktop only.
 
 
+## voyage-4-nano (a "causal" config that is actually a bidirectional embedder)
+
+`voyage_work/convert_voyage_embed.py` converts [voyageai/voyage-4-nano](https://huggingface.co/voyageai/voyage-4-nano) — Voyage AI's multilingual retrieval embedder with a shared embedding space across the voyage-4 series (a device-side nano can query an index built by the larger cloud models), 347M params, 2048-d, MRL-truncatable to 1024/512/256 — to plain LiteRT `.tflite`. Signatures `embed_{64,128,256,512}` → `output_0` `[1,2048]`, mean pool + 1024→2048 projection + L2 normalize in-graph.
+
+```bash
+cd voyage_work
+python convert_voyage_embed.py voyageai/voyage-4-nano out_voyage_nano   # fp32 + wi8fc + fp16
+python -u verify_voyage_embed.py out_voyage_nano --prefix-ab            # README example + JSTS/STS17 + JSQuAD + mechanics
+python -u verify_voyage_embed.py out_voyage_nano --gates E --report verify_report_e.json
+python bench_voyage_embed.py  out_voyage_nano
+```
+
+Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious parts:
+
+- **`architectures: ["Qwen3ForCausalLM"]` is a lie.** `auto_map.AutoModel` points at remote-code `Qwen3BidirectionalModel`: a bare `Qwen3Model` body with every `self_attn.is_causal` flipped False plus a per-token bias-free `linear` 1024→2048 (`config.num_labels`) applied to `last_hidden_state` BEFORE pooling. Convert the config's nominal architecture and you ship a causal model that was never trained that way.
+- **The remote code targets transformers 4.51 and breaks twice under 5.14.** It sets no `config_class` (AutoModel.register crashes with `AttributeError: 'NoneType' object has no attribute '__name__'`) and calls `create_causal_mask(input_embeds=…, cache_position=…)` — both renamed/removed in 5.x. The converter imports a vendored copy of the modeling file (shipped next to the script), sets `config_class = Qwen3Config`, and shims the mask call. `trust_remote_code` is never used.
+- **The export mask bypasses the vmap path entirely.** The remote forward builds `create_causal_mask(..., or_mask_function=bidirectional)` — vmap machinery that specializes on `attention_mask=None` and emits rank-5 intermediates at trace time. Its semantics reduce to `(causal | valid[k]) & valid[k] = valid[k]`, a key-only gate — so the hand-built `[1,1,S,S]` bias into `Qwen3Model`'s `{"full_attention": bias}` dict is exactly equivalent (gated: cos ≥ 0.9999995 vs the remote path, padded and unpadded) and trace-safe. Full attention + ≥1 valid key ⇒ no empty rows ⇒ no NaN guard needed.
+- **Bidirectionality is gated, not assumed** — the inverse of the harrier gate above: editing the LAST valid token must move position 0's hidden state (7.9e-02 measured; a causal graph gives exactly 0).
+- **Prompts ride on BOTH sides** (`config_sentence_transformers.json`): queries `"Represent the query for retrieving supporting documents: "`, documents `"Represent the document for retrieval: "`. Measured with `--prefix-ab`: on JSQuAD the query prompt is score-neutral (+0.005 nDCG@10 *without* it, torch included) — opposite sign to harrier's +0.028-with. Third data point that the prefix contract is per-model in sign; measure, never assume.
+- **Quality is quantization-flat — consistent with the vendor's QAT claim.** fp32/fp16 reproduce torch to every printed digit (JSTS 0.8406, JSQuAD nDCG@10 0.9292); wi8fc lands within 0.008 everywhere and half the deltas are positive. The shared-space deployment shape holds under int8: torch-built index × wi8fc queries = 0.9283 vs 0.9292 control, and at MRL-256 (truncate + renormalize) 0.8989 vs 0.8990.
+- **wi8fc = FC int8 DRQ + EMBEDDING_LOOKUP int8 channelwise.** 347M params → fp32 1389 MB, int8 364 MB (1.15 GiB peak RSS, phone-viable), fp16 696 MB but **7.1 GiB peak RSS** (XNNPACK fp16→fp32 per-signature expansion) — desktop only.
+
+## mLateOn (multilingual ModernBERT ColBERT — late interaction on device)
+
+`mlateon_work/convert_mlateon_colbert.py` converts [lightonai/mLateOn](https://huggingface.co/lightonai/mLateOn) — LightOn's multilingual late-interaction retriever (mmBERT-base, 307M params, 128-d per token, MaxSim), the strongest long-document retriever in its class and trained on nine languages yet generalizing to unseen scripts — to plain LiteRT `.tflite`. Signatures `encode_{32,128,256,512}` → `output_0` `[1,S,128]`, per-token L2-normalized; MaxSim scoring is host-side.
+
+```bash
+cd mlateon_work
+python convert_mlateon_colbert.py lightonai/mLateOn out_mlateon   # fp32 + wi8fc + fp16
+python -u verify_mlateon_colbert.py out_mlateon --gates A,D,B,J   # card oracle + mechanics + NanoSciFact + JSQuAD
+python -u verify_mlateon_colbert.py out_mlateon --gates E --bank-cache --report verify_report_e.json
+python bench_mlateon_colbert.py out_mlateon
+```
+
+Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12 (+ pyarrow for the NanoSciFact loader). The non-obvious parts:
+
+- **The pad id is 4 (`<mask>`), not `config.json`'s 0.** PyLate sets `pad_token_id = mask_token_id` whenever the tokenizer has a mask token; the vendor's own `onnx_config.json` says 4. With padding masked out of attention the graph output on real tokens is provably pad-id-independent here (gated 0.0) — but a host should still pad with 4 to match the reference stack.
+- **The PyLate head is three all-linear Dense modules and folds exactly.** `use_residual: true` means a PARALLEL bias-free `residual` Linear (`out = linear(x) + residual(x)`), so 768→1536(res) → 1536→768(res) → 768→128 collapses to one 128×768 matrix `W3 @ (W2l+W2r) @ (W1l+W1r)` — folded in float64, gated at 2.4e-6 against the module stack. One FC in the graph instead of five.
+- **The sliding-window NaN wall, and why int8 hides it.** ModernBERT alternates full and ±64-window attention (`config.sliding_window` = `local_attention // 2` = 64, inclusive). Under right padding, a pad query row ≥64 past the last valid token has an empty window → all-masked row → SDPA NaN in fp32. There is no pooling to poison — but the NaN sits in the `[1,S,128]` output, and int8 kernels can round it into finite-looking garbage, so **assert finiteness on the fp32 artifact** (the variant that cannot fake it). The hand bias allows the diagonal (`valid[k] | q==k`) — a no-op for valid rows that keeps pad rows finite; the host drops them anyway.
+- **No query expansion, unlike classic ColBERT.** `do_query_expansion: false` ⇒ queries are natural-length with `[Q] ` (id 256000) inserted at position 1 after `<bos>`; documents get `[D] ` (256001); `skiplist_words` is empty. Every contract knob differs from LFM2.5-ColBERT above (pad id, expansion, pad-id load-bearing-ness, skiplist) — same architecture class, opposite host contracts, each read out of the shipped config + PyLate source, never assumed.
+- **The base card publishes exact MaxSim scores — use them as the oracle.** The converted fp32 reference reproduces `[9.6029, 9.5838, 9.5877, 9.4578]` to all four printed decimals, which anchors tokenizer, prefix insertion, padding, masks, head fold, normalization and MaxSim in a single gate before anything is traced.
+- **Quality is quantization-flat, including on an unseen language.** fp32/fp16 match torch to every digit; wi8fc: NanoSciFact nDCG@10 0.8951 vs 0.8882 torch, JSQuAD (Japanese — NOT in the nine training languages) 0.9719 vs 0.9710, and torch-index × int8-queries is identical to control on JSQuAD in every metric. Per-token smoke cos on random ids reads as low as 0.974 for int8 — random ids abuse the 256k SP table; the task gates are the ones that matter.
+- **wi8fc = FC int8 DRQ + EMBEDDING_LOOKUP int8 channelwise** (the 256002×768 table is ~64% of params). 307M params → fp32 1233 MB, int8 331 MB (678 MiB peak RSS — the smallest-footprint retriever in this repo), fp16 619 MB but ~6 GiB RSS — desktop only. Encoding runs ~4,600 tok/s at `encode_512` int8 on an M4 Max (late interaction pays at scoring time, not encoding time).
+
+
 ## BitCPM-CANN (ternary / 1.58-bit LLMs — int4 blockwise is a lossless container)
 
 `bitcpm_work/` converts openbmb's BitCPM-CANN family (BitNet-b1.58-style ternary QAT LLMs, Apache-2.0). LiteRT has no native 1-bit/ternary type ([feature request #7713](https://github.com/google-ai-edge/LiteRT/issues/7713)), but it doesn't need one to run these losslessly: BitCPM's QAT quantizer produces weights in {-α, 0, +α} per group of 128 input channels (α from absmean), released "pseudo-quantized" — the ternary values materialized in a plain bf16 checkpoint. Min-max symmetric int4 `BLOCKWISE_32` (blocks subdivide the 128-groups along the same axis) maps every weight onto {-7, 0, +7} with **zero rounding decisions**; the only residual is fp16 rounding of the per-block scale (≤4e-4 relative). `verify_ternary.py` checks both properties on the actual checkpoint before you convert. You pay 4 bits/weight instead of the native ~1.6 (≈2.5× their packed GGUF), but 4× under f16, on stock CPU/GPU int4 kernels.
