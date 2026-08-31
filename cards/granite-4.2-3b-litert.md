@@ -28,7 +28,9 @@ The **int4 file is the one to use on a phone**: on Apple hardware it is smaller 
 
 ## Correctness
 
-Both files score **8/8 on an 8-question sanity gate on both CPU and GPU** (Apple M4 Max, litert-lm 0.16.0 runtime lineage), with every answer arriving as a clean final answer through the thought channel — no reasoning leakage, no degeneration. The bf16 PyTorch reference scores 8/8 on the same questions under the same template. Phone-side results (iPhone / Android) will be added to this card as they are measured; until then the table below is the measured record.
+Both files score **8/8 on an 8-question sanity gate on both CPU and GPU** (Apple M4 Max, litert-lm 0.16.0 runtime lineage), with every answer arriving as a clean final answer through the thought channel — no reasoning leakage, no degeneration. The bf16 PyTorch reference scores 8/8 on the same questions under the same template.
+
+On a **Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno)** both files generate correctly on GPU and CPU, with **full OpenCL delegation — 1783/1783 nodes on every prefill signature and decode, zero rejected ops** — and the runtime separates the reasoning on-device exactly as intended: the answer arrives as a labeled thought block followed by the clean final answer. iPhone results will be added when measured.
 
 ## Usage
 
@@ -57,6 +59,17 @@ Notes for a reasoning model:
 | int8 | CPU | 264 tok/s | 21.1 tok/s | 2.61 s | 23.0 s |
 
 Two patterns worth knowing, both consistent with the granite-4.1-3b conversion of the same shape: **int4 beats int8 on the GPU** (+21% decode on top of the 1.7× size reduction), while **int8 wins CPU prefill** (2.5×) — XNNPACK's large matmuls outrun the blockwise dequant.
+
+Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno; `litert_lm_advanced_main` from the litert-lm v0.16.0 release kit, 205-token prompt with `--benchmark`, 2 runs per cell, ranges shown; a reasoning model decodes its own full response, so decode-turn lengths vary):
+
+| File | Backend | Prefill (205) | Decode | TTFT | Init |
+|---|---|---|---|---|---|
+| int4 | **GPU (OpenCL)** | **235–241 tok/s** | **12.3–15.6 tok/s** | 0.93–0.94 s | 13.6–15.7 s |
+| int4 | CPU | 22–42 tok/s | 9.5–9.8 tok/s | 5.0–9.3 s | 3.8–8.4 s |
+| int8 | GPU (OpenCL) | 239–241 tok/s | 9.2 tok/s | 0.96–0.97 s | 5.4–5.8 s |
+| int8 | CPU | 51–95 tok/s | 7.0 tok/s | 2.3–4.2 s | 0.6 s |
+
+The int4 GPU decode range's low end is the second back-to-back run (thermal); its high end is the rested reading. The shape matches the other platforms: **int4 wins GPU decode 1.7× over int8**, GPU wins TTFT ~5–10× over CPU, and peak process RSS stayed at 1.4 GB (int4 GPU) / 4.3 GB (int8 CPU) with no OOM on the 12 GB device.
 
 ## Conversion notes
 
