@@ -29,6 +29,10 @@ reproduce() {
   case "$key" in
   # ---- clean single-command exports ----
   fastcontext-4b)      EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT microsoft/FastContext-1.0-4B-SFT out/$key templates/chatml_simple.jinja BOCTAV4 ;;
+  granite42-3b)        dl ibm-granite/granite-4.2-3b $SM/granite-4.2-3b
+                       NO_START_TOKEN=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 PREFILL=1024,256,64,16,4,1 \
+                         $EXPORT $SM/granite-4.2-3b out/$key templates/granite42_think.jinja BOCTAV4
+                       $PY tools/add_thought_channel.py out/$key/model.litertlm out/$key/model_thought.litertlm --start '<think>' --end '</think>' ;;  # int8 ship = same env, recipe dynamic_wi8_afp32; thinking model — the channel add is part of the recipe
   nanbeige4.1-3b)      FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT Nanbeige/Nanbeige4.1-3B out/$key templates/chatml_simple.jinja BOCTAV4 ;;
   nanbeige4.2-3b)      FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/convert_nanbeige42.py Nanbeige/Nanbeige4.2-3B out/$key templates/chatml_think.jinja BOCTAV4 ;;  # looped transformer (num_loops=2, 44 KV slots); dedicated script; sampling REQUIRED (temp 0.6/topk 20, greedy collapses); CPU backend (GPU delegate miscomputes this graph)
   olmo2-1b)            CACHE=4096 $EXPORT allenai/OLMo-2-0425-1B-Instruct out/$key templates/olmo2_simple.jinja BOCTAV4 ;;
@@ -74,7 +78,7 @@ reproduce() {
   echo "REPRODUCED $key -> out/$key/model.litertlm"
 }
 
-KEYS="fastcontext-4b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
+KEYS="fastcontext-4b granite42-3b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b"
 

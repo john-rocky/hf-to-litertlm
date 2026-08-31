@@ -1512,6 +1512,26 @@ coming from the start token, so a bare drop fixes the no-system path and breaks 
 one. Dropping the start token *and* rewriting that prefix to `<|im_start|>system\n` leaves
 the system path's prompt identical (prefill 24 before and after) while fixing the other.
 
+## granite-4.2-3b (dense, thinking) — the think prefill an extracted template silently drops
+
+`granite42_work/convert_granite42_3b.sh` converts IBM's compact reasoning model (3.66B dense, Aug 2026) on a pristine released stack (litert-torch 0.9.3 / litert-converter 0.4.0 / ai-edge-quantizer 0.9.0 / litert-lm-builder 0.16.1, transformers 5.14.1). Published: [litert-community/granite-4.2-3b](https://huggingface.co/litert-community/granite-4.2-3b). **Requires litert-lm ≥ 0.16 to run.**
+
+```bash
+pip install "litert-torch==0.9.3" "litert-converter==0.4.0" "ai-edge-quantizer==0.9.0" "litert-lm-builder==0.16.1" "transformers==5.14.1"
+python -c "from huggingface_hub import snapshot_download; snapshot_download('ibm-granite/granite-4.2-3b', local_dir='src_models/granite-4.2-3b')"
+granite42_work/convert_granite42_3b.sh    # int8 + int4, six prefill signatures, NO_START_TOKEN=1
+python tools/add_thought_channel.py granite42_work/out_int8/model.litertlm granite-4.2-3b_int8.litertlm --start '<think>' --end '</think>'
+```
+
+4.2 returns from the 4.0/4.1 hybrid line to full attention, so the dense 4.1 rail carries over — six-signature prefill ladder (an eleven-signature build of this shape is killed by iOS at Metal engine init), externalized embedder, `NO_START_TOKEN=1` (4.2 declares `<s>` as BOS but its tokenizer never prepends it — the post-processor adds nothing — so the builder's unconditional `start_token` write must be suppressed). Both quantizations gate **8/8 on CPU and GPU** (Mac, litert-lm 0.16.0), answers arriving cleanly through the thought channel; measured throughput is on the model card.
+
+**What 4.2 adds is the reasoning machinery, and two conversion steps are load-bearing:**
+
+- **The think prefill must survive template extraction.** IBM's template ends the generation prompt with `<|im_start|>assistant\n<think>\n`. The exporter's `parse_chat_template` derives the assistant prefix from an assistant *history* message (`add_generation_prompt=False`), so a jinja that opens `<think>` only in its generation branch exports a bundle whose `model.prefix` is a bare `<|im_start|>assistant\n` — the scaffold is silently gone, and think-discipline is left to the quantized model's choice. `templates/granite42_think.jinja` therefore puts the opener in the assistant history branch too (the chatml_think shape). After any export of a thinking model, read `prompt_templates.model.prefix` out of the bundle before trusting it.
+- **The thought channel must be declared.** The structured-template path emits no `LlmMetadata.channels`; without it the runtime streams raw reasoning into the answer and silently ignores any thinking budget. `tools/add_thought_channel.py` adds the block post-export and refuses to pass if anything but `channels` changed.
+
+`granite42_work/hf_oracle.py` is the bf16 reference for the same eight gate questions (scored on the text after `</think>` — the reasoning routinely contains the expected string, e.g. it repeats "0.9" while comparing 0.9 vs 0.11, so scoring the whole output would fake a pass). `granite42_work/gate8q.py` applies the same prefilled-opener-aware scoring to the converted bundle.
+
 ## Qwen2.5-Coder-1.5B-Instruct — a 1.5B code model at 1.12 GB, and why the size is the recipe
 
 `qwen25coder_work/convert_qwen25_coder.sh`. Published: [litert-community/Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct). **Requires litert-lm ≥ 0.16.**

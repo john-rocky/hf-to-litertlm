@@ -1,0 +1,29 @@
+{#- granite-4.2 (dense, THINKING) simple ChatML template. The runtime applies the
+    structured prompt_templates extracted from this jinja. Body is the chatml_think
+    shape, deliberately NOT the qwen3_think shape: the exporter's parse_chat_template
+    derives the model (assistant) prefix from an assistant HISTORY message rendered
+    with add_generation_prompt=False, so a template that only opens <think> in its
+    generation branch ships a bundle whose model.prefix is a bare
+    '<|im_start|>assistant\n' — no think-prefill scaffold. With the opener in the
+    history branch too, model.prefix = '<|im_start|>assistant\n<think>\n', matching
+    IBM's own generation prompt, and a history turn re-renders as prefix + generated
+    text (reasoning included) + suffix = the faithful full turn.
+    Differences vs the official chat_template.jinja, both deliberate:
+      * no unconditional EMPTY system block (<|im_start|>system\n<|im_end|>\n) —
+        a bf16 oracle A/B scored 8/8 with and without it on the sanity questions;
+      * assistant history keeps its thinking — the official template truncates it to
+        <think></think>, but the runtime extends the rendered string across turns, so
+        a history-rewriting branch would desync the cache from the render.
+    No BOS anywhere: the tokenizer's post_processor adds nothing and the export runs
+    NO_START_TOKEN=1 (bos <s>=100283 is never seen by the upstream model).
+    Stop = <|im_end|> (100257, == eos == pad). -#}
+{%- for message in messages -%}
+{%- if message['role'] == 'assistant' -%}
+{{- '<|im_start|>assistant\n<think>\n' + message['content'] + '<|im_end|>' + '\n' -}}
+{%- else -%}
+{{- '<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<|im_start|>assistant\n<think>\n' -}}
+{%- endif -%}
