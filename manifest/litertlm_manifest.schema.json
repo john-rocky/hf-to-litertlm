@@ -120,6 +120,8 @@
                 "max_num_tokens": {"type": "integer"},
                 "cache": {"type": "string"},
                 "runs": {"type": "integer"},
+                "load_s": {"type": "number", "minimum": 0},
+                "peak_memory_mb": {"type": "number", "minimum": 0},
                 "date": {"type": "string", "format": "date"},
                 "source": {"type": "string"},
                 "evidence": {"type": "string"}

@@ -52,6 +52,10 @@ export interface MeasuredRow {
   max_num_tokens?: number;
   cache?: string;
   runs?: number;
+  /** Engine load time in seconds under the row's `cache` condition (manifest 0.1.2+). */
+  load_s?: number;
+  /** Peak resident memory during the run, in MB (manifest 0.1.2+). */
+  peak_memory_mb?: number;
   date: string;
   source: string;
 }

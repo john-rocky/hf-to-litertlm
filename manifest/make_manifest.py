@@ -9,7 +9,7 @@ passed via --curated (see manifest/examples/ for finished manifests). The output
 
 Usage (needs: pip install litert-lm-builder jsonschema):
     python manifest/make_manifest.py litert-community/LFM2.5-1.2B-Instruct
-    ... --public          # strip private `evidence` pointers for publication
+    ... --public          # strip every private `evidence` pointer for publication
     ... --local-file F    # parse a local bundle instead of range-reading HF
 
 """
@@ -69,6 +69,17 @@ def parse_bundle_header(fetch):
       llm_meta.ParseFromString(raw)
   return sections, llm_meta
 
+def strip_evidence(obj):
+  """Drop every `evidence` key under obj (measured rows, quality rows, ...).
+  Evidence points at private logs; --public output must carry none."""
+  if isinstance(obj, dict):
+    obj.pop("evidence", None)
+    for val in obj.values():
+      strip_evidence(val)
+  elif isinstance(obj, list):
+    for item in obj:
+      strip_evidence(item)
+
 def derive_capabilities(m):
   caps = {"vision": False, "audio": False}
   which = m.llm_model_type.WhichOneof("model_type") if m.HasField("llm_model_type") else None
@@ -93,9 +104,19 @@ def derive_capabilities(m):
     # 0.1.1: mirror the full declared channel set, not just the first one —
     # a model declaring e.g. non-default tool-call markers flows through.
     chans = []
+    # An older builder proto has no is_reasoning_channel field: the bundle's
+    # value would be dropped silently, so warn and omit the key instead of
+    # writing a wrong `false`.
+    has_reasoning_flag = any(
+        f.name == "is_reasoning_channel"
+        for f in llm_metadata_pb2.Channel.DESCRIPTOR.fields)
+    if not has_reasoning_flag:
+      print("WARN: builder proto lacks Channel.is_reasoning_channel — "
+            "channels[].is_reasoning omitted; use a newer litert-lm-builder",
+            file=sys.stderr)
     for c in m.channels:
       row = {"name": c.channel_name, "start": c.start, "end": c.end}
-      if c.is_reasoning_channel:
+      if has_reasoning_flag and c.is_reasoning_channel:
         row["is_reasoning"] = True
       chans.append(row)
     caps["channels"] = chans
@@ -170,8 +191,7 @@ def main():
               f"backend_constraint {sorted(allowed)}", file=sys.stderr)
     v.update(cv)
     if args.public:
-      for row in v.get("measured", []):
-        row.pop("evidence", None)
+      strip_evidence(v)
     variants.append(v)
 
     if llm_meta is not None and model_meta is None:
@@ -185,7 +205,7 @@ def main():
     model["capabilities"] = derive_capabilities(model_meta)
 
   manifest = {
-      "manifest_schema": "0.1.1",
+      "manifest_schema": "0.1.2",
       "repo": args.repo,
       "generated": datetime.date.today().isoformat(),
       "generator": "make_manifest.py",

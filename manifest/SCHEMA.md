@@ -1,6 +1,6 @@
 # litertlm_manifest.json — a deployment manifest for `.litertlm` model repos
 
-**Status: v0.1 draft (2026-08-24).** One `litertlm_manifest.json` at the root of a Hugging Face
+**Status: v0.1 draft (2026-08-24; 0.1.2 as of 2026-09-02).** One `litertlm_manifest.json` at the root of a Hugging Face
 model repo describes every `.litertlm` file the repo ships: which backends each file targets,
 which file a given device should pick, what it needs (runtime version, RAM), and how fast it
 actually runs — with measured numbers, not claims.
@@ -108,8 +108,12 @@ Every row states its conditions and its provenance; a row without them does not 
 - `cache: "no"` matters: compiled-model caches mask load regressions and inflate disk cost.
 - Rows come from real generation-verified backends only (a benchmark can report numbers on a
   backend that cannot generate text).
-- `evidence` (optional, string) points at the primary log; it is stripped from published
-  manifests (`--public`) and kept in the converter's own records.
+- `load_s` (optional, number, 0.1.2+) is the engine load time in seconds under the row's `cache`
+  condition; `peak_memory_mb` (optional, number, 0.1.2+) is the peak resident memory during the
+  run, in MB. Both are measured, never estimated.
+- `evidence` (optional, string) points at the primary log; `--public` strips every `evidence` key
+  under a variant (measured rows and any other curated block) and the converter keeps them in its
+  own records.
 
 ## Versioning
 
@@ -117,7 +121,8 @@ Every row states its conditions and its provenance; a row without them does not 
 minor version is the compatibility line: a 0.1.x release may only add optional fields — nothing
 is removed, renamed, or changed in meaning short of `0.2.0`. `0.1.1` adds
 `model.capabilities.channels[]` (the full bundle channel mirror) and declares
-`session_defaults`' in-the-wild keys; both are optional, so 0.1.0 manifests stay valid. Readers should pin a supported
+`session_defaults`' in-the-wild keys; both are optional, so 0.1.0 manifests stay valid. `0.1.2` adds
+`measured[].load_s` and `measured[].peak_memory_mb`, also optional. Readers should pin a supported
 range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
 manifest fails validation rather than half-parsing, and both reference readers refuse it at
 parse time.
@@ -125,6 +130,7 @@ parse time.
 ## What deliberately stays OUT of v0.1
 
 - Anything the bundle carries (templates, stop tokens, sampler params) — read the bundle.
-- Quality/parity scores — they belong on the model card with their own methodology; a
-  `quality` block may be added in a later version once the row format is settled.
+- Quality/parity scores — they belong on the model card with their own methodology. A variant may
+  carry a curated `quality[]` block today (`{task, score, reference, date}` rows); its format is
+  not settled, so the schema leaves it unvalidated and readers must treat it as opaque.
 - Download URLs — the manifest lives in the repo it describes; `repo` + `file` is the address.
