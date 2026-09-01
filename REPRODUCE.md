@@ -1801,3 +1801,25 @@ python s1mini_work/gate_normalize.py out/s1-mini-int8/model.litertlm --backend c
 **int8 only, and that is a measurement, not a guess.** The int8 build reproduces the HF fp32 greedy outputs **byte-for-byte, 10/10 task cases, on CPU and GPU** (`gate_normalize.py` feeds both sides the identical rendered string). int4-b32 was built and rejected: it drops the comma before "and" and discourse words like "hmm" (identically on both backends), and decodes *slower* than int8 at 0.6B (24 vs 31 tok/s CPU, 88 vs 105 tok/s Mac GPU) — block-dequant overhead beats the bandwidth saving at this size. Also note s1-mini ties its embedding and lm_head, so an int4-FC + int8-embedding recipe triggers the vocab-table duplication defect described in the Qwen2.5-Coder section (656 MB "int4", larger than int8; `externalize_embedder=True` clears it) — another reason int8 is the honest recipe here.
 
 **Gate it on its own task.** S1-mini is not a chat model: asked "What is 17 + 25?" it will normalize the question, not answer it, so the 8-question gate certifies nothing. `gate_normalize.py` runs 10 dictation-normalization cases (all four registers, lists, email, numbers/time/currency, and the pure-filler case whose correct output is the empty string) against HF fp32 on the identical rendered string, with a BOS A/B check first. Mac numbers for this build (p256/d256, runs 3, `--cache no`, litert-lm 0.16.0, M4 Max): GPU 3777 prefill / 146.7 decode tok/s, TTFT 0.075 s; CPU 466 / 34.6, TTFT 0.58 s.
+
+## granite-speech-5.0-470m-turboctc (CTC conformer ASR → plain .tflite)
+
+First ASR in the catalog. `granite_speech_work/` converts IBM's 473M CTC conformer to plain LiteRT `.tflite` — one encoder forward, no decoder loop; the host does argmax-collapse-decode in ~10 lines. Published: [litert-community/granite-speech-5.0-470m-turboctc](https://huggingface.co/litert-community/granite-speech-5.0-470m-turboctc) (int8 518 MB + fp16 994 MB).
+
+```sh
+hf download ibm-granite/granite-speech-5.0-470m-turboctc --local-dir granite_speech_work/hf_model
+python3 granite_speech_work/fetch_fixtures.py         # 20 LibriSpeech dev-clean clips
+python3 granite_speech_work/eager_gate.py             # oracle: WER 3.79% + buffer checks
+python3 granite_speech_work/convert_granite_speech_ctc.py
+python3 granite_speech_work/verify_tflite.py          # 20/20 transcript match per variant
+```
+
+Env: torch 2.12 + torchaudio 2.11 (the processor's mel front-end needs torchaudio) + transformers 5.14 + litert_torch 0.9.3 + ai-edge-quantizer + ai-edge-litert.
+
+**The Hub repo is two-faced (as of 2026-09-01), and `AutoModel` fails on released transformers.** `config.json`/`model.safetensors` are re-exported for the unreleased stock `GraniteSpeech5ForCTC` (model_type `granite_speech5_ctc`, HF-standard tensor names, no `auto_map`), while the bundled remote-code `.py` files are the older packaged `CtcConformerForCTC` with stock-3.3 granite_speech naming. `load_model.py` loads through the remote code with a 16-rule full-key state-dict rename; the nasty pair is `conv.norm.*` (BatchNorm) → `conv.batch_norm.*` while `norm_conv.*` (LayerNorm) → `conv.norm.*` — rename per full key in one pass, never cascading prefix rewrites. `load_state_dict(strict=True)` over all 550 tensors proves the mapping; a 20-clip WER gate proves the wiring.
+
+**Shaw's re-association is the difference between a 923 MB and a 518 MB int8 file.** The encoder's rel-pos bias `einsum(q, rel_pos_emb(dists[:blk,:blk]))` constant-folds under `torch.export` into a `[blk, blk, 128]` fp32 constant per layer × per distinct block length × per signature (~0.5 GB across the 3-signature export) that FC-only dynamic int8 cannot reach (it feeds BATCH_MATMUL). Rewriting as `gather(q @ W.T, dists)` (`shaw_patch.py`) keeps the single shared `[1025, 128]` table and is **bitwise identical** in eager on all three windows. Cost: 17 GATHER_ND ops — the mobile GPU delegate then refuses to compile the graph (measured on a Galaxy S26), which is fine because this is a CPU ship.
+
+**Fixed windows are semantically cheap because attention is block-local (128 frames), but not free.** Signatures `transcribe_{5,10,30}s` zero-pad audio to the window; padding shifts the 128-frame block boundaries, and on the 20-clip fixture set 19/20 transcribe identically vs unpadded with one single-word change (corpus WER 3.79% → 4.24%). Route each clip to the smallest window that fits.
+
+**Verification is transcript-exact, not just cosine-close.** int8 and fp16 both match the fp32 eager transcripts 20/20; on a Galaxy S26 (CompiledModel CPU) the transcripts are again exact on every signature and the int8 logits are bit-identical to the desktop run of the same file (max abs diff 0.0). Speed: int8 transcribes a 30 s window in 239 ms on an M4 Max (8 threads) and 666 ms on the S26 — ~126× / ~45× real-time; fp16 is ~3× slower on CPU (XNNPACK fp32 repack), use int8 on device.
