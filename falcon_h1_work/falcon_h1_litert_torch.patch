@@ -1,5 +1,5 @@
 diff --git a/litert_torch/generative/export_hf/core/cache.py b/litert_torch/generative/export_hf/core/cache.py
-index 5c13dea..5914fe2 100644
+index 5c13dea..9f26de8 100644
 --- a/litert_torch/generative/export_hf/core/cache.py
 +++ b/litert_torch/generative/export_hf/core/cache.py
 @@ -116,6 +116,10 @@ class LiteRTLMCacheLayer(cache_base_lib.LiteRTLMCacheLayerMixin):
@@ -13,7 +13,7 @@ index 5c13dea..5914fe2 100644
    def __init__(
        self,
        key_cache: KeyCache,
-@@ -437,10 +441,675 @@ class LiteRTLMConvCacheLayer(
+@@ -437,10 +441,684 @@ class LiteRTLMConvCacheLayer(
      )
  
  
@@ -222,19 +222,26 @@ index 5c13dea..5914fe2 100644
 +    # transformers >= 5.14 renamed the layer type "mamba" -> "linear_attention"
 +    assert model_config.layer_types[layer_index] in ("mamba", "linear_attention")
 +    cfg = getattr(model_config, "text_config", model_config)
-+    # Two config vocabularies for the same Mamba2 mixer geometry:
++    # Three config vocabularies for the same Mamba2 mixer geometry:
 +    # granite/bamba spell it mamba_* (n_heads, d_head, d_state, d_conv,
 +    # n_groups), NemotronH spells it mamba_num_heads / mamba_head_dim /
-+    # ssm_state_size / conv_kernel / n_groups. The mixer-faithful intermediate
-+    # is heads * head_dim (== mamba_expand * hidden_size on granite/bamba by
-+    # construction; NemotronH's differs from expand * hidden, so heads *
-+    # head_dim is the one formula that matches every mixer's own
-+    # `self.intermediate_size`).
-+    num_heads = getattr(cfg, "mamba_n_heads", None) or cfg.mamba_num_heads
-+    head_dim = getattr(cfg, "mamba_d_head", None) or cfg.mamba_head_dim
++    # ssm_state_size / conv_kernel / n_groups, Zamba2 n_mamba_heads /
++    # mamba_headdim / mamba_d_state / mamba_d_conv / mamba_ngroups. The
++    # mixer-faithful intermediate is heads * head_dim (== mamba_expand *
++    # hidden_size on granite/bamba/zamba2 by construction; NemotronH's differs
++    # from expand * hidden, so heads * head_dim is the one formula that
++    # matches every mixer's own `self.intermediate_size`).
++    num_heads = (getattr(cfg, "mamba_n_heads", None)
++                 or getattr(cfg, "mamba_num_heads", None)
++                 or cfg.n_mamba_heads)
++    head_dim = (getattr(cfg, "mamba_d_head", None)
++                or getattr(cfg, "mamba_head_dim", None)
++                or cfg.mamba_headdim)
 +    d_state = getattr(cfg, "mamba_d_state", None) or cfg.ssm_state_size
 +    d_conv = getattr(cfg, "mamba_d_conv", None) or cfg.conv_kernel
-+    n_groups = getattr(cfg, "mamba_n_groups", None) or cfg.n_groups
++    n_groups = (getattr(cfg, "mamba_n_groups", None)
++                or getattr(cfg, "n_groups", None)
++                or cfg.mamba_ngroups)
 +    intermediate_size = num_heads * head_dim
 +    conv_dim = intermediate_size + 2 * n_groups * d_state
 +    batch_size = kwargs.pop("batch_size", export_config.batch_size)
@@ -581,17 +588,19 @@ index 5c13dea..5914fe2 100644
 +    k_cache_shape, v_cache_shape = cls._infer_cache_shape_from_config(
 +        model_config, layer_index, export_config
 +    )
-+    # Mamba geometry, FalconH1 vocabulary (mamba_d_ssm overrides
++    # Mamba geometry, FalconH1 vocabulary first (mamba_d_ssm overrides
 +    # expand*hidden when set; mamba_d_head resolves from 'auto' in the
-+    # config's __post_init__). Zamba2's 'hybrid' layers spell these
-+    # differently (n_mamba_heads/mamba_headdim/mamba_ngroups) — add that
-+    # vocabulary when its extension lands.
++    # config's __post_init__), falling back to Zamba2's spellings
++    # (n_mamba_heads / mamba_headdim / mamba_ngroups).
 +    intermediate_size = (
 +        cfg.mamba_d_ssm
 +        if getattr(cfg, "mamba_d_ssm", None)
 +        else int(cfg.mamba_expand * cfg.hidden_size)
 +    )
-+    conv_dim = intermediate_size + 2 * cfg.mamba_n_groups * cfg.mamba_d_state
++    n_groups = (getattr(cfg, "mamba_n_groups", None) or cfg.mamba_ngroups)
++    num_heads = (getattr(cfg, "mamba_n_heads", None) or cfg.n_mamba_heads)
++    head_dim = (getattr(cfg, "mamba_d_head", None) or cfg.mamba_headdim)
++    conv_dim = intermediate_size + 2 * n_groups * cfg.mamba_d_state
 +    batch_size = kwargs.pop("batch_size", export_config.batch_size)
 +    keys = torch.zeros(k_cache_shape, dtype=torch.float32)
 +    values = torch.zeros(v_cache_shape, dtype=torch.float32)
@@ -599,7 +608,7 @@ index 5c13dea..5914fe2 100644
 +        (batch_size, conv_dim, cfg.mamba_d_conv), dtype=torch.float32
 +    )
 +    recurrent_states = torch.zeros(
-+        (batch_size, cfg.mamba_n_heads, cfg.mamba_d_head, cfg.mamba_d_state),
++        (batch_size, num_heads, head_dim, cfg.mamba_d_state),
 +        dtype=torch.float32,
 +    )
 +    return cls(
@@ -689,16 +698,18 @@ index 5c13dea..5914fe2 100644
  }
  
  
-@@ -464,6 +1133,17 @@ class LiteRTLMCache(cache_base_lib.LiteRTLMCacheMixin):
+@@ -464,6 +1142,19 @@ class LiteRTLMCache(cache_base_lib.LiteRTLMCacheMixin):
        if hasattr(model_config, "layer_types"):
          layer_type = model_config.layer_types[layer_index]
        layer_class = LAYER_TYPE_TO_CLASS.get(layer_type, LiteRTLMCacheLayer)
 +      # transformers >= 5.14 renamed mamba layer_types to the standardized
 +      # "linear_attention"; distinguish mamba2 by its config keys —
-+      # granite/bamba spell it `mamba_n_heads`, NemotronH `mamba_num_heads`.
++      # granite/bamba spell it `mamba_n_heads`, NemotronH `mamba_num_heads`,
++      # Zamba2 `n_mamba_heads`.
 +      if (layer_class is LiteRTLMLinearAttentionCacheLayer
 +          and (hasattr(model_config, "mamba_n_heads")
-+               or hasattr(model_config, "mamba_num_heads"))):
++               or hasattr(model_config, "mamba_num_heads")
++               or hasattr(model_config, "n_mamba_heads"))):
 +        layer_class = LiteRTLMMambaCacheLayer
 +      # MLA (DeepSeek-V2/V3, MiniMax-M2) has no per-layer types and needs an
 +      # asymmetric K/V cache; route its (otherwise full-attention) layers to it.
@@ -707,7 +718,7 @@ index 5c13dea..5914fe2 100644
        layers.append(
            layer_class.create_from_config(
                model_config,
-@@ -519,10 +1199,61 @@ def _flatten_kvc_t(
+@@ -519,10 +1210,61 @@ def _flatten_kvc_t(
      v_ts_idx = layer_0.get_v_ts_idx()
    layer_types = []
    for i, layer in enumerate(kvc.layers):
@@ -770,7 +781,7 @@ index 5c13dea..5914fe2 100644
      elif isinstance(layer, LiteRTLMCacheLayer):
        layer_types.append("full_attention")
        flattened.append(layer.keys)
-@@ -531,9 +1262,18 @@ def _flatten_kvc_t(
+@@ -531,9 +1273,18 @@ def _flatten_kvc_t(
        flat_names.append(f"v_{i}")
      else:
        raise ValueError(f"Unsupported layer type: {type(layer)}")
@@ -790,7 +801,7 @@ index 5c13dea..5914fe2 100644
    )
  
  
-@@ -543,11 +1283,55 @@ def _unflatten_kvc_t(
+@@ -543,11 +1294,55 @@ def _unflatten_kvc_t(
  ) -> LiteRTLMCache:
    """Unflattens the cache from a list of tensors."""
    flat_names = context[0]
@@ -848,7 +859,7 @@ index 5c13dea..5914fe2 100644
        c_cache_idx = flat_names.index(f"c_{i}")
        layers.append(
            LiteRTLMConvCacheLayer(
-@@ -555,6 +1339,32 @@ def _unflatten_kvc_t(
+@@ -555,6 +1350,32 @@ def _unflatten_kvc_t(
                batch_size=batch_size,
            )
        )
@@ -903,10 +914,10 @@ index 0000000..c0f98a7
 +# ==============================================================================
 diff --git a/litert_torch/generative/export_hf/model_ext/falcon_h1/patch.py b/litert_torch/generative/export_hf/model_ext/falcon_h1/patch.py
 new file mode 100644
-index 0000000..25807c5
+index 0000000..f570bb4
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/falcon_h1/patch.py
-@@ -0,0 +1,411 @@
+@@ -0,0 +1,427 @@
 +# Copyright 2026 The LiteRT Torch Authors.
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
@@ -982,7 +993,23 @@ index 0000000..25807c5
 +    return super().train(mode)
 +
 +  def forward(self, input_ids=None, **kwargs):
-+    valid = (input_ids != 0).to(torch.float32) if input_ids is not None else None
++    if input_ids is not None:
++      valid = (input_ids != 0).to(torch.float32)
++    elif kwargs.get("position_ids") is not None:
++      # Externalized-embedder graphs carry no token ids; the engine pads prefill
++      # chunks with non-increasing positions, so derive the mask from position
++      # monotonicity instead (same contract as the qwen3_5 fast_vlm decoder;
++      # without this the guard silently disables and CPU pad garbage corrupts
++      # the mamba conv/cumsum state — measured on Tiny-R-0.6B: 17+25 -> 19.5).
++      p = kwargs["position_ids"]
++      p = p[0] if p.ndim == 3 else p
++      if p.ndim == 1:
++        p = p.unsqueeze(0)
++      v0 = torch.ones_like(p[:, :1], dtype=torch.float32)
++      v1 = (p[:, 1:] > p[:, :-1]).to(torch.float32)
++      valid = torch.cat([v0, v1], dim=1)
++    else:
++      valid = None
 +    # FalconH1Model.forward's layer loop drops **kwargs (unlike granite /
 +    # nemotron / qwen3.5), so the exporter's k_ts_idx / v_ts_idx never reach
 +    # the transposed-attention interface. Stash them on the attention modules;

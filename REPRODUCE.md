@@ -791,6 +791,25 @@ The 1.5B-Deep variant takes the same one command as well. It is the deepest shap
 
 On an iPhone 17 Pro the Deep answers the composite probe **8/8 on GPU and 8/8 on CPU**, word for word identical apart from one function word: Metal decode 16.5 tok/s / prefill 140.3 / TTFT 1.19 s / 4.89 GB peak (CPU: 9.9 / 103.2 / 1.53 s / 1.74 GB). All 264 state buffers and the full ladder load with room to spare — depth costs nothing on the device side. Budget about a minute for GPU engine creation (8 s on CPU): every prefill signature's Metal kernels are built up front.
 
+### 2026-09-01 — Falcon-H1-Tiny-R-0.6B: the family's first reasoning ship, and the size where two family assumptions break
+
+[litert-community/Falcon-H1-Tiny-R-0.6B](https://huggingface.co/litert-community/Falcon-H1-Tiny-R-0.6B) — 44 all-hybrid layers (176 state buffers), self-emitting `<think>…</think>` reasoner, **requires litert-lm ≥ 0.16**. It does NOT ride `convert_falcon_h1.py` unchanged; `falcon_h1_work/convert_falcon_tinyr.py` carries four measures the Instruct sizes never needed, each one measured rather than assumed (the script's docstring has the details):
+
+```bash
+cd falcon_h1_work   # same pinned litert-torch base + falcon_h1_litert_torch.patch as above
+hf download tiiuae/Falcon-H1-Tiny-R-0.6B --local-dir src/Falcon-H1-Tiny-R-0.6B
+PYTHONPATH=litert-torch-falcon python convert_falcon_tinyr.py src/Falcon-H1-Tiny-R-0.6B out_tinyr
+```
+
+1. **The bundle stream must be byte-identical to HF, BOS included.** The upstream template renders `{{bos_token}}`, which the engine's template renderer leaves empty; the builder's start_token puts BOS in a different spot than HF's render. At 0.6B that one-token head difference flips greedy answers (bf16 A/B: 8/8 vs 7/8 — "capital of Japan" became *Hiroshima*). The script hardcodes the literal `<|begin_of_text|>` into the template and suppresses start_token.
+2. **int8 stops at the FC boundary — the embedding table stays float.** The family rule "int8 on linears + embedding" fails here: an int8 embedding table (even per-row) gives runaway thinking and greedy fact flips; FC-only int8 restores bf16-class behavior (a float lm_head does NOT — the input embedding is the poison).
+3. **The embedder is externalized into its own CPU-side section**, because the GPU delegate accepts an in-graph EMBEDDING_LOOKUP only with an int8 table (a float table crashes engine creation, an fp16 cast is refused as partial delegation) — quality and GPU delegation cannot coexist in one graph.
+4. **The pad guard now derives its mask from position monotonicity** (patch updated in place): the externalized decoder graph carries no token ids, so the previous `input_ids != 0` mask silently disabled and CPU pad garbage corrupted the Mamba conv/cumsum state (`17+25 → 19.5`, float export identical — not a quantization bug).
+
+The reasoning is packaged, not just tolerated: the `thought` channel (`<think>`/`</think>`) is declared post-hoc with `tools/add_thought_channel.py` (verified: reasoning arrives on the channel on Mac CPU/GPU and iPhone, and `--thinking-budget 16` cuts at exactly 16 tokens), and both upstream stop tokens `[11, 228]` ride in from `generation_config`. Give sessions a ≥ 2048-token output budget — truncated mid-thought a reasoner produces no final answer.
+
+Ship verification: **GSM8K 100-question greedy at 2048 tokens, scored after `</think>`: the int8 bundle 76/100 vs the bf16 PyTorch model 71/100** on the identical stream and protocol (per-question flips run in both directions — quantization noise, not degradation). 8-question gate: Mac CPU 6/8 / GPU 7/8, iPhone 17 Pro CPU 6/8 / Metal 6/8, zero unclosed thinks; the recurring misses are two fact-recall knife-edges the bf16 model also flips under one-token perturbations. Mac M4 Max (`-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0): GPU 2216 prefill / 97.8 decode / TTFT 0.13 s, CPU 381 / 47.8 / 0.69 s. iPhone 17 Pro (cold, single runs, 148-token composite prompt): **CPU decodes faster than Metal at this size** — 29.4 vs 22.8 tok/s, at 0.82 vs 3.01 GB peak — the GPU-overhead side of the small-model law, opposite to every larger sibling.
+
 ### 2026-08-27 — Qwen3.5-4B Mixed INT4: the block size is the only knob that matters
 
 Requested in [LiteRT-LM #1658](https://github.com/google-ai-edge/LiteRT-LM/issues/1658) for 8 GB Android phones: the int8 file is 4.10 GB and cannot fit; a Mixed INT4 build is 2.57 GB. Two commands on top of the recipe above (same pinned base + patch, same float export):
