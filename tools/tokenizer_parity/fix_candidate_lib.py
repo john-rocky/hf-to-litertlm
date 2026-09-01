@@ -214,10 +214,17 @@ def _build_spm_model_from_tokenizer(
       for b in missing:
         sp_model.pieces.add(piece="<0x%02X>" % b, score=0.0, type=spm_model.ModelProto.SentencePiece.BYTE)
   if not any(p.type == spm_model.ModelProto.SentencePiece.UNKNOWN for p in sp_model.pieces):
-    sp_model.pieces.add(piece="<unk>", score=0.0, type=spm_model.ModelProto.SentencePiece.UNKNOWN)
+    # some vocabs (e.g. Qwen2.5) hold a literal "<unk>" token without it being the unk_token;
+    # sentencepiece >= 0.2.1 rejects duplicate piece surfaces on load, so pick an unused name.
+    existing_pieces = {p.piece for p in sp_model.pieces}
+    unk_piece, suffix = "<unk>", 0
+    while unk_piece in existing_pieces:
+      suffix += 1
+      unk_piece = "<unk_%d>" % suffix
+    sp_model.pieces.add(piece=unk_piece, score=0.0, type=spm_model.ModelProto.SentencePiece.UNKNOWN)
     sp_model.trainer_spec.unk_id = len(sp_model.pieces) - 1
-    sp_model.trainer_spec.unk_piece = "<unk>"
-    logging.info("no unk_token: appended <unk> at id %d", sp_model.trainer_spec.unk_id)
+    sp_model.trainer_spec.unk_piece = unk_piece
+    logging.info("no unk_token: appended %s at id %d", unk_piece, sp_model.trainer_spec.unk_id)
   logging.info("number of tokens: %d", len(sp_model.pieces))
   for type_ in counts:
     logging.info(
