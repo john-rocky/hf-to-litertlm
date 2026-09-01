@@ -20,7 +20,12 @@ ROOT = os.path.dirname(HERE)
 VIS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "out/qwen35vl-vision")
 MODEL = os.environ.get("MODEL", "Qwen/Qwen3.5-2B")
 IMG = 512
-FIXTURES = os.path.join(ROOT, "northmv_work", "fixtures")
+# Fixture set is a MEASUREMENT choice: photo fixtures for captioning towers,
+# document fixtures (docling_work/*_512.png) for OCR towers — OCR is harder on
+# int8 vision and the photo numbers must not be quoted for it.
+FIXTURES = os.environ.get("FIXTURES", os.path.join(ROOT, "northmv_work", "fixtures"))
+FIXTURE_FILES = os.environ.get(
+    "FIXTURE_FILES", "cats_512.png,kitchen1_512.png,kitchen2_512.png").split(",")
 
 
 def tfl_run(p, x):
@@ -67,7 +72,7 @@ def main():
   visual.config._attn_implementation = "eager"
 
   imgs = {}
-  for f in ("cats_512.png", "kitchen1_512.png", "kitchen2_512.png"):
+  for f in FIXTURE_FILES:
     p = os.path.join(FIXTURES, f)
     im = Image.open(p).convert("RGB").resize((IMG, IMG), Image.BICUBIC)
     imgs[f] = im

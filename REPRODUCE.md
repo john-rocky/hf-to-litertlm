@@ -759,6 +759,59 @@ python ../scripts/add_executor_metadata.py <out>.litertlm <final>.litertlm
 
 **Where the device and the desktop disagree, run the same prompt on the desktop before blaming the file.** On the composite 8-question probe this bundle answers 8/8 on Mac GPU *and* 8/8 on Mac CPU, while the phone scores 6/8 on Metal and 3/8 on CPU. None of the device misses reproduce on Mac, so they are device-side and not the conversion — the opposite of the 2B, whose arithmetic slip did reproduce on Mac and was therefore the model. The iPhone CPU result was re-run cold three days later after an app reinstall and came back byte-identical, so it is deterministic rather than thermal.
 
+### OvisOCR2 — an OCR finetune rides the 0.8B vision rail unchanged
+
+Published as [mlboydaisuke/OvisOCR2-LiteRT](https://huggingface.co/mlboydaisuke/OvisOCR2-LiteRT)
+(1.30 GB). [ATH-MaaS/OvisOCR2](https://huggingface.co/ATH-MaaS/OvisOCR2) is a page-level
+document-parsing post-train of Qwen3.5-0.8B, and its `config.json`, `chat_template.jinja`,
+`tokenizer_config.json` and `preprocessor_config.json` are **byte-identical** to the base
+checkpoint's — only the weights differ. So the 0.8B VL commands apply with the model id
+swapped:
+
+```bash
+cd qwen35vl_work
+MODEL=ATH-MaaS/OvisOCR2 IMG=512 python convert_qwen35_vision.py out/ovisocr2-vision
+# OCR is the stricter consumer: A/B the vision quant on DOCUMENT fixtures, not photos
+MODEL=ATH-MaaS/OvisOCR2 FIXTURES=<dir> FIXTURE_FILES=table_512.png,formula_512.png,arxiv_512.png \
+  python vision_quant_ab.py out/ovisocr2-vision
+
+PREFILL=1024,256,64,16,4,1 CACHE=4096 \
+  PYTHONPATH=../qwen35_work/litert-torch-qwen35 \
+  python export_qwen35vl_decoder.py ATH-MaaS/OvisOCR2 out/ovisocr2-decoder
+
+DEC=out/ovisocr2-decoder VIS=out/ovisocr2-vision TOK=out/ovisocr2-decoder/tokenizer.json \
+  VENC=vision_encoder_fp16.tflite VADP=vision_adapter_int8.tflite DEC_ACT=fp32 \
+  OUT_DIR=out/ovisocr2-bundle OUT_NAME=OvisOCR2_int8.litertlm python build_qwen35vl_bundle.py
+python ../scripts/add_executor_metadata.py out/ovisocr2-bundle/OvisOCR2_int8.litertlm OvisOCR2_int8_final.litertlm
+```
+
+What is checkpoint-specific and had to be re-measured rather than inherited:
+
+- **The fp16-safe LayerNorm table.** Same shape as base 0.8B (16 from block 6, 512 at the
+  final norm) but the absolute magnitudes moved (LN absmax 2390.9 → 2803.9). The script
+  calibrates per run, so nothing is edited — but a hand-copied sibling table would have been
+  silently wrong, again.
+- **The vision-quant A/B on document fixtures.** A rendered table page, a formula page and a
+  dense arXiv page at 512×512. Ship shape (fp16 encoder + int8 adapter) holds 0.9998+
+  end-to-end correlation on all three; the int8/int8 Mali variant holds 0.994–0.998.
+  Photo-fixture numbers must not be quoted for an OCR tower — the fixture set is part of
+  the measurement.
+- **Stop tokens without a `generation_config.json`.** The upstream repo ships none; the ids
+  come from `config.json` (`eos_token_id` 248044) plus the tokenizer's `<|im_end|>` (248046),
+  and the bundle builder verifies both against the actual tokenizer before baking them.
+
+Two behaviors that belong to the checkpoint, not the conversion — measure the HF fp32
+original before blaming the file:
+
+- **Dense pages exceed 512×512.** On a 9-pt arXiv page the transcription starts correct,
+  then paraphrases and finally repeats; upstream's own reference inference code ships a
+  repeat-cleanup post-processor for this. On pages legible at 512² (the table and formula
+  fixtures) the transcription is exact — all 20 table cells, symbol-for-symbol LaTeX — and
+  the GPU backend's output is byte-identical to CPU's.
+- **General chat is eroded by the OCR post-training.** On a generic 8-question sanity gate
+  the model transcribes the prompt instead of answering; the fp32 original does the same.
+  It is a document parser; prompt it as one.
+
 ## Falcon-H1 (attention ∥ Mamba2 in parallel, every layer) — first fully-hybrid family in LiteRT form
 
 `falcon_h1_work/convert_falcon_h1.py` converts TII's Falcon-H1 Instruct models to `.litertlm`. Every layer (36 on the 0.5B, 24 on the 1.5B, 32 on the 3B, 66 on the 1.5B-Deep) runs a grouped-query attention branch and a Mamba2 selective-scan branch **in parallel** on the same normalized input and sums them — so every layer carries a KV cache *and* conv/SSM recurrent state. Published: [litert-community/Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct), [litert-community/Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct), [litert-community/Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) and [litert-community/Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct). **Requires litert-lm ≥ 0.15 to run.**

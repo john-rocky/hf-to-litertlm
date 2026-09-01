@@ -23,17 +23,23 @@ MODEL = os.environ.get("MODEL", "Qwen/Qwen3.5-2B")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "hf_oracle.json")
 POS1D = os.environ.get("POS1D") == "1"
 N_NEW = int(os.environ.get("N_NEW", "64"))
-FIXTURES = os.path.join(ROOT, "northmv_work", "fixtures")
-IMGS = ["cats_512.png", "kitchen1_512.png", "kitchen2_512.png"]
-PROMPTS = ["What is in this image?",
-           "Describe the main colors in this image.",
-           "Where is this scene?"]
+FIXTURES = os.environ.get("FIXTURES", os.path.join(ROOT, "northmv_work", "fixtures"))
+IMGS = os.environ.get(
+    "FIXTURE_FILES", "cats_512.png,kitchen1_512.png,kitchen2_512.png").split(",")
+if os.environ.get("PROMPTS_FILE"):
+  PROMPTS = json.load(open(os.environ["PROMPTS_FILE"]))
+else:
+  PROMPTS = ["What is in this image?",
+             "Describe the main colors in this image.",
+             "Where is this scene?"]
 
 from transformers import AutoModelForImageTextToText, AutoProcessor  # noqa: E402
 
+DEVICE = os.environ.get("ORACLE_DEVICE", "cpu")  # "mps" makes the naive
+# gated-delta fallback path tractable for long generations; fp32 either way.
 model = AutoModelForImageTextToText.from_pretrained(
     MODEL, dtype=torch.float32, low_cpu_mem_usage=True,
-    attn_implementation="eager").eval()
+    attn_implementation="eager").eval().to(DEVICE)
 processor = AutoProcessor.from_pretrained(MODEL)
 
 if POS1D:
@@ -58,7 +64,7 @@ for img_name in IMGS:
         {"type": "text", "text": prompt}]}]
     inputs = processor.apply_chat_template(
         messages, add_generation_prompt=True, tokenize=True,
-        return_dict=True, return_tensors="pt", enable_thinking=False)
+        return_dict=True, return_tensors="pt", enable_thinking=False).to(DEVICE)
     with torch.no_grad():
       out = model.generate(**inputs, max_new_tokens=N_NEW, do_sample=False)
     text = processor.decode(out[0][inputs["input_ids"].shape[1]:],
