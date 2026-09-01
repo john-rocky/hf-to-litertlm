@@ -414,6 +414,27 @@ python convert_lfm25_26b.py LiquidAI/LFM2.5-2.6B out_26b_fp --fp    # for the in
 
 **Results (GSM8K n=100, greedy, max-tokens 2048, identical harness both sides)**: bf16 reference **92** · export-time int8 **88** · post-hoc int8-linears-only 89 (conv-int8 harmless on this model — matches Instruct, unlike the JP tune) · OCTAV int4-b32 **83**. Structure gates: 8Q 8/8 CPU (both files), 42-length first-token sweep clean (fresh engine per length), 3-turn conversation exact, Mac WebGPU 8Q 7/8 (int8). Mac M4 Max CPU: int8 434 tok/s prefill@1024 / 38 decode; int4 43.7 decode.
 
+### LFM2.5-230M (the smallest decoder) — a template the runtime cannot parse, and a shape that kills the GPU shader compile
+
+`lfm_work/convert_lfm25_230m.py` converts [LiquidAI/LFM2.5-230M](https://huggingface.co/LiquidAI/LFM2.5-230M) (14L: 8 ShortConv + 6 attention, 230M params, tied embeddings). Published: [litert-community/LFM2.5-230M](https://huggingface.co/litert-community/LFM2.5-230M). Same env as the family above (litert-torch 0.9.3, **transformers pinned 5.14.x**). Three facts none of the larger LFM2.5 ships hit:
+
+```bash
+cd lfm_work
+python convert_lfm25_230m.py out_230m           # export-time int8 (NOT what ships — see below)
+python convert_lfm25_230m.py out_230m_fp --fp   # unquantized, the ship pipeline's source
+python fix_230m_template.py out_230m_fp/model.litertlm fp_fixed.litertlm
+python ../minicpm_work/quantize_litertlm.py apply fp_fixed.litertlm int8.litertlm --recipe wi8fc
+python ../minicpm_work/quantize_litertlm.py apply fp_fixed.litertlm int4.litertlm --recipe wi4b32_wi8 --algo octav
+python ../bonsai_work/fix_zero_block_scales.py int4.litertlm int4_z.litertlm   # measured no-op here, family pipeline order
+python add_executor_metadata.py int8.litertlm LFM2.5-230M_int8.litertlm
+python add_executor_metadata.py int4_z.litertlm LFM2.5-230M_int4.litertlm
+```
+
+- **The checkpoint's chat template does not run on litert-lm's minijinja — every naive bundle dies on its first message.** Two constructs: HF's `{% generation %}`/`{% endgeneration %}` assistant-mask markers are a *parse* error ("unknown statement generation"), and `message.get("content")` is a *render* error ("map has no method named get"). `fix_230m_template.py` strips the markers and rewrites the two `.get` sites to plain indexing inside the packed bundle (weight-identical); `make_metadata_230m.py` proves the repaired template renders byte-identically to the original through HF `apply_chat_template` on 6 conversation shapes (user/system/multi-turn/past-think/closed/tools) — run it before trusting any edit. String methods (`.split`, `.endswith`) sit in branches the runtime never reaches and need no rewrite.
+- **cache_length 4099 + the 1024 prefill signature = GPU engine-creation failure at shader compile** (`CreateShaderModule` validation error, measured on macOS WebGPU). Isolated to the pair: ladder+4096 compiles, 128-only+4099 compiles, 1024-only+4099 fails. The 230M ships **cache 4096** — a clean multiple of the widest signature — and delegates fully on Adreno OpenCL (492/492 nodes on all 11 prefill signatures + decode, Galaxy S26) and on Metal/WebGPU.
+- **This tune sits on the JP/Thinking side of the family conv-int8 law.** GSM8K is floor for a 230M non-reasoning model (bf16 23/100 — useless for the A/B), so the recipe decision ran on instruction following (`ifeval_lite_230m.py`, a re-implementation of google/IFEval's mechanically checkable types; numbers comparable only within the harness): bf16 60.0 / export-time conv-int8 53.3 / **post-hoc wi8fc 58.3** (n=120 prompt-level strict). Convs stay float; wi8fc ships as the int8 file.
+- One more per-device fact worth recording: **at 230M, int4 is not the fast file everywhere.** iPhone 17 Pro Metal decodes int4 13% faster than int8 (162 vs 143 tok/s), but Galaxy S26 Adreno decodes it 2.8× *slower* (43 vs 122) and Mac is a wash — the blockwise dequant overhead dominates at this size. int8 is the primary recommendation.
+
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
 `granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).
