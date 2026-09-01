@@ -1395,6 +1395,47 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12 (+ pyarrow for the 
 - **wi8fc = FC int8 DRQ + EMBEDDING_LOOKUP int8 channelwise** (the 256002×768 table is ~64% of params). 307M params → fp32 1233 MB, int8 331 MB (678 MiB peak RSS — the smallest-footprint retriever in this repo), fp16 619 MB but ~6 GiB RSS — desktop only. Encoding runs ~4,600 tok/s at `encode_512` int8 on an M4 Max (late interaction pays at scoring time, not encoding time).
 
 
+## ettin-reranker-400m-v1 (true cross-encoder reranking on device — and a score that must not be sigmoided)
+
+`ettin_work/convert_ettin_reranker.py` converts [cross-encoder/ettin-reranker-400m-v1](https://huggingface.co/cross-encoder/ettin-reranker-400m-v1) — the Sentence Transformers org's ModernBERT cross-encoder (ettin-400m backbone, 396M params, MSE-distilled from mxbai-rerank-large-v2) — to plain LiteRT `.tflite`. Query and passage go through the model **together**; signatures `score_{128,256,512}` → one raw relevance logit per invoke. The first true cross-encoder in this repo (everything else reranks with bi-encoders or decoder LMs).
+
+```bash
+cd ettin_work
+python convert_ettin_reranker.py cross-encoder/ettin-reranker-400m-v1 out_ettin   # fp32 + wi8fc + fp16
+python -u verify_ettin_reranker.py out_ettin      # card oracle + mechanics + NanoSciFact rerank
+python bench_ettin_reranker.py out_ettin
+```
+
+Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12 (+ pyarrow for the NanoSciFact loader). The non-obvious parts:
+
+- **This is NOT `AutoModelForSequenceClassification`.** It is the sentence-transformers v5 *module-stack* CrossEncoder (`modules.json`): Transformer → Pooling(cls) → Dense 1024→1024 no-bias + **GELU** → LayerNorm → Dense 1024→1 → score. The GELU means the head does NOT fold to one matrix (unlike the all-linear PyLate heads) — implement the stack in-graph as-is. Also note the backbone config's `classifier_pooling: "mean"` is a base-model leftover; the ST module config says `cls`, and the ST path is the vendor path.
+- **The score is a raw logit — the activation is part of the model config, not the API.** `CrossEncoder.predict` defaults to sigmoid for single-label models, but this repo pins `activation_fn: torch.nn.Identity` in `config_sentence_transformers.json`, so the published card scores (`[3.6875, 11.6875, 4.75, 9.375]`) are raw. A host that assumes the API default gets card-incomparable scores. Read the config, not the docs.
+- **The card's example scores were printed from a bfloat16 run** (the usage snippet passes `dtype: bfloat16`; every value is a multiple of 0.0625). fp32 reproduces them to bf16 tolerance only — max |Δ| 0.054, ranking exact. Gate rank order + tolerance, not decimals, when a card example was run in bf16.
+- **Pairs are the tokenizer's own pair template**: `tokenizer(query, passage, truncation="longest_first")` → `[CLS] q [SEP] d [SEP]`, no token_type_ids, pad 50283.
+- **The sliding-window NaN wall reaches the score through CLS pooling.** ModernBERT alternates full and ±64-window attention; under right padding an empty pad row goes NaN, and the next layer's `0·NaN` value mixing carries it into every row — including row 0 that the head pools. The hand mask allows the diagonal (`valid[k] | q==k`); gate = padded score equals unpadded score (2.9e-6 eager, exactly 0 across signatures on the artifact).
+- **Quantization on a 28L/1024h deep-narrow body is measurable**: NanoSciFact rerank (50 queries × 20 candidates) — torch/fp32/fp16 all nDCG@10 0.9637 / hit@1 0.920 with fp16 at zero pairwise inversions; wi8fc 0.9563 / 0.900 with 2.8% of pairs inverted, max raw-score drift 0.84. Both ship; the card carries the table. 396M → fp32 1588 MB, int8 413 MB (1469 MiB peak RSS), fp16 797 MB but ~6.4 GiB RSS — desktop only. Mac 16-thread: 89.5 ms per candidate at score_256 int8.
+
+## mxbai-edge-colbert-v0-32m (a 32M ColBERT at 39 MB — and the strongest card oracle yet)
+
+`mxbai_work/convert_mxbai_colbert.py` converts [mixedbread-ai/mxbai-edge-colbert-v0-32m](https://huggingface.co/mixedbread-ai/mxbai-edge-colbert-v0-32m) — Mixedbread's edge ColBERT (ettin-32m ModernBERT backbone, 64-d per token, PyLate head) — to plain LiteRT `.tflite`. Signatures `encode_{48,128,256,512}` → `[1,S,64]`, per-token L2-normalized; MaxSim host-side. 48 mirrors the vendor's query length.
+
+```bash
+cd mxbai_work
+python convert_mxbai_colbert.py mixedbread-ai/mxbai-edge-colbert-v0-32m out_mxbai   # fp32 + wi8fc + fp16
+python -u verify_mxbai_colbert.py out_mxbai       # card oracle + mechanics + NanoSciFact + cross-variant
+python bench_mxbai_colbert.py out_mxbai
+```
+
+Env: same as ettin above. The non-obvious parts:
+
+- **The pad id is 50284 (`[MASK]`), not `config.json`'s 50283.** Same PyLate rule as mLateOn (pad = mask when the tokenizer has one); the vendor's own `onnx_config.json` says 50284. Pad-id-independence on real tokens is gated (0.0), but hosts should match the reference stack.
+- **Lowercase first.** `do_lower_case` is set in `sentence_bert_config.json` and the ST Transformer module lowers the text before tokenizing — neither mLateOn nor ettin does this. Same architecture class, third distinct host contract; every knob read out of the shipped configs + PyLate source, never assumed.
+- **The skiplist is live here** (unlike mLateOn's empty one): 32 ASCII punctuation token ids, applied to DOCUMENT vectors host-side after encoding; `[CLS]`/`[D]`/`[SEP]` are kept, queries keep everything. Truncation is `query_length−1`/`document_length−1` = 47/511 *before* the `[Q]`/`[D]` insert at position 1.
+- **The card publishes scores AND shapes — use both.** The reimplementation reproduces the MaxSim scores `[11.2081, 11.5308, 11.4104, 11.4756]` to all four printed decimals *and* the printed embedding shapes ((12,64) query, (18,64) first doc) pre-export. At 32M the margins are ~0.1, so Mars-on-top is a genuinely tight rank check — and it pins tokenizer, lowercase, prefixes, pad, skiplist, head fold and normalize in one gate.
+- **Smoke and task disagree at 32M — trust the task, but run both.** int8's worst per-token smoke cos on random ids at encode_512 is **−0.27** (a destroyed token vector; the worst smoke of any encoder here), yet NanoSciFact damage is only −0.008 nDCG@10 with recall@5/hit@1 unchanged, and torch-index × int8-queries is within 0.007 of control. The 64-d head amplifies per-token noise on abusive inputs; real text does not hit it.
+- **wi8fc = FC int8 DRQ + embedding int8 channelwise**: 32M → fp32 131 MB, int8 **39 MB (144 MiB peak RSS — the smallest retriever footprint in this repo)**, fp16 67 MB but 676 MiB RSS (the per-signature fp16→fp32 expansion law holds even at 32M). ~14,800 tok/s at encode_512 int8 on an M4 Max — int8 and fp16 bench identical, so int8 wins on RSS alone.
+
+
 ## BitCPM-CANN (ternary / 1.58-bit LLMs — int4 blockwise is a lossless container)
 
 `bitcpm_work/` converts openbmb's BitCPM-CANN family (BitNet-b1.58-style ternary QAT LLMs, Apache-2.0). LiteRT has no native 1-bit/ternary type ([feature request #7713](https://github.com/google-ai-edge/LiteRT/issues/7713)), but it doesn't need one to run these losslessly: BitCPM's QAT quantizer produces weights in {-α, 0, +α} per group of 128 input channels (α from absmean), released "pseudo-quantized" — the ternary values materialized in a plain bf16 checkpoint. Min-max symmetric int4 `BLOCKWISE_32` (blocks subdivide the 128-groups along the same axis) maps every weight onto {-7, 0, +7} with **zero rounding decisions**; the only residual is fp16 rounding of the per-block scale (≤4e-4 relative). `verify_ternary.py` checks both properties on the actual checkpoint before you convert. You pay 4 bits/weight instead of the native ~1.6 (≈2.5× their packed GGUF), but 4× under f16, on stock CPU/GPU int4 kernels.
