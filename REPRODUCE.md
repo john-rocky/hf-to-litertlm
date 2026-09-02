@@ -435,6 +435,28 @@ python add_executor_metadata.py int4_z.litertlm LFM2.5-230M_int4.litertlm
 - **This tune sits on the JP/Thinking side of the family conv-int8 law.** GSM8K is floor for a 230M non-reasoning model (bf16 23/100 — useless for the A/B), so the recipe decision ran on instruction following (`ifeval_lite_230m.py`, a re-implementation of google/IFEval's mechanically checkable types; numbers comparable only within the harness): bf16 60.0 / export-time conv-int8 53.3 / **post-hoc wi8fc 58.3** (n=120 prompt-level strict). Convs stay float; wi8fc ships as the int8 file.
 - One more per-device fact worth recording: **at 230M, int4 is not the fast file everywhere.** iPhone 17 Pro Metal decodes int4 13% faster than int8 (162 vs 143 tok/s), but Galaxy S26 Adreno decodes it 2.8× *slower* (43 vs 122) and Mac is a wash — the blockwise dequant overhead dominates at this size. int8 is the primary recommendation.
 
+### sarashina2.2-0.5b / 1b instruct (SB Intuitions, Japanese) — a SentencePiece vocab whose chat specials are CONTROL pieces, and a BOS the model never saw
+
+`sarashina_work/convert_sarashina.py` converts [sbintuitions/sarashina2.2-0.5b-instruct-v0.1](https://huggingface.co/sbintuitions/sarashina2.2-0.5b-instruct-v0.1) and [-1b-instruct-v0.1](https://huggingface.co/sbintuitions/sarashina2.2-1b-instruct-v0.1) (plain `LlamaForCausalLM`, 24 layers, GQA 16:8, **102,400-entry untied vocab**, MIT). Published: [litert-community/sarashina2.2-0.5b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-0.5b-instruct-v0.1), [litert-community/sarashina2.2-1b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-1b-instruct-v0.1).
+
+```bash
+# int8 ship (int8 dynamic on linears + embedding)
+python sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-0.5b-instruct-v0.1 out/s05_int8 templates/sarashina_simple.jinja dynamic_wi8_afp32
+# int4 ship (blockwise-32 + OCTAV linears, int8 embedding)
+python sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-0.5b-instruct-v0.1 out/s05_int4 templates/sarashina_simple.jinja BOCTAV4
+# same two lines with sarashina2.2-1b-instruct-v0.1 for the 1b
+# gates: scripts/verify_quality.py (EN 8Q) + sarashina_work/verify_quality_ja.py (JA 8Q + UTF-8 streaming probe),
+#        sarashina_work/tokenizer_parity.py (engine vs HF ids), sarashina_work/gate_multiturn_ja.py,
+#        sarashina_work/jcqa_eval.py (JCommonsenseQA, bf16 vs bundle in one harness)
+```
+
+The wrapper is `scripts/export_simple_template.py` (structured prompt templates, prefill ladder 1024..1, KV 4096) plus two facts this checkpoint needs:
+
+- **Embed the HF `tokenizer.json`, not the vendor `tokenizer.model`.** litert-torch copies `tokenizer.model` verbatim whenever the HF tokenizer exposes `vocab_file` ending in it. sarashina's SentencePiece model types every chat special (`<|user|>` `<|assistant|>` `<|system|>` `</s>`) as **CONTROL**, and a bare sentencepiece `Encode` never matches CONTROL pieces from text — the template's `<|user|>` comes out as `< | user | >` (5 pieces) and the model never sees its role markers. The HF fast tokenizer matches them as added tokens. Clearing `vocab_file` makes the exporter fall through to `save_pretrained` → `tokenizer.json`. Its decoder chain has no `Strip` step, so the Metaspace per-token-strip trap does not apply. Engine-vs-HF ids: identical on 7 probes (specials-as-text, Japanese, emoji/rare-kanji byte-fallback, Latin-1, whitespace).
+- **Write no `start_token`.** `add_bos_token` is false and the official template emits no `<s>`, but the exporter sets `start_token` from `tokenizer.bos_token` regardless, and the runtime then prepends it. Measured on bf16 with the same rendered prompt ± `<s>`: the 0.5b drops the 8-question gate from 6→5 (English) and 8→7 (Japanese); the 1b is unmoved. `NO_START_TOKEN=1` (set by the wrapper) clears `bos_token` before the metadata is built.
+- No post-processing: plain attention (no ExecutorMetadata retrofit), template renders on the runtime as-is.
+- Per-device fact: **on the Galaxy S26 int4 is not faster than int8 for these files** (0.5b GPU decode 32–40 vs 36 tok/s; CPU 19.5 vs 20–21) — the untied 102,400 vocab makes the int8 embedding + lm_head the dominant per-token cost, so the int4 dequant overhead on the linears buys nothing. int8 is the recommended file; int4 is the size option.
+
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
 `granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).

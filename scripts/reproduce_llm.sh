@@ -51,6 +51,8 @@ reproduce() {
   vibethinker-3b)      CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT WeiboAI/VibeThinker-3B out/$key templates/chatml_simple.jinja BOCTAV4 ;;  # block32 ONLY; runtime stop-token eos=[151643,151645]
   falcon3-3b)          CACHE=2048 $EXPORT tiiuae/Falcon3-3B-Instruct out/$key templates/falcon_simple.jinja BMIX4_128 ;;  # ship withheld/private (int4≠parity)
   llama32-3b)          EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT meta-llama/Llama-3.2-3B-Instruct out/$key templates/llama_simple.jinja BMIX4 ;;  # shipped via official litert-torch main
+  sarashina22-0.5b)    $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-0.5b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;  # int8 ship; int4 ship = same line with BOCTAV4. Wrapper = HF tokenizer.json + NO_START_TOKEN + ladder/4096
+  sarashina22-1b)      $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-1b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;    # same
 
   # ---- needs a PREP step (extract text decoder / patch config / GPTQ ingest) ----
   ministral3-3b)       # Mistral3 multimodal -> extract text decoder first (generic extractor, same as reasoning)
