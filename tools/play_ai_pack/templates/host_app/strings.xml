@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">{{DISPLAY_NAME}} pack test</string>
+    <string name="run">Fetch pack and run</string>
+</resources>

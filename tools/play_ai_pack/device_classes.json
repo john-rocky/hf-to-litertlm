@@ -1,0 +1,63 @@
+{
+  "_about": "Policy + device registry for make_ai_pack.py. Everything here is either a documented policy knob or a device fact with its provenance. Nothing in this file is a measurement of a model.",
+  "policy": {
+    "max_pack_bytes": 1500000000,
+    "_max_pack_bytes": "Play for On-device AI (beta, doc updated 2026-08-14): one AI pack <= 1.5 GB by compressed download size. .litertlm int4/int8 weights do not compress meaningfully, so the manifest's size_bytes is used as the (conservative) proxy.",
+    "ram_margin": 0.15,
+    "_ram_margin": "A RAM floor is derived from the nominal RAM of the smallest device that verified the variant on that backend, times (1 - ram_margin). The margin absorbs the gap between nominal RAM and what the OS reports (an '8 GB' phone reports ~7.4-7.7e9 bytes MemTotal). Which value Play compares device_ram against is not stated in the doc; the margin keeps a verified device inside its own group.",
+    "peak_ram_headroom": 2.0,
+    "_peak_ram_headroom": "When a variant declares requirements.peak_ram_mb, the RAM floor is at least peak_ram_mb * 1e6 * peak_ram_headroom (the OS and the host app need the rest).",
+    "extrapolate_soc": true,
+    "_extrapolate_soc": "Add a system-on-chip selector for every verified device whose SoC strings are known, so other phones on the same SoC join the group. GPU behaviour follows the SoC's GPU; this is the doc's own example (QTI SM8750). Set false to target only the verified device models.",
+    "floor_default": "auto",
+    "_floor_default": "auto: the manifest's class-less Android recommendation (the file for 'any Android') becomes a 'baseline' group with the derived RAM floor, so phones below the smallest verified device get an empty pack instead of a download they cannot run. none: it is delivered to every device (the un-suffixed default variant)."
+  },
+  "classes": {
+    "_about": "device_class strings used by shipped manifests, in group priority order (Play serves the first matching group in the XML). ram_floor=false means the class is a SoC-generation constraint that a RAM number cannot express, so the group is built only from verified device ids and SoCs. ram_nominal_bytes is the class's marketed RAM tier; it is used as the floor only when the manifest has no measured Android row for the file on the recommended backend (the curated class is the evidence in that case).",
+    "flagship": {
+      "priority": 0,
+      "ram_floor": true,
+      "note": "12 GB-class phones; verified device so far: Galaxy S26 (SM8850)",
+      "ram_nominal_bytes": 12000000000
+    },
+    "midrange-2023+": {
+      "priority": 1,
+      "ram_floor": false,
+      "note": "8 GB-class phones on a 2023-or-later SoC (GPU-lineage files); verified: Pixel 8a (Tensor G3). '2023+' is a SoC constraint, so no RAM extrapolation",
+      "ram_nominal_bytes": 8000000000
+    },
+    "midrange": {
+      "priority": 2,
+      "ram_floor": true,
+      "note": "8 GB-class phones; verified: Pixel 8a",
+      "ram_nominal_bytes": 8000000000
+    }
+  },
+  "devices": [
+    {
+      "id": "galaxy-s26-sm-s942q",
+      "match": [
+        "^Galaxy S26\\b",
+        "SM-S942Q"
+      ],
+      "brand": "samsung",
+      "device": "m1q",
+      "soc_manufacturer": "QTI",
+      "soc_model": "SM8850",
+      "ram_nominal_bytes": 12000000000,
+      "verified": "adb getprop on the device, 2026-09-02: ro.product.brand=samsung ro.product.device=m1q ro.soc.manufacturer=QTI ro.soc.model=SM8850, MemTotal 11389756 kB, Android 16 (SDK 36)"
+    },
+    {
+      "id": "pixel-8a",
+      "match": [
+        "^Pixel 8a\\b"
+      ],
+      "brand": "google",
+      "device": "akita",
+      "soc_manufacturer": null,
+      "soc_model": null,
+      "ram_nominal_bytes": 8000000000,
+      "verified": "brand/device code from the device's ro.product.* (akita); ro.soc.manufacturer / ro.soc.model NOT yet read from the phone - run `make_ai_pack.py from-adb` with it attached and paste the result here before relying on a SoC selector"
+    }
+  ]
+}

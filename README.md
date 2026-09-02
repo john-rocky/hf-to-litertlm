@@ -155,6 +155,11 @@ deployment layer: [`manifest/SCHEMA.md`](manifest/SCHEMA.md) (spec),
 [`manifest/make_manifest.py`](manifest/make_manifest.py) (generator),
 [`manifest/examples/`](manifest/examples/) (finished manifests for two of the published repos — 27 repos ship one as of 2026-09-02), and [`readers/`](readers/) (dependency-free TypeScript and Dart reference readers).
 
+The same manifest drives Google Play delivery: [`tools/play_ai_pack/`](tools/play_ai_pack/) turns
+it into a Play for On-device AI pack — one device group per manifest recommendation, the
+device-targeting XML, and a host app that fetches the pack and runs the file on the backend the
+manifest names.
+
 ## Layout
 
 | path | what |
