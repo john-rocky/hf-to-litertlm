@@ -737,6 +737,10 @@ The recipe above reproduces the shipped checkpoints; **finetunes of Qwen3.5 now 
   correctly refuses a model that cannot exit its think block. peft must be installed in
   the export venv (peft 0.20.0 + accelerate 1.14.0 alongside the main stack import-clean).
 
+### 2026-09-04 — Qwen3.5-0.8B / 2B MTP (speculative decoding): built and gated, held by two runtime findings
+
+`mtp_work/` exports Qwen3.5 with a `verify` signature and packs the checkpoint's own 1-layer MTP head as the runtime's drafter section, so the bundle runs under `litert-lm run --speculative-decoding true` (≥ 0.16.0). Recipe, patch, gates and numbers: `mtp_work/README.md`. The short version: Mac CPU decode 1.12× (0.8B) / 1.24× (2B) with acceptance matching the desktop oracle; Galaxy S26 CPU 0.71× on the 0.8B for document text; and a runtime defect — under the flag the turn-final stop token is never committed, so multi-turn transcripts lose `<|im_end|>` after every assistant turn (LiteRT-LM #3439, reproduces on 0.16.0 and 0.16.1; probe script in the directory). Not shipped; a repro bundle is public at `mlboydaisuke/Qwen3.5-0.8B-MTP-repro-LiteRT`.
+
 ## Qwen3.5-2B VISION build — the shipped text model was half of a VLM
 
 The Qwen3.5 checkpoints are multimodal, and the text conversion above deliberately drops the vision tower. `qwen35vl_work/` keeps it: the checkpoint's own 24-layer, 1024-dim ViT (no DeepStack — `deepstack_visual_indexes` is empty upstream), wired to LiteRT-LM's `fast_vlm` contract at a static 512x512. Published alongside the text file: [litert-community/Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) (`Qwen3.5-2B-VL_int8.litertlm`).
