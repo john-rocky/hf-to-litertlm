@@ -200,6 +200,15 @@ def build_selectors(variant, rec, cls_def, reg, policy, evidence):
   return sels[:5]
 
 
+def estimated_download(v, policy):
+  """size_bytes x the policy's compression ratio for the stated quantization (int8 measured 0.72)."""
+  ratios = policy.get("compression_ratio") or {}
+  q = (v.get("quantization") or "").lower()
+  # int4 recipes usually keep an int8 embedding, so test the 4-bit markers first
+  key = "int4" if ("int4" in q or "q4" in q or "4-bit" in q) else "int8" if "int8" in q else "default"
+  return int((v.get("size_bytes") or 0) * ratios.get(key, ratios.get("default", 1.0)))
+
+
 def plan_manifest(manifest, reg, opts):
   policy = dict(reg["policy"])
   if opts.max_pack_bytes:
@@ -223,10 +232,11 @@ def plan_manifest(manifest, reg, opts):
                          "(`recommended[]` has no platform=android entry)"})
         continue
     size = v.get("size_bytes") or 0
-    if size > policy["max_pack_bytes"]:
-      excluded.append({"file": v["file"], "size_bytes": size,
-                       "reason": f"{size/1e9:.2f} GB exceeds the Play AI pack cap "
-                                 f"({policy['max_pack_bytes']/1e9:g} GB compressed; weights do not compress)"})
+    est = estimated_download(v, policy)
+    if est > policy["max_pack_bytes"]:
+      excluded.append({"file": v["file"], "size_bytes": size, "estimated_download_bytes": est,
+                       "reason": f"{size/1e9:.2f} GB (estimated Play download {est/1e9:.2f} GB) exceeds the "
+                                 f"pack cap ({policy['max_pack_bytes']/1e9:g} GB compressed)"})
       continue
     for r in recs:
       if r["backend"] not in v["backends"]:
@@ -340,7 +350,9 @@ def print_plan(plan):
           sel.append("device in {" + ",".join(f"{d['brand']}/{d['device']}" for d in s["device_ids"]) + "}")
         if "socs" in s:
           sel.append("SoC in {" + ",".join(f"{x['manufacturer']} {x['model']}" for x in s["socs"]) + "}")
-      print(f"  {g['name']:<18} {g['file']}  [{g['backend']}]  {g['size_bytes']/1e9:.2f} GB")
+      print(f"  {g['name']:<18} {g['file']}  [{g['backend']}]  {g['size_bytes']/1e9:.2f} GB"
+            f" (est. download {estimated_download(g['_variant'], plan['policy'])/1e9:.2f} GB)" if "_variant" in g else
+            f"  {g['name']:<18} {g['file']}  [{g['backend']}]  {g['size_bytes']/1e9:.2f} GB")
       print(f"  {'':<18} matches: " + "  OR  ".join(sel))
       for e in g["evidence"]:
         print(f"  {'':<18} - {e}")

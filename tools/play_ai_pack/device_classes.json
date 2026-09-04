@@ -10,7 +10,13 @@
     "extrapolate_soc": true,
     "_extrapolate_soc": "Add a system-on-chip selector for every verified device whose SoC strings are known, so other phones on the same SoC join the group. GPU behaviour follows the SoC's GPU; this is the doc's own example (QTI SM8750). Set false to target only the verified device models.",
     "floor_default": "auto",
-    "_floor_default": "auto: the manifest's class-less Android recommendation (the file for 'any Android') becomes a 'baseline' group with the derived RAM floor, so phones below the smallest verified device get an empty pack instead of a download they cannot run. none: it is delivered to every device (the un-suffixed default variant)."
+    "_floor_default": "auto: the manifest's class-less Android recommendation (the file for 'any Android') becomes a 'baseline' group with the derived RAM floor, so phones below the smallest verified device get an empty pack instead of a download they cannot run. none: it is delivered to every device (the un-suffixed default variant).",
+    "compression_ratio": {
+      "int8": 0.72,
+      "int4": 1.0,
+      "default": 1.0
+    },
+    "_compression_ratio": "Estimated Play download size = size_bytes x ratio, keyed by the quantization the manifest states ('int8' / 'int4' substring of variants[].quantization). int8 = 0.72 measured through Play on 2026-09-05 (963 MB file -> 696 MB download); int4 and anything else stay at 1.0 (unmeasured, conservative). The cap check uses the estimate; the plan prints both numbers."
   },
   "classes": {
     "_about": "device_class strings used by shipped manifests, in group priority order (Play serves the first matching group in the XML). ram_floor=false means the class is a SoC-generation constraint that a RAM number cannot express, so the group is built only from verified device ids and SoCs. ram_nominal_bytes is the class's marketed RAM tier; it is used as the floor only when the manifest has no measured Android row for the file on the recommended backend (the curated class is the evidence in that case).",

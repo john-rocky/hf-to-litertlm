@@ -51,7 +51,7 @@ and recorded in `plan.json`.
 | class-less Android recommendation | group `baseline`, last in the XML, with a RAM floor derived from the smallest device that verified the file (policy `floor_default: auto`), so phones below it get an empty pack instead of a download they cannot run; `--floor-default none` makes it the un-suffixed default for every device |
 | `measured[]` rows on the recommended backend | `included-device-id` selectors for the verified devices and, when their SoC strings are known, a `system-on-chip` selector (policy `extrapolate_soc`) |
 | smallest verified device's nominal RAM, or the class's nominal RAM when the file has no measured Android row | `ram-min-bytes` = nominal × (1 − `ram_margin`); `requirements.peak_ram_mb` × `peak_ram_headroom` raises it |
-| `size_bytes` > 1.5 GB | excluded — Play caps one pack at 1.5 GB compressed, and int4/int8 weights do not compress |
+| estimated download > 1.5 GB | excluded — Play caps one pack at 1.5 GB compressed; the estimate is `size_bytes` × the policy's compression ratio for the stated quantization (int8 = 0.72, measured through Play; int4 and others 1.0 until measured) |
 | no Android recommendation | excluded (opt in with `--allow-unrecommended` for CPU files; the sidecar then says so) |
 | two variants claiming one class | `--prefer-backend`, else the one with a measured Android row on its backend, else the smaller file (the reference readers' tie-break); the loser is reported |
 
