@@ -1886,3 +1886,38 @@ Env: torch 2.12 + torchaudio 2.11 (the processor's mel front-end needs torchaudi
 **Fixed windows are semantically cheap because attention is block-local (128 frames), but not free.** Signatures `transcribe_{5,10,30}s` zero-pad audio to the window; padding shifts the 128-frame block boundaries, and on the 20-clip fixture set 19/20 transcribe identically vs unpadded with one single-word change (corpus WER 3.79% → 4.24%). Route each clip to the smallest window that fits.
 
 **Verification is transcript-exact, not just cosine-close.** int8 and fp16 both match the fp32 eager transcripts 20/20; on a Galaxy S26 (CompiledModel CPU) the transcripts are again exact on every signature and the int8 logits are bit-identical to the desktop run of the same file (max abs diff 0.0). Speed: int8 transcribes a 30 s window in 239 ms on an M4 Max (8 threads) and 666 ms on the S26 — ~126× / ~45× real-time; fp16 is ~3× slower on CPU (XNNPACK fp32 repack), use int8 on device.
+
+## VibeVoice-ASR-BitNet (speech-to-text LLM, audio-in `.litertlm`) — first audio-in bundle in the catalog
+
+`vibevoice_asr_work/` converts Microsoft's [VibeVoice-ASR-BitNet](https://huggingface.co/microsoft/VibeVoice-ASR-BitNet) (σ-VAE acoustic + semantic conv encoders at 24 kHz → a Qwen2.5-1.5B-shaped **BitNet/ternary** LM, MIT) into one `.litertlm` that LiteRT-LM's released runtime (≥ 0.16.1) drives end-to-end through its **generic audio path** — the runtime decodes and resamples the clip, frames raw PCM into 3200-sample frames, runs the bundled audio encoder, and splices the 7.5 Hz embeddings into the ChatML prompt. No runtime patch, no litert-torch patch.
+
+```sh
+hf download microsoft/VibeVoice-ASR-BitNet model-00001-of-00003.safetensors model-00002-of-00003.safetensors \
+   model-00003-of-00003.safetensors config.json tokenizer.json tokenizer_config.json vocab.json generation_config.json \
+   --local-dir vibevoice_asr_work/hf
+python3 vibevoice_asr_work/fetch_fixtures.py                    # 20 LibriSpeech dev-clean clips at 24 kHz
+python3 vibevoice_asr_work/load_bitnet.py                       # legacy -> transformers-native, ternarize, strict load; hf_native/ + lm_native/
+python3 vibevoice_asr_work/eager_gate.py                        # fp32 oracle: WER 2.68 % (12/448)
+python3 vibevoice_asr_work/export_audio_encoder.py --seconds 30 --quant fp32,wi8fc
+EXTERNALIZE_EMBEDDER=1 CACHE=2048 PREFILL=512,128,32 \
+  python3 scripts/export_simple_template.py vibevoice_asr_work/lm_native out/vibevoice-lm templates/chatml_simple.jinja BMIX4_128
+litert-lm unpack out/vibevoice-lm/model.litertlm --output-dir out/vibevoice-lm/unpack   # the two LM tflites
+python3 vibevoice_asr_work/patch_tokenizer.py vibevoice_asr_work/lm_native/tokenizer.json vibevoice_asr_work/lm_native/tokenizer_audio.json
+DEC=out/vibevoice-lm/unpack EMB=tf_lite_embedder DECODE=tf_lite_prefill_decode \
+  ENC=vibevoice_asr_work/out/audio_encoder/audio_encoder_30s_wi8fc.tflite \
+  TOK=vibevoice_asr_work/lm_native/tokenizer_audio.json OUT=out/vibevoice-bundle \
+  python3 vibevoice_asr_work/build_bundle.py
+python3 vibevoice_asr_work/mac_gate.py --bundle out/vibevoice-bundle/VibeVoice-ASR-BitNet.litertlm   # runtime gate: WER 2.68 %
+```
+
+Env: torch 2.13 + transformers 5.14.1 (has `vibevoice_asr` natively) + litert-torch 0.9.4 + ai-edge-quantizer 0.9.0 + litert-lm-builder 0.16.1 for everything but the LM export, which goes through the lane's usual `export_simple_template.py` (litert-torch 0.9.3); the gate needs `litert-lm-api` 0.16.1 (python) — `litert-lm` 0.16.0 supplies `unpack`/`benchmark`.
+
+**"BitNet" is applied at conversion, per tensor, and it is the model.** The Hub checkpoint stores fp32 latent weights; VibeASR.cpp (the vendor runtime) ternarizes the 7 projections per LM layer with a per-tensor absmean scale (`s = 1/mean|w|`, `round(w·s).clamp(−1,1)/s`) at GGUF-conversion time. `load_bitnet.py` does exactly that (α 0.030–0.070, 37 % zeros); run un-ternarized, the LM emits `<|im_end|>` spam. A per-tensor ternary is exactly representable by int4 blockwise min-max at any block size (every block is {−α, 0, +α} → scale α/7), so the LM ships as `BMIX4_128` — the same driver every dense LLM in this repo uses — and the Mac runtime transcript WER equals the fp32 oracle to the word.
+
+**The tokenizer has no string for the speech markers.** The repo ships the Qwen2 tokenizer (added tokens end at 151645) while the model was trained with 151646/151647/151648 (`<|object_ref_start|>` / `<|object_ref_end|>` / `<|box_start|>` in Qwen2.5) as speech start/end/pad — VibeASR.cpp hard-codes the ids. The generic runtime path tokenizes `start_of_audio_token` and `audio_suffix` as text, so `patch_tokenizer.py` adds the three strings as special tokens; they land on exactly those ids by construction (asserted), ordinary text tokenizes identically.
+
+**The audio encoder is one single-signature tflite with the vendor's normaliser folded in.** `audio` f32 `[1, 225, 3200]` (30 s of raw 24 kHz PCM as the runtime frames it, zero-padded) → `features` f32 `[1, 225, 1536]`: RMS-normalise to −25 dBFS over the non-zero frames + peak clip, acoustic encoder (mean latents — the HF class adds `vae_std·randn` even at inference; the vendor runtime uses the mean), semantic encoder, projector. The output must be named literally `features` (return a dict — positional returns become `output_0`) and every reduction keeps `keepdim=True` (the GPU delegate rejects rank-0 tensors). int8 dynamic on the linears (`wi8fc`, 951 MB; the vendor ships the VAE at int8) is WER-lossless; the window is 30 s because a 10 s window costs 7 words on the 20-clip set from context resets at chunk boundaries (the engine chunks by window with no overlap).
+
+**Bundle metadata is the runtime contract, written by hand in `build_bundle.py`:** `GenericModel{audio_enabled, delimiter_regex/audio_token_regex on <|box_start|>, start_of_audio_token, audio_suffix, skip_mel_spectrogram_extraction, 24000 Hz, frame = hop = 3200}` + ChatML templates + a jinja that emits the vendor system prompt and renders an audio item as `<|box_start|>\n` (default instruction "Please transcribe it." when the turn has no text). Without an audio adapter section the executor treats the encoder as a streaming encoder with window = 225 frames and (buffering off by default) zero-pads short clips; valid tokens = valid frames.
+
+**Gates.** fp32 oracle 12/448 = 2.68 % (vendor prompt; adding the generation prompt changes nothing; dropping the duration sentence 2.90 %); encoder int8 through the eager LM 2.68 %; LiteRT-LM 0.16.1 python CPU 2.68 %, LM on Metal GPU 2.46 %; Pixel 8a `litert_lm_advanced_main` v0.16.1 CPU 3.12 % (one clip flips "On the" → "Under" — Arm int8 numerics), Galaxy S26 CPU see the card. LM speed: M4 Max CPU 357 / 59.3 tok/s, Metal 2045 / 138.6 tok/s (`-p 256 -d 256 --cache no`). The audio encoder is **CPU-only** on Metal/WebGPU: the 30 s stem dispatches 90 001 workgroups against a 65 535 limit and the engine returns empty text — a shape problem (a ≤ 5.5 s window would fit), not an op problem.
