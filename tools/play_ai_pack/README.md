@@ -101,8 +101,16 @@ selector strings are evaluated only by Play itself, so a local install cannot va
 `install-apks --device-groups=baseline` on a Galaxy S26 (SM-S942Q, QTI SM8850, Android 16). The app
 fetched the pack through the AI Delivery API (pending → downloading → transferring → completed), read
 the `baseline` sidecar, verified the sha256, loaded the file on CPU in 19.7 s (no compile cache) and
-answered the prompt in 0.9 s. Play-side selector evaluation and the Pixel 8a leg are not covered by
-that run.
+answered the prompt in 0.9 s.
+
+**Through Google Play (2026-09-05).** The same AAB, uploaded to an internal-testing release
+(Play App Signing, upload key registered on first upload), installed from the Play Store on the
+Galaxy S26. Play evaluated the device-targeting config itself: the phone matched the `baseline`
+group (RAM floor 6.8 GB) and received that split only. The fast-follow pack downloaded as
+**696 MB for the 963 MB int8 file** (Play's compressed download size, so int8 weights compress to
+about 72 % here — the 1.5 GB cap has more room than `size_bytes` suggests), then the app read the
+sidecar, verified the sha256, loaded the file on CPU in 12.3 s and answered in 1.1 s. The Pixel 8a
+leg is still open.
 
 ## Limits worth knowing
 

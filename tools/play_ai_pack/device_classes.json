@@ -2,7 +2,7 @@
   "_about": "Policy + device registry for make_ai_pack.py. Everything here is either a documented policy knob or a device fact with its provenance. Nothing in this file is a measurement of a model.",
   "policy": {
     "max_pack_bytes": 1500000000,
-    "_max_pack_bytes": "Play for On-device AI (beta, doc updated 2026-08-14): one AI pack <= 1.5 GB by compressed download size. .litertlm int4/int8 weights do not compress meaningfully, so the manifest's size_bytes is used as the (conservative) proxy.",
+    "_max_pack_bytes": "Play for On-device AI (beta, doc updated 2026-08-14): one AI pack <= 1.5 GB by compressed download size. The manifest's size_bytes is used as a conservative proxy: measured through Play on 2026-09-05, a 963 MB int8 .litertlm downloaded as 696 MB (72 %), so an int8 file up to roughly 2.0 GB may still fit; int4 files were not measured.",
     "ram_margin": 0.15,
     "_ram_margin": "A RAM floor is derived from the nominal RAM of the smallest device that verified the variant on that backend, times (1 - ram_margin). The margin absorbs the gap between nominal RAM and what the OS reports (an '8 GB' phone reports ~7.4-7.7e9 bytes MemTotal). Which value Play compares device_ram against is not stated in the doc; the margin keeps a verified device inside its own group.",
     "peak_ram_headroom": 2.0,
