@@ -38,7 +38,7 @@ Two more contract points: `parseManifest` rejects a variant with an empty `backe
 
 ## Live manifests to test against
 
-Every repo the converter has shipped carries one — 27 repos (49 variants) as of 2026-09-02. The two the test suites vendor as fixtures:
+Every repo the converter has shipped carries one — 60 repos (92 variants) as of 2026-09-05. The two the test suites vendor as fixtures:
 
 - https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct/resolve/main/litertlm_manifest.json
 - https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507/resolve/main/litertlm_manifest.json

@@ -155,7 +155,7 @@ machine-readable says which of a repo's files fits which device, backend, and RA
 what measured speed. `manifest/` defines a repo-level `litertlm_manifest.json` for that
 deployment layer: [`manifest/SCHEMA.md`](manifest/SCHEMA.md) (spec),
 [`manifest/make_manifest.py`](manifest/make_manifest.py) (generator),
-[`manifest/examples/`](manifest/examples/) (finished manifests for two of the published repos — 27 repos ship one as of 2026-09-02), and [`readers/`](readers/) (dependency-free TypeScript and Dart reference readers).
+[`manifest/examples/`](manifest/examples/) (finished manifests for two of the published repos — 60 repos ship one as of 2026-09-05), and [`readers/`](readers/) (dependency-free TypeScript and Dart reference readers).
 The schema is registered in [SchemaStore](https://www.schemastore.org/litertlm_manifest.json), so editors that use its catalog (VS Code, JetBrains, and others) validate and autocomplete any file named `litertlm_manifest.json` with no setup.
 
 The same manifest drives Google Play delivery: [`tools/play_ai_pack/`](tools/play_ai_pack/) turns
