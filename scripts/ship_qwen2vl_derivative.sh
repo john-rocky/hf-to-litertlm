@@ -33,6 +33,11 @@ CACHE=4096 PREFILL=128,512,1024 \
   $PY scripts/export_internvl_decoder.py "src_models/$NAME-llm" "out/$NAME-decoder" 2>&1 | tail -2
 
 echo "### 3. SP tokenizer"
+# litert-torch's BPE->SentencePiece conversion has no byte fallback and types
+# pad/eos as the UNK piece (litert-torch #1205); step 6 decides whether this
+# section is usable. If it fails, rebuild step 5 with
+#   TOK=hf TOK_JSON=src_models/$NAME-llm/tokenizer.json
+# (the HF tokenizer.json path, which is what the published base ships since 2026-08-30).
 OMP_NUM_THREADS=1 $PY - <<PYEOF 2>&1 | tail -1
 from transformers import AutoTokenizer
 from litert_torch.generative.tools import tokenizer_to_sentencepiece_lib as tok_spm
@@ -52,5 +57,8 @@ DEC="out/$NAME-decoder" VIS="out/$NAME-vision" TOK=sp IMAGE_SIZE=672 CACHE=4096 
   OUT_NAME="$NAME.litertlm" \
   $PY scripts/build_internvl_bundle.py 2>&1 | tail -2
 ls -la "out/internvl-bundle/$NAME.litertlm" | awk '{print "BUNDLE:", $NF, $5/1e9" GB"}'
-echo "### DONE — gate it (task gate for task-specific derivatives, e.g."
-echo "###   $PY qwen2vl_work/gate_nuextract.py out/internvl-bundle/$NAME.litertlm --backend cpu)"
+echo "### 6. tokenizer parity gate (every added-token special, Latin-1, emoji; exit 1 on any split)"
+GATE_PY=${GATE_PY:-$PY}  # any python with litert-lm + tokenizers; the release wheel is the honest one
+$GATE_PY scripts/gate_specials.py "out/internvl-bundle/$NAME.litertlm" --hf "src_models/$NAME-llm"
+echo "### DONE — task gate for task-specific derivatives, e.g."
+echo "###   $PY qwen2vl_work/gate_nuextract.py out/internvl-bundle/$NAME.litertlm --backend cpu"

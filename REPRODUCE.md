@@ -191,23 +191,39 @@ top generative Qwen2-VL-2B derivative). Two findings, one of them a wall:
   static-672 export fp32 corr 0.99999998 / int8 end-to-end corr 0.896 — the same 0.90-class
   int8 behavior as the shipped base. Tokenizer files differ only by serialization era
   (added_tokens.json split out, a `#version` merges header; probe tokenization identical).
-- **The wall — the fast_vlm prompt path mis-encodes ChatML added-token specials.** Bundle
-  greedy output on a specials-free prompt is byte-identical to HF fp32 for 500+ tokens (encode,
-  embedder, int-free graph all exact); the moment the prompt carries `<|im_start|>`/`<|im_end|>`,
-  the bundle answers `{"names": []}` where HF extracts correctly — and HF *reproduces the
-  bundle's exact output* when those specials are substituted with wrong ids (id 0 and
-  `<|endoftext|>` both). Excluded by measurement: template rendering (identical raw string via
-  `--no-template`), start_token, SP vs HF vs base-era `tokenizer.json` sections, `token_str`
-  vs `token_ids` stop declarations, structured-template suffix strings, fp32 vs int4 decoder.
-  The llm (prefill_decode) pipeline encodes the very same marker style correctly (s1-mini and
-  the granite/falcon gates are byte-exact through `--no-template`), so this is fast_vlm-path
-  specific. Robust chat VLMs mask it — the bundle still answers "Tokyo" to the 8-question
-  probes, which is presumably why every shipped fast_vlm model gates clean — but a
-  format-exact extraction derivative is the canary that dies. **Verdict: Qwen2-VL derivative
-  conversions are mechanically complete (this pipeline produced a 1.78 GB int4+int8 bundle),
-  but format-exact derivatives cannot pass an honest HF-parity gate until the runtime's
-  fast_vlm special-token encode is fixed — not published.** `qwen2vl_work/gate_nuextract.py`
-  is the gate that catches it.
+- **The wall was ours, not the runtime's** (reported as a runtime defect 2026-08-25, retracted on
+  LiteRT-LM #3348 on 2026-08-27, corrected here 2026-09-04). The measured facts stand: bundle
+  greedy output on a specials-free prompt is byte-identical to HF fp32 for 500+ tokens, and the
+  moment the prompt carries `<|im_start|>`/`<|im_end|>` the bundle answers `{"names": []}` where
+  HF extracts correctly. The attribution did not: every exclusion experiment was judged by
+  comparing greedy outputs, and that measure is degenerate — several *different* wrong-id
+  substitutions all reproduced the bundle's output, which was over-read as localizing the
+  runtime's encode path. Rebuilt against the published `litert-community/Qwen2-VL-2B` (a fast_vlm
+  bundle) with a discriminating measure — teacher-forced `run_text_scoring` after prefill, plus
+  prefill-token counts against `engine.tokenize` — the runtime encodes every ChatML special to its
+  single correct id on the templated and the raw path alike, and every marker substitution moves
+  the score (harness and numbers are on the issue). The runtime's llm / fast_vlm / `tokenize`
+  paths share one encode call. What was defective is the bundle's own SentencePiece tokenizer
+  section, written by litert-torch's BPE→SentencePiece conversion (litert-torch #1205: no byte
+  fallback, pad/eos typed as the UNK piece). `scripts/gate_specials.py` now measures exactly
+  that — the engine's encode against the upstream `tokenizer.json` on every added token alone and
+  mid-string, plus Latin-1, Ext-A, emoji, CJK, digits and whitespace probes (litert-lm 0.16.0):
+
+  | bundle | tokenizer section | result |
+  |---|---|---|
+  | `litert-community/Qwen2-VL-2B` as published before 2026-08-30 (sha256 `a9fd5053…`) | SP, converted | **FAIL 6/33** — `<|endoftext|>` splits into 7 tokens, `é` → byte id 165, `ă` → 151643 (it *becomes* `<|endoftext|>`), leading whitespace differs; `<|im_start|>` / `<|im_end|>` correct |
+  | `litert-community/Qwen2-VL-2B` as published now (sha256 `cf481776…`) | HF `tokenizer.json` | **PASS 33/33** |
+  | gemma-3-270m re-export (SP-native vocab, 6,417 added tokens) | SP, vendor | **PASS 12838/12838** |
+
+  The NuExtract bundle was deleted before the retraction, so which of the #1205 defects hit it
+  is inference (its tokenizer serialization splits the added tokens out into `added_tokens.json`,
+  the shape that loses them). `ship_qwen2vl_derivative.sh` now ends with this gate, and the note
+  above its step 5 gives the HF `tokenizer.json` rebuild for when it fails. The builder also no
+  longer writes `start_token = "None"` — that literal went out as the word `None` at the head of
+  every prompt on ten published fast_vlm bundles (BOS audit, 2026-08-27). **Verdict: Qwen2-VL
+  derivative conversions are mechanically complete; a format-exact derivative ships once it
+  passes both `gate_specials.py` and its task gate (`qwen2vl_work/gate_nuextract.py`).
+  NuExtract-2.0-2B has not been re-converted and remains unpublished.**
 
 `north-micro-vision` is Cohere's North-Micro-Vision-Instruct (2.48B, apache-2.0) — the first Cohere-family model on this rail, and its vision tower is the Qwen3-VL design (SigLIP2-SO400M dims, 27 blocks, three *deepstack* mergers). Three things the scripts encode. (1) **Deepstack folds into the single fast_vlm image embedding**: HF adds three extra vision embeddings to the residual stream after decoder layers 0/1/2; the fast_vlm contract carries one embedding, so the encoder emits `concat(h27, h8, h16, h24)` and the adapter computes `merger(h27) + Σ deepstack_merger_i(h_i)` — exactly representable, and the ablation (`northmv_work/phase0_deepstack_ablation.py`, `phase0_teacher_forced.py`) shows fold beats drop on every metric (teacher-forced top-1 0.96 fold / 0.93 fold+1-D positions vs the released model, no collapse). (2) **The decoder re-hosts as `Cohere2ForCausalLM` with a rope-layout patch** (`northmv_work/northmv_rope_patch.py`): CohereCompass rotates Llama-style half-split pairs while stock Cohere2 rotates interleaved pairs; patching Cohere2 to the Llama-style math loads the weights verbatim (text logits maxdiff 0.0) *and* replaces the `BROADCAST_TO` + 5-D `CONCATENATION` that stock Cohere2's rope lowers to — both rejected by the GPU delegate. (3) **Vision GPU rules learned the hard way** (all in `convert_northmv_vision.py`): keep every activation rank ≥3 with a leading batch dim (the Metal delegate computes rank-2 elementwise ops against a rank-2 constant *wrong*, silently — the symptom is "this image is a blank canvas"); pre-scale LayerNorm inputs by a calibrated power of two from block 9 on (register-scale activations |x|≈2000 overflow fp16 (x−m)²); and a `clamp` between LN and the following FC stops the converter folding LN-gamma into the int8 weight. Ship quant is int8 vision + int8 (dynamic) decoder with `prefer_activation_type="fp32_fp16"` declared on the decoder section — Mali-class GPUs accumulate fp16 and overflow at the 256 image-token positions, so an fp16 decoder answers image turns as if blind (echoes the question) while text-only stays perfect; the in-bundle declaration fixes it on every runtime without flags. Vision fp16 is desktop-only (compiling it on a Mali GPU hard-crashes the phone). Tokenizer: bundle the HF `tokenizer.json` — the sentencepiece conversion crashes on null-byte pieces and splits digits differently from Cohere's per-digit pre-tokenizer. The runtime's 1-D positions replace M-RoPE, with the same 2-D-table-ranking caveat as `qwen2-vl-2b`. Needs transformers ≥5.16 (`cohere_compass`) for the vision/prep side and the released litert-torch 0.9.3 stack for the decoder export.
 

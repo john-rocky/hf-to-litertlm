@@ -84,7 +84,14 @@ def main():
   md.max_num_tokens = MAX_TOKENS
   # STRUCTURED prompt_templates (ChatML) — required by the conversation builder
   # alongside jinja (FastVLM bundle has both; jinja-only => conversation_create fails).
-  md.start_token.token_str = "None"  # matches FastVLM (no real BOS for ChatML)
+  # No start_token by default. ChatML families have no BOS, and the runtime
+  # prepends whatever string is set here as a real token: the literal "None"
+  # this line used to write went out on ten published fast_vlm bundles as the
+  # word `None` at the head of every prompt (BOS audit, 2026-08-27). Opt in
+  # with START_TOKEN=<literal> only for a family whose template expects one.
+  start_token = os.environ.get("START_TOKEN")
+  if start_token:
+    md.start_token.token_str = start_token
   md.prompt_templates.user.prefix = "<|im_start|>user\n"
   md.prompt_templates.user.suffix = "<|im_end|>\n"
   md.prompt_templates.model.prefix = "<|im_start|>assistant\n"
@@ -98,11 +105,10 @@ def main():
   md.llm_model_type.fast_vlm.image_tensor_width = IMAGE_SIZE
   # Stop token: STOP_ID env declares it by token id, matching the LLM-bundle
   # convention (token_str stops are string-matched by the runtime and have
-  # measured sharp edges — the s1-mini punctuation-prefix lesson). NOTE
-  # (measured 2026-08-25 on NuExtract-2.0-2B): switching str->ids does NOT fix
-  # the fast_vlm special-token encode defect documented in REPRODUCE — the
-  # runtime's fast_vlm prompt path mis-encodes ChatML added-token specials
-  # regardless of the stop declaration or tokenizer section type.
+  # measured sharp edges — the s1-mini punctuation-prefix lesson). Whether the
+  # bundle encodes its ChatML specials correctly is a property of the tokenizer
+  # section, not of this declaration: gate the built bundle with
+  # scripts/gate_specials.py (REPRODUCE, NuExtract 2026-08-25 -> 2026-09-04).
   stop_id = os.environ.get("STOP_ID")
   if stop_id:
     md.stop_tokens.add().token_ids.ids.append(int(stop_id))

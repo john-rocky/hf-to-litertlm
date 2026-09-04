@@ -80,9 +80,11 @@ reference, and three gate refusals of genuinely defective derivatives — are in
 
 **VLM derivatives.** `bash scripts/ship_qwen2vl_derivative.sh <org>/<model>` builds the full
 bundle. Qwen2-VL derivatives train the vision tower too (measured: 339/391 vision tensors
-differ on the top derivative), so vision re-exports from the derivative's own weights. Honest
-limit: the fast_vlm runtime currently mis-encodes ChatML special tokens, so format-exact
-derivatives fail an HF-parity gate — measured and documented in REPRODUCE.md.
+differ on the top derivative), so vision re-exports from the derivative's own weights. The
+script ends with a tokenizer-parity gate (`scripts/gate_specials.py`: every added-token special,
+Latin-1, emoji — the engine's encode against the upstream `tokenizer.json`). The 2026-08 failure
+on a format-exact derivative, first blamed on the runtime, was the bundle's own SentencePiece
+section; the gate is what catches it, and REPRODUCE.md carries the correction.
 
 ## Reproduce a published model
 
