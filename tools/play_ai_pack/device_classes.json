@@ -13,10 +13,10 @@
     "_floor_default": "auto: the manifest's class-less Android recommendation (the file for 'any Android') becomes a 'baseline' group with the derived RAM floor, so phones below the smallest verified device get an empty pack instead of a download they cannot run. none: it is delivered to every device (the un-suffixed default variant).",
     "compression_ratio": {
       "int8": 0.72,
-      "int4": 1.0,
+      "int4": 0.85,
       "default": 1.0
     },
-    "_compression_ratio": "Estimated Play download size = size_bytes x ratio, keyed by the quantization the manifest states ('int8' / 'int4' substring of variants[].quantization). int8 = 0.72 measured through Play on 2026-09-05 (963 MB file -> 696 MB download); int4 and anything else stay at 1.0 (unmeasured, conservative). The cap check uses the estimate; the plan prints both numbers."
+    "_compression_ratio": "Estimated Play download size = size_bytes x ratio, keyed by the quantization the manifest states (4-bit markers 'int4'/'q4'/'4-bit' first, then 'int8'). int8 = 0.72 measured through Play on 2026-09-05 (963 MB Qwen3.5-0.8B int8 -> 696 MB download); a local deflate level-6 of the same file gives 0.723, so deflate-6 is used as the proxy for other files: int4 = 0.85 (SmolLM3-3B q4 block-32, 2002 MB -> 1695 MB, 2026-09-05). Anything else stays at 1.0."
   },
   "classes": {
     "_about": "device_class strings used by shipped manifests, in group priority order (Play serves the first matching group in the XML). ram_floor=false means the class is a SoC-generation constraint that a RAM number cannot express, so the group is built only from verified device ids and SoCs. ram_nominal_bytes is the class's marketed RAM tier; it is used as the floor only when the manifest has no measured Android row for the file on the recommended backend (the curated class is the evidence in that case).",
