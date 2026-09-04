@@ -46,7 +46,9 @@ Sections: prefill/decode 793 MB, embedder 237 MB, audio encoder 951 MB, tokenize
 | **LiteRT-LM 0.16.1, Apple M4 Max, CPU** | **2.68 % (12/448)** — transcripts identical to the reference |
 | LiteRT-LM 0.16.1, Apple M4 Max, LM on Metal GPU, audio on CPU | 2.46 % (11/448) |
 | LiteRT-LM v0.16.1 CLI, **Galaxy S26** (SM-S942Q, Snapdragon SM8850), CPU | 3.12 % (14/448) |
-| LiteRT-LM v0.16.1 CLI, Galaxy S26, LM on OpenCL GPU, audio on CPU | 2.46 % (11/448) |
+| LiteRT-LM v0.16.1 CLI, Galaxy S26, LM on OpenCL GPU, audio on CPU | 2.46 % (11/448)* |
+
+\* measured on the preceding build of this file: identical LM sections, the audio encoder differing only in its normalisation arithmetic, whose CPU transcripts are the same on every platform (the re-run on the shipped build agreed on its first two clips before the phone dropped off USB).
 
 The Android CPU row differs from the Mac by one clip ("On the general principles…" → "Under general principles…"), an int8 dynamic-range numerics flip on Arm (a Pixel 8a produced the identical transcript); the GPU LM row matches the Mac GPU row word for word. For reference, Microsoft reports 2.41 % on the full LibriSpeech test-clean set with their VibeASR.cpp runtime.
 
