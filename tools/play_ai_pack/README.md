@@ -118,6 +118,23 @@ fast-follow pack within about 40 s of the install; the app read the sidecar (`gr
 `Qwen3.5-0.8B_int8.litertlm`, backend cpu), verified the sha256, loaded the file on CPU in 34.2 s (no
 compile cache) and answered in 2.0 s. Two phones, one release, the group chosen by Play on each.
 
+**Two groups, two files (local testing, 2026-09-05).** `generate litert-community/LFM2.5-1.2B-Instruct
+--host-app` yields two groups from that manifest: `midrange_2023plus` (Pixel 8a device id + Tensor G3
+SoC) carrying `LFM2.5-1.2B-Instruct_int4_gpu.litertlm` on gpu, and `midrange` (RAM >= 6.8 GB) carrying
+`LFM2.5-1.2B-Instruct_int4.litertlm` on cpu; signed AAB 1.28 GB. bundletool `install-apks
+--device-groups=midrange_2023plus` on the Pixel 8a: sidecar `group midrange_2023plus`, the int4_gpu
+file, backend gpu, sha256 OK, engine ready 12.8 s (GPU compile cache warm from a first run), reply
+2.7 s. The first run on that phone failed at the first message with "Can not find OpenCL library on
+this device" until the host app declared `libOpenCL.so` / `libOpenCL-pixel.so` with
+`<uses-native-library>` (Android 12+ hides vendor libraries from apps that do not declare them; the
+template now does). The other half on the Galaxy S26 (`--device-groups=midrange`): sidecar `group midrange`,
+`LFM2.5-1.2B-Instruct_int4.litertlm`, backend cpu, sha256 OK, engine ready 2.5 s, reply 1.3 s — two phones,
+two groups, two files, two backends from one manifest. A second pack from `litert-community/LFM2.5-1.2B-JP`
+(flagship = `LFM2.5-1.2B-JP_int8_gpu.litertlm` on gpu, midrange = `LFM2.5-1.2B-JP_int4_gpu.litertlm` on gpu;
+signed AAB 1.70 GB, so it also probes whether Play's 1.5 GB limit counts the whole pack or the delivered
+group) ran its flagship half on the S26: sha256 OK, engine ready 4.5 s (GPU), reply 1.2 s. Both AABs sit
+under `out/play_ai_pack/*/app/build/outputs/bundle/release/` for the Play upload.
+
 ## Limits worth knowing
 
 - Play states that models delivered this way are for the delivering app only; an AI pack does not
