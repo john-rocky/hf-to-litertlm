@@ -78,6 +78,8 @@ The measurements behind each row — template byte-equality, greedy A/B against 
 reference, and three gate refusals of genuinely defective derivatives — are in
 [REPRODUCE.md](REPRODUCE.md).
 
+**iPhone.** A converted bundle loads in an existing iOS app through swift-litert-lm: [recipe](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md) (one SwiftPM dependency, `LiteRTChat(huggingFaceRepo:fileName:)` or `LiteRTChat(modelFileURL:)`, stop and release, a verify command with its expected output).
+
 **VLM derivatives.** `bash scripts/ship_qwen2vl_derivative.sh <org>/<model>` builds the full
 bundle. Qwen2-VL derivatives train the vision tower too (measured: 339/391 vision tensors
 differ on the top derivative), so vision re-exports from the derivative's own weights. The
