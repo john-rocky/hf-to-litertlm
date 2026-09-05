@@ -4,6 +4,13 @@
     <application
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Android 12+ hides vendor native libraries from apps unless they are declared. Without
+             these, a GPU-backend variant fails at the first message with "Can not find OpenCL
+             library on this device" (seen on a Pixel 8a, Mali, 2026-09-05) while the CPU path works.
+             required="false" keeps the app installable on phones without the library. -->
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL-pixel.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL-car.so" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

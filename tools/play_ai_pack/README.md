@@ -109,8 +109,14 @@ Galaxy S26. Play evaluated the device-targeting config itself: the phone matched
 group (RAM floor 6.8 GB) and received that split only. The fast-follow pack downloaded as
 **696 MB for the 963 MB int8 file** (Play's compressed download size, so int8 weights compress to
 about 72 % here — the 1.5 GB cap has more room than `size_bytes` suggests), then the app read the
-sidecar, verified the sha256, loaded the file on CPU in 12.3 s and answered in 1.1 s. The Pixel 8a
-leg is still open.
+sidecar, verified the sha256, loaded the file on CPU in 12.3 s and answered in 1.1 s.
+
+**Second device through Google Play (2026-09-05, Pixel 8a).** The same internal-testing release,
+installed from the Play Store on a Pixel 8a (Google Tensor G3, 7.75 GB RAM, Android 16). Play matched
+the phone to the same `baseline` group (RAM floor 6.8 GB, below the phone's 7.75 GB) and delivered the
+fast-follow pack within about 40 s of the install; the app read the sidecar (`group baseline`,
+`Qwen3.5-0.8B_int8.litertlm`, backend cpu), verified the sha256, loaded the file on CPU in 34.2 s (no
+compile cache) and answered in 2.0 s. Two phones, one release, the group chosen by Play on each.
 
 ## Limits worth knowing
 
