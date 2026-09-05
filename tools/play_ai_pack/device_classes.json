@@ -60,10 +60,10 @@
       ],
       "brand": "google",
       "device": "akita",
-      "soc_manufacturer": null,
-      "soc_model": null,
+      "soc_manufacturer": "Google",
+      "soc_model": "Tensor G3",
       "ram_nominal_bytes": 8000000000,
-      "verified": "brand/device code from the device's ro.product.* (akita); ro.soc.manufacturer / ro.soc.model NOT yet read from the phone - run `make_ai_pack.py from-adb` with it attached and paste the result here before relying on a SoC selector"
+      "verified": "adb getprop on the device, 2026-09-05 (make_ai_pack.py from-adb): ro.product.brand=google ro.product.device=akita ro.soc.manufacturer=Google ro.soc.model=Tensor G3, MemTotal 7754700 kB, Android 16 (SDK 36)"
     }
   ]
 }
