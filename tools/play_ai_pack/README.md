@@ -135,6 +135,14 @@ signed AAB 1.70 GB, so it also probes whether Play's 1.5 GB limit counts the who
 group) ran its flagship half on the S26: sha256 OK, engine ready 4.5 s (GPU), reply 1.2 s. Both AABs sit
 under `out/play_ai_pack/*/app/build/outputs/bundle/release/` for the Play upload.
 
+**Two groups through Google Play (2026-09-05, release 2 = the LFM2.5-1.2B-Instruct pack, versionCode 2).**
+Published to the internal-testing track at 23:0x JST; the Pixel 8a's store page offered the update about
+20 minutes later and quoted **746 MB** — the size of *its* group only (the 736 MB int4_gpu file plus the
+base), which is Play's own device-targeting evaluation visible before the download. After the update the
+app logged `group midrange_2023plus`, `LFM2.5-1.2B-Instruct_int4_gpu.litertlm`, backend gpu, sha256 OK,
+engine ready 12.1 s (GPU, no compile cache), reply 1.9 s. The Galaxy S26 half of the same release (expected
+`group midrange`, int4 on cpu) is recorded here once that phone is back on USB.
+
 ## Limits worth knowing
 
 - Play states that models delivered this way are for the delivering app only; an AI pack does not
