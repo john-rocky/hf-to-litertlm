@@ -140,8 +140,11 @@ Published to the internal-testing track at 23:0x JST; the Pixel 8a's store page 
 20 minutes later and quoted **746 MB** — the size of *its* group only (the 736 MB int4_gpu file plus the
 base), which is Play's own device-targeting evaluation visible before the download. After the update the
 app logged `group midrange_2023plus`, `LFM2.5-1.2B-Instruct_int4_gpu.litertlm`, backend gpu, sha256 OK,
-engine ready 12.1 s (GPU, no compile cache), reply 1.9 s. The Galaxy S26 half of the same release (expected
-`group midrange`, int4 on cpu) is recorded here once that phone is back on USB.
+engine ready 12.1 s (GPU, no compile cache), reply 1.9 s. The Galaxy S26 took the same release the next
+morning (2026-09-06 08:22 JST): Play served it `group midrange` — the RAM-floor group, since the S26 matches
+neither the Pixel 8a device id nor the Tensor G3 SoC — with `LFM2.5-1.2B-Instruct_int4.litertlm` on cpu,
+sha256 OK, engine ready 2.7 s, reply 1.8 s. One release, two phones, two groups, two files, two backends,
+every choice made by Play from the manifest's recommendations.
 
 ## Limits worth knowing
 
