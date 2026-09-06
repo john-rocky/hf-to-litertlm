@@ -129,7 +129,16 @@ test("0.1.1 declared channel set flows through, tool-call included; absent -> em
   const chans = declaredChannels(m);
   assert.equal(chans.length, 2);
   assert.equal(chans[1].name, "tool_call");
-  assert.deepEqual(declaredChannels(lfm), []);
+  // "absent" is checked on an inline manifest: the fixtures are real shipped manifests and may
+  // declare channels (LFM2.5-1.2B-Instruct does since its 0.1.2 re-ship on 2026-09-05).
+  const bare = parseManifest({
+    manifest_schema: "0.1.0",
+    repo: "test/no-channels",
+    generated: "2026-08-27",
+    model: { display_name: "Bare" },
+    variants: [{ file: "b.litertlm", quantization: "q", backends: ["cpu"] }],
+  });
+  assert.deepEqual(declaredChannels(bare), []);
 });
 
 test("recommended row naming an unverified backend is ignored", () => {

@@ -1,7 +1,7 @@
 {
   "manifest_schema": "0.1.2",
   "repo": "litert-community/Qwen3-4B-Thinking-2507",
-  "generated": "2026-09-05",
+  "generated": "2026-09-06",
   "generator": "make_manifest.py",
   "model": {
     "display_name": "Qwen3-4B-Thinking-2507",
@@ -189,6 +189,22 @@
           "runs": 1,
           "date": "2026-08-24",
           "source": "S4 GPU gate, 205-token benchmark, single run; full delegation (3270 ops across 2 subgraphs); generation gate answered the probe correctly. No same-device CPU control was taken, so this is a GPU speed, not a measured win over CPU."
+        },
+        {
+          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
+          "backend": "cpu",
+          "runtime": "litert_lm_advanced_main v0.16.0 (XNNPACK CPU)",
+          "prompt_tokens": 204,
+          "decode_tokens": 1694,
+          "prefill_tps": "63.0-64.7",
+          "decode_tps": 5.96,
+          "ttft_s": "3.32-3.4",
+          "load_s": 3.4,
+          "peak_memory_mb": 3787,
+          "cache": "no",
+          "runs": 2,
+          "date": "2026-09-05",
+          "source": "S7 Android backfill: same-device CPU control - identical binary, prompt file and flags, only --backend differs; 205-token prompt with --benchmark, 2 cold runs (compile/weight caches deleted between runs, device cooled below 42 C before each run); same-device control for an existing GPU row on this handset"
         }
       ],
       "known_issues": [
