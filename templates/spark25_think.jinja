@@ -1,0 +1,43 @@
+{#- Spark-X2.5 (XHToken; model_type spark2_5; THINKING by default) -- the jinja
+    the .litertlm bundle carries verbatim (USE_JINJA=1 in spark_work/convert_spark.py).
+    Byte-identical to the vendor chat_template.jinja for the plain chat shapes
+    (system/user/assistant, no tools):
+      * the vendor prompt ALWAYS opens with a default system block
+        (<|System|>\nyou are a helpful assistant.), a user system prompt is appended
+        after a blank line -- a shape the runtime's structured prefix/suffix
+        templates cannot express, hence the jinja path;
+      * every message is wrapped <｜start▁of▁sentence｜> ... <｜end▁of▁sentence｜>
+        (bos id 0 / eos id 1); the tokenizer adds no BOS of its own and the export
+        runs NO_START_TOKEN=1;
+      * generation prompt = <|Bot|><think> (the vendor's think opener.); the literal <think> here is what
+        makes litert-torch declare the `thought` channel; `enable_thinking: false` (ThinkingConfig)
+        renders the vendor's no-think form <|Bot|></think> instead;
+      * assistant HISTORY turns render as <|Bot|></think>{content} -- the vendor's
+        own form for a turn whose reasoning is not kept, and what the runtime hands
+        the template (channel text is split out of `content` into `channels`).
+        The branch is uniform across positions, so render(history) is always a
+        prefix of the next render; on runtimes
+        that keep the live stream, the KV cache still holds the full reasoning.
+    Stop = <｜end▁of▁sentence｜> (id 1). Tool-call formatting is not carried. -#}
+{{- '<｜start▁of▁sentence｜><|System|>\nyou are a helpful assistant.' -}}
+{%- if messages[0].role == 'system' -%}
+{{- '\n\n' + messages[0].content -}}
+{%- endif -%}
+{{- '<｜end▁of▁sentence｜>' -}}
+{%- for message in messages -%}
+{%- if message.role == 'user' -%}
+{{- '<｜start▁of▁sentence｜><|User|>' + message.content + '<｜end▁of▁sentence｜>' -}}
+{%- elif message.role == 'assistant' -%}
+{{- '<｜start▁of▁sentence｜><|Bot|></think>' + message.content + '<｜end▁of▁sentence｜>' -}}
+{%- elif message.role == 'system' and not loop.first -%}
+{{- '<｜start▁of▁sentence｜><|System|>\n' + message.content + '<｜end▁of▁sentence｜>' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<｜start▁of▁sentence｜><|Bot|>' -}}
+{%- if enable_thinking is defined and not enable_thinking -%}
+{{- '</think>' -}}
+{%- else -%}
+{{- '<think>' -}}
+{%- endif -%}
+{%- endif -%}

@@ -80,6 +80,22 @@ def _patched_from_pretrained(*args, **kwargs):
     tok.chat_template = SIMPLE_TEMPLATE
   except Exception as e:  # pylint: disable=broad-except
     print(f"WARN could not set chat_template: {e}")
+  # NO_START_TOKEN=1: drop bos_token so litert-lm-builder writes NO `start_token`
+  # into the LlmMetadata. The builder sets it from tokenizer.bos_token
+  # unconditionally and never reads `add_bos_token` — so a model whose tokenizer
+  # says add_bos_token=False gets a token prepended at inference that it never saw
+  # in that position. Measured on granite-4.1-3b (bos == eos == <|end_of_text|>):
+  # the leading BOS reads as "document already finished" and the model echoes the
+  # question back instead of answering — 8Q 5/8 with it, 8/8 without, and the bf16
+  # PyTorch model reproduces both halves, so it is a prompt bug, not quantization.
+  # Set this for any checkpoint whose tokenizer_config has add_bos_token: False.
+  # (To repair a bundle that is already built: scripts/strip_start_token.py.)
+  if os.environ.get("NO_START_TOKEN"):
+    try:
+      tok.bos_token = None
+      print("NO_START_TOKEN: bos_token cleared -> bundle will carry no start_token")
+    except Exception as e:  # pylint: disable=broad-except
+      print(f"WARN could not clear bos_token: {e}")
   return tok
 
 
@@ -310,6 +326,31 @@ if os.environ.get("PHI3_STATIC_ROPE"):
   _mp.Phi3RotaryEmbedding.forward = _phi3_static_rope_forward
   print("PATCHED Phi3RotaryEmbedding.forward -> static (longrope, post-litert-import)")
 
+# STRIP_SOFTMAX_COMPOSITE=1: litert-torch >= 0.9.2 marks attention softmax as an
+# `odml.softmax` StableHLO composite, which released litert-converter 0.3.0 does not
+# lower — every GPU delegate then rejects the graph ("not fully delegated") and engine
+# creation fails, while CPU is unaffected. Replacing the composite builder with a
+# passthrough emits the same math without the marker. Default off so the pre-0.9.2
+# recipes in REPRODUCE.md reproduce byte-for-byte; set it for any export that has to
+# pass a GPU gate on converter 0.3.0. (Fixed upstream in litert-converter >= 0.4.0.dev.)
+if os.environ.get("STRIP_SOFTMAX_COMPOSITE"):
+  from types import SimpleNamespace as _SNS  # noqa: E402
+  from litert_torch.generative.export_hf.core import attention as _attn  # noqa: E402
+
+  class _PassthroughComposite:
+
+    def __init__(self, *args, **kwargs):
+      pass
+
+    def mark_inputs(self, *xs):
+      return xs[0] if len(xs) == 1 else xs
+
+    def mark_outputs(self, *xs):
+      return xs[0] if len(xs) == 1 else xs
+
+  _attn.composite = _SNS(StableHLOCompositeBuilder=_PassthroughComposite)
+  print("STRIPPED odml.softmax composite marker (GPU delegate on converter 0.3.0)")
+
 # use_jinja_template defaults to True (→ embeds raw jinja, which the runtime's
 # minja can't render → broken prompt). Force False so parse_chat_template extracts
 # the STRUCTURED prompt_templates (simple ChatML prefixes) the runtime applies —
@@ -317,13 +358,23 @@ if os.environ.get("PHI3_STATIC_ROPE"):
 # "NONE" → no quantization (fp32 reference, for logit-parity isolation of the converter).
 quant_recipe = None if quant.upper() in ("NONE", "FP32") else quant
 
+# PREFILL takes a comma-separated ladder ("1024,512,...,1"); a single value stays valid.
+# The engine picks the tightest chunk per prompt, so a sparse ladder forces padded
+# chunks — a TTFT cost for every model and a state-corruption hazard for hybrids.
 export(
     model=model_id,
     output_dir=out_dir,
-    prefill_lengths=[int(os.environ.get("PREFILL", "128"))],
+    prefill_lengths=[
+        int(x) for x in os.environ.get("PREFILL", "128").split(",") if x.strip()
+    ],
     cache_length=int(os.environ.get("CACHE", "1024")),
     quantization_recipe=quant_recipe,
-    use_jinja_template=False,
+    # USE_JINJA=1 embeds the (monkeypatched, simple) jinja verbatim instead of the
+    # extracted structured prefixes -- for prompt formats the structured form cannot
+    # express (e.g. Spark-X2.5's always-on default system block); the runtime renders
+    # simple jinja fine (measured 2026-08-24) and litert-torch auto-declares the
+    # <think> channel only on this path. Default stays the structured form.
+    use_jinja_template=bool(os.environ.get("USE_JINJA")),
     experimental_use_mixed_precision=bool(os.environ.get("MIXED")),
     # EXTERNALIZE_EMBEDDER=1 splits the (tied) embedding into its own .litertlm
     # section — the generic equivalent of Gemma's PLE embedding-mmap. Keeps the main

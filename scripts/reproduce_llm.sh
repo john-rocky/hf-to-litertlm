@@ -51,6 +51,18 @@ reproduce() {
   vibethinker-3b)      CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT WeiboAI/VibeThinker-3B out/$key templates/chatml_simple.jinja BOCTAV4 ;;  # block32 ONLY; runtime stop-token eos=[151643,151645]
   falcon3-3b)          CACHE=2048 $EXPORT tiiuae/Falcon3-3B-Instruct out/$key templates/falcon_simple.jinja BMIX4_128 ;;  # ship withheld/private (int4≠parity)
   llama32-3b)          EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT meta-llama/Llama-3.2-3B-Instruct out/$key templates/llama_simple.jinja BMIX4 ;;  # shipped via official litert-torch main
+  spark-x2.5-1.7b)     # remote-code arch (spark2_5): patch the vendor modeling file for export first (attention-interface
+                       # dispatch + transformers-5 fixes; eager math bit-identical), then the jinja-path driver. int8 = ship
+                       # quality file; int4 (block-32, EXTERNALIZE_EMBEDDER required: tied vocab) = phone file.
+    dl XHToken/Spark-X2.5-1.7B $SM/Spark-X2.5-1.7B
+    python3 spark_work/patch_modeling.py $SM/Spark-X2.5-1.7B $SM/Spark-X2.5-1.7B-export
+    $PY spark_work/convert_spark.py $SM/Spark-X2.5-1.7B-export out/$key-int8 templates/spark25_think.jinja dynamic_wi8_afp32
+    EXTERNALIZE_EMBEDDER=1 $PY spark_work/convert_spark.py $SM/Spark-X2.5-1.7B-export out/$key templates/spark25_think.jinja BOCTAV4 ;;
+  spark-x2.5-4b)       # same recipe; 6-signature ladder (every signature is charged engine memory on iOS), int4 = block-128
+    dl XHToken/Spark-X2.5-4B $SM/Spark-X2.5-4B
+    python3 spark_work/patch_modeling.py $SM/Spark-X2.5-4B $SM/Spark-X2.5-4B-export
+    PREFILL=1024,256,64,16,4,1 $PY spark_work/convert_spark.py $SM/Spark-X2.5-4B-export out/$key-int8 templates/spark25_think.jinja dynamic_wi8_afp32
+    PREFILL=1024,256,64,16,4,1 EXTERNALIZE_EMBEDDER=1 $PY spark_work/convert_spark.py $SM/Spark-X2.5-4B-export out/$key templates/spark25_think.jinja BOCTAV4_128 ;;
   sarashina22-0.5b)    $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-0.5b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;  # int8 ship; int4 ship = same line with BOCTAV4. Wrapper = HF tokenizer.json + NO_START_TOKEN + ladder/4096
   sarashina22-1b)      $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-1b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;    # same
 
@@ -82,7 +94,7 @@ reproduce() {
 
 KEYS="fastcontext-4b granite42-3b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
-ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b"
+ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b"
 
 case "${1:-}" in
   --list|"") echo "model keys:"; for k in $KEYS; do echo "  $k"; done;

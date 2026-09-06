@@ -473,6 +473,32 @@ The wrapper is `scripts/export_simple_template.py` (structured prompt templates,
 - No post-processing: plain attention (no ExecutorMetadata retrofit), template renders on the runtime as-is.
 - Per-device fact: **on the Galaxy S26 int4 is not faster than int8 for these files** (0.5b GPU decode 32–40 vs 36 tok/s; CPU 19.5 vs 20–21) — the untied 102,400 vocab makes the int8 embedding + lm_head the dominant per-token cost, so the int4 dequant overhead on the linears buys nothing. int8 is the recommended file; int4 is the size option.
 
+### Spark-X2.5-1.7B / 4B (SparkLLM Team, thinking) — a remote-code architecture exported by patching the vendor file, not re-implementing it
+
+`spark_work/convert_spark.py` converts [XHToken/Spark-X2.5-1.7B](https://huggingface.co/XHToken/Spark-X2.5-1.7B) and [XHToken/Spark-X2.5-4B](https://huggingface.co/XHToken/Spark-X2.5-4B) (`model_type spark2_5`, remote code; 28L / 36L dense, sliding-window(512)×3 : full×1 hybrid attention, per-head sigmoid attention-output gate, exact-GELU gated MLP, partial rotary 0.25 on the full layers, 131,072-entry tied vocab; **Apache-2.0**; thinking by default). Published: `litert-community/Spark-X2.5-1.7B`, `litert-community/Spark-X2.5-4B`.
+
+```bash
+# 1. make an export copy of the checkpoint (vendor modeling file patched; weights symlinked)
+python3 spark_work/patch_modeling.py src_models/Spark-X2.5-1.7B src_models/Spark-X2.5-1.7B-export
+# 2. int8 ship (int8 dynamic on linears + embedding)
+python spark_work/convert_spark.py src_models/Spark-X2.5-1.7B-export out/spark-1.7b-int8 templates/spark25_think.jinja dynamic_wi8_afp32
+# 3. int4 ship (blockwise-32 + OCTAV linears, int8 embedding) — EXTERNALIZE_EMBEDDER is REQUIRED (tied vocab)
+EXTERNALIZE_EMBEDDER=1 python spark_work/convert_spark.py src_models/Spark-X2.5-1.7B-export out/spark-1.7b-int4 templates/spark25_think.jinja BOCTAV4
+# 4B: the same three lines with PREFILL=1024,256,64,16,4,1 (six signatures) and BOCTAV4_128 for the int4 file
+# gates: spark_work/gate8q_cli.py (8Q, thinking-aware), scripts/gate_specials.py (tokenizer parity),
+#        spark_work/multiturn_gate.py, spark_work/eval_gsm8k_engine.py + spark_work/gsm8k_bf16.py (GSM8K, 3584-token budget)
+```
+
+`convert_spark.py` wraps `scripts/export_simple_template.py` (`USE_JINJA=1`, `NO_START_TOKEN=1`, KV 4096, prefill ladder 1024..1) plus the facts this checkpoint needs:
+
+- **The vendor modeling file is patched for export (`spark_work/patch_modeling.py`, exact-string edits, each asserted unique).** `modeling_spark.py` computes attention through its own eager function and never reads `config._attn_implementation`, while litert-torch's export path works by registering `lrt_transposed_attention` and handing the model a KV cache whose `update()` returns k/v in a transposed layout only that interface understands. The patch dispatches through `ALL_ATTENTION_FUNCTIONS[impl]` when a non-eager implementation is set (eager stays byte-identical), applies the per-head sigmoid gate in the interface's `[B,T,N,H]` layout, threads `**kwargs` down to the attention call, declares `_supports_attention_backend` / `_supports_sdpa` / `_can_compile_fullgraph`, and marks `is_sliding`. Two further edits are needed just to load the vendor file under transformers 5.x (`_tied_weights_keys` list → mapping form; `create_causal_mask` kwargs `inputs_embeds`, no `cache_position`) — `--ref-only` produces a copy with only those, which is the parity reference. Measured: patched-eager vs reference-eager **max |Δlogit| 0.0** on 24 random tokens (both sizes); sdpa 2.5e-4 / 3.6e-4.
+- **Jinja template carried verbatim** (`templates/spark25_think.jinja`): the vendor format always opens with a default system block, which the structured prefix/suffix templates cannot express. Byte-identical to the vendor `chat_template.jinja` on 18 shape × flag combinations (user / system+user / user+assistant+user × add_generation_prompt × enable_thinking); prefix-contract safe (assistant history renders the vendor's no-reasoning form `<|Bot|></think>{content}`); the literal `<think>` makes litert-torch declare the `thought` channel.
+- **No `start_token`**: `add_bos_token` is false and the template carries its own `<｜start▁of▁sentence｜>` per message; a bf16 A/B with an extra BOS was 8/8 either way on the 8-question gate, but it is not the vendor prompt.
+- **int4 must externalize the embedder.** The vocab is tied; int4 on the lm_head FULLY_CONNECTED + int8 on EMBEDDING_LOOKUP make the quantizer copy the 131,072-row table once per signature (tiny checkpoint: 4.58 vs 1.68 bytes/parameter, `scripts/check_bundle_sanity.py`). int8 needs no split.
+- **Tokenizer = upstream `tokenizer.json`** (byte-level BPE, three Split regexes + Digits + ByteLevel); engine-vs-`tokenizers` ids identical on 234/234 probe rows.
+- **Reasoning budget**: GSM8K at 2048 output tokens left a third of the bf16 model's questions mid-think; the parity rows use 3584 (the largest budget under the bundle's 4096 KV). 1.7B: bf16 76/100, int8 76/100 (paired: both 71, 5/5 split).
+- **Measuring bf16 on MPS**: judge memory by `vmmap` physical footprint, not RSS; `generate` with the default DynamicCache re-allocates the KV cache every step and the caching allocator parks all of it (a 4B run peaked at 130 GB) — `gsm8k_bf16.py` uses a static cache, the MPS watermark cap and a per-question `empty_cache`.
+
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
 `granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).
