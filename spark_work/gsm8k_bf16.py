@@ -45,7 +45,15 @@ _spec = importlib.util.spec_from_file_location(
     "eval_gsm8k_api", os.path.join(ROOT, "minicpm5_work", "eval_gsm8k_api.py"))
 _api = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_api)
-extract, norm, load_q, COT = _api.extract, _api.norm, _api.load_q, _api.COT
+extract, _norm, load_q, COT = _api.extract, _api.norm, _api.load_q, _api.COT
+
+
+def norm(x):
+  """int(float('1e999')) raises OverflowError in eval_gsm8k_api.norm(); treat it as a wrong answer."""
+  try:
+    return _norm(x)
+  except (OverflowError, ValueError):
+    return str(x).strip()
 
 
 def main():
