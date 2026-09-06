@@ -1347,6 +1347,16 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious pa
 
 There is no `.litertlm` here on purpose: `litert-lm-builder` will happily pack one (`embedding_metadata` + `tflite_model --model_type text_encoder`, and it peeks back clean), but the released runtime has no embedding executor to run it — `Engine()` on such a file aborts. Plain `.tflite` is the working artifact today.
 
+## EmbeddingEngine bundles (`.litertlm`, litert-lm >= 0.17.0) — granite-embedding-311m-r2 / LFM2.5-Embedding-350M / Nemotron-3-Embed-1B
+
+`embedding_engine_work/` re-exports the three pooled embedders above into the bundle the LiteRT-LM 0.17.0 `EmbeddingEngine` loads (embedder lookup graph + `encoder_<S>` graphs with pooling in-graph, plus tokenizer and `EmbeddingMetadata`). Same weights and quantization as the `.tflite` files; vectors match them at cosine 1.000000. Read `embedding_engine_work/README.md` for the contract and the two traps, then per model:
+
+```
+python embedding_engine_work/convert_granite_embedding_r2_engine.py ibm-granite/granite-embedding-311m-multilingual-r2 out_granite_engine
+BUILDER_PY=<venv with litert-lm-builder>=0.17.0>/bin/python embedding_engine_work/pack_granite_embedding_r2.sh out_granite_engine out_granite_engine/embedder_wi8.tflite out_granite_engine/encoder_wi8fc.tflite <tokenizer.json> out_granite_engine/granite-embedding-311m-r2_wi8fc.litertlm
+```
+(`convert_lfm25_embedding_engine.py` / `pack_lfm25_embedding.sh` and `convert_nemotron3_embed_engine.py` / `pack_nemotron3_embed.sh` take the same arguments.) Use with `litert_lm.embedding_engine.EmbeddingEngine` (Python) or `com.google.ai.edge.litertlm.EmbeddingEngine` (Kotlin, litertlm-android 0.17.0); keep `insert_special_tokens` at its default.
+
 ## granite-embedding-*-multilingual-r2 (ModernBERT encoders → plain .tflite)
 
 `granite_embed_work/convert_granite_embedding_r2.py` converts IBM's multilingual ModernBERT bi-encoders to plain LiteRT `.tflite` for retrieval / RAG / semantic search on CPU. Same encoder lane as the LFM2.5 and Nemotron embedders — no KV cache, so the HF eager model is traced directly with `litert_torch` multi-signature convert. Signatures `embed_{64,128,256,512}` → `output_0` `[1,768]`, **already CLS-pooled and L2-normalized**. Published: [litert-community/granite-embedding-311m-multilingual-r2](https://huggingface.co/litert-community/granite-embedding-311m-multilingual-r2) (int8 336 MB + fp16 629 MB).
