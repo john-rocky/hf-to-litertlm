@@ -303,6 +303,8 @@ What the scripts encode (the non-obvious parts):
 
 ### 2026-09-08 — MiniCPM5-2B (hybrid thinking, 2.5B): verbatim jinja + zero-scale fix + per-file activation dtype
 
+**Published:** [mlboydaisuke/MiniCPM5-2B-LiteRT](https://huggingface.co/mlboydaisuke/MiniCPM5-2B-LiteRT) — `MiniCPM5-2B_int4.litertlm` (1.55 GB, block-32 int4, zero-scale fix, fp16-default activations) and `MiniCPM5-2B_int8.litertlm` (2.60 GB, int8 with fp32 activations declared), card `cards/minicpm5-2b-litert.md`, `litertlm_manifest.json` in the repo.
+
 `openbmb/MiniCPM5-2B` (released 2026-09-06) is stock `LlamaForCausalLM` — 42 layers, hidden 2048, GQA 16:2, untied 130,560-vocab embeddings, no rope scaling — and the same tokenizer family as MiniCPM5-1B. One command:
 
 ```bash

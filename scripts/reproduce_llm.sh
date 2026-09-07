@@ -33,7 +33,7 @@ reproduce() {
                        NO_START_TOKEN=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 PREFILL=1024,256,64,16,4,1 \
                          $EXPORT $SM/granite-4.2-3b out/$key templates/granite42_think.jinja BOCTAV4
                        $PY tools/add_thought_channel.py out/$key/model.litertlm out/$key/model_thought.litertlm --start '<think>' --end '</think>' ;;  # int8 ship = same env, recipe dynamic_wi8_afp32; thinking model — the channel add is part of the recipe
-  minicpm5-2b)         RECIPES="int4 int8" OUT=out/$key bash minicpm_work/convert_minicpm5_2b.sh ;;  # hybrid thinking; verbatim jinja (USE_JINJA) + thought channel; int4 needs the in-place zero-scale fix (13 dead layer-0 MLP rows); int8 = desktop/Android (2.33 GB main section)
+  minicpm5-2b)         RECIPES="int4 int8" OUT=out/$key bash minicpm_work/convert_minicpm5_2b.sh ;;  # shipped mlboydaisuke/MiniCPM5-2B-LiteRT (int8 ship = fp32 activations declared via scripts/set_activation_type.py); hybrid thinking; verbatim jinja (USE_JINJA) + thought channel; int4 needs the in-place zero-scale fix (13 dead layer-0 MLP rows); int8 = desktop/Android (2.33 GB main section)
   nanbeige4.1-3b)      FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT Nanbeige/Nanbeige4.1-3B out/$key templates/chatml_simple.jinja BOCTAV4 ;;
   nanbeige4.2-3b)      FORCE_SPM=1 EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/convert_nanbeige42.py Nanbeige/Nanbeige4.2-3B out/$key templates/chatml_think.jinja BOCTAV4 ;;  # looped transformer (num_loops=2, 44 KV slots); dedicated script; sampling REQUIRED (temp 0.6/topk 20, greedy collapses); CPU backend (GPU delegate miscomputes this graph)
   olmo2-1b)            CACHE=4096 $EXPORT allenai/OLMo-2-0425-1B-Instruct out/$key templates/olmo2_simple.jinja BOCTAV4 ;;
