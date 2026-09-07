@@ -1,0 +1,57 @@
+W0000 00:00:1788748030.635387 116172956 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
+I0000 00:00:1788748031.263659 116172956 vocab_utils.cc:467] Converted 262158 tokens into 278614 state FST in 147.401ms
+W0000 00:00:1788748031.867626 116210078 tasks.cc:490] Failed to get prefill profile summary: INVALID_ARGUMENT: ERROR: [third_party/odml/litert_lm/runtime/executor/llm_litert_compiled_model_executor.cc:1763]
+└ ERROR: [./third_party/odml/litert/litert/cc/litert_profiler.h:91]
+=== Source Location Trace: === 
+./third_party/odml/litert/litert/cc/litert_macros.h:547
+Warning: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'; stopping
+Error during inference for model '/Users/majimadaisuke/models/litertlm/gemma-4-E2B-it.litertlm,gpu,1024' with prompt {'role': 'user', 'content': 'Answer with exactly two lowercase English words separated by one space: the common pet that meows and the common pet that barks. Nothing else.'}: RuntimeError('INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n<state>\nTokens: ⟦cat‧▁dog⟧\n2 tokens, 3 bytes; grm_prefix: ""\nFlags:\nParser: {\n  "compute_time_us": 0,\n  "rows": 2,\n  "cached_rows": 0,\n  "all_items": 2,\n  "lexer_cost": 1718,\n  "slices_applied": 0,\n  "trie_nodes_walked": 0,\n  "definitive_bytes": 7,\n  "lexer_ops": 0,\n  "num_lex_errors": 0,\n  "num_lexemes": 0\n}\nStop: ParserTooComplex\nError: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n</state><grammar>\n\n</grammar>')
+Traceback (most recent call last):
+  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
+    self._handle_chat_completions(
+        conv,
+    ...<7 lines>...
+        response_format=response_format,
+    )
+  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 876, in _handle_chat_completions
+    for chunk in conv.send_message_async(
+        prompt,
+        max_output_tokens=max_completion_tokens,
+        response_format=response_format,
+    ):
+  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm/conversation.py", line 432, in send_message_async
+    raise item
+RuntimeError: INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'
+<state>
+Tokens: ⟦cat‧▁dog⟧
+2 tokens, 3 bytes; grm_prefix: ""
+Flags:
+Parser: {
+  "compute_time_us": 0,
+  "rows": 2,
+  "cached_rows": 0,
+  "all_items": 2,
+  "lexer_cost": 1718,
+  "slices_applied": 0,
+  "trie_nodes_walked": 0,
+  "definitive_bytes": 7,
+  "lexer_ops": 0,
+  "num_lex_errors": 0,
+  "num_lexemes": 0
+}
+Stop: ParserTooComplex
+Error: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'
+</state><grammar>
+
+</grammar>
+
+127.0.0.1 - - [07/Sep/2026 11:27:11] code 500, message RuntimeError: INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'\x0a<state>\x0aTokens: ⟦cat‧▁dog⟧\x0a2 tokens, 3 bytes; grm_prefix: ""\x0aFlags:\x0aParser: {\x0a  "compute_time_us": 0,\x0a  "rows": 2,\x0a  "cached_rows": 0,\x0a  "all_items": 2,\x0a  "lexer_cost": 1718,\x0a  "slices_applied": 0,\x0a  "trie_nodes_walked": 0,\x0a  "definitive_bytes": 7,\x0a  "lexer_ops": 0,\x0a  "num_lex_errors": 0,\x0a  "num_lexemes": 0\x0a}\x0aStop: ParserTooComplex\x0aError: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'\x0a</state><grammar>\x0a\x0a</grammar>\x0a
+127.0.0.1 - - [07/Sep/2026 11:27:11] "POST /v1/chat/completions HTTP/1.1" 500 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 49798)
+Traceback (most recent call last):
+  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
+    self._handle_chat_completions(
+        conv,
+    ...<7 lines>...
+        response_format=response_format,

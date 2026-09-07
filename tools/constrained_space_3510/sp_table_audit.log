@@ -1,0 +1,18 @@
+SP section bytes: 4689013 offsets (32768, 4721781)
+pieces: 262144 {'CONTROL': 3, 'UNKNOWN': 1, 'USER_DEFINED': 6410, 'BYTE': 256, 'NORMAL': 255474}
+pieces containing raw byte 0x20: 0 []
+pieces containing U+2581 (E2 96 81): 137542
+BYTE pieces: 256 first: <0x00> id of <0x20>: 270
+normalizer add_dummy_prefix: False escape_whitespaces: True byte_fallback: True
+"cat dog" -> [9307, 4799] ['cat', '▁dog'] decode: "cat dog"
+" dog" -> [4799] ['▁dog'] decode: " dog"
+"dog" -> [21029] ['dog'] decode: "dog"
+"\n" -> [107] ['\n'] decode: "\n"
+"\t" -> [255968] ['\t'] decode: "\t"
+" " -> [236743] ['▁'] decode: " "
+"  " -> [138] ['▁▁'] decode: "  "
+"cat\ndog" -> [9307, 107, 21029] ['cat', '\n', 'dog'] decode: "cat\ndog"
+id 9307 piece='cat' bytes_in_llg_table=636174 type=NORMAL decoded_alone='cat'
+id 4799 piece='▁dog' bytes_in_llg_table=e29681646f67 type=NORMAL decoded_alone=' dog'
+pieces made only of raw ASCII whitespace (no U+2581): 62 [(107, '\n'), (108, '\n\n'), (109, '\n\n\n'), (110, '\n\n\n\n'), (111, '\n\n\n\n\n'), (112, '\n\n\n\n\n\n'), (113, '\n\n\n\n\n\n\n'), (114, '\n\n\n\n\n\n\n\n'), (115, '\n\n\n\n\n\n\n\n\n'), (116, '\n\n\n\n\n\n\n\n\n\n'), (117, '\n\n\n\n\n\n\n\n\n\n\n'), (118, '\n\n\n\n\n\n\n\n\n\n\n\n')]
+CONTROL pieces (first 8): [(0, '<pad>'), (1, '<eos>'), (2, '<bos>')]
