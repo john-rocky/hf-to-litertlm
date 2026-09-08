@@ -1,0 +1,312 @@
+{
+ "DeepSeek-R1-Distill-Qwen-7B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/r1-distill-qwen-7b-litert.md"
+ },
+ "Falcon-H1-0.5B-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form"
+ },
+ "Falcon-H1-1.5B-Deep-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form"
+ },
+ "Falcon-H1-1.5B-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form"
+ },
+ "Falcon-H1-3B-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form"
+ },
+ "Falcon-H1-Tiny-R-0.6B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#2026-09-01--falcon-h1-tiny-r-06b-the-familys-first-reasoning-ship-and-the-size-where-two-family-assumptions-break"
+ },
+ "FastContext-1.0-4B-SFT": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "cards/fastcontext-4b-litert.md"
+ },
+ "granite-4.0-h-1b": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#granite-40-h-mamba2--attention-hybrid--first-mamba2-hybrid-on-the-released-runtime"
+ },
+ "granite-4.0-h-350m": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#granite-40-h-350m-fp16--int8--and-the-start_token-lesson"
+ },
+ "granite-4.1-3b": {
+  "task": "chat, tool calling",
+  "group": 1,
+  "recipe": "REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend"
+ },
+ "granite-4.2-3b": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/granite-4.2-3b-litert.md"
+ },
+ "granite-docling-258M": {
+  "task": "document to DocTags",
+  "group": 3,
+  "recipe": "cards/granite-docling-258m-litert.md"
+ },
+ "Hy-MT2-1.8B": {
+  "task": "translation, 33 languages",
+  "group": 4,
+  "recipe": "REPRODUCE.md#2026-08-27--hy-mt2-18b-intake-one-config-bake-closes-the-sweeps-real-gap-and-the-engines-start_token-prepend-gets-proven"
+ },
+ "InternVL3-1B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/internvl3-1b-litert.md"
+ },
+ "InternVL3-2B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/internvl3-2b-litert.md"
+ },
+ "InternVL3_5-1B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/internvl3_5-1b-litert.md"
+ },
+ "InternVL3_5-2B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/internvl3_5-2b-litert.md"
+ },
+ "InternVL3_5-4B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/internvl3_5-4b-litert.md"
+ },
+ "Jan-nano": {
+  "task": "tool-use agent (MCP)",
+  "group": 2,
+  "recipe": "cards/jan-nano-litert.md"
+ },
+ "LFM2.5-1.2B-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#lfm25-family-hybrid-shortconv--attention"
+ },
+ "LFM2.5-1.2B-JP": {
+  "task": "chat, Japanese",
+  "group": 1,
+  "recipe": "REPRODUCE.md#lfm25-family-hybrid-shortconv--attention"
+ },
+ "LFM2.5-1.2B-Thinking": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#lfm25-family-hybrid-shortconv--attention"
+ },
+ "LFM2.5-2.6B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#lfm25-26b-the-thinking-flagship"
+ },
+ "LFM2.5-230M": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#lfm25-230m-the-smallest-decoder--a-template-the-runtime-cannot-parse-and-a-shape-that-kills-the-gpu-shader-compile"
+ },
+ "LFM2.5-VL-1.6B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support"
+ },
+ "LFM2.5-VL-3B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support"
+ },
+ "LFM2.5-VL-450M": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support"
+ },
+ "LLaVA-OneVision-0.5B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/llava-onevision-0.5b-litert.md"
+ },
+ "Mage-VL": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/magevl-litert.md"
+ },
+ "MiniCPM5-2B": {
+  "task": "chat, hybrid thinking",
+  "group": 2,
+  "recipe": "cards/minicpm5-2b-litert.md"
+ },
+ "Ministral-3-3B-Instruct-2512": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "cards/ministral3-3b-litert.md"
+ },
+ "Ministral-3-3B-Reasoning-2512": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/ministral3-3b-reasoning-litert.md"
+ },
+ "Mordant-3B-Think": {
+  "task": "image-prompt writing, thinking",
+  "group": 2,
+  "recipe": "REPRODUCE.md#granite-41-finetune-intake--the-bos-guard-goes-generic-and-the-family-fact-meets-its-first-exception"
+ },
+ "Nanbeige4.1-3B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/nanbeige4.1-3b-litert.md"
+ },
+ "Nanbeige4.2-3B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/nanbeige4.2-3b-litert.md"
+ },
+ "Nemotron-3-Nano-4B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#nemotron-h-mamba2--mlp--attention-three-layer-kinds--and-the-registry-trap"
+ },
+ "North-Micro-Vision-Instruct": {
+  "task": "chat + image, 11 languages",
+  "group": 3,
+  "recipe": "cards/north-micro-vision-instruct-litert.md"
+ },
+ "OLMo-2-1B-Instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "cards/olmo2-1b-litert.md"
+ },
+ "Ovis2.5-2B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/ovis2_5-2b-litert.md"
+ },
+ "OvisOCR2": {
+  "task": "document OCR",
+  "group": 3,
+  "recipe": "REPRODUCE.md#ovisocr2--an-ocr-finetune-rides-the-08b-vision-rail-unchanged"
+ },
+ "PaddleOCR-VL-1.6": {
+  "task": "OCR, 109 languages",
+  "group": 3,
+  "recipe": "cards/paddleocr-vl-1.6-litert.md"
+ },
+ "Phi-4-mini-reasoning": {
+  "task": "math reasoning",
+  "group": 2,
+  "recipe": "cards/phi4-mini-reasoning-litert.md"
+ },
+ "Polaris-4B-Preview": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/polaris-4b-litert.md"
+ },
+ "Qwen2-VL-2B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/qwen2-vl-2b-litert.md"
+ },
+ "Qwen2.5-Coder-1.5B-Instruct": {
+  "task": "code",
+  "group": 1,
+  "recipe": "REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe"
+ },
+ "Qwen3-4B-Thinking-2507": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "cards/qwen3-4b-thinking-litert.md"
+ },
+ "Qwen3.5-0.8B": {
+  "task": "chat; separate image file",
+  "group": 3,
+  "recipe": "REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form"
+ },
+ "Qwen3.5-2B": {
+  "task": "chat; separate image file",
+  "group": 3,
+  "recipe": "REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form"
+ },
+ "Qwen3.5-4B": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form"
+ },
+ "S1-mini": {
+  "task": "ASR transcript normalization",
+  "group": 4,
+  "recipe": "cards/s1-mini-litert.md"
+ },
+ "sarashina2.2-0.5b-instruct-v0.1": {
+  "task": "chat, Japanese",
+  "group": 1,
+  "recipe": "REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw"
+ },
+ "sarashina2.2-1b-instruct-v0.1": {
+  "task": "chat, Japanese",
+  "group": 1,
+  "recipe": "REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw"
+ },
+ "Shieldstral-1.0-3B": {
+  "task": "safety classifier, text + image",
+  "group": 4,
+  "recipe": "REPRODUCE.md#shieldstral-10-3b-a-single-token-safety-classifier-not-a-chat-model"
+ },
+ "SmolLM3-3B": {
+  "task": "chat, optional thinking",
+  "group": 2,
+  "recipe": "cards/smollm3-3b-litert.md"
+ },
+ "SmolVLM2-2.2B": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/smolvlm2-2.2b-litert.md"
+ },
+ "SmolVLM2-500M": {
+  "task": "chat + image",
+  "group": 3,
+  "recipe": "cards/smolvlm2-500m-litert.md"
+ },
+ "Spark-X2.5-1.7B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it"
+ },
+ "Spark-X2.5-4B": {
+  "task": "reasoning",
+  "group": 2,
+  "recipe": "REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it"
+ },
+ "Tashkeel-350M-v2": {
+  "task": "Arabic diacritization",
+  "group": 4,
+  "recipe": "REPRODUCE.md#granite-40-h-finetune-intake-tashkeel-350m-v2--the-recipe-rides-derivatives-unchanged"
+ },
+ "VibeThinker-3B": {
+  "task": "math reasoning",
+  "group": 2,
+  "recipe": "cards/vibethinker-3b-litert.md"
+ },
+ "VibeVoice-ASR-BitNet": {
+  "task": "speech to text",
+  "group": 4,
+  "recipe": "cards/vibevoice-asr-bitnet-litert.md"
+ },
+ "Zamba2-1.2B-instruct": {
+  "task": "chat",
+  "group": 1,
+  "recipe": "REPRODUCE.md#zamba2-mamba2-backbone--a-shared-lora-specialized-transformer-block--and-the-metaspace-tokenizer-trap"
+ }
+}
