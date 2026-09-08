@@ -126,6 +126,7 @@ convert the model honestly, so you can start without reading further.
 python scripts/convert.py <org>/<model>              # -> out/<model>/ bundle + convert_report.json
 python scripts/convert.py <org>/<model> --int4       # proven int4 recipe (blockwise-32 OCTAV)
 python scripts/convert.py <org>/<model> --gate-script my_gate.py   # task-specific models
+python scripts/convert.py <org>/<model> --check      # entry gate only, exits 0/2, nothing downloaded
 ```
 
 One run does five things:
