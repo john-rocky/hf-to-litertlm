@@ -11,6 +11,14 @@ LitertlmManifest load(String name) {
       jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>);
 }
 
+Map<String, dynamic> fixture() => {
+      'manifest_schema': '0.1.0', 'repo': 'fixture/origin', 'generated': '2026-09-08',
+      'model': {'display_name': 'Fixture'},
+      'variants': [
+        <String, dynamic>{'file': 'model.litertlm', 'quantization': 'int4', 'backends': ['cpu']},
+      ],
+    };
+
 void main() {
   final lfm = load('litert-community__LFM2.5-1.2B-Instruct.json');
   final qwen = load('litert-community__Qwen3-4B-Thinking-2507.json');
@@ -80,6 +88,74 @@ void main() {
     expect(pinned.resolve()!.url, contains('/resolve/abc123/'));
     expect(pinned.resolve(revision: 'deadbeef')!.url, contains('/resolve/deadbeef/'));
     expect(lfm.resolve()!.url, contains('/resolve/main/'));
+  });
+
+  test('parse reports missing, empty or non-string repo and file', () {
+    for (final field in ['repo', 'file']) {
+      for (final value in [null, '', '  ', 42, false, [], {}]) {
+        final input = fixture();
+        final target = field == 'repo' ? input : input['variants'][0] as Map;
+        target[field] = value;
+        final error = isA<FormatException>().having(
+            (e) => e.message, 'message', contains('$field must be a non-empty string'));
+        for (final raw in [input, jsonEncode(input)]) {
+          expect(() => LitertlmManifest.fromJson(raw), throwsA(error));
+        }
+        target.remove(field);
+        expect(() => LitertlmManifest.fromJson(input), throwsA(error));
+      }
+    }
+  });
+
+  test('sourceRepo and revision keep a copied manifest on the fetched repo', () {
+    final input = fixture();
+    input['variants'][0]['file'] = 'int4/model v2.litertlm';
+    input['revision'] = 'stale-revision';
+    final pinned = LitertlmManifest.fromJson(input,
+        sourceRepo: 'fixture/fork', revision: 'refs/pr/12');
+    expect(pinned.repo, 'fixture/fork');
+    expect(pinned.revision, 'refs/pr/12');
+    expect(pinned.resolve()!.url,
+        'https://huggingface.co/fixture/fork/resolve/refs%2Fpr%2F12/int4/model%20v2.litertlm');
+    expect(pinned.resolve(revision: 'release/v2')!.url,
+        'https://huggingface.co/fixture/fork/resolve/release%2Fv2/int4/model%20v2.litertlm');
+    expect(pinned.resolve()!.backend, 'cpu');
+    expect(LitertlmManifest.fromJson(jsonEncode(input), sourceRepo: 'fixture/fork')
+        .resolve()!.url,
+        'https://huggingface.co/fixture/fork/resolve/main/int4/model%20v2.litertlm');
+    expect(input['repo'], 'fixture/origin');
+    expect(LitertlmManifest.fromJson(input).repo, 'fixture/origin');
+    for (final source in ['', '  ']) {
+      expect(() => LitertlmManifest.fromJson(input, sourceRepo: source),
+          throwsFormatException);
+    }
+    input.remove('repo');
+    expect(() => LitertlmManifest.fromJson(input, sourceRepo: 'fixture/fork'),
+        throwsFormatException);
+  });
+
+  test('resolve excludes backends emptied after parse, including defaults and recommendations', () {
+    final input = fixture();
+    input['variants'][0].addAll({
+      'size_bytes': 1, 'default_backend': 'cpu',
+      'recommended': [{'platform': 'android', 'backend': 'cpu'}],
+    });
+    final manifest = LitertlmManifest.fromJson(input);
+    manifest.variants.single.backends.clear();
+    expect(manifest.resolve(), isNull);
+    expect(manifest.resolve(platform: 'android'), isNull);
+    expect(manifest.resolve(backend: 'cpu'), isNull);
+    expect(manifest.resolve(backend: 'gpu'), isNull);
+    manifest.variants.add(Variant.fromJson({
+      'file': 'gpu.litertlm', 'quantization': 'int4', 'backends': ['gpu'], 'size_bytes': 2,
+    }));
+    for (final r in [manifest.resolve()!, manifest.resolve(platform: 'android')!,
+        manifest.resolve(backend: 'gpu')!]) {
+      expect(r.file, 'gpu.litertlm');
+      expect(r.backend, 'gpu');
+      expect(r.variant.backends, contains(r.backend));
+    }
+    expect(manifest.resolve(backend: 'cpu'), isNull);
   });
 
   test('parse rejects a variant with no backends (schema minItems: 1)', () {
@@ -189,6 +265,8 @@ void main() {
       ],
     });
     expect(bare.declaredChannels, isEmpty);
+    expect(bare.thinkingMarkers, isNull);
+    expect(bare.resolve()!.thinkingChannel, isNull);
   });
 
   test('recommended row naming an unverified backend is ignored', () {

@@ -77,6 +77,7 @@ export interface Variant {
 
 export interface Manifest {
   manifest_schema: string;
+  /** Download repo; fetchManifest() replaces the file's value with the fetch source. */
   repo: string;
   generated: string;
   /**
@@ -110,7 +111,7 @@ export interface ResolveOptions {
 }
 
 export interface Resolution {
-  /** File name inside the repo — download as https://huggingface.co/<repo>/resolve/main/<file> */
+  /** File name inside the repo; url uses the fetched revision or the resolve override. */
   file: string;
   url: string;
   backend: Backend;
@@ -125,6 +126,13 @@ export interface Resolution {
   reason: string;
 }
 
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${field} must be a non-empty string (required for download URLs)`);
+  }
+  return value;
+}
+
 export function parseManifest(input: string | object): Manifest {
   const m = (typeof input === "string" ? JSON.parse(input) : input) as Manifest;
   if (!m || typeof m !== "object" || !m.manifest_schema || !Array.isArray(m.variants) || m.variants.length === 0) {
@@ -133,7 +141,9 @@ export function parseManifest(input: string | object): Manifest {
   if (!/^0\.1\./.test(m.manifest_schema)) {
     throw new Error(`unsupported manifest_schema ${m.manifest_schema} (reader supports 0.1.x)`);
   }
-  for (const v of m.variants) {
+  requireNonEmptyString(m.repo, "manifest.repo");
+  for (const [index, v] of m.variants.entries()) {
+    requireNonEmptyString(v?.file, `variants[${index}].file`);
     if (!Array.isArray(v.backends) || v.backends.length === 0) {
       throw new Error(`variant ${v?.file ?? "?"} lists no backends (schema requires minItems: 1)`);
     }
@@ -153,12 +163,15 @@ export function parseManifest(input: string | object): Manifest {
   return m;
 }
 
-/** Fetch <repo>'s manifest from the Hugging Face Hub. resolve() URLs follow the revision fetched here. */
+/** Fetch from the Hugging Face Hub. resolve() URLs follow this source repo and revision. */
 export async function fetchManifest(repo: string, revision = "main"): Promise<Manifest> {
+  requireNonEmptyString(repo, "source repo");
   const url = `https://huggingface.co/${repo}/resolve/${encodeURIComponent(revision)}/litertlm_manifest.json`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`no litertlm_manifest.json at ${url} (HTTP ${res.status})`);
   const m = parseManifest(await res.text());
+  // A copied manifest can still name its origin; downloads belong to the fetch source.
+  m.repo = repo;
   m.revision = revision;
   return m;
 }
@@ -188,9 +201,10 @@ interface Scored {
  */
 export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resolution | null {
   const requested = opts.backend;
-  const candidates = requested
-    ? manifest.variants.filter((v) => v.backends.includes(requested))
-    : manifest.variants;
+  // Also exclude empty lists in manually constructed or subsequently mutated manifests.
+  const candidates = manifest.variants.filter(
+    (v) => v.backends.length > 0 && (!requested || v.backends.includes(requested)),
+  );
   if (candidates.length === 0) return null;
 
   const scored: Scored[] = candidates.map((v) => {
@@ -213,7 +227,7 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
         reason = `recommended for ${opts.platform}${classRec ? `/${opts.deviceClass}` : ""}${classNote}: ${rec.reason ?? ""}`.trim();
       }
     }
-    if (!backend) backend = v.default_backend && v.backends.includes(v.default_backend) ? v.default_backend : v.backends[0] ?? "cpu";
+    if (!backend) backend = v.default_backend && v.backends.includes(v.default_backend) ? v.default_backend : v.backends[0];
     return { variant: v, backend, score, reason };
   });
 

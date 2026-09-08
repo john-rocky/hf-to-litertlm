@@ -53,6 +53,14 @@ is curated and must carry evidence.
 }
 ```
 
+`repo` is required and identifies the repo described by the file. A reader with fetch context
+uses the **repo and revision it fetched from** for download URLs: a fork may carry a copied
+manifest that still names its origin. Without source context, use the file's `repo` and default
+to revision `main`. An explicit resolution revision overrides the fetch revision. Fetch context
+is reader state, not additional manifest fields; the required `repo` and variant `file` must
+still be valid. Reference readers reject missing, empty or non-string values with a descriptive
+parse error.
+
 ## `model`
 
 | field | source | meaning |
@@ -87,6 +95,9 @@ is curated and must carry evidence.
 **Resolution rule:** an explicitly requested backend is a *filter*, not a preference — a resolver
 only considers variants listing it, and reports failure (`null`) rather than substituting a backend
 the caller didn't ask for.
+Variants with no listed backends cannot be candidates, even if a caller constructed or mutated
+the manifest without parsing. Return `null` when no candidates remain; never invent a backend
+from a default or recommendation.
 
 ## `measured[]` rows — the honesty rules
 

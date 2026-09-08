@@ -1,6 +1,6 @@
 {
   "name": "litertlm-manifest",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Reference reader for litertlm_manifest.json — pick the right .litertlm file, backend, and settings for a device",
   "license": "Apache-2.0",
   "repository": {
@@ -11,9 +11,10 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "scripts": {
     "build": "tsc -p .",
+    "prepack": "npm run build",
     "test": "npm run build && node --test test/resolve.test.mjs"
   },
   "devDependencies": {

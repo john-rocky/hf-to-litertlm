@@ -9,6 +9,14 @@ library litertlm_manifest;
 
 import 'dart:convert';
 
+String _requireNonEmptyString(dynamic value, String field) {
+  if (value is! String || value.trim().isEmpty) {
+    throw FormatException(
+        '$field must be a non-empty string (required for download URLs)');
+  }
+  return value;
+}
+
 class ThinkingChannel {
   final String start;
   final String end;
@@ -96,7 +104,7 @@ class Variant {
   final Map<String, dynamic> raw;
 
   Variant.fromJson(Map<String, dynamic> j)
-      : file = j['file'] as String,
+      : file = _requireNonEmptyString(j['file'], 'variant.file'),
         sha256 = j['sha256'] as String?,
         sizeBytes = j['size_bytes'] as int?,
         quantization = j['quantization'] as String? ?? '',
@@ -128,6 +136,7 @@ class Variant {
 
 class LitertlmManifest {
   final String schemaVersion;
+  /// Download repo: [fromJson] uses the supplied sourceRepo when present.
   final String repo;
   final String displayName;
   final int? contextLength;
@@ -143,7 +152,12 @@ class LitertlmManifest {
   LitertlmManifest._(this.schemaVersion, this.repo, this.displayName, this.contextLength,
       this.capabilities, this.sessionDefaults, this.variants, this.revision);
 
-  factory LitertlmManifest.fromJson(dynamic input, {String? revision}) {
+  /// Parse a manifest. Supply [sourceRepo] and [revision] from your HTTP request
+  /// so a fork's copied manifest resolves files from the repo you fetched.
+  /// Without [sourceRepo], the file's required repo field is used. The input
+  /// map is not modified; sourceRepo and revision are not manifest fields.
+  factory LitertlmManifest.fromJson(dynamic input,
+      {String? sourceRepo, String? revision}) {
     final m = (input is String ? jsonDecode(input) : input) as Map<String, dynamic>;
     final schema = m['manifest_schema'] as String?;
     final vs = m['variants'] as List?;
@@ -154,11 +168,15 @@ class LitertlmManifest {
     if (!schema.startsWith('0.1.')) {
       throw FormatException('unsupported manifest_schema $schema (reader supports 0.1.x)');
     }
+    final declaredRepo = _requireNonEmptyString(m['repo'], 'manifest.repo');
+    final downloadRepo = sourceRepo == null
+        ? declaredRepo
+        : _requireNonEmptyString(sourceRepo, 'sourceRepo');
     final model = m['model'] as Map<String, dynamic>? ?? const {};
     return LitertlmManifest._(
       schema,
-      m['repo'] as String,
-      model['display_name'] as String? ?? m['repo'] as String,
+      downloadRepo,
+      model['display_name'] as String? ?? declaredRepo,
       model['context_length'] as int?,
       Capabilities.fromJson(model['capabilities'] as Map<String, dynamic>?),
       model['session_defaults'] as Map<String, dynamic>?,
@@ -194,9 +212,11 @@ class LitertlmManifest {
   /// unlisted backend are ignored.
   Resolution? resolve(
       {String? platform, String? backend, String? deviceClass, String? revision}) {
-    final candidates = backend != null
-        ? variants.where((v) => v.backends.contains(backend)).toList()
-        : variants;
+    // Public backend lists can be mutated after parsing; an empty list cannot compete.
+    final candidates = variants
+        .where((v) => v.backends.isNotEmpty &&
+            (backend == null || v.backends.contains(backend)))
+        .toList();
     if (candidates.isEmpty) return null;
 
     final scored = <_Scored>[];
@@ -242,7 +262,7 @@ class LitertlmManifest {
       }
       chosen ??= (v.defaultBackend != null && v.backends.contains(v.defaultBackend))
           ? v.defaultBackend!
-          : (v.backends.isNotEmpty ? v.backends.first : 'cpu');
+          : v.backends.first;
       scored.add(_Scored(v, chosen, score, reason.trim()));
     }
     scored.sort((a, b) {
