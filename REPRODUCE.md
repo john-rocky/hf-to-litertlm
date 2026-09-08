@@ -510,6 +510,22 @@ EXTERNALIZE_EMBEDDER=1 python spark_work/convert_spark.py src_models/Spark-X2.5-
 #        spark_work/multiturn_gate.py, spark_work/eval_gsm8k_engine.py + spark_work/gsm8k_bf16.py (GSM8K, 3584-token budget)
 ```
 
+**Tool-calling variant (agent use).** The published bundles carry the plain-chat subset of the vendor template. For
+function calling, repack a bundle with `templates/spark25_tools.jinja` — the vendor template verbatim (tools rendered as
+`## Tools … <tools>{tool.function|tojson}</tools>`, calls as `<tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>`,
+tool role as `<|Tool|><tool_response>…</tool_response>`) plus one edit so the tool turn LiteRT-LM hands over as content
+blocks (`{type: tool_response, name, response}`) renders too:
+
+```
+python scripts/set_prompt_template.py out/spark-4b-int4/model.litertlm out/spark-4b-int4-tools.litertlm templates/spark25_tools.jinja
+```
+
+Metadata only; weights byte-identical (and the 4B's `prefer_activation_type = "fp32"` survives). The runtime's own
+tool-call parser does not know the `<arg_key>` form, so an app parses the calls itself and answers with one `tool`
+message carrying one `tool_response` block per call; the tool list can go in through `extra_context={"tools": [...]}`
+(python) / `ConversationConfig(extraContext = mapOf("tools" to …))` (Kotlin). A phone-agent app built this way lives in
+[edge-agent-lab/android/phone-agent](https://github.com/john-rocky/edge-agent-lab/tree/main/android/phone-agent).
+
 `convert_spark.py` wraps `scripts/export_simple_template.py` (`USE_JINJA=1`, `NO_START_TOKEN=1`, KV 4096, prefill ladder 1024..1) plus the facts this checkpoint needs:
 
 - **The vendor modeling file is patched for export (`spark_work/patch_modeling.py`, exact-string edits, each asserted unique).** `modeling_spark.py` computes attention through its own eager function and never reads `config._attn_implementation`, while litert-torch's export path works by registering `lrt_transposed_attention` and handing the model a KV cache whose `update()` returns k/v in a transposed layout only that interface understands. The patch dispatches through `ALL_ATTENTION_FUNCTIONS[impl]` when a non-eager implementation is set (eager stays byte-identical), applies the per-head sigmoid gate in the interface's `[B,T,N,H]` layout, threads `**kwargs` down to the attention call, declares `_supports_attention_backend` / `_supports_sdpa` / `_can_compile_fullgraph`, and marks `is_sliding`. Two further edits are needed just to load the vendor file under transformers 5.x (`_tied_weights_keys` list → mapping form; `create_causal_mask` kwargs `inputs_embeds`, no `cache_position`) — `--ref-only` produces a copy with only those, which is the parity reference. Measured: patched-eager vs reference-eager **max |Δlogit| 0.0** on 24 random tokens (both sizes); sdpa 2.5e-4 / 3.6e-4.
