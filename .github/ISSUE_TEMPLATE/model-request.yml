@@ -1,0 +1,41 @@
+name: "Request a model"
+description: "Paste a Hugging Face link. The bundle, the recipe, and the measured numbers come back on this issue."
+title: "[model] "
+labels: ["model request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One link is enough. The model is converted to `.litertlm`, gated on the LiteRT-LM runtime,
+        measured on a real phone and a Mac, and published on Hugging Face with the recipe that
+        produced it. The reply on this issue carries the link and the numbers, or the reason it
+        could not be converted: which op, on which backend, and whether the wall moves.
+
+        What converts: open weights, an architecture that transformers loads natively (or one of
+        the hybrid families in the README table), and a size a phone can hold; the table tops out
+        at 7B. Gated, remote-code, and pre-quantized repos are refused with the reason. Requests
+        are batched into conversion runs, so an open issue is normal, not forgotten.
+  - type: input
+    id: model_url
+    attributes:
+      label: Model link
+      description: The Hugging Face repo URL.
+      placeholder: "https://huggingface.co/<org>/<model>"
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: What would you use it for? (optional)
+      description: One line is plenty. It decides which quantization and backend get measured first.
+      placeholder: "offline summarizer in a notes app; has to fit in 2 GB of RAM"
+    validations:
+      required: false
+  - type: input
+    id: device
+    attributes:
+      label: Your device (optional)
+      description: The phone, tablet, or computer you want to run it on.
+      placeholder: "Pixel 9 / Galaxy S24 / iPhone 16 / M2 MacBook Air"
+    validations:
+      required: false

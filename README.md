@@ -1,18 +1,111 @@
 # hf-to-litertlm
 
-Convert open-weight Hugging Face models to **`.litertlm`** bundles for the **LiteRT-LM**
-runtime (CPU/GPU on iOS, Android, desktop). Two things live here:
+Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
+runtime (Android, iOS, macOS, Windows, Linux): 62 published conversions below, each with
+measured speeds and a one-command reproduction.
 
-1. **A finetune converter.** `python scripts/convert.py <org>/<model>` — one command from Hub
+**Want a model converted?** [Open a model request](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml)
+with its Hugging Face link. That is the whole ask. The bundle, the recipe, and the measured
+numbers come back on the issue, or the reason it could not be converted.
+
+## Converted models
+
+Decode speed is tokens per second, read from each repo's `litertlm_manifest.json`: the fastest
+verified backend per device class, compiled-model cache off, prefill and conditions in the
+manifest. A range is the spread across runs. A dash means no measured row for that class yet.
+
+| Model | Params | Task | Phone: decode tok/s | Mac: decode tok/s | Recipe |
+|---|---:|---|---|---|---|
+| [LFM2.5-230M](https://huggingface.co/litert-community/LFM2.5-230M) | 0.23B | chat | iPhone 17 Pro GPU 161.7 | M4 Max GPU 561.2 | [recipe](REPRODUCE.md#lfm25-230m-the-smallest-decoder--a-template-the-runtime-cannot-parse-and-a-shape-that-kills-the-gpu-shader-compile) |
+| [granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) | 0.35B | chat | Galaxy S26 CPU 97.6 | — | [recipe](REPRODUCE.md#granite-40-h-350m-fp16--int8--and-the-start_token-lesson) |
+| [Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct) | 0.5B | chat | Galaxy S26 CPU 32.1–40.5 | M4 Max GPU 127.5 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
+| [sarashina2.2-0.5b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-0.5b-instruct-v0.1) | 0.5B | chat, Japanese | Galaxy S26 GPU 36.2–36.5 | M4 Max GPU 197.8 | [recipe](REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw) |
+| [OLMo-2-1B-Instruct](https://huggingface.co/litert-community/OLMo-2-1B-Instruct) | 1B | chat | Galaxy S26 GPU 23.1 | M4 Max GPU 150.1 | [card](cards/olmo2-1b-litert.md) |
+| [granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b) | 1B | chat | Galaxy S26 GPU 24.9 | M4 Max GPU 134.7 | [recipe](REPRODUCE.md#granite-40-h-mamba2--attention-hybrid--first-mamba2-hybrid-on-the-released-runtime) |
+| [sarashina2.2-1b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-1b-instruct-v0.1) | 1B | chat, Japanese | Galaxy S26 GPU 27.4–27.5 | M4 Max GPU 159.4 | [recipe](REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw) |
+| [LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct) | 1.2B | chat | Galaxy S26 GPU 54.5 | M4 Max GPU 318.3 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
+| [LFM2.5-1.2B-JP](https://huggingface.co/litert-community/LFM2.5-1.2B-JP) | 1.2B | chat, Japanese | iPhone 17 Pro GPU 70.0 | M4 Max GPU 316.0 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
+| [Zamba2-1.2B-instruct](https://huggingface.co/litert-community/Zamba2-1.2B-instruct) | 1.2B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 74.0 | [recipe](REPRODUCE.md#zamba2-mamba2-backbone--a-shared-lora-specialized-transformer-block--and-the-metaspace-tokenizer-trap) |
+| [Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct) | 1.5B | chat | Galaxy S26 CPU 11.3–12.0 | M4 Max GPU 51.7 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
+| [Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct) | 1.5B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 102.9 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
+| [Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct) | 1.54B | code | Galaxy S26 CPU 27.0–29.7 | M4 Max GPU 137.8 | [recipe](REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe) |
+| [Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) | 3B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 65.3 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
+| [Ministral-3-3B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-3B-Instruct-2512) | 3B | chat | iPhone 17 Pro GPU 14.0–18.0 | M4 Max GPU 95.4 | [card](cards/ministral3-3b-litert.md) |
+| [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend) |
+| [FastContext-1.0-4B-SFT](https://huggingface.co/litert-community/FastContext-1.0-4B-SFT) | 4B | chat | iPhone 17 Pro GPU 14.0 | M4 Max GPU 73.8 | [card](cards/fastcontext-4b-litert.md) |
+| [Qwen3.5-4B](https://huggingface.co/litert-community/Qwen3.5-4B) | 4B | chat | iPhone 17 Pro GPU 11.4 | M4 Max GPU 68.5 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
+| [Falcon-H1-Tiny-R-0.6B](https://huggingface.co/litert-community/Falcon-H1-Tiny-R-0.6B) | 0.62B | reasoning | iPhone 17 Pro CPU 29.4 | M4 Max GPU 97.8 | [recipe](REPRODUCE.md#2026-09-01--falcon-h1-tiny-r-06b-the-familys-first-reasoning-ship-and-the-size-where-two-family-assumptions-break) |
+| [LFM2.5-1.2B-Thinking](https://huggingface.co/litert-community/LFM2.5-1.2B-Thinking) | 1.2B | reasoning | iPhone 17 Pro GPU 69.7 | M4 Max GPU 317.9 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
+| [Spark-X2.5-1.7B](https://huggingface.co/litert-community/Spark-X2.5-1.7B) | 1.71B | reasoning | Galaxy S26 GPU 17.4–17.8 | M4 Max GPU 103.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |
+| [MiniCPM5-2B](https://huggingface.co/mlboydaisuke/MiniCPM5-2B-LiteRT) | 2.52B | chat, hybrid thinking | Galaxy S26 GPU 16.1–18.6 | M4 Max GPU 92.8 | [card](cards/minicpm5-2b-litert.md) |
+| [LFM2.5-2.6B](https://huggingface.co/litert-community/LFM2.5-2.6B) | 2.6B | reasoning | Galaxy S26 GPU 20.9 | M4 Max GPU 161.6 | [recipe](REPRODUCE.md#lfm25-26b-the-thinking-flagship) |
+| [Ministral-3-3B-Reasoning-2512](https://huggingface.co/litert-community/Ministral-3-3B-Reasoning-2512) | 3B | reasoning | Galaxy S26 GPU 13.8 | M4 Max GPU 95.8 | [card](cards/ministral3-3b-reasoning-litert.md) |
+| [Nanbeige4.1-3B](https://huggingface.co/litert-community/Nanbeige4.1-3B) | 3B | reasoning | Galaxy S26 GPU 10.7 | M4 Max GPU 90.1 | [card](cards/nanbeige4.1-3b-litert.md) |
+| [Nanbeige4.2-3B](https://huggingface.co/litert-community/Nanbeige4.2-3B) | 3B | reasoning | Galaxy S26 CPU 4.1 | M4 Max GPU 39.7 | [card](cards/nanbeige4.2-3b-litert.md) |
+| [SmolLM3-3B](https://huggingface.co/litert-community/SmolLM3-3B) | 3B | chat, optional thinking | iPhone 17 Pro GPU 22.5 | M4 Max GPU 93.2 | [card](cards/smollm3-3b-litert.md) |
+| [VibeThinker-3B](https://huggingface.co/litert-community/VibeThinker-3B) | 3B | math reasoning | Galaxy S26 GPU 14.6 | M4 Max GPU 94.1 | [card](cards/vibethinker-3b-litert.md) |
+| [Mordant-3B-Think](https://huggingface.co/mlboydaisuke/Mordant-3B-Think-LiteRT) | 3.4B | image-prompt writing, thinking | Galaxy S26 GPU 9.6–10.1 | M4 Max GPU 71.8 | [recipe](REPRODUCE.md#granite-41-finetune-intake--the-bos-guard-goes-generic-and-the-family-fact-meets-its-first-exception) |
+| [granite-4.2-3b](https://huggingface.co/litert-community/granite-4.2-3b) | 3.66B | reasoning | Galaxy S26 GPU 12.3–15.6 | M4 Max GPU 85.5 | [card](cards/granite-4.2-3b-litert.md) |
+| [Phi-4-mini-reasoning](https://huggingface.co/litert-community/Phi-4-mini-reasoning) | 3.8B | math reasoning | Galaxy S26 GPU 11.8 | M4 Max GPU 82.8 | [card](cards/phi4-mini-reasoning-litert.md) |
+| [Nemotron-3-Nano-4B](https://huggingface.co/litert-community/Nemotron-3-Nano-4B) | 3.97B | reasoning | Galaxy S26 CPU 11.8–12.9 | M4 Max GPU 83.3 | [recipe](REPRODUCE.md#nemotron-h-mamba2--mlp--attention-three-layer-kinds--and-the-registry-trap) |
+| [Jan-nano](https://huggingface.co/litert-community/Jan-nano) | 4B | tool-use agent (MCP) | iPhone 17 Pro GPU 14.0 | M4 Max GPU 69.0 | [card](cards/jan-nano-litert.md) |
+| [Polaris-4B-Preview](https://huggingface.co/litert-community/Polaris-4B-Preview) | 4B | reasoning | Galaxy S26 GPU 9.2 | M4 Max GPU 69.1 | [card](cards/polaris-4b-litert.md) |
+| [Qwen3-4B-Thinking-2507](https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507) | 4B | reasoning | Galaxy S26 GPU 15.3 | M4 Max GPU 68.5 | [card](cards/qwen3-4b-thinking-litert.md) |
+| [Spark-X2.5-4B](https://huggingface.co/litert-community/Spark-X2.5-4B) | 4.11B | reasoning | Galaxy S26 CPU 5.5–5.6 | M4 Max GPU 53.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |
+| [DeepSeek-R1-Distill-Qwen-7B](https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-7B) | 7B | reasoning | Galaxy S26 GPU 10.0 | M4 Max GPU 65.9 | [card](cards/r1-distill-qwen-7b-litert.md) |
+| [granite-docling-258M](https://huggingface.co/litert-community/granite-docling-258M) | 0.26B | document to DocTags | Galaxy S26 CPU 28.6–33.5 | M4 Max CPU 64.0 | [card](cards/granite-docling-258m-litert.md) |
+| [LFM2.5-VL-450M](https://huggingface.co/litert-community/LFM2.5-VL-450M) | 0.45B | chat + image | Galaxy S26 GPU 103.1 | M4 Max GPU 360.0 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
+| [LLaVA-OneVision-0.5B](https://huggingface.co/litert-community/LLaVA-OneVision-0.5B) | 0.5B | chat + image | Galaxy S26 GPU 83.9 | M4 Max GPU 239.3 | [card](cards/llava-onevision-0.5b-litert.md) |
+| [SmolVLM2-500M](https://huggingface.co/litert-community/SmolVLM2-500M) | 0.5B | chat + image | Galaxy S26 GPU 76.3 | M4 Max CPU 63.9 | [card](cards/smolvlm2-500m-litert.md) |
+| [Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) | 0.8B | chat; separate image file | iPhone 17 Pro GPU 65.8 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
+| [OvisOCR2](https://huggingface.co/mlboydaisuke/OvisOCR2-LiteRT) | 0.85B | document OCR | iPhone 17 Pro GPU 48.5 | M4 Max GPU 140.9 | [recipe](REPRODUCE.md#ovisocr2--an-ocr-finetune-rides-the-08b-vision-rail-unchanged) |
+| [PaddleOCR-VL-1.6](https://huggingface.co/litert-community/PaddleOCR-VL-1.6) | 0.9B | OCR, 109 languages | — | M4 Max GPU 208.3 | [card](cards/paddleocr-vl-1.6-litert.md) |
+| [InternVL3-1B](https://huggingface.co/litert-community/InternVL3-1B) | 1B | chat + image | Galaxy S26 GPU 84.4 | M4 Max CPU 94.0 | [card](cards/internvl3-1b-litert.md) |
+| [InternVL3_5-1B](https://huggingface.co/litert-community/InternVL3_5-1B) | 1B | chat + image | Galaxy S26 GPU 42.9 | M4 Max GPU 176.2 | [card](cards/internvl3_5-1b-litert.md) |
+| [LFM2.5-VL-1.6B](https://huggingface.co/litert-community/LFM2.5-VL-1.6B) | 1.6B | chat + image | Galaxy S26 GPU 54.2 | M4 Max GPU 275.3 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
+| [InternVL3-2B](https://huggingface.co/litert-community/InternVL3-2B) | 2B | chat + image | Galaxy S26 GPU 40.4 | M4 Max CPU 50.0 | [card](cards/internvl3-2b-litert.md) |
+| [InternVL3_5-2B](https://huggingface.co/litert-community/InternVL3_5-2B) | 2B | chat + image | Galaxy S26 GPU 21.6 | M4 Max GPU 137.2 | [card](cards/internvl3_5-2b-litert.md) |
+| [Ovis2.5-2B](https://huggingface.co/litert-community/Ovis2.5-2B) | 2B | chat + image | Galaxy S26 GPU 28.3 | M4 Max GPU 142.6 | [card](cards/ovis2_5-2b-litert.md) |
+| [Qwen2-VL-2B](https://huggingface.co/litert-community/Qwen2-VL-2B) | 2B | chat + image | Galaxy S26 GPU 36.7 | M4 Max GPU 139.1 | [card](cards/qwen2-vl-2b-litert.md) |
+| [SmolVLM2-2.2B](https://huggingface.co/litert-community/SmolVLM2-2.2B) | 2.2B | chat + image | Galaxy S26 GPU 21.4 | M4 Max GPU 134.7 | [card](cards/smolvlm2-2.2b-litert.md) |
+| [Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) | 2.27B | chat; separate image file | iPhone 17 Pro GPU 33.9 | M4 Max GPU 114.3 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
+| [North-Micro-Vision-Instruct](https://huggingface.co/litert-community/North-Micro-Vision-Instruct) | 2.48B | chat + image, 11 languages | Galaxy S26 GPU 13.3 | M4 Max GPU 80.6 | [card](cards/north-micro-vision-instruct-litert.md) |
+| [LFM2.5-VL-3B](https://huggingface.co/litert-community/LFM2.5-VL-3B) | 3B | chat + image | Galaxy S26 GPU 27.0 | M4 Max GPU 143.2 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
+| [InternVL3_5-4B](https://huggingface.co/litert-community/InternVL3_5-4B) | 4B | chat + image | Galaxy S26 GPU 13.3 | M4 Max GPU 86.5 | [card](cards/internvl3_5-4b-litert.md) |
+| [Mage-VL](https://huggingface.co/litert-community/Mage-VL) | 4.7B | chat + image | Galaxy S26 GPU 17.1 | M4 Max GPU 80.0 | [card](cards/magevl-litert.md) |
+| [Tashkeel-350M-v2](https://huggingface.co/mlboydaisuke/Tashkeel-350M-v2-LiteRT) | 0.34B | Arabic diacritization | Galaxy S26 CPU 67.2–69.0 | M4 Max CPU 97.2 | [recipe](REPRODUCE.md#granite-40-h-finetune-intake-tashkeel-350m-v2--the-recipe-rides-derivatives-unchanged) |
+| [S1-mini](https://huggingface.co/mlboydaisuke/S1-mini-LiteRT) | 0.6B | ASR transcript normalization | iPhone 17 Pro GPU 32.0 | M4 Max GPU 144.6 | [card](cards/s1-mini-litert.md) |
+| [Hy-MT2-1.8B](https://huggingface.co/litert-community/Hy-MT2-1.8B) | 2.04B | translation, 33 languages | Galaxy S26 GPU 20.4–20.8 | M4 Max GPU 105.8 | [recipe](REPRODUCE.md#2026-08-27--hy-mt2-18b-intake-one-config-bake-closes-the-sweeps-real-gap-and-the-engines-start_token-prepend-gets-proven) |
+| [VibeVoice-ASR-BitNet](https://huggingface.co/litert-community/VibeVoice-ASR-BitNet) | 2.2B | speech to text | Galaxy S26 GPU 36.1 | M4 Max GPU 138.6 | [card](cards/vibevoice-asr-bitnet-litert.md) |
+| [Shieldstral-1.0-3B](https://huggingface.co/litert-community/Shieldstral-1.0-3B) | 3B | safety classifier, text + image | Galaxy S26 GPU 10.8 | — | [recipe](REPRODUCE.md#shieldstral-10-3b-a-single-token-safety-classifier-not-a-chat-model) |
+
+Conversions published without a manifest (personal-namespace mirrors, desktop-only files) and
+the 11 non-chat conversions (encoders, embeddings, TTS, image generation) are in
+[REPRODUCE.md](REPRODUCE.md).
+
+## One command
+
+```bash
+pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
+python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
+litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone: see below
+```
+
+`convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
+pre-quantized repos) and gates every bundle before calling it done. To rebuild a published model
+instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
+
+## What lives here
+
+1. **A finetune converter.** `python scripts/convert.py <org>/<model>`: one command from Hub
    id to a gated bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
    Falcon-H1, Nemotron-H/Nemotron-3-Nano, and every dense architecture the stock exporter
-   handles — about **2,670 tagged derivatives** on the Hub as of 2026-08-26. LoRA/PEFT repos
-   merge automatically. Every bundle is gated before it is called done; broken models are
-   refused with a machine-readable reason.
-2. **One-command reproductions** of the published litert-community models: **56 chat/task
-   models** (dense LLMs, hybrid families, single-image VLMs) plus 11 more conversions
-   (encoder/embedding, TTS, image generation), with the full recipe record in
+   handles, about **2,670 tagged derivatives** on the Hub as of 2026-08-26. LoRA/PEFT repos
+   merge automatically. Broken models are refused with a machine-readable reason.
+2. **One-command reproductions** of every model in the table, with the full recipe record in
    [REPRODUCE.md](REPRODUCE.md).
+3. **A deployment manifest**, `litertlm_manifest.json`, that every published repo ships, with
+   reference readers and a Google Play packer ([below](#deployment-manifests)).
 
 ## Setup
 
@@ -91,7 +184,7 @@ section; the gate is what catches it, and REPRODUCE.md carries the correction.
 ## Reproduce a published model
 
 ```bash
-bash scripts/reproduce_llm.sh --list          # 21 LLM keys
+bash scripts/reproduce_llm.sh --list          # 25 LLM keys
 bash scripts/reproduce_llm.sh olmo2-1b        # -> out/olmo2-1b/model.litertlm
 bash scripts/reproduce_vlm.sh --list          # 13 VLMs
 bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
@@ -105,10 +198,11 @@ device measurements: [REPRODUCE.md](REPRODUCE.md); per-model cards: `cards/`.
 
 What the lists contain:
 
-- **`reproduce_llm.sh` (21)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
+- **`reproduce_llm.sh` (25)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
   `qwen25-3b`, `ministral3-3b` (+`-reasoning`), `olmo2-1b`/`7b`, `smollm3-3b`, `twil-lm3`,
   `phi4-mini-reasoning`, `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `nanbeige4.2-3b`,
-  `polaris-4b`, `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `s1-mini`.
+  `polaris-4b`, `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `s1-mini`,
+  `granite42-3b`, `minicpm5-2b`, `spark-x2.5-1.7b`, `spark-x2.5-4b`.
 - **`reproduce_vlm.sh` (13)**: `granite-docling-258m`, `internvl3-1b`,
   `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl`, `north-micro-vision`,
   `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`, `smolvlm2-2.2b`.

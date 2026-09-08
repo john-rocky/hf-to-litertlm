@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Recipe record (REPRODUCE.md)
+    url: https://github.com/john-rocky/hf-to-litertlm/blob/main/REPRODUCE.md
+    about: Every published conversion's recipe, caveats, and measurements. Read the model's section before reporting a bundle problem.
+  - name: Published models (Hugging Face collection)
+    url: https://huggingface.co/collections/mlboydaisuke/litert-conversions-shipped-to-litert-community-6a7e810d64a4fe2da58f85d3
+    about: The converted bundles, each with a model card and a litertlm_manifest.json.
+  - name: LiteRT-LM runtime issues
+    url: https://github.com/google-ai-edge/LiteRT-LM/issues
+    about: A crash or wrong output that reproduces with bundles from any source is a runtime issue, not a converter issue.
