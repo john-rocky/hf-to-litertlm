@@ -606,19 +606,11 @@ def get_chat_template(model_id):
     return j
 
 
-def merge_adapter_first(report, model_id, files, out_dir, api):
-    """Merge-first path for adapter (LoRA/PEFT) repos: resolve the base from
-    adapter_config.json, refuse what stock export could not convert honestly
-    (gated / remote-code / pre-quantized BASE), else merge_and_unload into a
-    temporary hub-format dir that the stock export takes as its model arg.
-
-    A full model.safetensors sitting in an adapter repo is deliberately
-    ignored: measured 2026-08-24, such a dump can be a different training
-    checkpoint than the published adapter weights.
-
-    Returns (merged_dir, base_info). Tokenizer comes from the adapter repo
-    when it ships tokenizer_config.json, else from the base; if the adapter's
-    tokenizer carries no chat template, the base's template is inherited."""
+def vet_adapter_base(report, model_id, files, api):
+    """Vetting half of the adapter path: resolve the base from
+    adapter_config.json and refuse what stock export could not convert
+    honestly (gated / remote-code / pre-quantized BASE). Downloads nothing —
+    `--check` stops here. Returns (base_id, base_info, base_cfg, gate_backend)."""
     from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
     ac_text = hf_fetch(f"https://huggingface.co/{model_id}/raw/main/adapter_config.json")
@@ -677,6 +669,22 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
     if base_cfg.get("model_type") == "zamba2":
         zamba2_preport_guard(report, base_cfg)
 
+    return base_id, base_info, base_cfg, gate_backend
+
+
+def download_and_merge_adapter(report, model_id, base_id, out_dir):
+    """Download half of the adapter path: snapshot the base and the adapter,
+    then merge_and_unload (subprocess-isolated) into a temporary hub-format
+    dir that the stock export takes as its model arg. Only reached once
+    vet_adapter_base has already cleared the base.
+
+    A full model.safetensors sitting in an adapter repo is deliberately
+    ignored: measured 2026-08-24, such a dump can be a different training
+    checkpoint than the published adapter weights.
+
+    Returns merged_dir. Tokenizer comes from the adapter repo when it ships
+    tokenizer_config.json, else from the base; if the adapter's tokenizer
+    carries no chat template, the base's template is inherited."""
     from huggingface_hub import snapshot_download
 
     print(f"adapter repo: merging into base {base_id} (merge-first, in a subprocess)")
@@ -702,7 +710,7 @@ def merge_adapter_first(report, model_id, files, out_dir, api):
     report["decisions"]["adapter"] = {
         "base": base_id, **merge_info, "merged_dir": str(merged_dir),
     }
-    return merged_dir, base_info, gate_backend
+    return merged_dir
 
 
 def main():
@@ -720,6 +728,11 @@ def main():
                          "generic 8-question gate — for finetunes that transform their "
                          "input rather than answer questions (s1-mini/Tashkeel), where "
                          "the generic gate certifies nothing")
+    ap.add_argument("--check", action="store_true",
+                    help="run the entry gate only — write convert_report.json with "
+                         "status 'accepted' and the decisions made so far (route, "
+                         "adapter base, params), print it, exit 0; refusals still "
+                         "exit 2. Nothing is downloaded")
     args = ap.parse_args()
 
     out_dir = Path(args.out) if args.out else REPO_ROOT / "out" / args.model.split("/")[-1]
@@ -751,15 +764,18 @@ def main():
 
     files = {s.rfilename for s in (info.siblings or [])}
     merged_dir = base_info = gate_backend = normalized_dir = None
-    if "adapter_config.json" in files:
-        merged_dir, base_info, gate_backend = merge_adapter_first(
-            report, args.model, files, out_dir, api)
+    is_adapter = "adapter_config.json" in files
+    if is_adapter:
+        base_id, base_info, base_cfg, gate_backend = vet_adapter_base(
+            report, args.model, files, api)
+        if not args.check:
+            merged_dir = download_and_merge_adapter(report, args.model, base_id, out_dir)
     elif not any(f.endswith(".safetensors") or f.endswith(".bin") for f in files):
         refuse(report, "no_weights",
                "no safetensors/bin weight files in the repo",
                "point at a repo with full PyTorch weights")
 
-    if merged_dir is None:  # adapter path already vetted the BASE's config
+    if not is_adapter:  # adapter path already vetted the BASE's config
         cfg_text = hf_fetch(f"https://huggingface.co/{args.model}/raw/main/config.json")
         if not cfg_text:
             fail("could not fetch config.json")
@@ -786,7 +802,16 @@ def main():
         rope = cfg.get("rope_scaling") or {}
         if (cfg.get("model_type") == "hunyuan_v1_dense" and cfg.get("head_dim")
                 and rope.get("type") == "dynamic" and rope.get("alpha")):
-            normalized_dir = normalize_static_alpha_rope(report, args.model, cfg, out_dir)
+            if args.check:
+                report["decisions"]["rope_normalization"] = "would_apply_static_alpha_bake"
+            else:
+                normalized_dir = normalize_static_alpha_rope(report, args.model, cfg, out_dir)
+
+    if args.check:
+        report["status"] = "accepted"
+        write_report(report)
+        print(json.dumps(report, indent=2))
+        sys.exit(0)
 
     # ---------------- opt-ins ----------------
     params = getattr(getattr(base_info or info, "safetensors", None), "total", None)
