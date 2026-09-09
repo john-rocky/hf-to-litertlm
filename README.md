@@ -4,6 +4,37 @@ Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Goog
 runtime (Android, iOS, macOS, Windows, Linux): 62 published conversions below, each with
 measured speeds and a one-command reproduction.
 
+## Hugging Face model → `.litertlm` → phone
+
+```bash
+pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
+python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
+litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone: see below
+```
+
+`convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
+pre-quantized repos) and gates every bundle before calling it done. To rebuild a published model
+instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
+
+In an Android app, a published bundle is one Gradle line and a few lines of Kotlin through
+[hfmodels-android](https://github.com/john-rocky/hfmodels-android)
+(`implementation("io.github.john-rocky.hfmodels:hfmodels-litertlm:0.1.1")`), pinned to the file
+and backend of its device record:
+
+```kotlin
+val models = HfModels(applicationContext)
+val chat = models.fromPretrained(
+    ModelRef("litert-community/LFM2.5-1.2B-Instruct", revision = "f45d8d8abe93bff4026efee20fa483150ce8e687", variant = "int4_gpu"),
+    Tasks.Chat, LoadOptions(backendPolicy = BackendPolicy.RequireProfile("gpu"))) { event -> Log.i("hfmodels", event.toString()) }
+val session = chat.createConversation(ConversationConfig(systemInstruction = Contents.of("You are a helpful assistant.")))
+session.stream(Contents.of("What is 17 + 25? Answer briefly.")).collect { message -> append(message.text) }
+withContext(NonCancellable) { models.closeAndJoin() }
+```
+
+In an iPhone app, a bundle loads through [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm)
+with `LiteRTChat(huggingFaceRepo:fileName:)`; the verified path for a fine-tune is its
+[recipe](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md).
+
 **Want a model converted?** [Open a model request](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml)
 with its Hugging Face link. That is the whole ask. The bundle, the recipe, and the measured
 numbers come back on the issue, or the reason it could not be converted.
@@ -93,18 +124,6 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 Conversions published without a manifest (personal-namespace mirrors, desktop-only files) and
 the 11 non-chat conversions (encoders, embeddings, TTS, image generation) are in
 [REPRODUCE.md](REPRODUCE.md).
-
-## One command
-
-```bash
-pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
-python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
-litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone: see below
-```
-
-`convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
-pre-quantized repos) and gates every bundle before calling it done. To rebuild a published model
-instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
 
 ## What lives here
 

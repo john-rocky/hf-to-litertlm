@@ -1,0 +1,50 @@
+# hf-to-litertlm
+
+> Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 62 published conversions on Hugging Face (litert-community), each with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
+
+```bash
+pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
+python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
+litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone
+```
+
+`convert.py` exits 0 = converted and gated, 1 = converted but the gate failed, 2 = refused with a JSON reason (gated, remote-code, pre-quantized repos).
+
+## Start here
+
+- [README](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/README.md): the model table (device, backend and tok/s per row), the finetune converter, setup, reproduction, new architectures, int4 recipes, deployment manifests.
+- [AGENTS.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/AGENTS.md): for coding agents. Task → command → file, and the rules: the exit gate decides, a refusal is an answer, numbers carry a device and a date.
+- [REPRODUCE.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/REPRODUCE.md): the full measurement record behind every published bundle, one command per model.
+- [CONTRIBUTING.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/CONTRIBUTING.md): request a model by pasting its Hugging Face link; report a misbehaving bundle.
+
+## Converter
+
+- [scripts/convert.py](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/convert.py): entry gate → adapter merge → export → post-export guards → exit gate. Routes by `config.json` `model_type`.
+- [scripts/verify_quality.py](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/verify_quality.py): the exit gate, 8 fixed questions, bar 6/8.
+- [scripts/export_simple_template.py](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/export_simple_template.py): the LLM engine (chat template + quant recipe + env knobs); defines the int4 recipes BOCTAV4, BOCTAV4_128 and BMIX4.
+- [scripts/reproduce_llm.sh](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/reproduce_llm.sh), [scripts/reproduce_vlm.sh](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/reproduce_vlm.sh): rebuild a published bundle with one command (`--list` for keys).
+- [scripts/ship_qwen2vl_derivative.sh](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/ship_qwen2vl_derivative.sh): the VLM derivative pipeline, ending in the tokenizer-parity gate ([scripts/gate_specials.py](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/scripts/gate_specials.py)).
+
+## Running the bundles
+
+- [docs/android-gpu.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/android-gpu.md), [docs/android-npu.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/android-npu.md): GPU and NPU on Android for these bundles, measured.
+- [hfmodels-android](https://github.com/john-rocky/hfmodels-android): one Gradle line and a few lines of Kotlin to a first reply; the walkthrough pins LFM2.5-1.2B-Instruct on a Pixel 8a.
+- [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm): `LiteRTChat(huggingFaceRepo:fileName:)` on iPhone and Mac; [recipe for a fine-tuned model on iPhone](https://raw.githubusercontent.com/john-rocky/swift-litert-lm/main/docs/recipe-hf-finetune-to-iphone.md).
+
+## Deployment manifests
+
+- [manifest/SCHEMA.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/manifest/SCHEMA.md): `litertlm_manifest.json`, which file fits which device, backend and RAM budget at what measured speed; registered in SchemaStore.
+- [manifest/make_manifest.py](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/manifest/make_manifest.py) and [manifest/examples/](https://github.com/john-rocky/hf-to-litertlm/tree/main/manifest/examples): the generator and finished manifests.
+- [readers/README.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/readers/README.md): reference readers (TypeScript, Dart) and the SDK entry points with their verification scope.
+- [tools/play_ai_pack/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/play_ai_pack): the manifest as a Google Play for On-device AI pack.
+
+## Model cards and bundles
+
+- [cards/](https://github.com/john-rocky/hf-to-litertlm/tree/main/cards): one card per converted bundle.
+- [litert-community on Hugging Face](https://huggingface.co/litert-community): the published bundles; each repo ships `litertlm_manifest.json`.
+
+## Related
+
+- [LiteRT-Models](https://github.com/john-rocky/LiteRT-Models): single-graph `.tflite` models (vision, audio, TTS) for Android.
+- [on-device-recipes](https://john-rocky.github.io/on-device-recipes/): device-verified recipes across runtimes.
+- [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM): the upstream runtime.
