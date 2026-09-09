@@ -9,6 +9,27 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 
 Distribution is through this repository's source. As of 2026-09-08, neither reference package name is published on npm or pub.dev; the version fields identify the source, not a registry release. See each package README for local installation and its changelog for the changes in this source version.
 
+## SDK entry points
+
+**First Android inference:** follow the existing [hfmodels 0.1.1 guide](https://github.com/john-rocky/hfmodels-android#add-it)
+with [LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct).
+It covers OS/SDK and memory/storage conditions, a pinned model revision and GPU profile,
+Maven installation, complete imports, download → initialize → generate → release,
+the expected **42** answer, and failure reporting. A Pixel 8a (8 GB RAM, Android 16)
+[device log](https://github.com/john-rocky/hfmodels-android/blob/6410dfc48c53d13364ab0b911f3d790e6ef8585b/litertlm/results/2026-09-08-4C131JEKB15210-0.16.1-device-check.log)
+records all those steps plus Stop. This path uses the SDK's `hfmodels.json` descriptor;
+installing these TS/Dart reference readers is not required. A reference-reader source
+version does not identify the code inside a published mobile SDK.
+
+**Other existing SDK procedures (not device-verified by this walkthrough):**
+[Flutter Gemma installation](https://pub.dev/packages/flutter_gemma#installation) and
+[React Native installation and manifest resolution](https://github.com/hung-yueh/react-native-litert-lm#installation).
+Follow each SDK's published-package requirements. Their unit tests, and the tests below,
+check their respective code layers; a passing JS/Dart suite alone does not establish
+phone inference. For a direct Kotlin runtime integration, the existing
+[Android chat recipe](https://github.com/john-rocky/on-device-recipes/blob/main/android-llm-chat/INTEGRATION.md)
+uses Qwen2.5-1.5B and has its own device record and conditions.
+
 ## Usage (TypeScript)
 
 ```ts

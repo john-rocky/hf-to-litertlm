@@ -8,6 +8,15 @@ measured speeds and a one-command reproduction.
 with its Hugging Face link. That is the whole ask. The bundle, the recipe, and the measured
 numbers come back on the issue, or the reason it could not be converted.
 
+**Run a published model on Android:** start with
+[LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct) and the
+[hfmodels 0.1.1 install and first-reply guide](https://github.com/john-rocky/hfmodels-android#add-it).
+The guide fixes the model revision and GPU profile, includes the imports and cleanup,
+and shows the expected **42** reply and where to report a failure. Its tested target is
+a **Pixel 8a with 8 GB RAM, Android 16**; installation needs **API 31+, compileSdk 36**
+and a 736 MB download plus cache space. [Other SDK entry points](readers/README.md#sdk-entry-points)
+are listed separately with their verification scope.
+
 ## Converted models
 
 Decode speed is tokens per second, read from each repo's `litertlm_manifest.json`: the fastest
