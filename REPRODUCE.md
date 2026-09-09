@@ -1410,15 +1410,37 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious pa
 
 There is no `.litertlm` here on purpose: `litert-lm-builder` will happily pack one (`embedding_metadata` + `tflite_model --model_type text_encoder`, and it peeks back clean), but the released runtime has no embedding executor to run it — `Engine()` on such a file aborts. Plain `.tflite` is the working artifact today.
 
-## EmbeddingEngine bundles (`.litertlm`, litert-lm >= 0.17.0) — granite-embedding-311m-r2 / LFM2.5-Embedding-350M / Nemotron-3-Embed-1B
+## Giga-Embeddings-instruct-480M-0826 (Qwen3 made bidirectional, Russian + English, instruct prompts)
 
-`embedding_engine_work/` re-exports the three pooled embedders above into the bundle the LiteRT-LM 0.17.0 `EmbeddingEngine` loads (embedder lookup graph + `encoder_<S>` graphs with pooling in-graph, plus tokenizer and `EmbeddingMetadata`). Same weights and quantization as the `.tflite` files; vectors match them at cosine 1.000000. Read `embedding_engine_work/README.md` for the contract and the two traps, then per model:
+`giga_work/convert_giga_embed.py` converts [ai-sage/Giga-Embeddings-instruct-480M-0826](https://huggingface.co/ai-sage/Giga-Embeddings-instruct-480M-0826) — a 484M-parameter Russian + English retrieval/STS embedding model (MIT, 1024-d, mean pooling, upstream MTEB rus v1.1 70.98 / eng v2 69.52) — to plain LiteRT `.tflite`, the same encoder lane as Nemotron-3-Embed above: no KV cache, so the HF eager model is traced directly with `litert_torch` multi-signature convert. Signatures `embed_{64,128,256,512}` → `output_0` `[1,1024]`, **already mean-pooled and L2-normalized**. Published: [litert-community/Giga-Embeddings-instruct-480M-0826](https://huggingface.co/litert-community/Giga-Embeddings-instruct-480M-0826) (int8 512 MB + fp16 976 MB, plus the two EmbeddingEngine bundles below).
+
+```bash
+cd giga_work
+python convert_giga_embed.py ai-sage/Giga-Embeddings-instruct-480M-0826 out_giga_embed   # fp32 + wi8fc int8 + fp16, eager gates inside
+python verify_giga_embed.py out_giga_embed --st-oracle st_oracle.json                    # parity vs PyTorch + STS17/STS22 + retrieval + mechanics
+python bench_giga_embed.py  out_giga_embed
+# optional independent oracle through the vendor's own stack (needs sentence-transformers):
+python st_oracle.py gate_texts.json st_oracle.json
+```
+
+Env: litert-torch 0.9.2, transformers 5.14.1, torch 2.12. What differs from the Nemotron section:
+
+- **Remote code, but a thin one.** `architectures: ["Qwen3BidirectionalModel"]` (`modeling_gigarembed.py`) subclasses `Qwen3Model`, sets every layer's `self_attn.is_causal = False` and builds its mask with `create_bidirectional_mask`. Load with `trust_remote_code=True` — for the **tokenizer too**, or `AutoTokenizer` prints the "run custom code?" prompt and reads stdin. Do not pass `use_cache` into the model call: the vendor forward already passes `use_cache=False` to every layer next to `**kwargs` (duplicate keyword).
+- **Bidirectionality is gated by experiment, not by a flag:** changing a late valid token moves position 0 by 1.2 (a causal model cannot). The hand-built `[1,1,1,S]` additive bias is bit-exact with the vendor's own 2-D-mask path (hidden and pooled max|diff| 0.0), so the export never routes through `sdpa_mask` (no GATHER_ND) and the None-mask-when-unpadded export trap is closed the same way as for Nemotron (padded trace samples + pad-content invariance = 0.0).
+- **Both special tokens are inside the mean.** The tokenizer's post-processor is `<s> A </s>` (bos 1, eos 2, both mask 1; `</s>` is also the pad id), so `input_ids` must carry what the tokenizer emits with special tokens. The PyTorch reference with that contract matches the vendor's sentence-transformers stack at cosine 1.000000 on a 10-text set.
+- **Prompt on the query only.** `Instruct: {task}\nQuery: ` (read from `config_sentence_transformers.json` — mind the newline and the trailing space); documents raw; symmetric tasks may use none. Plain text, tokenized normally, in the mean.
+- **Quality:** fp32/fp16 `.tflite` are the PyTorch reference to six decimals; int8 sits at cosine 0.992–0.996 per text yet STS17 en-en / STS22 ru Spearman are flat (0.8754/0.6781 → 0.8802/0.6795) and SciFact-derived retrieval is identical on all 50 queries (nDCG@10 0.8450). Cross-signature max|diff| 0.0, pad invariance 0.0.
+- **Speed (Mac M4 Max, CPU/XNNPACK, 16 threads, median):** int8 embed_64/128/256/512 = 82 / 116 / 182 / 343 ms; fp16 89 / 132 / 208 / 373 ms.
+
+## EmbeddingEngine bundles (`.litertlm`, litert-lm >= 0.17.0) — granite-embedding-311m-r2 / LFM2.5-Embedding-350M / Nemotron-3-Embed-1B / Giga-Embeddings-instruct-480M
+
+`embedding_engine_work/` re-exports the four pooled embedders above into the bundle the LiteRT-LM 0.17.0 `EmbeddingEngine` loads (embedder lookup graph + `encoder_<S>` graphs with pooling in-graph, plus tokenizer and `EmbeddingMetadata`). Same weights and quantization as the `.tflite` files; vectors match them at cosine 1.000000. Read `embedding_engine_work/README.md` for the contract and the two traps, then per model:
 
 ```
 python embedding_engine_work/convert_granite_embedding_r2_engine.py ibm-granite/granite-embedding-311m-multilingual-r2 out_granite_engine
 BUILDER_PY=<venv with litert-lm-builder>=0.17.0>/bin/python embedding_engine_work/pack_granite_embedding_r2.sh out_granite_engine out_granite_engine/embedder_wi8.tflite out_granite_engine/encoder_wi8fc.tflite <tokenizer.json> out_granite_engine/granite-embedding-311m-r2_wi8fc.litertlm
 ```
-(`convert_lfm25_embedding_engine.py` / `pack_lfm25_embedding.sh` and `convert_nemotron3_embed_engine.py` / `pack_nemotron3_embed.sh` take the same arguments.) Use with `litert_lm.embedding_engine.EmbeddingEngine` (Python) or `com.google.ai.edge.litertlm.EmbeddingEngine` (Kotlin, litertlm-android 0.17.0); keep `insert_special_tokens` at its default.
+(`convert_lfm25_embedding_engine.py` / `pack_lfm25_embedding.sh`, `convert_nemotron3_embed_engine.py` / `pack_nemotron3_embed.sh` and `convert_giga_embed_engine.py` / `pack_giga_embed.sh` take the same arguments; the Giga pack declares bos AND eos, because its tokenizer's post-processor adds both and the engine's `insert_special_tokens` must reproduce that.) Use with `litert_lm.embedding_engine.EmbeddingEngine` (Python) or `com.google.ai.edge.litertlm.EmbeddingEngine` (Kotlin, litertlm-android 0.17.0); keep `insert_special_tokens` at its default.
 
 ## granite-embedding-*-multilingual-r2 (ModernBERT encoders → plain .tflite)
 

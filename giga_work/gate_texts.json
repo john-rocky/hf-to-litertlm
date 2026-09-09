@@ -1,0 +1,12 @@
+{"texts": [
+ "Instruct: Given a query, retrieve relevant passages\nQuery: Где столица России?",
+ "Instruct: Given a query, retrieve relevant passages\nQuery: What is the tallest mountain in Japan?",
+ "Instruct: Given a query, retrieve relevant passages\nQuery: Кто написал роман «Война и мир»?",
+ "Москва — столица Российской Федерации.",
+ "Париж — столица Франции.",
+ "Mount Fuji, an active volcano straddling Shizuoka and Yamanashi prefectures, is Japan's highest peak at 3,776 m.",
+ "Роман «Война и мир» написал Лев Николаевич Толстой; он публиковался частями в 1865–1869 годах.",
+ "hello",
+ "LiteRT-LM is Google's on-device runtime for large language models; this sentence exists to cross the 64-token signature boundary once tokenized, so it keeps going with a few more clauses about embeddings, pooling, and normalization until it is long enough for that purpose, and then a little further still, because this tokenizer packs English more tightly than the others we have shipped.",
+ "機械学習モデルをスマートフォン上で動かすためには、量子化とグラフの静的化が重要になる。"
+]}
