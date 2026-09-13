@@ -322,6 +322,24 @@ Standard dense env (litert-torch 0.9.3 / ai-edge-quantizer 0.9.0 / litert-lm-bui
 - **Block-128 int4 (`RECIPES=int4b128`) was tried and rejected**: GSM8K thinking-off 79 vs block-32's 87, 8Q CPU 7/8 with a non-terminating think, and the thinking chains stay ~13k characters — block size is not the lever for this model's int4 thinking damage.
 - Harness beside the script: `hf_oracle_minicpm5_2b.py` (bf16 8Q × three thinking modes), `probe_toggle_minicpm5_2b.py` (toggle + multi-turn through the python API), `gsm8k_bf16_minicpm5_2b.py` / `gsm8k_engine_minicpm5_2b.py` (the parity rows above; `--thinking on|off|unset`, `--ids` subsets, resumable).
 
+### 2026-09-13 — MiniCPM5-2B int8 for litert-community: the LiteRT-LM `models/minicpm5` README command, as written
+
+**Shipped as a card PR** (2026-09-13, [litert-community/MiniCPM5-2B#5](https://huggingface.co/litert-community/MiniCPM5-2B/discussions/5)): `MiniCPM5-2B_int8.litertlm` (2,546,937,984 B, sha256 `61dafe88…`) replaces the previous int8 once the PR lands; the card's int4 stays the `minicpm5-2b` recipe above. The same command's int4 recipe is the subject of [LiteRT-LM#3577](https://github.com/google-ai-edge/LiteRT-LM/issues/3577).
+
+```bash
+bash scripts/reproduce_llm.sh minicpm5-2b-readme-int8      # -> out/minicpm5-2b-readme-int8/model.litertlm
+# or directly: bash minicpm_work/export_minicpm5_2b_readme.sh dynamic_wi8_afp32 out/x
+```
+
+The [README block](https://github.com/google-ai-edge/LiteRT-LM/blob/main/models/minicpm5/README.md#model-conversion) run verbatim on the released wheels (litert-torch **0.9.4**, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, litert-lm-builder 0.16.1, transformers 5.14.1): `--quantization_recipe=dynamic_wi8_afp32 --use_bool_mask=True --apply_gpu_composites=True --cache_length=32771 --experimental_lightweight_conversion` + the repository's `LlmMetadataProto.pbtext` as the metadata override. Only the model id (2B instead of the README's 1B), the pbtext path and the output dir differ. 51 s on an M4 Max.
+
+- **Pin the pbtext.** The script fetches `LlmMetadataProto.pbtext` at commit `b5e34ab1` (2026-09-01) and checks its sha256; the copy on `main` changed on 2026-09-11 (content is rendered as multimodal parts only), so an unpinned copy produces a different bundle from the one that was measured.
+- **What the pbtext packaging changes vs the verbatim-jinja recipe above:** the LiteRT-LM canonical `chat_template.jinja` (ChatML, `<tools>` block, `enable_thinking | default(false)` → with nothing set the model answers directly; `enable_thinking=true` via `ThinkingConfig` or the conversation's extra context pre-opens `<think>\n`), the `thought` channel declared as `<think>\n` / `</think>`, start `<s>`, stops `</s>` + `<|im_end|>` (no punctuation-prefix string stops), `max_num_tokens 4096`, ONE prefill signature (128; longer prompts are prefilled in 128-token chunks). `--cache_length=32771` is the runtime's magic number: every run logs `magic_number=32771, target_number=4096` and the cache is sized to 4096 at load.
+- **Graph:** int8 per-channel on every linear including the in-graph 130560×2048 embedding and lm_head (no embedder section), `odml.cache_update` ×42, `odml.rms_norm`, `odml.runtime_bmm`, boolean mask; `prefill_128` 1836 ops / `decode` 1655 ops; no custom op. Full LITERT_CL delegation on a Galaxy S26 (1836/1836 + 1655/1655) and full WebGPU delegation on a Mac.
+- **Quality (same harness as the 09-08 rows):** GSM8K thinking-off n=100 greedy max 2048: **93** on the Mac GPU (bf16 92, inside one standard error); 8-question gate 6/8 at the no-think default (= the bf16 model's own thinking-off score) and 8/8 with thinking on, both backends; thinking-on 10-question subset 10/10 closed, 10/10 correct with the runtime-default fp16 GPU activations — no fp32 declaration needed on this file.
+- **Speed (litert-lm 0.17.0 benchmark `-p 256 -d 256 --runs 3 --cache no --max-num-tokens 1024`, M4 Max):** GPU 2084 prefill / 124.2 decode tok/s, CPU 175 / 37.1.
+- **The same command's int4 (`dynamic_wi4c_hr_afp32`, channelwise int4 + Hadamard rotation)** runs fully delegated but wanders off-topic on the Galaxy S26 GPU (OpenCL) while its CPU run answers — on the v0.16.0 kit CLI and on the litertlm-android 0.17.0 AAR alike; the same file answers on the Mac GPU. Plain `dynamic_wi4c_afp32` (no rotation) collapses on both backends. Not shipped; kept for the int8 story only.
+
 ### 2026-08-25 — Finetune intake: MiniCPM5-1B derivatives ride the DEFAULT convert.py path
 
 MiniCPM5-1B is stock `LlamaForCausalLM` (`model_type: llama`), so its finetunes go through

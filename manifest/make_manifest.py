@@ -14,6 +14,8 @@ Usage (needs: pip install litert-lm-builder jsonschema):
 
 """
 import argparse
+import hashlib
+import os
 import datetime
 import json
 import pathlib
@@ -133,7 +135,12 @@ def main():
                   help="strip private evidence pointers")
   ap.add_argument("--local-file", action="append", default=[],
                   metavar="NAME=PATH",
-                  help="use a local copy for bundle NAME instead of HF ranges")
+                  help="use a local copy for bundle NAME instead of HF ranges; "
+                       "its sha256 and size are then computed from that file "
+                       "(a re-ship whose new bundle is not on the Hub yet)")
+  ap.add_argument("--only-curated", action="store_true",
+                  help="describe only the files the curated file lists "
+                       "(a repo that also hosts third-party bundles)")
   args = ap.parse_args()
 
   mdir = pathlib.Path(__file__).resolve().parent
@@ -154,6 +161,8 @@ def main():
   unknown = set(curated_variants) - set(files)
   if unknown:
     sys.exit(f"curated variants not in repo: {sorted(unknown)}")
+  if args.only_curated:
+    files = {n: f for n, f in files.items() if n in curated_variants}
 
   variants, model_meta = [], None
   for name, f in sorted(files.items()):
@@ -165,6 +174,13 @@ def main():
 
     if name in local:
       p = local[name]
+      # identity read out of the local bundle, never typed in
+      h = hashlib.sha256()
+      with open(p, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 24), b""):
+          h.update(chunk)
+      v["sha256"] = h.hexdigest()
+      v["size_bytes"] = os.path.getsize(p)
       def fetch(s, e, _p=p):
         with open(_p, "rb") as fh:
           fh.seek(s)
