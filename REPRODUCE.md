@@ -1941,6 +1941,17 @@ python tools/add_thought_channel.py granite42_work/out_int8/model.litertlm grani
 
 `granite42_work/hf_oracle.py` is the bf16 reference for the same eight gate questions (scored on the text after `</think>` — the reasoning routinely contains the expected string, e.g. it repeats "0.9" while comparing 0.9 vs 0.11, so scoring the whole output would fake a pass). `granite42_work/gate8q.py` applies the same prefilled-opener-aware scoring to the converted bundle.
 
+### 2026-09-15 — bundle the canonical Jinja chat template (metadata-only repack)
+
+The files published on 2026-08-31 carried only the structured `prompt_templates` (no `jinja_prompt_template`). On LiteRT-LM 0.16.0 and 0.17.0 a bundle without a Jinja template gets its history re-rendered by the runtime's default template, which renders history turns with role `model` while the engine stores its replies as `assistant`, so every assistant turn drops out of the re-rendered history and long conversations drift (LiteRT-LM #3445). The fix is to bundle a Jinja template. `granite42_work/models_granite4_2/` is the canonical template directory in the shape of LiteRT-LM `models/lfm2/` (template, `LlmMetadataProto.pbtext`, README, BUILD, testdata + goldens; `bazel test //models/granite4_2:chat_template_test` passes in a LiteRT-LM checkout at a4673247 with the directory copied in), and the published int4/int8 were re-packed with it, weights and tokenizer byte-identical:
+
+```bash
+LITERT_LM_BIN=~/venvs/lt0170run/bin/litert-lm python3 tools/chat_template/set_jinja_template.py \
+  granite-4.2-3b_int4.litertlm out/granite-4.2-3b_int4.litertlm granite42_work/models_granite4_2/chat_template.jinja
+```
+
+The template follows IBM's `chat_template.jinja` (ChatML with the always-present system turn, IBM's `<tool_call>`/`<function=…>` XML, `enable_thinking` toggle) with one deliberate difference: past assistant turns always render as `<think></think>` + answer and never carry their reasoning, because a position-dependent history fails the runtime's prefix check. Probe (issue's 3-turn script, 0.17.0, greedy): before `OK` / `OK 42` / `42 Alfred orange`, after `OK` / `42` / `Alfred, orange.`.
+
 ## Qwen2.5-Coder-1.5B-Instruct — a 1.5B code model at 1.12 GB, and why the size is the recipe
 
 `qwen25coder_work/convert_qwen25_coder.sh`. Published: [litert-community/Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct). **Requires litert-lm ≥ 0.16.**
