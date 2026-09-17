@@ -304,6 +304,11 @@
   "group": 4,
   "recipe": "cards/vibevoice-asr-bitnet-litert.md"
  },
+ "VibeVoice-ASR-Streaming-1.5B": {
+  "task": "streaming speech to text",
+  "group": 4,
+  "recipe": "cards/vibevoice-asr-streaming-1.5b-litert.md"
+ },
  "Zamba2-1.2B-instruct": {
   "task": "chat",
   "group": 1,

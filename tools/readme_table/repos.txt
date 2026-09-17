@@ -60,3 +60,4 @@ mlboydaisuke/Mordant-3B-Think-LiteRT
 mlboydaisuke/OvisOCR2-LiteRT
 mlboydaisuke/S1-mini-LiteRT
 mlboydaisuke/Tashkeel-350M-v2-LiteRT
+litert-community/VibeVoice-ASR-Streaming-1.5B

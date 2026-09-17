@@ -2023,3 +2023,37 @@ Env: torch 2.13 + transformers 5.14.1 (has `vibevoice_asr` natively) + litert-to
 **Bundle metadata is the runtime contract, written by hand in `build_bundle.py`:** `GenericModel{audio_enabled, delimiter_regex/audio_token_regex on <|box_start|>, start_of_audio_token, audio_suffix, skip_mel_spectrogram_extraction, 24000 Hz, frame = hop = 3200}` + ChatML templates + a jinja that emits the vendor system prompt and renders an audio item as `<|box_start|>\n` (default instruction "Please transcribe it." when the turn has no text). Without an audio adapter section the executor treats the encoder as a streaming encoder with window = 225 frames and (buffering off by default) zero-pads short clips; valid tokens = valid frames.
 
 **Gates.** fp32 oracle 12/448 = 2.68 % (vendor prompt; adding the generation prompt changes nothing; dropping the duration sentence 2.90 %); encoder int8 through the eager LM 2.68 %; LiteRT-LM 0.16.1 python CPU 2.68 %, LM on Metal GPU 2.46 %; Pixel 8a `litert_lm_advanced_main` v0.16.1 CPU 3.12 % (one clip flips "On the" → "Under" — Arm int8 numerics), Galaxy S26 CPU see the card. LM speed: M4 Max CPU 357 / 59.3 tok/s, Metal 2045 / 138.6 tok/s (`-p 256 -d 256 --cache no`). The audio encoder is **CPU-only** on Metal/WebGPU: the 30 s stem dispatches 90 001 workgroups against a 65 535 limit and the engine returns empty text — a shape problem (a ≤ 5.5 s window would fit), not an op problem.
+
+## VibeVoice-ASR-Streaming-1.5B (streaming speech-to-text LLM, audio-in `.litertlm`, one window per turn)
+
+`vibevoice_asr_streaming_work/` converts Microsoft's [VibeVoice-ASR-Streaming-1.5B](https://huggingface.co/microsoft/VibeVoice-ASR-Streaming-1.5B) (the same σ-VAE acoustic + semantic conv encoders as VibeVoice-ASR-BitNet, a dense Qwen2.5-1.5B-shaped LM, MIT) into a `.litertlm` that LiteRT-LM's released runtime (≥ 0.16.1) drives through its **generic audio path as a multi-turn conversation** — one 3.47 s audio window per user turn, the model's chunk text + `<|text_chunk_end|>` as the model turn. No runtime patch, no litert-torch patch. Published: [litert-community/VibeVoice-ASR-Streaming-1.5B](https://huggingface.co/litert-community/VibeVoice-ASR-Streaming-1.5B).
+
+```sh
+hf download microsoft/VibeVoice-ASR-Streaming-1.5B --include '*.safetensors' '*.json' merges.txt --local-dir vibevoice_asr_streaming_work/hf
+python3 vibevoice_asr_work/fetch_fixtures.py                    # 20 LibriSpeech dev-clean clips at 24 kHz (shared with the BitNet lane)
+python3 vibevoice_asr_streaming_work/precheck.py --src vibevoice_asr_streaming_work/hf --stage load,enc,eager --n-clips 20 --out vibevoice_asr_streaming_work/out
+#   load  : legacy checkpoint -> transformers-native class (strict), saves out/lm_native/ (dense fp32 Qwen2ForCausalLM)
+#   enc   : audio_encoder_26f_fp32.tflite (26-frame window, no normaliser), parity vs eager cos 1.00000
+#   eager : the vendor streaming protocol in PyTorch -> WER 7.59 % (34/448); the one-shot variant transcribes the last window only
+python3 vibevoice_asr_streaming_work/quant_encoder.py           # -> audio_encoder_26f_wi8fc.tflite (int8 dynamic FC, cos 0.99954)
+EXTERNALIZE_EMBEDDER=1 CACHE=2048 PREFILL=512,128,32 \
+  python3 scripts/export_simple_template.py vibevoice_asr_streaming_work/out/lm_native out/vvs-lm-int4 templates/chatml_simple.jinja BMIX4_128
+EXTERNALIZE_EMBEDDER=1 CACHE=2048 PREFILL=512,128,32 \
+  python3 scripts/export_simple_template.py vibevoice_asr_streaming_work/out/lm_native out/vvs-lm-int8 templates/chatml_simple.jinja dynamic_wi8_afp32
+litert-lm unpack out/vvs-lm-int4/model.litertlm --output-dir out/vvs-lm-int4/unpack   # the two LM tflites (same for int8)
+DEC=out/vvs-lm-int4/unpack ENC=vibevoice_asr_streaming_work/out/audio_encoder_26f_wi8fc.tflite \
+  TOK=vibevoice_asr_streaming_work/out/lm_native/tokenizer.json OUT=out/vvs-bundle-int4 \
+  python3 vibevoice_asr_streaming_work/build_bundle.py            # bare-prompt jinja, model suffix <|text_chunk_end|>, stops 151665/151643
+python3 vibevoice_asr_streaming_work/mac_gate.py --bundle out/vvs-bundle-int4/VibeVoice-ASR-Streaming-1.5B.litertlm --limit 20   # runtime gate, one turn per window: WER 7.81 % (int4) / 7.14 % (int8)
+python3 vibevoice_asr_streaming_work/pixel_gate.py --push-windows --backend gpu --audio-backend cpu                              # Android CLI, --multi_turns, one [audio:] line per window
+```
+
+Env: torch 2.13 + transformers 5.14.1 (native `vibevoice_asr`) + litert-torch 0.9.4 + ai-edge-quantizer 0.9.0 + litert-lm-builder 0.16.1 for everything but the LM export (`export_simple_template.py`, litert-torch 0.9.3); `mac_gate.py` is pure Python (litert-lm-api 0.16.1 or 0.17.1; no numpy needed) — `litert-lm` 0.16.0 supplies `unpack`/`benchmark`.
+
+**It is a protocol, not a prompt — and the single-turn bundle contract does not fit it.** The vendor's `streaming_generate` feeds a bare text prompt (no ChatML), then per window `<|object_ref_start|>` + 26 audio embeddings + `<|object_ref_end|>`, decodes until `<|text_chunk_end|>` (151665) or EOS, force-feeds `<|text_chunk_end|>` and continues on the same KV cache. Measured in eager: given all of a clip's audio inside one marker pair and then asked to generate, the model transcribes the LAST 3.5 s only (3/3 clips). So `build_bundle.py` sets every `prompt_templates` prefix/suffix to the empty string except `model.suffix = <|text_chunk_end|>`, a jinja that renders the vendor prompt once and an audio item as `<|box_start|>`, and stop tokens {151665, 151643}. In the runtime that reproduces the loop exactly: the sampled stop token never enters the KV, the next turn's render appends the suffix (= the vendor's force-feed), and prefix dedup keeps the earlier audio turns (token_count grows 73 → 113 → 152 → 191 → 222 over five windows; nothing is re-encoded).
+
+**Window 26 frames, overlap on the app side, no normaliser.** `preprocessor_config.json`: `chunk_frames 22`, `lookahead_frames 4`, `normalize_audio false`. The encoder tflite is stateless per window (`audio` f32 `[1, 26, 3200]` → `features` `[1, 26, 1536]`); the app sends 83 200 samples per turn and advances 70 400 — the runtime's own overlapped windowing exists only for the Gemma-3n adapter + `feature_states` contract, so without an adapter stride == window. Latents are the mean (the vendor Python demo samples `fix_std 0.5` noise at inference). The -25 dBFS RMS block of the BitNet encoder is dropped.
+
+**Dense LM, standard recipe.** Same Qwen2.5-1.5B shape as the BitNet ship but dense bf16 weights, no ternarization: int4 blockwise-128 costs 3 words / 448 against int8 on the Mac CPU (7.81 % vs 7.14 %; fp32 eager 7.59 %) and saves 780 MB and ~650 MB of peak RAM on the phone, so int4 is the phone file and int8 the desktop file.
+
+**Gates (20 clips, 448 words, 73 windows).** fp32 eager 34/448; Mac 0.16.1 int8 CPU 32 / LM-on-Metal 33, int4 CPU 35 / Metal 31; Galaxy S26 `litert_lm_advanced_main` v0.16.1 `--multi_turns` int8 CPU 32 / OpenCL-LM 31, int4 CPU 35 / OpenCL-LM 32; 0.17.1 Python identical to 0.16.1 on the clips checked. The ~7 % is the model's own 3.47 s-window streaming trade-off (the non-streaming BitNet bundle scores 12/448 on the same set). The audio encoder is CPU-only: on Metal/WebGPU and Adreno it returns empty text even with fp32 activations (the 26-frame window is inside the Metal dispatch limit, so this is a conv-stack issue, not the BitNet lane's workgroup-count wall).
