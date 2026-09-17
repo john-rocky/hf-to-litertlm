@@ -59,6 +59,8 @@ Per turn the app sends **one window of 83 200 samples at 24 kHz (26 frames × 32
 | LiteRT-LM 0.16.1, Apple M4 Max, LM on Metal GPU, audio on CPU | 6.92 % (31/448) | 7.37 % (33/448) |
 | LiteRT-LM v0.16.1 CLI `--multi_turns`, **Galaxy S26** (SM-S942Q), CPU | 7.81 % (35/448) | 7.14 % (32/448) |
 | LiteRT-LM v0.16.1 CLI, Galaxy S26, LM on OpenCL GPU, audio on CPU | 7.14 % (32/448) | 6.92 % (31/448) |
+| LiteRT-LM v0.16.1 CLI `--multi_turns`, **Pixel 8a** (Tensor G3), CPU | 7.81 % (35/448) | not measured |
+| LiteRT-LM v0.16.1 CLI, Pixel 8a, LM on Mali GPU, audio on CPU | 7.37 % (33/448) | not measured |
 
 The runtime rows sit within ±0.7 pp of the fp32 reference in both directions (the int8 LM gets one clip right that the fp32 reference misses); the residual ~7 % on this set is the model's own streaming trade-off — the non-streaming [VibeVoice-ASR-BitNet](https://huggingface.co/litert-community/VibeVoice-ASR-BitNet) bundle scores 2.68 % on the same 20 clips with a 30 s window. Microsoft's card gives no LibriSpeech number for the streaming model. LiteRT-LM 0.17.1 (Python) produced transcripts identical to 0.16.1 on the clips checked.
 
@@ -123,6 +125,15 @@ Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno), `litert_lm_advanced_main` buil
 
 On the phone the streaming loop costs about **1.1 s per 2.93 s turn with the LM on the GPU** and 0.6 s on the CPU (int4 file; int8: 1.1 s / 0.8 s) — the slope of process wall-clock over window count across the 20 clips (intercept = engine load, 3–6 s per process; ±0.2 s on the slope — the per-process walls scatter by 2–3 s), i.e. a real-time factor of roughly 0.2–0.4, so the transcript keeps up with live speech.
 
+Pixel 8a (Tensor G3, Mali-G715), same binary and flags, int4 file only, CPU uncapped before each leg:
+
+| File | Backend | Prefill (256) | Decode | TTFT | Peak private footprint (streaming run) |
+|---|---|---|---|---|---|
+| int4 | **CPU** | 117 tok/s | **22.5 tok/s** | 2.22 s | 2210 MB |
+| int4 | GPU (Mali) | 156 tok/s | 12.7 tok/s | 1.72 s | 2521 MB |
+
+On the Pixel 8a keep the LM on the **CPU**: the Mali delegate halves decode speed and uses more memory; the streaming loop still runs about 2× faster than real time there (each 2.93 s turn is ~28 prefill tokens plus ~10 decoded tokens).
+
 ## Conversion notes
 
 Converted with `litert-torch` 0.9.3/0.9.4, ai-edge-quantizer 0.9.0, litert-lm-builder 0.16.1, transformers 5.14.1 (native `vibevoice_asr` classes). Scripts and the full recipe: [hf-to-litertlm](https://github.com/john-rocky/hf-to-litertlm) `vibevoice_asr_streaming_work/`.
@@ -131,7 +142,7 @@ Converted with `litert-torch` 0.9.3/0.9.4, ai-edge-quantizer 0.9.0, litert-lm-bu
 - **Audio encoder** = acoustic + semantic conv encoders + projector as one single-signature tflite, `audio` f32 `[1, 26, 3200]` → `features` f32 `[1, 26, 1536]`, raw 24 kHz PCM framed by the runtime (the checkpoint's `preprocessor_config.json` sets `normalize_audio: false`, so no RMS normaliser this time). Acoustic latents are the mean (the vendor Python demo samples noise at inference; the mean transcribes equally on the fixtures). Each window is encoded independently — the 4-frame look-ahead overlap is the app's job because the runtime's built-in windowing has no overlap without a Gemma-3n-style adapter.
 - **LM**: dense bf16 Qwen2.5-1.5B-shaped weights (no BitNet ternary here), tied head, exported through the same driver as every dense LLM in the collection: int4 blockwise-128 for the phone file, int8 dynamic for the desktop file.
 - **Tokenizer**: the upstream `tokenizer.json` already has strings for every marker (`<|object_ref_start|>`, `<|object_ref_end|>`, `<|box_start|>`, `<|text_chunk_end|>` = 151646/151647/151648/151665), so it ships unmodified.
-- **GPU**: the LM runs on Metal (macOS) and the Android OpenCL delegate; the audio encoder returns an empty transcript on both GPU delegates (also with fp32 activations — a conv-stack issue, not the fp16 range), so keep `audio_backend` on CPU.
+- **GPU**: the LM runs on Metal (macOS) and the Android OpenCL delegate (Adreno; on Mali the GPU LM is correct but slower than the CPU); the audio encoder returns an empty transcript on both GPU delegates (also with fp32 activations — a conv-stack issue, not the fp16 range), so keep `audio_backend` on CPU.
 
 ## License and changes
 
