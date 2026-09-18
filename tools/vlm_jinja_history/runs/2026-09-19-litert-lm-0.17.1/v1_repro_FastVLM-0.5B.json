@@ -1,0 +1,14 @@
+{
+ "bundle": "FastVLM-0.5B.litertlm",
+ "arms": {
+  "assistant": {
+   "render": "<|im_start|>user\none<|im_end|>\n<|im_start|>user\ntwo<|im_end|>\n<|im_start|>assistant\n",
+   "history_turn_present": false
+  },
+  "model": {
+   "render": "<|im_start|>user\none<|im_end|>\n<|im_start|>assistant\nok<|im_end|>\n<|im_start|>user\ntwo<|im_end|>\n<|im_start|>assistant\n",
+   "history_turn_present": true
+  }
+ },
+ "defect_reproduced": true
+}

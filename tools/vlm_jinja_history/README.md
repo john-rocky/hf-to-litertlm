@@ -31,3 +31,10 @@ renders it; after the 3-condition widening both arms render identically. The
 engine's own `send_message` flow is unaffected either way — the incremental
 render after a reply returns only the new user turn, so only conversations
 constructed or restored through `messages=[...]` hit the drop.
+
+## Re-run on litert-lm 0.17.1 (2026-09-19)
+
+Same script, same published file (sha256 `ccba1e8b…`, unchanged on the Hub since
+2026-06-24), `pip install litert-lm==0.17.1`: `defect_reproduced=True`, renders
+byte-identical to the 0.16.1 run above; the widened-template control renders both
+arms. Records in `runs/2026-09-19-litert-lm-0.17.1/`.

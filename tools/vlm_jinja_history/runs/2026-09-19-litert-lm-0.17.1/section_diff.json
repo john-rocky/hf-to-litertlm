@@ -1,0 +1,116 @@
+{
+ "published": "FastVLM-0.5B.litertlm",
+ "control": "FastVLM-0.5B.assistant_fix.litertlm",
+ "sections": [
+  {
+   "i": 0,
+   "type": "LlmMetadataProto",
+   "range_published": [
+    16384,
+    17530
+   ],
+   "range_control": [
+    16384,
+    17623
+   ],
+   "byte_identical": false
+  },
+  {
+   "i": 1,
+   "type": "SP_Tokenizer",
+   "range_published": [
+    32768,
+    2680412
+   ],
+   "range_control": [
+    32768,
+    2680412
+   ],
+   "byte_identical": true
+  },
+  {
+   "i": 2,
+   "type": "TFLiteModel",
+   "range_published": [
+    2686976,
+    140647208
+   ],
+   "range_control": [
+    2686976,
+    140647208
+   ],
+   "byte_identical": true
+  },
+  {
+   "i": 3,
+   "type": "TFLiteModel",
+   "range_published": [
+    140656640,
+    650900240
+   ],
+   "range_control": [
+    140656640,
+    650900240
+   ],
+   "byte_identical": true
+  },
+  {
+   "i": 4,
+   "type": "TFLiteModel",
+   "range_published": [
+    650903552,
+    1142107248
+   ],
+   "range_control": [
+    650903552,
+    1142107248
+   ],
+   "byte_identical": true
+  },
+  {
+   "i": 5,
+   "type": "TFLiteModel",
+   "range_published": [
+    1142112256,
+    1156342768
+   ],
+   "range_control": [
+    1142112256,
+    1156342768
+   ],
+   "byte_identical": true
+  }
+ ],
+ "jinja_published": {
+  "len": 997,
+  "role_conditions": [
+   "message.role == 'user'",
+   "message.role == 'model'",
+   "message.role == 'system'",
+   "message.role == 'user'",
+   "message.role == 'model'",
+   "message.role == 'system'",
+   "message.role == 'user'",
+   "message.role == 'model'",
+   "message.role == 'system'"
+  ]
+ },
+ "jinja_control": {
+  "len": 1090,
+  "role_conditions": [
+   "message.role == 'user'",
+   "message.role == 'model' or message.role == 'assistant'",
+   "message.role == 'system'",
+   "message.role == 'user'",
+   "message.role == 'model' or message.role == 'assistant'",
+   "message.role == 'system'",
+   "message.role == 'user'",
+   "message.role == 'model' or message.role == 'assistant'",
+   "message.role == 'system'"
+  ]
+ },
+ "n_sections": [
+  6,
+  6
+ ]
+}
