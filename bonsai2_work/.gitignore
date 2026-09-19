@@ -1,0 +1,10 @@
+# weights / arrays / bulky logs stay out; scripts, FINDINGS, card, gate JSONs and the GSM8K per-question rows are the record
+src/
+out/
+out_fp/
+hf_bf16*/
+*.npz
+*.log
+*.xnnpack_cache
+!out/gates_b32.log
+!out/build_b32.log

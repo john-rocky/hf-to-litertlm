@@ -2057,3 +2057,13 @@ Env: torch 2.13 + transformers 5.14.1 (native `vibevoice_asr`) + litert-torch 0.
 **Dense LM, standard recipe.** Same Qwen2.5-1.5B shape as the BitNet ship but dense bf16 weights, no ternarization: int4 blockwise-128 costs 3 words / 448 against int8 on the Mac CPU (7.81 % vs 7.14 %; fp32 eager 7.59 %) and saves 780 MB and ~650 MB of peak RAM on the phone, so int4 is the phone file and int8 the desktop file.
 
 **Gates (20 clips, 448 words, 73 windows).** fp32 eager 34/448; Mac 0.16.1 int8 CPU 32 / LM-on-Metal 33, int4 CPU 35 / Metal 31; Galaxy S26 `litert_lm_advanced_main` v0.16.1 `--multi_turns` int8 CPU 32 / OpenCL-LM 31, int4 CPU 35 / OpenCL-LM 32; 0.17.1 Python identical to 0.16.1 on the clips checked. The ~7 % is the model's own 3.47 s-window streaming trade-off (the non-streaming BitNet bundle scores 12/448 on the same set). The audio encoder is CPU-only: on Metal/WebGPU and Adreno it returns empty text even with fp32 activations (the 26-frame window is inside the Metal dispatch limit, so this is a conv-stack issue, not the BitNet lane's workgroup-count wall).
+
+## Bonsai 2 27B (PrismML ternary Qwen3.8-27B, Hadamard-rotated) — 2026-09-19
+
+`bonsai2_work/` converts [prism-ml/Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit) (the exact 2-bit g128 values; there is no unpacked release) to int4-blockwise `.litertlm` bundles for [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) ≥ 0.15. Text only; Mac-class files (16.5 GB at block 32, 15.3 GB at block 128). One command, the steps it runs and every trap are in `bonsai2_work/FINDINGS.md`:
+
+```bash
+bash bonsai2_work/convert_bonsai2.sh     # dl (8.6 GB) -> dequant -> float export (26 min, 119 GB peak RAM) -> int4 bundle
+```
+
+Same rail as the Qwen3.5 hybrids above (`qwen35_work/litert-torch-qwen35` = litert-torch 115a136 + the hybrid patch) plus `hadamard_export.py`, which puts PrismML's block-1024 activation rotation into the graph as MUL + RESHAPE + FULLY_CONNECTED(H/32) + RESHAPE. Three things that are not in any earlier lane: the MLX pack stores the RMSNorm weights as `1 + w` (transformers' `Qwen3_5RMSNorm` adds the 1 itself), mlx `Conv1d` weights are `[out, k, in]`, and the quantizer's exclusion regex must name the rotation FC only (`Linear_hadamard_rotation`), not the wrapper class. Gates on the 27B: 8-question check 8/8 on CPU and GPU, two-turn chat, logits vs PrismML's bundled MLX loader (24/24 top-1, Pearson 0.99988), `litert-lm benchmark` on an M4 Max (GPU 133 / 14.2 tok/s, CPU 14.6 / 4.79 tok/s). Evaluate this family one process per question (LiteRT-LM #3165).
