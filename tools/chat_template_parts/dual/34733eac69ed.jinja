@@ -1,0 +1,45 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- set keep_past_thinking = keep_past_thinking | default(false) -%}
+{%- set ns = namespace(system_prompt="") -%}
+{%- if messages[0]["role"] == "system" -%}
+    {%- set ns.system_prompt = format_content(messages[0]["content"]) -%}
+    {%- set messages = messages[1:] -%}
+{%- endif -%}
+{%- if ns.system_prompt -%}
+    {{- "<|start_of_role|>system<|end_of_role|>" + ns.system_prompt + "<|end_of_text|>\n" -}}
+{%- endif -%}
+{%- set ns.last_assistant_index = -1 -%}
+{%- for message in messages -%}
+    {%- if message["role"] == "assistant" -%}
+        {%- set ns.last_assistant_index = loop.index0 -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- for message in messages -%}
+    {%- set content = format_content(message["content"]) -%}
+    {%- if content is not string -%}
+        {%- set content = content | tojson -%}
+    {%- endif -%}
+    {%- if message["role"] == "assistant" and not keep_past_thinking and loop.index0 != ns.last_assistant_index -%}
+        {%- if "</think>" in content -%}
+            {%- set content = content.split("</think>")[-1] | trim -%}
+        {%- endif -%}
+    {%- endif -%}
+    {%- if message["role"] == "user" -%}
+        {{- "<|start_of_role|>user<|end_of_role|>" + content + "<|end_of_text|>\n" -}}
+    {%- elif message["role"] == "assistant" -%}
+        {{- "<|start_of_role|>assistant<|end_of_role|>" + content + "<|end_of_text|>\n" -}}
+    {%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{- "<|start_of_role|>assistant<|end_of_role|><think>\n" -}}
+{%- endif -%}

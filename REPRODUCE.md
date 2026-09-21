@@ -2067,3 +2067,15 @@ bash bonsai2_work/convert_bonsai2.sh     # dl (8.6 GB) -> dequant -> float expor
 ```
 
 Same rail as the Qwen3.5 hybrids above (`qwen35_work/litert-torch-qwen35` = litert-torch 115a136 + the hybrid patch) plus `hadamard_export.py`, which puts PrismML's block-1024 activation rotation into the graph as MUL + RESHAPE + FULLY_CONNECTED(H/32) + RESHAPE. Three things that are not in any earlier lane: the MLX pack stores the RMSNorm weights as `1 + w` (transformers' `Qwen3_5RMSNorm` adds the 1 itself), mlx `Conv1d` weights are `[out, k, in]`, and the quantizer's exclusion regex must name the rotation FC only (`Linear_hadamard_rotation`), not the wrapper class. Gates on the 27B: 8-question check 8/8 on CPU and GPU (both block sizes), two-turn chat, logits vs PrismML's bundled MLX loader (24/24 top-1, Pearson 0.99988), GSM8K n=100 greedy thinking-off 96/100 against 95/100 on PrismML's own runtime (same prompt, the 4 misses shared), `litert-lm benchmark` on an M4 Max (b32 GPU 133 / 14.2 tok/s, b128 GPU 136 / 16.5, CPU 14.6 / 4.79 and 19.1 / 5.32). Evaluate this family one process per question (LiteRT-LM #3165).
+
+## Chat templates vs the 0.18 content-parts form — metadata-only re-ship of the string-only bundles (2026-09-21)
+
+LiteRT-LM 0.18 passes every message `content` to the bundle's Jinja template as a list of typed parts; a string-only template then drops the prompt, raises on `+`, or prints the list into the prompt (details, per-family templates and the swap tool in [`tools/chat_template_parts/`](tools/chat_template_parts/)). The bundles listed in `tools/chat_template_parts/families.tsv` are re-published with their template swapped for the dual-form version and nothing else changed:
+
+```bash
+python -m venv .venv-swap && .venv-swap/bin/pip install litert-lm==0.17.1
+.venv-swap/bin/python tools/chat_template_parts/swap_template.py in.litertlm out.litertlm --jinja tools/chat_template_parts/dual/<sha12>.jinja
+# proves: section list unchanged, TFLite bytes identical, tokenizer + executor metadata identical, LlmMetadata equal except jinja_prompt_template
+```
+
+Gate per file before upload: `litert-lm run` on 0.17.1 and on the 0.18 nightly answer the same one-turn question; the 0.17.1 answer of the swapped bundle is byte-identical to the original's (greedy). The card of each repo carries the line "chat template updated to accept the 0.18 content-parts form (string form unchanged); weights, tokenizer and executor metadata byte-identical".

@@ -1,0 +1,18 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{{'<SPECIAL_10>System'}}{% for message in messages %}{% if message['role'] == 'system' %}{{'
+' + format_content(message['content']).strip()}}{% endif %}{% endfor %}{{'
+'}}{% for message in messages %}{% if message['role'] == 'user' %}{{ '
+<SPECIAL_11>User
+' + format_content(message['content']).strip() + '
+<SPECIAL_11>Assistant
+' }}{% elif message['role'] == 'assistant' %}{{ format_content(message['content']).strip() }}{% endif %}{% endfor %}

@@ -1,0 +1,21 @@
+{%- macro format_content(content, include_images=false) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- if include_images -%}
+            {%- for item in content -%}
+                {%- if item['type'] == 'image' -%}
+                    {{- '<|IMAGE_START|><image_soft_token><|IMAGE_END|>' -}}
+                {%- endif -%}
+            {%- endfor -%}
+        {%- endif -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- for message in messages -%}{%- if message.role == 'user' -%}User: {{- format_content(message.content, true) -}}{{ '\n' }}{%- elif message.role == 'assistant' -%}Assistant:
+{{- format_content(message.content) -}}</s>{%- elif message.role == 'system' -%}{%- if format_content(message.content) is string -%}{{ format_content(message.content) }}{{ '\n' }}{%- endif -%}{%- endif -%}{%- endfor -%}{%- if add_generation_prompt -%}Assistant:
+{%- endif -%}

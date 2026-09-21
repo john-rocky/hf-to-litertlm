@@ -1,0 +1,28 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{#- mlboydaisuke/SmolLM3-3B-LiteRT -- the vendor's default system turn, restored (2026-08-28).
+
+    The upstream chat template emits this block whenever the caller sends no
+    system message. litert_torch's parse_chat_template probes the template with a
+    system message already present, so the block is never rendered during probing
+    and never reached the bundle. It is put back verbatim below, and fires once per
+    conversation -- the engine renders the whole history through this template on
+    every turn -- and not at all when the caller supplies a system message.
+-#}
+{%- if messages[0].role != 'system' -%}{{ "<|im_start|>system\n## Metadata\n\nKnowledge Cutoff Date: June 2025\nToday Date: " ~ strftime_now("%d %B %Y") ~ "\nReasoning Mode: /think\n\n## Custom Instructions\n\nYou are a helpful AI assistant named SmolLM, trained by Hugging Face. Your role as an assistant involves thoroughly exploring questions through a systematic thinking process before providing the final precise and accurate solutions. This requires engaging in a comprehensive cycle of analysis, summarizing, exploration, reassessment, reflection, backtracking, and iteration to develop well-considered thinking process. Please structure your response into two main sections: Thought and Solution using the specified format: <think> Thought section </think> Solution section. In the Thought section, detail your reasoning process in steps. Each step should include detailed considerations such as analysing questions, summarizing relevant findings, brainstorming new ideas, verifying the accuracy of the current steps, refining any errors, and revisiting previous steps. In the Solution section, based on various attempts, explorations, and reflections from the Thought section, systematically present the final solution that you deem correct. The Solution section should be logical, accurate, and concise and detail necessary steps needed to reach the conclusion.\n\n" }}{%- endif -%}{%- for message in messages -%}{%- if message.role == 'user' %}<|im_start|>user
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- if message.role == 'model' or message.role == 'assistant' %}<|im_start|>assistant
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- if message.role == 'system' %}<|im_start|>system
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- endfor -%}{%- if add_generation_prompt %}<|im_start|>assistant
+{% endif -%}

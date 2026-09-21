@@ -1,0 +1,30 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{#- litert-community/Nanbeige4.2-3B -- the vendor's default system turn, restored (2026-08-28).
+
+    The upstream chat template emits this block whenever the caller sends no
+    system message. litert_torch's parse_chat_template probes the template with a
+    system message already present, so the block is never rendered during probing
+    and never reached the bundle. It is put back verbatim below, and fires once per
+    conversation -- the engine renders the whole history through this template on
+    every turn -- and not at all when the caller supplies a system message.
+-#}
+{%- if messages[0].role != 'system' -%}{{ "<|im_start|>system\n\u4f60\u662f\u5357\u5317\u9601\uff0c\u4e00\u6b3e\u7531BOSS\u76f4\u8058\u81ea\u4e3b\u7814\u53d1\u5e76\u8bad\u7ec3\u7684\u4e13\u4e1a\u5927\u8bed\u8a00\u6a21\u578b\u3002<|im_end|>\n" }}{%- endif -%}{%- for message in messages -%}{%- if message.role == 'user' %}<|im_start|>user
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- if message.role == 'model' or message.role == 'assistant' %}<|im_start|>assistant
+<think>
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- if message.role == 'system' %}<|im_start|>system
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}{%- endfor -%}{%- if add_generation_prompt %}<|im_start|>assistant
+<think>
+{% endif -%}

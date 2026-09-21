@@ -1,0 +1,21 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{#- litert-community/Ministral-3-3B-Reasoning-2512 -- the vendor's default system turn, restored (2026-08-28).
+
+    The upstream chat template emits this block whenever the caller sends no
+    system message. litert_torch's parse_chat_template probes the template with a
+    system message already present, so the block is never rendered during probing
+    and never reached the bundle. It is put back verbatim below, and fires once per
+    conversation -- the engine renders the whole history through this template on
+    every turn -- and not at all when the caller supplies a system message.
+-#}
+{%- if messages[0].role != 'system' -%}{{ "[SYSTEM_PROMPT]# HOW YOU SHOULD THINK AND ANSWER\n\nFirst draft your thinking process (inner monologue) until you arrive at a response. Format your response using Markdown, and use LaTeX for any mathematical equations. Write both your thoughts and the response in the same language as the input.\n\nYour thinking process must follow the template below:[THINK]Your thoughts or/and draft, like working through an exercise on scratch paper. Be as casual and as long as you want until you are confident to generate the response to the user.[/THINK]Here, provide a self-contained response.[/SYSTEM_PROMPT]" }}{%- endif -%}{%- for message in messages -%}{%- if message.role == 'user' %}[INST]{{ format_content(message.content) }}[/INST]{% endif -%}{%- if message.role == 'model' or message.role == 'assistant' %}{{ format_content(message.content) }}</s>{% endif -%}{%- if message.role == 'system' %}[SYSTEM_PROMPT]{{ format_content(message.content) }}[/SYSTEM_PROMPT]{% endif -%}{%- endfor -%}{%- if add_generation_prompt %}{% endif -%}

@@ -1,0 +1,64 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- if tools %} <|begin_of_text|><|system|>
+{%- if messages[0]['role'] == 'system' %}
+{{ format_content(messages[0]['content']) }}
+{%- set remaining_messages = messages[1:] %}
+{%- else %}
+{%- set remaining_messages = messages %}
+{%- endif %}
+{{ 'You are a Falcon assistant skilled in function calling. You are helpful, respectful, and concise.
+
+# Tools
+
+You have access to the following functions. You MUST use them to answer questions when needed. For each function call, you MUST return a JSON object inside <tool_call></tool_call> tags.
+
+<tools>' + tools|tojson(indent=2) + '</tools>
+
+# Output Format
+
+Your response MUST follow this format when making function calls:
+<tool_call>
+[
+  {"name": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}},
+  {"name": "another_function", "arguments": {"arg": "value"}}
+]
+</tool_call>
+If no function calls are needed, respond normally without the tool_call tags.' }}
+{%- for message in remaining_messages %}
+{%- if message['role'] == 'user' %}
+<|im_start|>user
+{{ format_content(message['content']) }}<|im_end|>
+{%- elif message['role'] == 'assistant' %}
+{%- if format_content(message.content) %}
+<|im_start|>assistant
+{{ format_content(message['content']) }}
+<|im_end|>
+{%- endif %}
+{%- if message.tool_calls %}
+<tool_call>
+{{ message.tool_calls|tojson(indent=2) }}
+</tool_call>
+{%- endif %}
+{%- elif message['role'] == 'tool' %}
+<|im_start|>assistant
+<tool_response>
+{{ format_content(message['content']) }}
+</tool_response><|im_end|>
+{%- endif %}
+{%- endfor %}
+{{ '<|im_start|>assistant
+' if add_generation_prompt }}
+{%- else %} <|begin_of_text|>{% for message in messages %} {{ '<|im_start|>' + message['role'] + '
+' + format_content(message['content']) + '<|im_end|>
+' }} {% endfor %} {% if add_generation_prompt %}{{ '<|im_start|>assistant
+' }}{% endif %} {%- endif %}

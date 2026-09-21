@@ -1,0 +1,14 @@
+{%- macro format_content(content, include_images=false) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif include_images and item['type'] == 'image' -%}
+                {{- '<image_soft_token>' -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- for message in messages -%}{%- if message.role == 'user' -%}{{ '[SYSTEM_PROMPT]Judge whether the Document meets the requirements based on the Query and the Instruction provided. Note that the answer can only be "yes" or "no".[/SYSTEM_PROMPT][INST]' }}{{- format_content(message.content, true) -}}{{ '[/INST]' }}{%- elif message.role == 'model' or message.role == 'assistant' -%}{{ format_content(message.content) }}{{ '</s>' }}{%- endif -%}{%- endfor -%}

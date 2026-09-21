@@ -1,0 +1,21 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{#- litert-community/Phi-4-mini-reasoning -- the vendor's default system turn, restored (2026-08-28).
+
+    The upstream chat template emits this block whenever the caller sends no
+    system message. litert_torch's parse_chat_template probes the template with a
+    system message already present, so the block is never rendered during probing
+    and never reached the bundle. It is put back verbatim below, and fires once per
+    conversation -- the engine renders the whole history through this template on
+    every turn -- and not at all when the caller supplies a system message.
+-#}
+{%- if messages[0].role != 'system' -%}{{ "<|system|>Your name is Phi, an AI math expert developed by Microsoft.<|end|>" }}{%- endif -%}{%- for message in messages -%}{%- if message.role == 'user' %}<|user|>{{ format_content(message.content) }}<|end|>{% endif -%}{%- if message.role == 'model' or message.role == 'assistant' %}<|assistant|>{{ format_content(message.content) }}<|end|>{% endif -%}{%- if message.role == 'system' %}<|system|>{{ format_content(message.content) }}<|end|>{% endif -%}{%- endfor -%}{%- if add_generation_prompt %}<|assistant|>{% endif -%}
