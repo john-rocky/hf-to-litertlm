@@ -89,12 +89,13 @@ reproduce() {
 
   s1-mini)             $PY s1mini_work/convert_s1mini.py out/$key ;;  # int8 ONLY (int4 flips punctuation + slower); dedicated script: bakes required system prompt + non-thinking scaffold, strips composite token_str stops; gate with s1mini_work/gate_normalize.py, NOT the 8-question gate
 
+  agents-a1-4b)       "$PY" agents_a1_work/build_bundles.py --prepare --download --output "out/$key"; return ;;  # same float parent -> int8 + mixed int4 b32; dual-form XML/tools/thinking template, fp32 activations
   *) echo "unknown model key: '$key' (run --list)"; return 2 ;;
   esac
   echo "REPRODUCED $key -> out/$key/model.litertlm"
 }
 
-KEYS="fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
+KEYS="agents-a1-4b fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b"
 

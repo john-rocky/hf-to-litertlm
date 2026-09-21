@@ -1,0 +1,323 @@
+{
+  "recorded_on": "2026-09-21",
+  "device": "Apple M4 Max",
+  "checkpoint": "InternScience/Agents-A1-4B",
+  "checkpoint_revision": "945c40a4aa6f534d434a353207b8d42ecf7a5293",
+  "files": [
+    {
+      "file": "Agents-A1-4B_int8.litertlm",
+      "size_bytes": 4407426400,
+      "sha256": "0001573f0b7221b3ed944e04dfdae9cbc64d26276f0f2473eaeae703b6708cdc",
+      "template_sha256": "6e850e7748428e2140ea95f09f5266c241f0d7140cb42e32d256b41b7a412c6a"
+    },
+    {
+      "file": "Agents-A1-4B_mixed_int4.litertlm",
+      "size_bytes": 2754365536,
+      "sha256": "f12a9764c0a54090bebb362d28bcdba8069d24e27b3cad2e2ccc8e3d0a19ec80",
+      "template_sha256": "6e850e7748428e2140ea95f09f5266c241f0d7140cb42e32d256b41b7a412c6a"
+    }
+  ],
+  "parity": {
+    "positions": 48,
+    "vocabulary_size": 248320,
+    "all_finite": true,
+    "top1_agreement_count": 48,
+    "top5_agreement_count": 48,
+    "top5_set_equal_count": 48,
+    "pearson_min": 0.9999999998621653,
+    "pearson_mean": 0.9999999999913626,
+    "kl_mean_nats": -1.6372906586070712e-08,
+    "max_abs_diff": 0.00022125244140625,
+    "pt_abs_max": 20.925514221191406,
+    "lt_abs_max": 20.925514221191406,
+    "pt_rms": 3.7684888030105683,
+    "lt_rms": 3.7684892335681845
+  },
+  "parity_acceptance": {
+    "positions": 48,
+    "top1": 48,
+    "top5": 48,
+    "pearson_min": 0.9999,
+    "mean_kl_nats_max": 0.001,
+    "finite": true
+  },
+  "gate8q": [
+    {
+      "variant": "int8",
+      "backend": "cpu",
+      "runtime": "0.17.1",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "int8",
+      "backend": "cpu",
+      "runtime": "0.18.0.dev20260919",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "int8",
+      "backend": "gpu",
+      "runtime": "0.17.1",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "int8",
+      "backend": "gpu",
+      "runtime": "0.18.0.dev20260919",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "cpu",
+      "runtime": "0.17.1",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "cpu",
+      "runtime": "0.18.0.dev20260919",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "gpu",
+      "runtime": "0.17.1",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "gpu",
+      "runtime": "0.18.0.dev20260919",
+      "correct": 8,
+      "n": 8,
+      "degenerate": 0,
+      "on_topic": true
+    }
+  ],
+  "sweeps": {
+    "int8": {
+      "cpu": {
+        "clean": 40,
+        "n": 40
+      },
+      "gpu": {
+        "clean": 20,
+        "n": 20
+      }
+    },
+    "mixed_int4": {
+      "cpu": {
+        "clean": 40,
+        "n": 40
+      },
+      "gpu": {
+        "clean": 20,
+        "n": 20
+      }
+    }
+  },
+  "gsm8k": {
+    "original": {
+      "int8": {
+        "n": 100,
+        "correct": 93,
+        "context_limit_count": 1
+      },
+      "mixed_int4": {
+        "n": 100,
+        "correct": 93,
+        "context_limit_count": 2
+      }
+    },
+    "corrected": {
+      "int8": {
+        "n": 100,
+        "correct": 94
+      },
+      "mixed_int4": {
+        "n": 100,
+        "correct": 94
+      }
+    }
+  },
+  "thinking": {
+    "runtime_0.17.1": "PASS",
+    "runtime_0.18.0.dev20260919": "PASS",
+    "budget_tokens": 64
+  },
+  "multiturn": {
+    "turns": 3,
+    "modes": [
+      "on",
+      "off"
+    ],
+    "runtimes": [
+      "0.17.1",
+      "0.18.0.dev20260919"
+    ],
+    "verdict": "PASS"
+  },
+  "xml_tools": {
+    "passed": 12,
+    "n": 12
+  },
+  "mac_benchmark": [
+    {
+      "variant": "int8",
+      "backend": "gpu",
+      "runtime": "0.17.1",
+      "date": "2026-09-21T10:08:40.474111+00:00",
+      "cache": "no",
+      "prefill_tokens": 256,
+      "decode_tokens": 256,
+      "runs": 3,
+      "contention": "quiet",
+      "prefill_tokens_per_second": 671.9496859166054,
+      "decode_tokens_per_second": 61.202376557632086,
+      "ttft_seconds": 0.39734219483333333
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "gpu",
+      "runtime": "0.17.1",
+      "date": "2026-09-22",
+      "cache": "no",
+      "prefill_tokens": 256,
+      "decode_tokens": 256,
+      "runs": 3,
+      "contention": "quiet",
+      "prefill_tokens_per_second": 675.5,
+      "decode_tokens_per_second": 67.17,
+      "ttft_seconds": 0.3939,
+      "note": "second pass on a quiet machine; the first pass on a busier machine agreed within 2 %"
+    },
+    {
+      "variant": "int8",
+      "backend": "cpu",
+      "runtime": "0.17.1",
+      "date": "2026-09-22",
+      "cache": "no",
+      "prefill_tokens": 256,
+      "decode_tokens": 256,
+      "runs": 3,
+      "contention": "quiet",
+      "prefill_tokens_per_second": 255.33,
+      "decode_tokens_per_second": 20.63,
+      "ttft_seconds": 1.0512,
+      "note": "second pass on a quiet machine; the first pass on a busier machine agreed within 2 %"
+    },
+    {
+      "variant": "mixed_int4",
+      "backend": "cpu",
+      "runtime": "0.17.1",
+      "date": "2026-09-22",
+      "cache": "no",
+      "prefill_tokens": 256,
+      "decode_tokens": 256,
+      "runs": 3,
+      "contention": "quiet",
+      "prefill_tokens_per_second": 99.06,
+      "decode_tokens_per_second": 20.16,
+      "ttft_seconds": 2.6339,
+      "note": "second pass on a quiet machine; the first pass on a busier machine agreed within 2 %"
+    }
+  ],
+  "source_evidence_sha256": {
+    "results/ship_files.json": "1737b5121540027b15886937e7ce7e6f288b565e6b3d8598b696d7c3b48e39a5",
+    "results/parity_cmp.json": "cf49080c59109e85c6b97bf86b7cca2969ce1ec3d4f60275ffd0ec29335cb193",
+    "results/gsm8k_ab.json": "373d9b4db8879eda165b0cd076c08af5d58593561da143fe345fc4e8f0fcdd14",
+    "results/gsm8k_ab_corrected.json": "65ac3219ec82c0e19861e4deaf16fe07f63e048bb0c896b666e8f6c79245a336",
+    "results/bench_mac.json": "809d8f8dffcd91f92b6b8e6c81bfa87b347f67962152d49336635d58debdf8ce",
+    "results/render_check.json": "2d9781ad448e592ae191878ab2b75a3a06d041c4dc0da199e292245fffa51be4",
+    "results/tools_xml_summary.json": "c3cb89576338cd89d59908edf4e07c626cfa53284cc4391e2b6998d156af9ef6",
+    "results/gate8q_int8_cpu_0.17.1.json": "1a45a12eb04e13f59c7f52ba38dcc1874815410b80bd5fd23bbba5480aca2ef2",
+    "results/gate8q_int8_cpu_nightly.json": "15092beef7bc52557ae0ccefc43ecdfd5311d49d5446b66aab04d98b8601f79b",
+    "results/gate8q_int8_gpu_0.17.1.json": "f2ca2e941367e95a09bb5b990f6a012f456c2b8793a51a951846155b0b011c6a",
+    "results/gate8q_int8_gpu_nightly.json": "d8f5bbc6053c1c703e1221c6df30cad3b1aa547a00aeea51af3a418f85933c3a",
+    "results/gate8q_mixed_int4_cpu_0.17.1.json": "ec262c7587cde0ea8537ea0fff707afd4868efc3783eff81c7a51c9b2efeda3c",
+    "results/gate8q_mixed_int4_cpu_nightly.json": "dff6aed795a9fa2a91f4932e4448f6b9a99891956be151e7f50d8eadc68179fd",
+    "results/gate8q_mixed_int4_gpu_0.17.1.json": "d661c483901a1256a6b6b3ed47906dfb7b1eedd90d057836b4e2d3717377b088",
+    "results/gate8q_mixed_int4_gpu_nightly.json": "a76deff870113b05d8644657907285c42c780eef206719245d500d83695962b5",
+    "results/banana_int8_cpu.json": "8270355df2655678d51c831ca7da9f86dc4c8a280d45ea0df59d8fe47800b14f",
+    "results/banana_int8_gpu.json": "796a17c636166a0b272f28287f08f3ed717358e67dc15b44f49a07ee7ce0ec25",
+    "results/banana_mixed_int4_cpu.json": "46e37e0d15f7e5ba965d91e6b37ee2909074aba663eaf451a4948c11c913e8a0",
+    "results/banana_mixed_int4_gpu.json": "02813b38f40b50816bf82cb41d0fce555ddca67c5b903d4390a3e4d887adedb9",
+    "results/think_probe_0.17.1.json": "2922ae47a4ff5b246ae5f69858544241bea97dc78319441bdda53fd4fb42b0b7",
+    "results/multiturn_0.17.1_on.json": "c276f155a1c6456e4459dca2b7f545f131e3ca855bfbf50aebead8547b9f4a23",
+    "results/multiturn_0.17.1_off.json": "a6b2fdc9c5f9e990e8828c9326acac9cde80e870b67d9ce48c969d79d37af929",
+    "results/think_probe_nightly.json": "9e6e9a31a8d0cd8e002ef13c3b7ea6b5b1d7dbdb5091ba4534df152864f1b949",
+    "results/multiturn_nightly_on.json": "9dfe58270df40ea88469935a8c93bc9f72693e9c98515e25e7a9130d2363281e",
+    "results/multiturn_nightly_off.json": "f14c49c683500da2512444bf2f99a8681a10daec93148b963d9f24d43e70c25d"
+  },
+  "galaxy_s26": {
+    "device": "Galaxy S26 (SM-S942Q, SM8850, Android 16)",
+    "runtime": "LiteRT-LM Android CLI litert_lm_advanced_main (build of 2026-09-18)",
+    "date": "2026-09-22",
+    "gate": "8 questions, thinking off, fresh session per question, prompt rendered from the bundled template, bundle default sampler, 256-token cap",
+    "cells": [
+      {
+        "variant": "mixed_int4",
+        "backend": "cpu",
+        "correct": 8,
+        "of": 8,
+        "peak_vmhwm_gb": 4.943,
+        "thinking_on_probe": "2/2"
+      },
+      {
+        "variant": "mixed_int4",
+        "backend": "gpu",
+        "correct": 8,
+        "of": 8,
+        "peak_vmhwm_gb": 4.155,
+        "delegation": "all subgraphs fully delegated (OpenCL)"
+      },
+      {
+        "variant": "int8",
+        "backend": "cpu",
+        "first_answer_correct": 8,
+        "of": 8,
+        "run_on_answers": 2,
+        "peak_vmhwm_gb": 6.399,
+        "thinking_on_probe": "0/2"
+      },
+      {
+        "variant": "int8",
+        "backend": "gpu",
+        "result": "phone became unreachable while the engine was starting; not retried"
+      }
+    ],
+    "speed": [
+      {
+        "variant": "mixed_int4",
+        "backend": "cpu",
+        "prefill_tokens": 256,
+        "decode_tokens": 256,
+        "prefill_tokens_per_second": 47.06,
+        "decode_tokens_per_second": 11.85,
+        "ttft_seconds": 5.52,
+        "conditions": "one leg, thermal status 0, CPU frequency policies uncapped"
+      }
+    ]
+  }
+}

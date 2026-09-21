@@ -1,4 +1,9 @@
 {
+ "Agents-A1-4B": {
+  "task": "agentic research, tool calls",
+  "group": 1,
+  "recipe": "REPRODUCE.md#2026-09-21--agents-a1-4b-internscience-the-qwen35-4b-rail-on-an-agentic-finetune-tools--thinking-template"
+ },
  "DeepSeek-R1-Distill-Qwen-7B": {
   "task": "reasoning",
   "group": 2,

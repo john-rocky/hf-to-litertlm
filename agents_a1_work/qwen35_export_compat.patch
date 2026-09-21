@@ -1,0 +1,25 @@
+--- a/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
++++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
+@@ -82,7 +82,21 @@
+     # mask here and stash it directly on every GatedDeltaNet instance — the
+     # linear-attention layers receive attention_mask=None during export (see
+     # module docstring), so the guarded forward reads `self._litert_valid`.
+-    valid = (input_ids != 0).to(torch.float32) if input_ids is not None else None
++    if input_ids is not None:
++      valid = (input_ids != 0).to(torch.float32)
++    elif position_ids is not None:
++      # Externalized-embedder graphs (fast_vlm) carry no token ids; the engine
++      # pads prefill chunks with non-increasing positions, so derive the mask
++      # from position monotonicity instead (the same contract upstream 0.9.3's
++      # exportable_module uses for its input_pos fallback, proven by LFM2.5-VL).
++      p = position_ids[0] if position_ids.ndim == 3 else position_ids
++      if p.ndim == 1:
++        p = p.unsqueeze(0)
++      v0 = torch.ones_like(p[:, :1], dtype=torch.float32)
++      v1 = (p[:, 1:] > p[:, :-1]).to(torch.float32)
++      valid = torch.cat([v0, v1], dim=1)
++    else:
++      valid = None
+     for module in self.modules():
+       if isinstance(module, PatchedQwen3_5GatedDeltaNet):
+         module._litert_valid = valid

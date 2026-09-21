@@ -12,7 +12,8 @@ ring written by prefill/decode/verify. Design + derivations: P1_DESIGN.md.
   #  it contains the full hybrid recipe plus the MTP additions — apply INSTEAD
   #  of the qwen35 patch, on a clean 115a136)
   git clone https://github.com/google-ai-edge/litert-torch litert-torch-mtp
-  git -C litert-torch-mtp checkout 115a136
+  git -C litert-torch-mtp fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no ref reaches this commit any more
+  git -C litert-torch-mtp checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
   git -C litert-torch-mtp apply "$(pwd)/mtp_work/qwen35_mtp_litert_torch.patch"
 
   # float export (P1 gates run on the tflite; bundle+int8 after gates pass)

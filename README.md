@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 63 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 64 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 ## Hugging Face model → `.litertlm` → phone
@@ -73,6 +73,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) | 3B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 65.3 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Ministral-3-3B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-3B-Instruct-2512) | 3B | chat | iPhone 17 Pro GPU 14.0–18.0 | M4 Max GPU 95.4 | [card](cards/ministral3-3b-litert.md) |
 | [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend) |
+| [Agents-A1-4B](https://huggingface.co/litert-community/Agents-A1-4B) | 4B | agentic research, tool calls | Galaxy S26 CPU 11.8 | M4 Max GPU 67.2 | [recipe](REPRODUCE.md#2026-09-21--agents-a1-4b-internscience-the-qwen35-4b-rail-on-an-agentic-finetune-tools--thinking-template) |
 | [FastContext-1.0-4B-SFT](https://huggingface.co/litert-community/FastContext-1.0-4B-SFT) | 4B | chat | iPhone 17 Pro GPU 14.0 | M4 Max GPU 73.8 | [card](cards/fastcontext-4b-litert.md) |
 | [Qwen3.5-4B](https://huggingface.co/litert-community/Qwen3.5-4B) | 4B | chat | iPhone 17 Pro GPU 11.4 | M4 Max GPU 68.5 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [Falcon-H1-Tiny-R-0.6B](https://huggingface.co/litert-community/Falcon-H1-Tiny-R-0.6B) | 0.62B | reasoning | iPhone 17 Pro CPU 29.4 | M4 Max GPU 97.8 | [recipe](REPRODUCE.md#2026-09-01--falcon-h1-tiny-r-06b-the-familys-first-reasoning-ship-and-the-size-where-two-family-assumptions-break) |

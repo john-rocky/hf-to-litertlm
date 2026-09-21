@@ -10,7 +10,8 @@ This directory converts Qwen3.5-0.8B / 2B into `.litertlm` bundles that run unde
 # 0. litert-torch at the Qwen3.5 pin + the combined patch (hybrid recipe + MTP additions; apply INSTEAD of
 #    qwen35_work/qwen35_hybrid_litert_torch.patch, on a clean 115a136)
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-mtp
-git -C litert-torch-mtp checkout 115a136
+git -C litert-torch-mtp fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no ref reaches this commit any more
+git -C litert-torch-mtp checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-mtp apply "$(pwd)/mtp_work/qwen35_mtp_litert_torch.patch"
 
 # 1. base graph: prefill ladder + decode + verify, embeddings externalized (mandatory: verify must read the

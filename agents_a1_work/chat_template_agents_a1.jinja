@@ -1,0 +1,98 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif item['type'] == 'tool_response' -%}
+                {%- if item['response'] is mapping or item['response'] is sequence -%}
+                    {{- item['response'] | tojson -}}
+                {%- else -%}
+                    {{- item['response'] | string -}}
+                {%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- set default_system_prompt -%}
+You are Intern-A1, a deep research assistant developed by InternAgent Team, Shanghai Artificial Intelligence Laboratory. 你是Intern-A1， 一个由上海人工智能实验室的InternAgent团队开发的深度研究人工智能助手。 You can have natural multi-turn conversations with users on any topic.
+
+## Daily Chat & Simple Questions
+For everyday conversations, greetings, opinions, coding help, factual lookups, definitions, calculations, explanations, and any question you can confidently answer from your knowledge — just respond directly and naturally in the user's language as Intern-A1. Do NOT use any tools for these.
+
+## Research & Search Questions
+Only when the user's question requires up-to-date information, in-depth investigation, multi-source verification, or involves recent events, niche topics, or anything you are uncertain about, use the available tools.
+
+Research strategy:
+- Start with a focused search query to get an overview.
+- If the initial search is insufficient, refine your query with more specific terms.
+- Stop searching once you have enough information to provide a comprehensive answer. Do not over-research.
+
+Current date: 2026-07-14
+{%- endset -%}
+
+{%- set is_first_system = messages[0]['role'] == 'system' -%}
+{%- set system_content = format_content(messages[0]['content']) if is_first_system else default_system_prompt -%}
+{%- set loop_messages = messages[1:] if is_first_system else messages -%}
+{#- Handle System/Tool Definitions Block -#}
+{%- if tools or is_first_system or default_system_prompt -%}
+    {{- '<|im_start|>system\n' -}}
+
+    {%- if tools -%}
+        {{- "# Tools\n\nYou have access to the following functions:\n\n<tools>" -}}
+        {%- for tool in tools -%}
+            {{- '\n' + tool | tojson -}}
+        {%- endfor -%}
+        {{- "\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT>" -}}
+        {{- '\n\n' + system_content -}}
+    {%- else -%}
+        {{- system_content -}}
+    {%- endif -%}
+
+    {{- '<|im_end|>\n' -}}
+{%- endif -%}
+
+{%- for message in loop_messages -%}
+    {%- set content = format_content(message['content']) -%}
+    {%- if message['role'] == 'user' or message['role'] == 'system' -%}
+        {{- '<|im_start|>' + message['role'] + '\n' + content + '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'assistant' -%}
+        {{- '<|im_start|>' + message['role'] + '\n' + content -}}
+        {%- if message['tool_calls'] -%}
+            {%- for tool_call in message['tool_calls'] -%}
+                {%- if content or not loop.first -%}
+                    {{- '\n' -}}
+                {%- endif -%}
+                {%- set function = tool_call['function'] if 'function' in tool_call else tool_call -%}
+                {{- '<tool_call>\n<function=' + function['name'] + '>\n' -}}
+                {%- if function['arguments'] is mapping -%}
+                    {%- for name, value in function['arguments'] | items -%}
+                        {%- set val_str = value | tojson if value is mapping or (value is sequence and value is not string) else value | string -%}
+                        {{- '<parameter=' + name + '>\n' + val_str + '\n</parameter>\n' -}}
+                    {%- endfor -%}
+                {%- endif -%}
+                {{- '</function>\n</tool_call>' -}}
+            {%- endfor -%}
+        {%- endif -%}
+        {{- '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'tool' -%}
+        {%- if loop.first or loop_messages[loop.index0 - 1]['role'] != 'tool' -%}
+            {{- '<|im_start|>user' -}}
+        {%- endif -%}
+        {{- '\n<tool_response>\n' + content + '\n</tool_response>' -}}
+        {%- if loop.last or loop_messages[loop.index0 + 1]['role'] != 'tool' -%}
+            {{- '<|im_end|>\n' -}}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- if add_generation_prompt -%}
+    {{- '<|im_start|>assistant\n' -}}
+    {%- if enable_thinking | default(true) -%}
+        {{- '<think>\n' -}}
+    {%- else -%}
+        {{- '<think>\n\n</think>\n\n' -}}
+    {%- endif -%}
+{%- endif -%}

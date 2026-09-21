@@ -1,0 +1,15 @@
+# Python 3.10; the checkout supplied by LITERT_TORCH_DIR shadows the wheel.
+torch==2.12.1
+transformers==5.14.1
+litert-torch==0.9.3
+litert-lm==0.15.0
+litert-lm-builder==0.15.0
+ai-edge-quantizer==0.8.0
+ai-edge-litert==2.1.6
+numpy==2.2.6
+huggingface_hub==1.27.0
+tokenizers==0.22.2
+safetensors==0.8.0
+accelerate==1.14.0
+protobuf==7.35.1
+flatbuffers==25.12.19

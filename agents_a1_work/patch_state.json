@@ -1,0 +1,13 @@
+{
+  "litert_torch_revision": "115a13607c730c81018bb9789138a3e5e5119e3d",
+  "files": {
+    "litert_torch/generative/export_hf/core/attention.py": "e2322ff57c715c1500886986094e9b87e068ead88ed222ebe9e4bcab988031ab",
+    "litert_torch/generative/export_hf/core/cache.py": "dd513025de2a2051949c0cae4aa846bb60b259091e5604a2330b16f7e52e3073",
+    "litert_torch/generative/export_hf/core/export_lib.py": "aab7ec2c3ebb62148865539495e8051e94291e9f877c818ce00b43399992f5e7",
+    "litert_torch/generative/export_hf/core/exportable_module.py": "11d2eda86c23df5baaefd9527ea171cd58da1a47ddf637ea5a49c06f86e31515",
+    "litert_torch/generative/export_hf/model_ext/__init__.py": "c34e26dee3a0926adb4742f798f6cb450ae1ec0216f145ed926fb4144eb895a1",
+    "litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py": "e71588a76ce22306a971972348a7de6858019c8a286bc72485343b99acd90b77",
+    "litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py": "9a641b2bc77bbb6ce2bf53915e339b007b084522f4c17c130fba22688556e7a5"
+  },
+  "purpose": "Expected contents after the existing Qwen3.5 patch plus qwen35_export_compat.patch"
+}

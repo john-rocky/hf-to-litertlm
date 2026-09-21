@@ -724,7 +724,8 @@ a conversion failure — the fp16 flow above is the exact-parity finish.
 ```bash
 cd qwen35_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-qwen35
-git -C litert-torch-qwen35 checkout 115a136
+git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no ref reaches this commit any more
+git -C litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-qwen35 python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
 # GPU ship shape (2026-08-13): declare fp32 activations in the bundle TOML (repack, no re-export)
@@ -1023,6 +1024,103 @@ python make_int4_4b.py out_qwen35_4b/model.litertlm out_qwen35_4b b32   # -> Qwe
 - **Budget ≥2048 tokens when you score a Qwen3.5 on GSM8K, even with thinking disabled.** At 512 the model's verbose step-by-step runs past the budget before the `#### N` line and the extractor grabs stray numbers — it reads as a quantization collapse and is actually truncation (measured: the same questions come back correct at 2048).
 
 Ship verification (all on the shipped file): 8-question gate **8/8 on CPU and GPU on both litert-lm 0.15.0 and 0.16.0**; prompt-length robustness, fresh engine per length, 40/40 CPU + 20/20 GPU; iPhone 17 Pro answers the composite 8-question probe **8/8 on both Metal and CPU** (the int8 file's CPU path answers 6 of 8 on this probe) — Metal decode 11.4 tok/s / prefill 88.7 / TTFT 1.89 s / 5.74 GB peak, CPU 8.9 / 46.7 / 3.12 s / 1.68 GB. Mac M4 Max (`-p 256 -d 256 --runs 3 --cache no`, 0.16.0): GPU 669 / 68.5 tok/s, CPU 100 / 20.1. Honest limits: the GSM8K gap vs int8 is real (93 vs 97); Mac CPU prefill is ~2.4× slower than int8's (int4 unpack cost — decode is equal or faster everywhere); and we have not yet run it on an actual 8 GB Android phone — the 2.57 GB file + ~1.7 GB CPU working set is the sizing evidence, measured on iPhone.
+
+### 2026-09-21 — Agents-A1-4B (InternScience): the Qwen3.5-4B rail on an agentic finetune, tools + thinking template
+
+<a id="agents-a1-4b-reproduction"></a>
+
+Same 4B hybrid patch and reduced ladder, applied to
+[InternScience/Agents-A1-4B](https://huggingface.co/InternScience/Agents-A1-4B).
+The checkpoint's config is byte-identical to Qwen/Qwen3.5-4B's. This builds the
+**text decoder only (vision tower dropped)**, with two files from one float
+parent: dynamic int8 (4,407,426,400 bytes) and mixed int4 block-32 min-max
+(2,754,365,536 bytes), both declaring fp32 activations. Bundles:
+[litert-community/Agents-A1-4B](https://huggingface.co/litert-community/Agents-A1-4B).
+
+Set the interpreter/CLI variables using [agents_a1_work/README.md](agents_a1_work/README.md).
+One-command build: `bash scripts/reproduce_llm.sh agents-a1-4b`. The explicit
+steps, from the repository root, are:
+
+```bash
+git clone --no-checkout --depth 1 https://github.com/google-ai-edge/litert-torch "$LITERT_TORCH_DIR"
+git -C "$LITERT_TORCH_DIR" fetch --depth 1 https://github.com/google-ai-edge/litert-torch 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C "$LITERT_TORCH_DIR" checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C "$LITERT_TORCH_DIR" apply "$(pwd)/qwen35_work/qwen35_hybrid_litert_torch.patch"
+git -C "$LITERT_TORCH_DIR" apply "$(pwd)/agents_a1_work/qwen35_export_compat.patch"
+"$PY" -B agents_a1_work/export_float.py --download --model "$AGENTS_A1_CHECKPOINT" --output "$AGENTS_A1_OUTPUT/float" --litert-torch-dir "$LITERT_TORCH_DIR"
+"$PY" -B agents_a1_work/build_bundles.py --model "$AGENTS_A1_CHECKPOINT" --float-bundle "$AGENTS_A1_OUTPUT/float/model.litertlm" --output "$AGENTS_A1_OUTPUT"
+# Float CPU parity first (pt and lt run serially in their respective environments):
+"$PY" -B agents_a1_work/download_gsm8k.py
+"$PACKAGER" unpack "$AGENTS_A1_OUTPUT/float/model.litertlm" --output-dir "$AGENTS_A1_OUTPUT/float/unpacked"
+"$PY" -B agents_a1_work/parity.py pt --hf "$AGENTS_A1_CHECKPOINT"
+"$LT_PY" -B agents_a1_work/parity.py lt --tflite "$AGENTS_A1_OUTPUT/float/unpacked/"*TFLiteModel*.tflite
+"$PY" -B agents_a1_work/parity.py cmp
+# Runtime cells: repeat per file/backend and both CLIs; complete loops are in agents_a1_work/README.md.
+"$PY" -B agents_a1_work/gate8q.py --model "$AGENTS_A1_OUTPUT/Agents-A1-4B_int8.litertlm" --cli "$LITERT_LM" --runtime 0.17.1 --backend cpu --out "$AGENTS_A1_OUTPUT/results/gate8q_int8_cpu_0.17.1.json"
+"$PY" -B agents_a1_work/banana_hermetic_sweep.py --model "$AGENTS_A1_OUTPUT/Agents-A1-4B_int8.litertlm" --cli "$LITERT_LM" --runtime 0.17.1 --backend cpu --out "$AGENTS_A1_OUTPUT/results/banana_int8_cpu.json"
+```
+
+The small `qwen35_export_compat.patch` adds the position-mask fallback missing
+from this repository’s older Qwen3.5 patch; hashes verify that all seven patched files
+match the measured export source.
+
+The [directory instructions](agents_a1_work/README.md#gates-in-order) give the
+complete eight-cell matrix, both length ranges, thinking/conversation/tools
+probes and the ordered GSM8K A/B commands. Every runtime request uses a fresh
+process, closed stdin, greedy sampling and seed 0; the multi-turn API probe
+intentionally keeps one Conversation. Cache is off except during the serial
+GSM8K pass, after cache-off generation gates on the same file. No GPU number
+is inferred from conversion or delegation alone.
+
+What changes from the older Qwen3.5 template: the pinned canonical Qwen3.5
+form accepts **strings and content parts**; the vendor's default system prompt
+is embedded **verbatim**, including `Current date: 2026-07-14`, and any explicit
+system message replaces it. Assistant history renders position-independently.
+Thinking is on by default with the `thought` channel; disabling it emits the
+empty think scaffold. Native XML `<tool_call><function=...>` calls are rendered
+into the prompt, but the tested runtime does **not** parse them into tool-call
+events; the application parses the emitted block. Template checks match HF
+byte-for-byte for the basic cases and preserve the prefix contract; tool JSON
+spacing differences are retained and reported. Both stop ids, 248044 and
+248046, are declared.
+
+Measured on Apple M4 Max:
+
+- Float CPU logits, 48 teacher-forced positions: top-1/top-5 **48/48**, minimum
+  Pearson **0.999999999862**, mean KL **−1.64e−8 nats**, max absolute difference
+  **0.000221253**. Acceptance: 48/48, Pearson ≥0.9999 at every position and mean
+  KL ≤0.001, with finite logits. The large-file lt stage uses CompiledModel 2.2.0
+  and needed approximately 73 GB peak RSS; run it alone.
+- Both files: **8/8 in all eight CPU/GPU × 0.17.1/0.18.0.dev20260919 cells**,
+  zero degenerate answers and all answers on topic; **40/40 CPU and 20/20 GPU**
+  prompt-length sweeps per file on 0.17.1.
+- GSM8K first 100, GPU 0.17.1, thinking off, context 4096 and no decode cap:
+  **93/100 int8, 93/100 mixed int4** with the original extractor; **94/100 and
+  94/100** after numeric normalization of the same saved answers. Context-limit
+  counts: **1 int8, 2 mixed int4**.
+- Thinking/channel/budget-64 probes pass on both runtimes; the three-turn
+  conversation recalls Osaka and Ken with thinking off and on. Native XML tools
+  pass **12/12** fixed requests, including three with thinking enabled.
+
+Mac benchmark: `-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.17.1, default warmup. All four rows were taken on a quiet machine (1-minute load under 3.0, at least 300 s of rest before a GPU cell); three of them are a second pass that agreed within 2 % with a first pass taken on a busier machine.
+
+| File / backend | Prefill tok/s | Decode tok/s | TTFT s |
+|---|---:|---:|---:|
+| int8 / GPU | 672 | 61.2 | 0.40 |
+| mixed int4 / GPU | 676 | 67.2 | 0.39 |
+| int8 / CPU | 255 | 20.6 | 1.05 |
+| mixed int4 / CPU | 99.1 | 20.2 | 2.63 |
+
+Two traps to preserve in a reproduction: **fetch the full 115a136 hash before
+checkout** (it is no longer reachable by a plain clone plus abbreviated
+checkout), and **keep the original and corrected GSM8K columns separate**.
+The old extractor's `rstrip(".0")` turns `20.00` into `2`; the correction keeps
+the same extraction precedence and normalizes numerically, without rerunning
+generation.
+
+Phone check (Galaxy S26, SM8850, Android 16, LiteRT-LM Android CLI build of 2026-09-18; the same 8 questions with thinking off, one fresh session per question, the prompt rendered from the bundled template): mixed int4 **8/8 on CPU** (peak 4.94 GB; 47.1 prefill / 11.9 decode tok/s, TTFT 5.52 s at 256/256, thermal status 0, frequencies uncapped) and **8/8 on the OpenCL GPU** with every subgraph delegated (peak 4.16 GB; speed not measured). With thinking on, the final answer arrives after a 350–400-token thought. The int8 file is a desktop-class file: on this phone its CPU answers are correct but 2 of 8 run on into repetitive self-talk, the thinking-on probe gives no final answer, and starting its GPU engine took the phone off USB — the published card tells Android users to take the mixed int4 file. The Android CLI has no thinking switch and no sampler flags, so a phone gate that leaves thinking on needs a token cap in the thousands and a watchdog in minutes, not seconds.
+
+<!-- evidence: agents_a1_work/measured_results.json; raw evidence fingerprints and exact observed values are recorded there. -->
 
 ### Falcon-H1 finetune intake — one command, and a gate refusal worth reading
 
