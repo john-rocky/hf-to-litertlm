@@ -62,3 +62,4 @@ mlboydaisuke/S1-mini-LiteRT
 mlboydaisuke/Tashkeel-350M-v2-LiteRT
 litert-community/VibeVoice-ASR-Streaming-1.5B
 litert-community/Agents-A1-4B
+litert-community/decider-0.8b-LiteRT
