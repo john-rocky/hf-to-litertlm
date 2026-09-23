@@ -1,0 +1,388 @@
+{
+  "status": "PASS",
+  "device": "Apple M4 Max CPU",
+  "num_threads": 4,
+  "timing": "contended, informational",
+  "source_float": {
+    "path": "exports/decider-0.8b-fp/model.litertlm",
+    "bytes": 3128748656,
+    "sha256": "0a91a2d29ab2d2843bf9affc1c62204ed888d45a6d46bbfcf9c625e7d6ec673e"
+  },
+  "variants": [
+    {
+      "variant": "wi8fc",
+      "tag": "V1",
+      "isolates": "FC and embedding int8 with dynamic FC activation quantization (round-2 baseline).",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_int8_cpu.json",
+      "bundle": {
+        "path": "exports/ship/decider-0.8b_int8.litertlm",
+        "bytes": 963184864,
+        "sha256": "e175a0f1847746ab381fdd095de2fde8d0fe72b59c0c50ff026500ad2752c998"
+      },
+      "tflite": {
+        "path": "exports/ship/int8_unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 959219936,
+        "sha256": "3c86bb563422de3cd5b0d121cfd48411421a20f2164a86b94dabf4a72321fc5b"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 117,
+        "non_tie_argmax_identical": 117,
+        "ties": 0,
+        "max_abs_probability_error": 0.1599997878074646,
+        "p95_abs_probability_error": 0.06793785095214842,
+        "max_abs_label_logit_error": 0.6695213317871094,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.57366180419922,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 62.44321620615665,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 0.0021047592163085938,
+        "rows_above_002": 27
+      },
+      "original_gate_status": "FAIL",
+      "mismatches": [
+        "A03/03",
+        "A05/03",
+        "A10/00"
+      ],
+      "opscan": "results/opscan_int8.json"
+    },
+    {
+      "variant": "fc_only",
+      "tag": "V2",
+      "isolates": "Dynamic int8 FC including lm_head, with the embedding lookup table kept float32.",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_fc_only_cpu.json",
+      "bundle": {
+        "path": "exports/ab/fc_only/decider-0.8b_fc_only.litertlm",
+        "bytes": 13135831440,
+        "sha256": "f69af0ab01f409e767d1ced9e48d8703a9ab6374f0c9eaf651807402cd34cb26"
+      },
+      "tflite": {
+        "path": "exports/ab/fc_only/unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 13131866512,
+        "sha256": "d36367d7fbf5351f437643c0c2bdb8fcf53e72a851f2f2d86af4e7af012d21eb"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "FLOAT32": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 119,
+        "non_tie_argmax_identical": 119,
+        "ties": 0,
+        "max_abs_probability_error": 0.16051512956619263,
+        "p95_abs_probability_error": 0.09814355261623856,
+        "max_abs_label_logit_error": 1.0878782272338867,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.256505966186523,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 81.10923412488773,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 0.001929495483636856,
+        "rows_above_002": 21
+      },
+      "original_gate_status": "PASS",
+      "mismatches": [
+        "A10/00"
+      ],
+      "opscan": "results/opscan_fc_only.json"
+    },
+    {
+      "variant": "embed_only",
+      "tag": "V3",
+      "isolates": "Only the embedding lookup table is quantized; every FC including lm_head stays float32.",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_embed_only_cpu.json",
+      "bundle": {
+        "path": "exports/ab/embed_only/decider-0.8b_embed_only.litertlm",
+        "bytes": 6214344560,
+        "sha256": "c7d95565a3dc89a2ddde9e14f22116456bb58277777b60437afc920b432cf461"
+      },
+      "tflite": {
+        "path": "exports/ab/embed_only/unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 6210379632,
+        "sha256": "26b23e2a87c40a9de691e87a62bd5c579338c120dd3c92e6c562458e04589a06"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT32": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 120,
+        "non_tie_argmax_identical": 120,
+        "ties": 0,
+        "max_abs_probability_error": 0.007328540086746216,
+        "p95_abs_probability_error": 0.0034240111708641052,
+        "max_abs_label_logit_error": 0.03525733947753906,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.413503646850586,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 102.51237862044945,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 0.00013003405183553696,
+        "rows_above_002": 0
+      },
+      "original_gate_status": "PASS",
+      "mismatches": [],
+      "opscan": "results/opscan_embed_only.json"
+    },
+    {
+      "variant": "fc_no_lmhead",
+      "tag": "V4",
+      "isolates": "Dynamic int8 FC and embedding, except the final vocabulary projection stays float32.",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_fc_no_lmhead_cpu.json",
+      "bundle": {
+        "path": "exports/ab/fc_no_lmhead/decider-0.8b_fc_no_lmhead.litertlm",
+        "bytes": 4777380496,
+        "sha256": "c9d43d138c776f1ade9fa0d6b890ef5b54a329f51d3e036e8262ece01dfc5981"
+      },
+      "tflite": {
+        "path": "exports/ab/fc_no_lmhead/unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 4773415568,
+        "sha256": "1096ee57c64fa7a40250ef4c5e5f6bb014616e6977c15b87061c56bea3d3aa1e"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2177,
+          "FLOAT32": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 117,
+        "non_tie_argmax_identical": 117,
+        "ties": 0,
+        "max_abs_probability_error": 0.16622406244277954,
+        "p95_abs_probability_error": 0.06811506152153014,
+        "max_abs_label_logit_error": 0.6942620277404785,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.580957412719727,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 91.92601629218552,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 0.0020535679068416357,
+        "rows_above_002": 27
+      },
+      "original_gate_status": "PASS",
+      "mismatches": [
+        "A03/03",
+        "A05/03",
+        "A10/00"
+      ],
+      "opscan": "results/opscan_fc_no_lmhead.json"
+    },
+    {
+      "variant": "wo_int8",
+      "tag": "V5",
+      "isolates": "The same FC/embedding weights use int8 storage with explicit dequantization and float compute; isolates activation quantization.",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_wo_int8_cpu.json",
+      "bundle": {
+        "path": "exports/ab/wo_int8/decider-0.8b_wo_int8.litertlm",
+        "bytes": 964791472,
+        "sha256": "9363b8100afbd11690b54f4bafbfa0f053a391beaabee9a02923b4c254a59324"
+      },
+      "tflite": {
+        "path": "exports/ab/wo_int8/unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 960826544,
+        "sha256": "7e81a28dae69b4ecbfa027a654b0a19f4aca6327c4bd182a89c74463be379186"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 119,
+        "non_tie_argmax_identical": 119,
+        "ties": 0,
+        "max_abs_probability_error": 0.07316350936889648,
+        "p95_abs_probability_error": 0.02489076703786849,
+        "max_abs_label_logit_error": 0.30377864837646484,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.592275619506836,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 136.28539075318258,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 0.0005437496583908796,
+        "rows_above_002": 10
+      },
+      "original_gate_status": "PASS",
+      "mismatches": [
+        "A10/00"
+      ],
+      "opscan": "results/opscan_wo_int8.json"
+    },
+    {
+      "variant": "wfp16",
+      "tag": "V6",
+      "isolates": "FC/embedding weights are cast to fp16 and explicitly dequantized for float compute; isolates reduced float storage.",
+      "status": "MEASURED",
+      "available": true,
+      "parity_file": "results/parity_wfp16_cpu.json",
+      "bundle": {
+        "path": "exports/ab/wfp16/decider-0.8b_wfp16.litertlm",
+        "bytes": 1625055920,
+        "sha256": "477c1dcadbb229833cbcb9613f3436ad7057dcdbc4de2038ca3e8f4ec0485f25"
+      },
+      "tflite": {
+        "path": "exports/ab/wfp16/unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 1621090992,
+        "sha256": "b6d4332d0c04e273c0d82346d5032da300e974bf2e52b05c297fe496065ca007"
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "FLOAT16": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "summary": {
+        "rows": 120,
+        "non_tie_rows": 120,
+        "argmax_identical": 120,
+        "non_tie_argmax_identical": 120,
+        "ties": 0,
+        "max_abs_probability_error": 6.616115570068359e-06,
+        "p95_abs_probability_error": 3.0696392059326155e-06,
+        "max_abs_label_logit_error": 0.0003185272216796875,
+        "oracle_max_abs_label_logit": 22.448760986328125,
+        "lite_max_abs_label_logit": 22.449079513549805,
+        "all_finite": true,
+        "row_length_tokens": {
+          "min": 40,
+          "median": 102.0,
+          "max": 2844
+        },
+        "wall_seconds_contended": 89.23853645625059,
+        "wide_255_row_present": true,
+        "median_abs_probability_error": 1.1920928955078125e-07,
+        "rows_above_002": 0
+      },
+      "original_gate_status": "PASS",
+      "mismatches": [],
+      "opscan": "results/opscan_wfp16.json"
+    }
+  ],
+  "ship_recipe_selected": null,
+  "acceptance": "Round 3 completeness only; supervisor chooses ship from the numbers",
+  "quantizer": "ai-edge-quantizer 0.8.0",
+  "lm_head_output_tensor": "decode_logits_output",
+  "lm_head_scope": "decode_logits_output;",
+  "lm_head_exclusion_regex": "^decode_logits_output;$",
+  "options_evidence": "results/quantizer_options.md",
+  "scope_evidence": "results/lm_head_scope.json",
+  "calibration_analysis": [
+    "Embedding-only int8 has p95 |Δp| 0.00342401117, while keeping the embedding float with dynamic FCs gives 0.0981435526; the large tail is not explained by embedding storage alone.",
+    "Keeping lm_head float gives p95 |Δp| 0.0681150615, versus 0.067937851 for wi8fc; excluding the vocabulary projection does not remove the tail.",
+    "All 2190 matched FC/embedding weight fingerprints (int8 bytes, scales, zero points, shapes) are identical between V1 and V5. Float compute lowers p95 |Δp| from 0.067937851 to 0.024890767, and rows above 0.02 from 27 to 10. This implicates the dynamic FC compute path, including runtime activation quantization, as an additional source of calibration loss; int8 weight rounding still leaves a residual.",
+    "FP16 weight casting with float compute gives 120/120 argmax agreement, p95 |Δp| 3.06963921e-06 and max 6.61611557e-06. These ablations do not identify an individual hidden FC layer, and no ship recipe is selected."
+  ],
+  "weight_identity_evidence": "results/quantized_weight_identity.json",
+  "implementation_correction": "results/round3_scope_correction.json",
+  "engine_control_comparison": {
+    "hermetic": {
+      "rows": 6,
+      "argmax_identical": 6,
+      "ties": 0,
+      "max_abs_probability_error": 0.004493688242571625,
+      "all_finite": true
+    },
+    "shared": {
+      "rows": 6,
+      "argmax_identical": 5,
+      "ties": 0,
+      "max_abs_probability_error": 0.5110127160965372,
+      "all_finite": true
+    },
+    "first_call_absolute_score_difference": 0.0,
+    "max_absolute_score_difference": 7.914770245552063,
+    "hermetic_prefill_counts_match_full_row": true,
+    "hermetic_process_count": 19,
+    "shared_process_count": 1,
+    "hermetic_worst_row": "C04/00"
+  }
+}

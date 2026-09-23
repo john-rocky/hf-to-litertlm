@@ -1,0 +1,984 @@
+{
+  "round": 5,
+  "bundles": {
+    "fp16fc_i8emb": {
+      "status": "PASS",
+      "variant": "fp16fc_i8emb",
+      "bundle": {
+        "path": "exports/final/decider-0.8b_fp16fc_i8emb.litertlm",
+        "bytes": 4712169760,
+        "sha256": "0f2597a10ef21279601d31c4b171acba95410512247c31624dd745f8d23fe710"
+      },
+      "tflite": {
+        "path": "exports/r2_work/fp16fc_i8emb_a1/final_unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 4708204832,
+        "sha256": "19b6a2541a90b329fe4c812e470cc031d811f5187ebbc86de83983ffda8a1d33"
+      },
+      "sections": [
+        {
+          "section_type": "LlmMetadata",
+          "data_path": "LlmMetadataProto.pbtext"
+        },
+        {
+          "section_type": "ExecutorMetadata",
+          "data_path": "ExecutorMetadataProto.pbtext"
+        },
+        {
+          "section_type": "HF_Tokenizer",
+          "data_path": "Section2_HF_Tokenizer_Zlib.zlib"
+        },
+        {
+          "additional_metadata": [
+            {
+              "key": "prefer_activation_type",
+              "value_type": "String",
+              "value": "fp32"
+            }
+          ],
+          "model_type": "prefill_decode",
+          "section_type": "TFLiteModel",
+          "data_path": "Section3_TFLiteModel_tf_lite_prefill_decode.tflite"
+        }
+      ],
+      "pbtext_facts": {
+        "start_token_present": false,
+        "stop_token_ids": [
+          248044
+        ],
+        "identity_template_exact": true,
+        "template": "{%- for message in messages -%}{%- if message.content is string -%}{{ message.content }}{%- else -%}{%- for part in message.content -%}{%- if part.type == 'text' -%}{{ part.text }}{%- endif -%}{%- endfor -%}{%- endif -%}{%- endfor -%}",
+        "prefer_activation_type": "fp32",
+        "executor_state_buffers": 48,
+        "executor_linear_states": 36,
+        "executor_key_states": 6,
+        "executor_value_states": 6
+      },
+      "checks": {
+        "identity": true,
+        "no_start": true,
+        "stop": true,
+        "fp32_activations": true,
+        "executor_48": true,
+        "executor_types": true,
+        "signatures": true,
+        "float_states": true,
+        "fc_dtype": true,
+        "embedding_dtype": true,
+        "convolution_float": true,
+        "forbidden_ops_absent": true,
+        "describe_success": true
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "consuming_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT32": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "unique_weight_buffers_by_op": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 187
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 18
+        }
+      },
+      "dequantize_ops": 2178,
+      "total_ops": 190700,
+      "describe": "========================================\n LiteRT-LM Model Capabilities Report\n========================================\nFile: <run-dir>/exports/final/decider-0.8b_fp16fc_i8emb.litertlm\n\n[LLM Capabilities]\n  Supports Function Call: NO\n  Supports Thinking:      NO\n  Speculative Decoding:   NO\n  Max Vision Token Budget: -1\n  Sampler Temp:           0.00\n  Sampler Top K:          None\n  Sampler Top P:          0.00\n  Input Modalities:       Text\n========================================\n",
+      "describe_version": "litert-lm 0.17.1",
+      "describe_command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "<run-dir>/venv-gate/bin/litert-lm",
+        "describe",
+        "<run-dir>/exports/final/decider-0.8b_fp16fc_i8emb.litertlm"
+      ],
+      "describe_exit_code": 0,
+      "inspection": "standard litert-lm unpack; pbtext/model.toml text; schema-only mmap of unpacked tflite"
+    },
+    "int8dyn": {
+      "status": "PASS",
+      "variant": "int8dyn",
+      "bundle": {
+        "path": "exports/final/decider-0.8b_int8dyn.litertlm",
+        "bytes": 963184864,
+        "sha256": "3e3c03da33034115dade6094c8ae94a90a7169d2a7cb4c6f8145e2dcc49a143b"
+      },
+      "tflite": {
+        "path": "exports/r2_work/int8dyn_a1/final_unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 959219936,
+        "sha256": "3c86bb563422de3cd5b0d121cfd48411421a20f2164a86b94dabf4a72321fc5b"
+      },
+      "sections": [
+        {
+          "section_type": "LlmMetadata",
+          "data_path": "LlmMetadataProto.pbtext"
+        },
+        {
+          "section_type": "ExecutorMetadata",
+          "data_path": "ExecutorMetadataProto.pbtext"
+        },
+        {
+          "section_type": "HF_Tokenizer",
+          "data_path": "Section2_HF_Tokenizer_Zlib.zlib"
+        },
+        {
+          "additional_metadata": [
+            {
+              "key": "prefer_activation_type",
+              "value_type": "String",
+              "value": "fp32"
+            }
+          ],
+          "model_type": "prefill_decode",
+          "section_type": "TFLiteModel",
+          "data_path": "Section3_TFLiteModel_tf_lite_prefill_decode.tflite"
+        }
+      ],
+      "pbtext_facts": {
+        "start_token_present": false,
+        "stop_token_ids": [
+          248044
+        ],
+        "identity_template_exact": true,
+        "template": "{%- for message in messages -%}{%- if message.content is string -%}{{ message.content }}{%- else -%}{%- for part in message.content -%}{%- if part.type == 'text' -%}{{ part.text }}{%- endif -%}{%- endfor -%}{%- endif -%}{%- endfor -%}",
+        "prefer_activation_type": "fp32",
+        "executor_state_buffers": 48,
+        "executor_linear_states": 36,
+        "executor_key_states": 6,
+        "executor_value_states": 6
+      },
+      "checks": {
+        "identity": true,
+        "no_start": true,
+        "stop": true,
+        "fp32_activations": true,
+        "executor_48": true,
+        "executor_types": true,
+        "signatures": true,
+        "float_states": true,
+        "fc_dtype": true,
+        "embedding_dtype": true,
+        "convolution_float": true,
+        "forbidden_ops_absent": true,
+        "describe_success": true
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "consuming_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "unique_weight_buffers_by_op": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 1
+        },
+        "FULLY_CONNECTED": {
+          "INT8": 187
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 18
+        }
+      },
+      "dequantize_ops": 0,
+      "total_ops": 188522,
+      "describe": "========================================\n LiteRT-LM Model Capabilities Report\n========================================\nFile: <run-dir>/exports/final/decider-0.8b_int8dyn.litertlm\n\n[LLM Capabilities]\n  Supports Function Call: NO\n  Supports Thinking:      NO\n  Speculative Decoding:   NO\n  Max Vision Token Budget: -1\n  Sampler Temp:           0.00\n  Sampler Top K:          None\n  Sampler Top P:          0.00\n  Input Modalities:       Text\n========================================\n",
+      "describe_version": "litert-lm 0.17.1",
+      "describe_command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "<run-dir>/venv-gate/bin/litert-lm",
+        "describe",
+        "<run-dir>/exports/final/decider-0.8b_int8dyn.litertlm"
+      ],
+      "describe_exit_code": 0,
+      "inspection": "standard litert-lm unpack; pbtext/model.toml text; schema-only mmap of unpacked tflite",
+      "previous_tflite_sha256": "3c86bb563422de3cd5b0d121cfd48411421a20f2164a86b94dabf4a72321fc5b",
+      "tflite_matches_previous": true,
+      "previous_bundle_sha256": "e175a0f1847746ab381fdd095de2fde8d0fe72b59c0c50ff026500ad2752c998",
+      "bundle_matches_previous": false
+    },
+    "fp16fc_i8emb_shared": {
+      "status": "PASS",
+      "variant": "fp16fc_i8emb_shared",
+      "bundle": {
+        "path": "exports/final/decider-0.8b_fp16fc_i8emb_shared.litertlm",
+        "bytes": 1406533488,
+        "sha256": "f400f78b9dc56e069c4e78500922631bdf7466d36a6fb4c14bc18c3b73fab2ed"
+      },
+      "tflite": {
+        "path": "exports/r4_work/fp16fc_i8emb_shared_a1/final_unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 1402568560,
+        "sha256": "da58ee6d49e150d04952638e98ab4a078e71bc5a733c42581d8206f60e12e582"
+      },
+      "sections": [
+        {
+          "section_type": "LlmMetadata",
+          "data_path": "LlmMetadataProto.pbtext"
+        },
+        {
+          "section_type": "ExecutorMetadata",
+          "data_path": "ExecutorMetadataProto.pbtext"
+        },
+        {
+          "section_type": "HF_Tokenizer",
+          "data_path": "Section2_HF_Tokenizer_Zlib.zlib"
+        },
+        {
+          "additional_metadata": [
+            {
+              "key": "prefer_activation_type",
+              "value_type": "String",
+              "value": "fp32"
+            }
+          ],
+          "model_type": "prefill_decode",
+          "section_type": "TFLiteModel",
+          "data_path": "Section3_TFLiteModel_tf_lite_prefill_decode.tflite"
+        }
+      ],
+      "pbtext_facts": {
+        "start_token_present": false,
+        "stop_token_ids": [
+          248044
+        ],
+        "identity_template_exact": true,
+        "template": "{%- for message in messages -%}{%- if message.content is string -%}{{ message.content }}{%- else -%}{%- for part in message.content -%}{%- if part.type == 'text' -%}{{ part.text }}{%- endif -%}{%- endfor -%}{%- endif -%}{%- endfor -%}",
+        "prefer_activation_type": "fp32",
+        "executor_state_buffers": 48,
+        "executor_linear_states": 36,
+        "executor_key_states": 6,
+        "executor_value_states": 6
+      },
+      "checks": {
+        "identity": true,
+        "no_start": true,
+        "stop": true,
+        "fp32_activations": true,
+        "executor_48": true,
+        "executor_types": true,
+        "signatures": true,
+        "float_states": true,
+        "fc_dtype": true,
+        "embedding_dtype": true,
+        "convolution_float": true,
+        "forbidden_ops_absent": true,
+        "describe_success": true,
+        "single_int8_vocabulary_buffer": true,
+        "one_lm_head": true
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 2177,
+          "INT8": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "consuming_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT32": 2178
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "unique_weight_buffers_by_op": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 1
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 186,
+          "INT8": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 18
+        }
+      },
+      "dequantize_ops": 2178,
+      "total_ops": 190700,
+      "describe": "========================================\n LiteRT-LM Model Capabilities Report\n========================================\nFile: <run-dir>/exports/final/decider-0.8b_fp16fc_i8emb_shared.litertlm\n\n[LLM Capabilities]\n  Supports Function Call: NO\n  Supports Thinking:      NO\n  Speculative Decoding:   NO\n  Max Vision Token Budget: -1\n  Sampler Temp:           0.00\n  Sampler Top K:          None\n  Sampler Top P:          0.00\n  Input Modalities:       Text\n========================================\n",
+      "describe_version": "litert-lm 0.17.1",
+      "describe_command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "<run-dir>/venv-gate/bin/litert-lm",
+        "describe",
+        "<run-dir>/exports/final/decider-0.8b_fp16fc_i8emb_shared.litertlm"
+      ],
+      "describe_exit_code": 0,
+      "inspection": "standard litert-lm unpack; pbtext/model.toml text; schema-only mmap of unpacked tflite",
+      "all_vocabulary_buffers": {
+        "shape": [
+          248320,
+          1024
+        ],
+        "distinct_populated_buffer_count": 1,
+        "total_table_bytes": 254279680,
+        "buffers": [
+          {
+            "buffer_id": 687,
+            "bytes": 254279680,
+            "dtype": "INT8",
+            "references": [
+              {
+                "subgraph": 0,
+                "tensor_index": 737,
+                "name": "arith.constant479"
+              },
+              {
+                "subgraph": 1,
+                "tensor_index": 721,
+                "name": "arith.constant946"
+              },
+              {
+                "subgraph": 2,
+                "tensor_index": 713,
+                "name": "arith.constant1405"
+              },
+              {
+                "subgraph": 3,
+                "tensor_index": 708,
+                "name": "arith.constant1859"
+              },
+              {
+                "subgraph": 4,
+                "tensor_index": 701,
+                "name": "arith.constant2306"
+              },
+              {
+                "subgraph": 5,
+                "tensor_index": 701,
+                "name": "arith.constant2753"
+              },
+              {
+                "subgraph": 6,
+                "tensor_index": 699,
+                "name": "arith.constant3198"
+              },
+              {
+                "subgraph": 7,
+                "tensor_index": 700,
+                "name": "arith.constant3644"
+              },
+              {
+                "subgraph": 8,
+                "tensor_index": 701,
+                "name": "arith.constant4091"
+              },
+              {
+                "subgraph": 9,
+                "tensor_index": 699,
+                "name": "arith.constant4537"
+              },
+              {
+                "subgraph": 10,
+                "tensor_index": 320,
+                "name": "arith.constant4590"
+              },
+              {
+                "subgraph": 11,
+                "tensor_index": 325,
+                "name": "arith.constant4644"
+              }
+            ]
+          }
+        ]
+      },
+      "vocab_matrix_ops": [
+        {
+          "subgraph": 0,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;2"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant479"
+        },
+        {
+          "subgraph": 1,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;6"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant946"
+        },
+        {
+          "subgraph": 2,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;10"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant1405"
+        },
+        {
+          "subgraph": 3,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;14"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant1859"
+        },
+        {
+          "subgraph": 4,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;18"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant2306"
+        },
+        {
+          "subgraph": 5,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;22"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant2753"
+        },
+        {
+          "subgraph": 6,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;26"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant3198"
+        },
+        {
+          "subgraph": 7,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;30"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant3644"
+        },
+        {
+          "subgraph": 8,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;34"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4091"
+        },
+        {
+          "subgraph": 9,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;37"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4537"
+        },
+        {
+          "subgraph": 10,
+          "op_index": 4,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;40"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4590"
+        },
+        {
+          "subgraph": 11,
+          "op_index": 4,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMGenerate/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;1"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4644"
+        },
+        {
+          "subgraph": 11,
+          "op_index": 2310,
+          "op": "FULLY_CONNECTED",
+          "output_names": [
+            "decode_logits_output"
+          ],
+          "consumed_weight_dtype": "FLOAT32",
+          "stored_weight_dtype": "INT8",
+          "via": [
+            "DEQUANTIZE"
+          ],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4644"
+        }
+      ],
+      "vocab_stored_buffer_ids": [
+        687
+      ],
+      "vocab_buffer_count": 1
+    },
+    "fp16fc_i8emb_dynhead": {
+      "status": "PASS",
+      "variant": "fp16fc_i8emb_dynhead",
+      "bundle": {
+        "path": "exports/final/decider-0.8b_fp16fc_i8emb_dynhead.litertlm",
+        "bytes": 1406533392,
+        "sha256": "b64929fcc5d5f8a6ad5097d54a6b7eb14bd077da799b569e828dc87f9145db83"
+      },
+      "tflite": {
+        "path": "exports/r5_work/fp16fc_i8emb_dynhead_a1/final_unpacked/Section3_TFLiteModel_tf_lite_prefill_decode.tflite",
+        "bytes": 1402568464,
+        "sha256": "4fa86a55034408e8e8b2b066570be57cdf743b9f3c1f38bc57d7f0fa9c0579c0"
+      },
+      "sections": [
+        {
+          "section_type": "LlmMetadata",
+          "data_path": "LlmMetadataProto.pbtext"
+        },
+        {
+          "section_type": "ExecutorMetadata",
+          "data_path": "ExecutorMetadataProto.pbtext"
+        },
+        {
+          "section_type": "HF_Tokenizer",
+          "data_path": "Section2_HF_Tokenizer_Zlib.zlib"
+        },
+        {
+          "additional_metadata": [
+            {
+              "key": "prefer_activation_type",
+              "value_type": "String",
+              "value": "fp32"
+            }
+          ],
+          "model_type": "prefill_decode",
+          "section_type": "TFLiteModel",
+          "data_path": "Section3_TFLiteModel_tf_lite_prefill_decode.tflite"
+        }
+      ],
+      "pbtext_facts": {
+        "start_token_present": false,
+        "stop_token_ids": [
+          248044
+        ],
+        "identity_template_exact": true,
+        "template": "{%- for message in messages -%}{%- if message.content is string -%}{{ message.content }}{%- else -%}{%- for part in message.content -%}{%- if part.type == 'text' -%}{{ part.text }}{%- endif -%}{%- endfor -%}{%- endif -%}{%- endfor -%}",
+        "prefer_activation_type": "fp32",
+        "executor_state_buffers": 48,
+        "executor_linear_states": 36,
+        "executor_key_states": 6,
+        "executor_value_states": 6
+      },
+      "checks": {
+        "identity": true,
+        "no_start": true,
+        "stop": true,
+        "fp32_activations": true,
+        "executor_48": true,
+        "executor_types": true,
+        "signatures": true,
+        "float_states": true,
+        "fc_dtype": true,
+        "embedding_dtype": true,
+        "convolution_float": true,
+        "forbidden_ops_absent": true,
+        "describe_success": true,
+        "single_int8_vocabulary_buffer": true,
+        "one_lm_head": true,
+        "fc_counts": true,
+        "dynamic_head_consumes_int8": true,
+        "dequantize_count": true
+      },
+      "stored_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 2177,
+          "INT8": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "consuming_weight_dtype_histogram": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 12
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT32": 2177,
+          "INT8": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 216
+        }
+      },
+      "unique_weight_buffers_by_op": {
+        "EMBEDDING_LOOKUP": {
+          "INT8": 1
+        },
+        "FULLY_CONNECTED": {
+          "FLOAT16": 186,
+          "INT8": 1
+        },
+        "DEPTHWISE_CONV_2D": {
+          "FLOAT32": 18
+        }
+      },
+      "dequantize_ops": 2177,
+      "total_ops": 190699,
+      "describe": "========================================\n LiteRT-LM Model Capabilities Report\n========================================\nFile: <run-dir>/exports/final/decider-0.8b_fp16fc_i8emb_dynhead.litertlm\n\n[LLM Capabilities]\n  Supports Function Call: NO\n  Supports Thinking:      NO\n  Speculative Decoding:   NO\n  Max Vision Token Budget: -1\n  Sampler Temp:           0.00\n  Sampler Top K:          None\n  Sampler Top P:          0.00\n  Input Modalities:       Text\n========================================\n",
+      "describe_version": "litert-lm 0.17.1",
+      "describe_command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "<run-dir>/venv-gate/bin/litert-lm",
+        "describe",
+        "<run-dir>/exports/final/decider-0.8b_fp16fc_i8emb_dynhead.litertlm"
+      ],
+      "describe_exit_code": 0,
+      "inspection": "standard litert-lm unpack; pbtext/model.toml text; schema-only mmap of unpacked tflite",
+      "all_vocabulary_buffers": {
+        "shape": [
+          248320,
+          1024
+        ],
+        "distinct_populated_buffer_count": 1,
+        "total_table_bytes": 254279680,
+        "buffers": [
+          {
+            "buffer_id": 687,
+            "bytes": 254279680,
+            "dtype": "INT8",
+            "references": [
+              {
+                "subgraph": 0,
+                "tensor_index": 737,
+                "name": "arith.constant479"
+              },
+              {
+                "subgraph": 1,
+                "tensor_index": 721,
+                "name": "arith.constant946"
+              },
+              {
+                "subgraph": 2,
+                "tensor_index": 713,
+                "name": "arith.constant1405"
+              },
+              {
+                "subgraph": 3,
+                "tensor_index": 708,
+                "name": "arith.constant1859"
+              },
+              {
+                "subgraph": 4,
+                "tensor_index": 701,
+                "name": "arith.constant2306"
+              },
+              {
+                "subgraph": 5,
+                "tensor_index": 701,
+                "name": "arith.constant2753"
+              },
+              {
+                "subgraph": 6,
+                "tensor_index": 699,
+                "name": "arith.constant3198"
+              },
+              {
+                "subgraph": 7,
+                "tensor_index": 700,
+                "name": "arith.constant3644"
+              },
+              {
+                "subgraph": 8,
+                "tensor_index": 701,
+                "name": "arith.constant4091"
+              },
+              {
+                "subgraph": 9,
+                "tensor_index": 699,
+                "name": "arith.constant4537"
+              },
+              {
+                "subgraph": 10,
+                "tensor_index": 320,
+                "name": "arith.constant4590"
+              },
+              {
+                "subgraph": 11,
+                "tensor_index": 325,
+                "name": "arith.constant4644"
+              }
+            ]
+          }
+        ]
+      },
+      "vocab_matrix_ops": [
+        {
+          "subgraph": 0,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;2"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant479"
+        },
+        {
+          "subgraph": 1,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;6"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant946"
+        },
+        {
+          "subgraph": 2,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;10"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant1405"
+        },
+        {
+          "subgraph": 3,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;14"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant1859"
+        },
+        {
+          "subgraph": 4,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;18"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant2306"
+        },
+        {
+          "subgraph": 5,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;22"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant2753"
+        },
+        {
+          "subgraph": 6,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;26"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant3198"
+        },
+        {
+          "subgraph": 7,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;30"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant3644"
+        },
+        {
+          "subgraph": 8,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;34"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4091"
+        },
+        {
+          "subgraph": 9,
+          "op_index": 6,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;37"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4537"
+        },
+        {
+          "subgraph": 10,
+          "op_index": 4,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMPrefill/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;40"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4590"
+        },
+        {
+          "subgraph": 11,
+          "op_index": 4,
+          "op": "EMBEDDING_LOOKUP",
+          "output_names": [
+            "litert_torch.generative.export_hf.core.exportable_module.LiteRTExportableModuleForDecoderOnlyLMGenerate/transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5ForCausalLM_model/litert_torch.generative.export_hf.model_ext.qwen3_5.patch.PatchedQwen3_5TextModel_model/torch.nn.modules.sparse.Embedding_embed_tokens;1"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4644"
+        },
+        {
+          "subgraph": 11,
+          "op_index": 2309,
+          "op": "FULLY_CONNECTED",
+          "output_names": [
+            "decode_logits_output"
+          ],
+          "consumed_weight_dtype": "INT8",
+          "stored_weight_dtype": "INT8",
+          "via": [],
+          "stored_buffer": 687,
+          "stored_name": "arith.constant4644"
+        }
+      ],
+      "vocab_stored_buffer_ids": [
+        687
+      ],
+      "vocab_buffer_count": 1
+    }
+  },
+  "status": "PASS"
+}

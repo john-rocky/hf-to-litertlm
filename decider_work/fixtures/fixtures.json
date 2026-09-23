@@ -1,0 +1,1646 @@
+[
+  {
+    "id": "A01",
+    "family": "A",
+    "state": {
+      "ticket": "I was charged twice for order ZVX-104. Please refund the duplicate payment. The first payment was correct.",
+      "customer_tier": "basic",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "No prior complaint"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 69
+  },
+  {
+    "id": "A02",
+    "family": "A",
+    "state": {
+      "ticket": "The invoice lists an extra storage fee. Please explain it. I am not requesting a refund at this time.",
+      "customer_tier": "plus",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "One previous reply"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 65
+  },
+  {
+    "id": "A03",
+    "family": "A",
+    "state": {
+      "ticket": "The export screen freezes whenever I open a saved report. I have retried four times today and cannot finish my work.",
+      "customer_tier": "premium",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "Follow-up requested"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "plans": "New plans, seats, prices before purchase",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 67
+  },
+  {
+    "id": "A04",
+    "family": "A",
+    "state": {
+      "ticket": "Could someone explain the larger plan for a small workshop? We need six seats next month. Everything currently works.",
+      "customer_tier": "basic",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "No prior complaint"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 65
+  },
+  {
+    "id": "A05",
+    "family": "A",
+    "state": {
+      "ticket": "My parcel has not arrived although the tracking page says delivered. Please investigate the shipping record.",
+      "customer_tier": "plus",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "One previous reply"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 61
+  },
+  {
+    "id": "A06",
+    "family": "A",
+    "state": {
+      "ticket": "I cannot reset my password because the recovery code is rejected. I am losing patience after three failed attempts.",
+      "customer_tier": "premium",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "Follow-up requested"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "plans": "New plans, seats, prices before purchase",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 64
+  },
+  {
+    "id": "A07",
+    "family": "A",
+    "state": {
+      "ticket": "Please return the payment for the cancelled booking. Two previous replies ignored that request. This is very frustrating.",
+      "customer_tier": "basic",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "No prior complaint"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 64
+  },
+  {
+    "id": "A08",
+    "family": "A",
+    "state": {
+      "ticket": "Thank you for fixing the display problem yesterday. I would like to suggest a darker border around the status icon.",
+      "customer_tier": "plus",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "One previous reply"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 65
+  },
+  {
+    "id": "A09",
+    "family": "A",
+    "state": {
+      "ticket": "The service was unavailable through the whole afternoon. I need the saved work restored, and I want a refund for the lost day.",
+      "customer_tier": "premium",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "Follow-up requested"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "shipping": "Parcels, delivery, missing shipments",
+          "plans": "New plans, seats, prices before purchase",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 69
+  },
+  {
+    "id": "A10",
+    "family": "A",
+    "state": {
+      "ticket": "The replacement cable works well. Could the package include a shorter printed care guide next time?",
+      "customer_tier": "basic",
+      "history": [
+        {
+          "step": 1,
+          "event": "Request received"
+        },
+        {
+          "step": 2,
+          "event": "No prior complaint"
+        }
+      ]
+    },
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "Charges, invoices, payments, refunds",
+          "technical": "Software errors, outages, broken features",
+          "accounts": "Login, passwords, account access",
+          "other": null
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does the customer ask for a refund?"
+      },
+      "frustration": {
+        "type": "score",
+        "instructions": "How frustrated is the customer?",
+        "criteria": [
+          "calm",
+          "frustrated",
+          "very frustrated"
+        ]
+      }
+    },
+    "state_tokens": 61
+  },
+  {
+    "id": "B01",
+    "family": "B",
+    "state": "Pause the music.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "play",
+          "pause",
+          "stop",
+          "repeat"
+        ]
+      }
+    },
+    "state_tokens": 4
+  },
+  {
+    "id": "B02",
+    "family": "B",
+    "state": "Make the room brighter.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "dim",
+          "brighten",
+          "cool",
+          "warm",
+          "switch off"
+        ]
+      }
+    },
+    "state_tokens": 5
+  },
+  {
+    "id": "B03",
+    "family": "B",
+    "state": "Set a timer for nine minutes.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "timer",
+          "alarm",
+          "calendar",
+          "weather",
+          "volume",
+          "search"
+        ]
+      }
+    },
+    "state_tokens": 7
+  },
+  {
+    "id": "B04",
+    "family": "B",
+    "state": "Please close the window.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "open window",
+          "close window",
+          "open door",
+          "close door",
+          "lock door",
+          "unlock door",
+          "leave unchanged"
+        ]
+      }
+    },
+    "state_tokens": 5
+  },
+  {
+    "id": "B05",
+    "family": "B",
+    "state": "I need directions to the river path.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "navigation",
+          "translate",
+          "calculate",
+          "weather",
+          "music",
+          "timer",
+          "notes",
+          "lights"
+        ]
+      }
+    },
+    "state_tokens": 8
+  },
+  {
+    "id": "B06",
+    "family": "B",
+    "state": "Save this thought as a note.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "save note",
+          "delete note",
+          "read note",
+          "find file",
+          "rename file",
+          "copy text",
+          "paste text",
+          "open folder",
+          "close folder"
+        ]
+      }
+    },
+    "state_tokens": 7
+  },
+  {
+    "id": "B07",
+    "family": "B",
+    "state": "Turn the fan off.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "fan on",
+          "fan off",
+          "fan faster",
+          "fan slower",
+          "heater on",
+          "heater off",
+          "light on",
+          "light off",
+          "curtain open",
+          "curtain close"
+        ]
+      }
+    },
+    "state_tokens": 5
+  },
+  {
+    "id": "B08",
+    "family": "B",
+    "state": "What is six multiplied by seven?",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "instructions": "Which intent best matches the request?",
+        "criteria": [
+          "calculate",
+          "spell",
+          "translate",
+          "navigate"
+        ]
+      }
+    },
+    "state_tokens": 7
+  },
+  {
+    "id": "C01",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-230",
+        "approved": true,
+        "shipment": {
+          "status": "ready",
+          "inspected": true
+        }
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": []
+      }
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 49
+  },
+  {
+    "id": "C02",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-231",
+        "approved": false,
+        "shipment": {
+          "status": "held",
+          "inspected": false
+        }
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": [
+          "seal"
+        ]
+      }
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 52
+  },
+  {
+    "id": "C03",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-232",
+        "approved": true,
+        "shipment": {
+          "status": "dispatched",
+          "inspected": true
+        }
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": []
+      }
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 50
+  },
+  {
+    "id": "C04",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-233",
+        "approved": false,
+        "shipment": {
+          "status": "ready",
+          "inspected": true
+        }
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": [
+          "seal"
+        ]
+      }
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 52
+  },
+  {
+    "id": "C05",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-234",
+        "approved": true,
+        "shipment": {
+          "status": "held",
+          "inspected": false
+        },
+        "target_position": 4
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": []
+      },
+      "records": [
+        {
+          "code": "VQX-410",
+          "sealed": true,
+          "temperature": 18
+        },
+        {
+          "code": "VQX-411",
+          "sealed": true,
+          "temperature": 19
+        },
+        {
+          "code": "VQX-412",
+          "sealed": true,
+          "temperature": 20
+        },
+        {
+          "code": "VQX-413",
+          "sealed": true,
+          "temperature": 21
+        },
+        {
+          "code": "VQX-414",
+          "sealed": false,
+          "temperature": 22
+        },
+        {
+          "code": "VQX-415",
+          "sealed": true,
+          "temperature": 23
+        },
+        {
+          "code": "VQX-416",
+          "sealed": true,
+          "temperature": 24
+        },
+        {
+          "code": "VQX-417",
+          "sealed": true,
+          "temperature": 25
+        }
+      ]
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 308
+  },
+  {
+    "id": "C06",
+    "family": "C",
+    "state": {
+      "record": {
+        "code": "ZRV-235",
+        "approved": false,
+        "shipment": {
+          "status": "dispatched",
+          "inspected": true
+        },
+        "target_position": 5
+      },
+      "audit": {
+        "reviewed": true,
+        "missing_fields": [
+          "seal"
+        ]
+      },
+      "records": [
+        {
+          "code": "VQX-410",
+          "sealed": true,
+          "temperature": 18
+        },
+        {
+          "code": "VQX-411",
+          "sealed": true,
+          "temperature": 19
+        },
+        {
+          "code": "VQX-412",
+          "sealed": true,
+          "temperature": 20
+        },
+        {
+          "code": "VQX-413",
+          "sealed": true,
+          "temperature": 21
+        },
+        {
+          "code": "VQX-414",
+          "sealed": true,
+          "temperature": 22
+        },
+        {
+          "code": "VQX-415",
+          "sealed": false,
+          "temperature": 23
+        },
+        {
+          "code": "VQX-416",
+          "sealed": true,
+          "temperature": 24
+        },
+        {
+          "code": "VQX-417",
+          "sealed": true,
+          "temperature": 25
+        },
+        {
+          "code": "VQX-418",
+          "sealed": true,
+          "temperature": 26
+        }
+      ]
+    },
+    "questions": {
+      "approved": {
+        "type": "noul",
+        "instructions": "Is record.approved true?",
+        "criteria": {
+          "true": "The approved field is true",
+          "false": "The approved field is false"
+        }
+      },
+      "inspected": {
+        "type": "noul",
+        "instructions": "Has record.shipment been inspected?"
+      }
+    },
+    "state_tokens": 343
+  },
+  {
+    "id": "D01",
+    "family": "D",
+    "state": "The assembly has passed every check on the work card. All panels are fastened and the cover is fitted. The inspector signed the final box this morning. There are no parts left on the tray, no open tasks in the log, and no further work is planned before packing.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How complete is the assembly?",
+        "criteria": [
+          "unfinished",
+          "finished"
+        ]
+      }
+    },
+    "state_tokens": 56
+  },
+  {
+    "id": "D02",
+    "family": "D",
+    "state": "The speaker says the unusual noise is worth checking but there is still time to inspect it. They have arranged a careful review after lunch and asked the team to keep notes. Their voice is steady. They are worried about a possible fault, yet there is no immediate danger or urgent evacuation.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How worried is the speaker?",
+        "criteria": [
+          "calm",
+          "concerned",
+          "panicked"
+        ]
+      }
+    },
+    "state_tokens": 57
+  },
+  {
+    "id": "D03",
+    "family": "D",
+    "state": "The scheduled departure was held up for twenty minutes while a gate was cleared. The driver then resumed the usual route. Two deliveries arrived a little late, but the afternoon schedule recovered. Work continued throughout the rest of the day and nobody cancelled an order because of the delay.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How large is the delay?",
+        "criteria": [
+          "no delay",
+          "short delay",
+          "long delay",
+          "work stopped"
+        ]
+      }
+    },
+    "state_tokens": 54
+  },
+  {
+    "id": "D04",
+    "family": "D",
+    "state": "The cabinet has even joints and a smooth finish. Every drawer slides easily and the doors line up with the frame. A small scratch is visible inside the bottom compartment, but it does not affect use. The reviewer considers the work good overall and would accept another item made to the same standard.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How good is the workmanship?",
+        "criteria": [
+          "unusable",
+          "poor",
+          "adequate",
+          "good",
+          "excellent"
+        ]
+      }
+    },
+    "state_tokens": 58
+  },
+  {
+    "id": "D05",
+    "family": "D",
+    "state": "Water reached the lowest shelf and ruined several paper cartons. The metal frame remains straight and the upper shelves are dry. The room can still be used after cleaning, although a considerable part of the stored paper must be replaced. No wall has collapsed and the main equipment is still working.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How much damage is described?",
+        "criteria": [
+          "none",
+          "trace",
+          "slight",
+          "moderate",
+          "substantial",
+          "severe",
+          "complete"
+        ]
+      }
+    },
+    "state_tokens": 57
+  },
+  {
+    "id": "D06",
+    "family": "D",
+    "state": "The tank gauge points exactly to the middle mark. A manual reading confirms that the liquid reaches half of the marked capacity. No inflow or outflow is active, so the level is stable. The operator records the reading before closing the inspection cover and leaves the remaining volume available for the next delivery.",
+    "questions": {
+      "assessment": {
+        "type": "score",
+        "instructions": "How full is the storage tank?",
+        "criteria": [
+          "empty",
+          "almost empty",
+          "very little",
+          "a little",
+          "below half",
+          "about half",
+          "above half",
+          "mostly full",
+          "nearly full",
+          "completely full"
+        ]
+      }
+    },
+    "state_tokens": 60
+  },
+  {
+    "id": "E01",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "I need to move my booking."
+      },
+      {
+        "role": "assistant",
+        "content": "Which day would work?"
+      },
+      {
+        "role": "user",
+        "content": "The next morning, please."
+      },
+      {
+        "role": "assistant",
+        "content": "I can record that request."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 69
+  },
+  {
+    "id": "E02",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "The total seems wrong."
+      },
+      {
+        "role": "assistant",
+        "content": "Which charge concerns you?"
+      },
+      {
+        "role": "user",
+        "content": "The second service charge."
+      },
+      {
+        "role": "assistant",
+        "content": "Was the service used twice?"
+      },
+      {
+        "role": "user",
+        "content": "No, only once."
+      },
+      {
+        "role": "assistant",
+        "content": "I will flag the duplicate."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 99
+  },
+  {
+    "id": "E03",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "The page remains blank."
+      },
+      {
+        "role": "assistant",
+        "content": "Did reloading help?"
+      },
+      {
+        "role": "user",
+        "content": "No, it did not."
+      },
+      {
+        "role": "assistant",
+        "content": "Does a different page open?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, the help page opens."
+      },
+      {
+        "role": "assistant",
+        "content": "I will note the affected page."
+      },
+      {
+        "role": "user",
+        "content": "Please have someone repair it."
+      },
+      {
+        "role": "assistant",
+        "content": "The repair request is recorded."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 192
+  },
+  {
+    "id": "E04",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "I want to end my subscription."
+      },
+      {
+        "role": "assistant",
+        "content": "When should it end?"
+      },
+      {
+        "role": "user",
+        "content": "At the end of this week."
+      },
+      {
+        "role": "assistant",
+        "content": "That requested date is noted."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 70
+  },
+  {
+    "id": "E05",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "Can I buy another seat?"
+      },
+      {
+        "role": "assistant",
+        "content": "How many seats do you need?"
+      },
+      {
+        "role": "user",
+        "content": "Two more for the workshop."
+      },
+      {
+        "role": "assistant",
+        "content": "Will the current plan stay?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, keep the plan."
+      },
+      {
+        "role": "assistant",
+        "content": "I will record the seat request."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 105
+  },
+  {
+    "id": "E06",
+    "family": "E",
+    "state": [
+      {
+        "role": "user",
+        "content": "The parcel reached the wrong door."
+      },
+      {
+        "role": "assistant",
+        "content": "Is the address label correct?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, the label is correct."
+      },
+      {
+        "role": "assistant",
+        "content": "Can you collect it safely?"
+      },
+      {
+        "role": "user",
+        "content": "No, the building is locked."
+      },
+      {
+        "role": "assistant",
+        "content": "I will flag the delivery issue."
+      },
+      {
+        "role": "user",
+        "content": "Please arrange a new delivery."
+      },
+      {
+        "role": "assistant",
+        "content": "The request is recorded."
+      }
+    ],
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "instructions": "What is the main topic of this conversation?",
+        "criteria": {
+          "billing": "Payments or incorrect charges",
+          "technical": "A broken feature or error",
+          "changes": "A booking, subscription, or seat change",
+          "delivery": "Parcels and shipping",
+          "other": "Another subject"
+        }
+      },
+      "action_requested": {
+        "type": "noul",
+        "instructions": "Does the user ask for a concrete action?"
+      }
+    },
+    "state_tokens": 196
+  },
+  {
+    "id": "F01",
+    "family": "F",
+    "state": "Incident report\nThe central relay stopped forwarding sensor readings after a loose power connector vibrated out of its socket. A technician reseated the connector and fitted a retaining clip. The relay resumed normal service, and inspection found no data deletion or unauthorized access.\nInspection phase 1 covered zone south. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 2 covered zone east. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 3 covered zone west. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 4 covered zone north. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 5 covered zone south. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 6 covered zone east. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.\nInspection phase 7 covered zone west. The checklist recorded the connector position, indicator status, enclosure temperature, and the time of each reading. The reviewer compared the written observations with the previous shift and found no additional fault. The attached note states that the cable route was kept clear during the check.",
+    "questions": {
+      "category": {
+        "type": "choice",
+        "instructions": "What caused the interruption?",
+        "criteria": {
+          "power": "A power supply or connector problem",
+          "software": "A software logic error",
+          "intrusion": "Unauthorized access"
+        }
+      },
+      "condition": {
+        "type": "noul",
+        "instructions": "Was service restored?"
+      }
+    },
+    "state_tokens": 478
+  },
+  {
+    "id": "F02",
+    "family": "F",
+    "state": "Assembly station specification\nThe proposed assembly station uses a foot pedal to move a sliding clamp. It operates without a network connection. The safety cover must remain shut during motion, and opening it stops the clamp. A manual release allows the operator to remove a stalled item after power is isolated.\nRequirement group 1 applies to bench south. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 2 applies to bench east. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 3 applies to bench west. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 4 applies to bench north. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 5 applies to bench south. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 6 applies to bench east. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.\nRequirement group 7 applies to bench west. The inspection sheet lists the clamp travel, cover clearance, pedal return, and visibility of the status flag. A reviewer must record each result before approving that group. The operator should be able to read the flag from the normal working position without reaching into the moving section.",
+    "questions": {
+      "category": {
+        "type": "choice",
+        "instructions": "What kind of product is specified?",
+        "criteria": {
+          "mechanical": "A physical assembly workstation",
+          "messaging": "A communication service",
+          "storage": "A file archive",
+          "planning": "A scheduling tool"
+        }
+      },
+      "condition": {
+        "type": "noul",
+        "instructions": "Does opening the cover stop motion?"
+      }
+    },
+    "state_tokens": 498
+  },
+  {
+    "id": "F03",
+    "family": "F",
+    "state": "Workshop access policy\nVisitors may enter the workshop only with a trained escort. They must sign the arrival sheet, wear the issued eye protection, and stay behind the marked line when machinery is moving. An escort may refuse entry if these conditions are not met. Staff performing their assigned duties follow the separate staff procedure.\nReview section 1 concerns area south. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 2 concerns area east. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 3 concerns area west. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 4 concerns area north. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 5 concerns area south. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 6 concerns area east. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.\nReview section 7 concerns area west. The escort checks the visible floor markings, the supply of eye protection, and the legibility of the arrival sheet before the visit begins. The local supervisor reviews the written record at the end of the day. Any damaged marking must be reported and replaced before another group enters that area.",
+    "questions": {
+      "category": {
+        "type": "choice",
+        "instructions": "Which access rule applies to visitors?",
+        "criteria": {
+          "escorted": "Entry with a trained escort and stated precautions",
+          "unrestricted": "Entry without an escort or precautions"
+        }
+      },
+      "condition": {
+        "type": "noul",
+        "instructions": "Must visitors wear eye protection?"
+      }
+    },
+    "state_tokens": 519
+  },
+  {
+    "id": "G01",
+    "family": "G",
+    "state": "The selected item code is ZVQ-287. Read the code from this sentence.",
+    "questions": {
+      "selected_code": {
+        "type": "choice",
+        "instructions": "Which item code is selected?",
+        "criteria": [
+          "ZVQ-100",
+          "ZVQ-101",
+          "ZVQ-102",
+          "ZVQ-103",
+          "ZVQ-104",
+          "ZVQ-105",
+          "ZVQ-106",
+          "ZVQ-107",
+          "ZVQ-108",
+          "ZVQ-109",
+          "ZVQ-110",
+          "ZVQ-111",
+          "ZVQ-112",
+          "ZVQ-113",
+          "ZVQ-114",
+          "ZVQ-115",
+          "ZVQ-116",
+          "ZVQ-117",
+          "ZVQ-118",
+          "ZVQ-119",
+          "ZVQ-120",
+          "ZVQ-121",
+          "ZVQ-122",
+          "ZVQ-123",
+          "ZVQ-124",
+          "ZVQ-125",
+          "ZVQ-126",
+          "ZVQ-127",
+          "ZVQ-128",
+          "ZVQ-129",
+          "ZVQ-130",
+          "ZVQ-131",
+          "ZVQ-132",
+          "ZVQ-133",
+          "ZVQ-134",
+          "ZVQ-135",
+          "ZVQ-136",
+          "ZVQ-137",
+          "ZVQ-138",
+          "ZVQ-139",
+          "ZVQ-140",
+          "ZVQ-141",
+          "ZVQ-142",
+          "ZVQ-143",
+          "ZVQ-144",
+          "ZVQ-145",
+          "ZVQ-146",
+          "ZVQ-147",
+          "ZVQ-148",
+          "ZVQ-149",
+          "ZVQ-150",
+          "ZVQ-151",
+          "ZVQ-152",
+          "ZVQ-153",
+          "ZVQ-154",
+          "ZVQ-155",
+          "ZVQ-156",
+          "ZVQ-157",
+          "ZVQ-158",
+          "ZVQ-159",
+          "ZVQ-160",
+          "ZVQ-161",
+          "ZVQ-162",
+          "ZVQ-163",
+          "ZVQ-164",
+          "ZVQ-165",
+          "ZVQ-166",
+          "ZVQ-167",
+          "ZVQ-168",
+          "ZVQ-169",
+          "ZVQ-170",
+          "ZVQ-171",
+          "ZVQ-172",
+          "ZVQ-173",
+          "ZVQ-174",
+          "ZVQ-175",
+          "ZVQ-176",
+          "ZVQ-177",
+          "ZVQ-178",
+          "ZVQ-179",
+          "ZVQ-180",
+          "ZVQ-181",
+          "ZVQ-182",
+          "ZVQ-183",
+          "ZVQ-184",
+          "ZVQ-185",
+          "ZVQ-186",
+          "ZVQ-187",
+          "ZVQ-188",
+          "ZVQ-189",
+          "ZVQ-190",
+          "ZVQ-191",
+          "ZVQ-192",
+          "ZVQ-193",
+          "ZVQ-194",
+          "ZVQ-195",
+          "ZVQ-196",
+          "ZVQ-197",
+          "ZVQ-198",
+          "ZVQ-199",
+          "ZVQ-200",
+          "ZVQ-201",
+          "ZVQ-202",
+          "ZVQ-203",
+          "ZVQ-204",
+          "ZVQ-205",
+          "ZVQ-206",
+          "ZVQ-207",
+          "ZVQ-208",
+          "ZVQ-209",
+          "ZVQ-210",
+          "ZVQ-211",
+          "ZVQ-212",
+          "ZVQ-213",
+          "ZVQ-214",
+          "ZVQ-215",
+          "ZVQ-216",
+          "ZVQ-217",
+          "ZVQ-218",
+          "ZVQ-219",
+          "ZVQ-220",
+          "ZVQ-221",
+          "ZVQ-222",
+          "ZVQ-223",
+          "ZVQ-224",
+          "ZVQ-225",
+          "ZVQ-226",
+          "ZVQ-227",
+          "ZVQ-228",
+          "ZVQ-229",
+          "ZVQ-230",
+          "ZVQ-231",
+          "ZVQ-232",
+          "ZVQ-233",
+          "ZVQ-234",
+          "ZVQ-235",
+          "ZVQ-236",
+          "ZVQ-237",
+          "ZVQ-238",
+          "ZVQ-239",
+          "ZVQ-240",
+          "ZVQ-241",
+          "ZVQ-242",
+          "ZVQ-243",
+          "ZVQ-244",
+          "ZVQ-245",
+          "ZVQ-246",
+          "ZVQ-247",
+          "ZVQ-248",
+          "ZVQ-249",
+          "ZVQ-250",
+          "ZVQ-251",
+          "ZVQ-252",
+          "ZVQ-253",
+          "ZVQ-254",
+          "ZVQ-255",
+          "ZVQ-256",
+          "ZVQ-257",
+          "ZVQ-258",
+          "ZVQ-259",
+          "ZVQ-260",
+          "ZVQ-261",
+          "ZVQ-262",
+          "ZVQ-263",
+          "ZVQ-264",
+          "ZVQ-265",
+          "ZVQ-266",
+          "ZVQ-267",
+          "ZVQ-268",
+          "ZVQ-269",
+          "ZVQ-270",
+          "ZVQ-271",
+          "ZVQ-272",
+          "ZVQ-273",
+          "ZVQ-274",
+          "ZVQ-275",
+          "ZVQ-276",
+          "ZVQ-277",
+          "ZVQ-278",
+          "ZVQ-279",
+          "ZVQ-280",
+          "ZVQ-281",
+          "ZVQ-282",
+          "ZVQ-283",
+          "ZVQ-284",
+          "ZVQ-285",
+          "ZVQ-286",
+          "ZVQ-287",
+          "ZVQ-288",
+          "ZVQ-289",
+          "ZVQ-290",
+          "ZVQ-291",
+          "ZVQ-292",
+          "ZVQ-293",
+          "ZVQ-294",
+          "ZVQ-295",
+          "ZVQ-296",
+          "ZVQ-297",
+          "ZVQ-298",
+          "ZVQ-299",
+          "ZVQ-300",
+          "ZVQ-301",
+          "ZVQ-302",
+          "ZVQ-303",
+          "ZVQ-304",
+          "ZVQ-305",
+          "ZVQ-306",
+          "ZVQ-307",
+          "ZVQ-308",
+          "ZVQ-309",
+          "ZVQ-310",
+          "ZVQ-311",
+          "ZVQ-312",
+          "ZVQ-313",
+          "ZVQ-314",
+          "ZVQ-315",
+          "ZVQ-316",
+          "ZVQ-317",
+          "ZVQ-318",
+          "ZVQ-319",
+          "ZVQ-320",
+          "ZVQ-321",
+          "ZVQ-322",
+          "ZVQ-323",
+          "ZVQ-324",
+          "ZVQ-325",
+          "ZVQ-326",
+          "ZVQ-327",
+          "ZVQ-328",
+          "ZVQ-329",
+          "ZVQ-330",
+          "ZVQ-331",
+          "ZVQ-332",
+          "ZVQ-333",
+          "ZVQ-334",
+          "ZVQ-335",
+          "ZVQ-336",
+          "ZVQ-337",
+          "ZVQ-338",
+          "ZVQ-339",
+          "ZVQ-340",
+          "ZVQ-341",
+          "ZVQ-342",
+          "ZVQ-343",
+          "ZVQ-344",
+          "ZVQ-345",
+          "ZVQ-346",
+          "ZVQ-347",
+          "ZVQ-348",
+          "ZVQ-349",
+          "ZVQ-350",
+          "ZVQ-351",
+          "ZVQ-352",
+          "ZVQ-353",
+          "ZVQ-354"
+        ]
+      }
+    },
+    "state_tokens": 20
+  }
+]

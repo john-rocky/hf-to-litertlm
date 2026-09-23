@@ -560,7 +560,7 @@ message carrying one `tool_response` block per call; the tool list can go in thr
 
 ```bash
 cd granite_work
-git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
+git clone https://github.com/john-rocky/litert-torch litert-torch-granite
 # the pinned base is no longer reachable from main (measured 2026-08-25), so a
 # plain short-SHA checkout fails — fetch the commit by full SHA first
 git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
@@ -723,7 +723,7 @@ a conversion failure — the fp16 flow above is the exact-parity finish.
 
 ```bash
 cd qwen35_work
-git clone https://github.com/google-ai-edge/litert-torch litert-torch-qwen35
+git clone https://github.com/john-rocky/litert-torch litert-torch-qwen35
 git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no ref reaches this commit any more
 git -C litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
@@ -963,7 +963,7 @@ original before blaming the file:
 
 ```bash
 cd falcon_h1_work
-git clone https://github.com/google-ai-edge/litert-torch litert-torch-falcon
+git clone https://github.com/john-rocky/litert-torch litert-torch-falcon
 git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
 git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
@@ -1161,7 +1161,7 @@ flag re-serialized derivatives as template forks. `tokenizer.json` is byte-equal
 
 ```bash
 cd zamba2_work
-git clone https://github.com/google-ai-edge/litert-torch litert-torch-zamba2
+git clone https://github.com/john-rocky/litert-torch litert-torch-zamba2
 git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
 git -C litert-torch-zamba2 checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-zamba2 apply "$(pwd)/zamba2_litert_torch.patch"
@@ -1214,7 +1214,7 @@ derivative rides the same pinned recipe that shipped the two litert-community Za
 
 ```bash
 cd nemotron_h_work
-git clone https://github.com/google-ai-edge/litert-torch litert-torch-nemotron
+git clone https://github.com/john-rocky/litert-torch litert-torch-nemotron
 git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
 git -C litert-torch-nemotron checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-nemotron apply "$(pwd)/nemotron_h_litert_torch.patch"
@@ -2177,3 +2177,15 @@ python -m venv .venv-swap && .venv-swap/bin/pip install litert-lm==0.17.1
 ```
 
 Gate per file before upload: `litert-lm run` on 0.17.1 and on the 0.18 nightly answer the same one-turn question; the 0.17.1 answer of the swapped bundle is byte-identical to the original's (greedy). The card of each repo carries the line "chat template updated to accept the 0.18 content-parts form (string form unchanged); weights, tokenizer and executor metadata byte-identical".
+
+## decider-0.8b (Mapika) — a System One decision model on the Qwen3.5-0.8B hybrid rail: the readout is the recipe (2026-09-23)
+
+Published: [litert-community/decider-0.8b-LiteRT](https://huggingface.co/litert-community/decider-0.8b-LiteRT) — `decider-0.8b_fp16.litertlm` (fp16 float-casting, exact: 120/120 rows, max |Δp| 6.6e-6 vs the fp32 oracle; a desktop CPU file) and `decider-0.8b_int8.litertlm` (the house dynamic-int8 recipe, 963 MB; Android CPU or GPU). The model answers typed questions with calibrated option probabilities from one forward pass (no generation), so the gate is the probability, not a generated text: 40 synthetic fixtures → 120 rows, unrounded |Δp| against the frozen fp32 `Decider.system_one` output. Recipe, scripts, fixtures, evidence and the one-command rebuild: [`decider_work/`](decider_work/) (`bash decider_work/reproduce.sh`). Three findings that generalise:
+
+- **Dynamic int8 costs calibration on CPU, not on GPU.** The same file: CPU 117/120, max |Δp| 0.160, p95 0.068 (the FC layers quantize activations dynamically); Mac Metal GPU with one padded prefill chunk 118/119, 0.073, 0.025 (the GPU runs the int8 weights in float). fp16 casting is exact but XNNPACK expands it to fp32 on CPU (3.0 GB weight cache; 6.1 GB on a Galaxy S26 at 262 tokens), so fp16 stays a desktop file.
+- **On a GPU, chained prefill chunks corrupt the carried state of this hybrid.** Mac Metal, fp32 activations: multi-chunk max |Δp| 0.177 vs one padded chunk 9.8e-6 vs decode-walk 5.9e-6, while the CPU agrees across the three schemes within 8.9e-6. A GPU readout feeds one padded chunk (rows ≤ 1024 tokens); longer rows run on CPU.
+- **Two weight forms that look right and are not**: fp16 lm_head + int8 embedding on the tied vocab table makes the quantizer store the int8 table once per subgraph (12×, 4.7 GB); a weight-only int8 lm_head sharing the table fails to compile on Metal (shape mismatch). fp16 FCs + dynamic-int8 lm_head + int8 embedding (1.41 GB) compiles on Metal (p95 0.005) and delegates fully on the S26 CL delegate — built and gated, not published.
+
+Galaxy S26 (`litert_lm_advanced_main` v0.16.0, one cold run each): int8 GPU 262 tokens 300 tok/s / TTFT 0.91 s / engine init 78 s / 4553 MiB (188522/188522 ops delegated), 503 tokens 567 tok/s / 0.97 s / 97 s / 5317 MiB; int8 CPU 262 tokens 288 tok/s / 0.94 s / 14 s / 1941 MiB. For a prefill-dominated decision model the phone GPU buys no time at ~260 tokens; its value is calibration. A weight-only int8 build (p95 0.025 on CPU) is not published: the S26 kernel-panicked ~70 s after engine start on two days (`dumpsys dropbox` SYSTEM_LAST_KMSG), which from the host looks like a USB drop.
+
+Recipe note that applies to every hybrid recipe in this file: the pinned litert-torch base `115a13607c730c81018bb9789138a3e5e5119e3d` exists only on the `john-rocky/litert-torch` fork (upstream/main never contained it); the clone lines above were corrected to the fork on 2026-09-23.

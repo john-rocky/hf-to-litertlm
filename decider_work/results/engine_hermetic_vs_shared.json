@@ -1,0 +1,2749 @@
+{
+  "status": "PASS",
+  "device": "Apple M4 Max CPU",
+  "num_threads": 4,
+  "runtime": "litert-lm 0.17.1",
+  "timing": "contended, informational",
+  "bundle": {
+    "path": "exports/ship/decider-0.8b_fp32.litertlm",
+    "bytes": 3128765040,
+    "sha256": "95876e337980b367f71fcfcbc212ce60b834c743e9865aa3c85c1fec500aa966"
+  },
+  "temperature": 1.03,
+  "row_ids": [
+    "A01/00",
+    "A03/03",
+    "B01/00",
+    "C04/00",
+    "D01/00",
+    "E01/00"
+  ],
+  "started_utc": "2026-09-21T06:01:22.040207+00:00",
+  "deadline_utc": "2026-09-21T06:46:22.040207+00:00",
+  "cap_minutes": 45,
+  "hermetic": {
+    "calls": [
+      {
+        "row_id": "A01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -0.06809007376432419,
+        "token_length": 1,
+        "pid": 50331,
+        "engine_init_seconds_contended": 39.30994862492662,
+        "engine_init_attributed_seconds_contended": 39.30994862492662,
+        "wall_seconds_contended": 39.7759237078717,
+        "prefill_wall_seconds_contended": 0.36858174996450543,
+        "scoring_wall_seconds_contended": 0.09730620798654854,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -0.06809007376432419
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 40.07200962502975
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -9.486038208007812,
+        "token_length": 1,
+        "pid": 51461,
+        "engine_init_seconds_contended": 35.56020287494175,
+        "engine_init_attributed_seconds_contended": 35.56020287494175,
+        "wall_seconds_contended": 36.06488149985671,
+        "prefill_wall_seconds_contended": 0.40383537497837096,
+        "scoring_wall_seconds_contended": 0.10076079098507762,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -9.486038208007812
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 36.354749082936905
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -9.42845630645752,
+        "token_length": 1,
+        "pid": 52440,
+        "engine_init_seconds_contended": 35.38229212502483,
+        "engine_init_attributed_seconds_contended": 35.38229212502483,
+        "wall_seconds_contended": 35.886594625073485,
+        "prefill_wall_seconds_contended": 0.4064727089134976,
+        "scoring_wall_seconds_contended": 0.09774825000204146,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -9.42845630645752
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 36.51516499998979
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -9.37228775024414,
+        "token_length": 1,
+        "pid": 53534,
+        "engine_init_seconds_contended": 34.95715862500947,
+        "engine_init_attributed_seconds_contended": 34.95715862500947,
+        "wall_seconds_contended": 35.44686820800416,
+        "prefill_wall_seconds_contended": 0.39177458302583545,
+        "scoring_wall_seconds_contended": 0.09784908394794911,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -9.37228775024414
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 35.733062500017695
+      },
+      {
+        "row_id": "A03/03",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -1.4738091230392456,
+        "token_length": 1,
+        "pid": 54555,
+        "engine_init_seconds_contended": 36.57896545797121,
+        "engine_init_attributed_seconds_contended": 36.57896545797121,
+        "wall_seconds_contended": 37.4409917909652,
+        "prefill_wall_seconds_contended": 0.7688563750125468,
+        "scoring_wall_seconds_contended": 0.09309204097371548,
+        "prefill_token_count": 107,
+        "expected_input_tokens": 107,
+        "token_scores": [
+          [
+            -1.4738091230392456
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 37.74019379192032
+      },
+      {
+        "row_id": "A03/03",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -1.4304379224777222,
+        "token_length": 1,
+        "pid": 55667,
+        "engine_init_seconds_contended": 35.55138920794707,
+        "engine_init_attributed_seconds_contended": 35.55138920794707,
+        "wall_seconds_contended": 36.45714162499644,
+        "prefill_wall_seconds_contended": 0.8090122080175206,
+        "scoring_wall_seconds_contended": 0.09665308310650289,
+        "prefill_token_count": 107,
+        "expected_input_tokens": 107,
+        "token_scores": [
+          [
+            -1.4304379224777222
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 36.78471404092852
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -6.748132228851318,
+        "token_length": 1,
+        "pid": 56698,
+        "engine_init_seconds_contended": 34.964578083949164,
+        "engine_init_attributed_seconds_contended": 34.964578083949164,
+        "wall_seconds_contended": 35.39106650091708,
+        "prefill_wall_seconds_contended": 0.333975667017512,
+        "scoring_wall_seconds_contended": 0.09242508292663842,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -6.748132228851318
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 35.700533624971285
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -0.10022687911987305,
+        "token_length": 1,
+        "pid": 57640,
+        "engine_init_seconds_contended": 32.19048858305905,
+        "engine_init_attributed_seconds_contended": 32.19048858305905,
+        "wall_seconds_contended": 32.56380779214669,
+        "prefill_wall_seconds_contended": 0.29122400004416704,
+        "scoring_wall_seconds_contended": 0.08202787500340492,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -0.10022687911987305
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 33.19141562492587
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -4.058412075042725,
+        "token_length": 1,
+        "pid": 58596,
+        "engine_init_seconds_contended": 30.76444633398205,
+        "engine_init_attributed_seconds_contended": 30.76444633398205,
+        "wall_seconds_contended": 31.136654834030196,
+        "prefill_wall_seconds_contended": 0.29042783298064023,
+        "scoring_wall_seconds_contended": 0.08170829201117158,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -4.058412075042725
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 31.443748291931115
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -7.4414238929748535,
+        "token_length": 1,
+        "pid": 59428,
+        "engine_init_seconds_contended": 28.326977125019766,
+        "engine_init_attributed_seconds_contended": 28.326977125019766,
+        "wall_seconds_contended": 28.70172029105015,
+        "prefill_wall_seconds_contended": 0.29362591600511223,
+        "scoring_wall_seconds_contended": 0.08103754103649408,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -7.4414238929748535
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 29.33332254202105
+      },
+      {
+        "row_id": "C04/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -1.684478759765625,
+        "token_length": 1,
+        "pid": 60441,
+        "engine_init_seconds_contended": 28.44447604205925,
+        "engine_init_attributed_seconds_contended": 28.44447604205925,
+        "wall_seconds_contended": 29.11539337609429,
+        "prefill_wall_seconds_contended": 0.5886008749948815,
+        "scoring_wall_seconds_contended": 0.08223679196089506,
+        "prefill_token_count": 92,
+        "expected_input_tokens": 92,
+        "token_scores": [
+          [
+            -1.684478759765625
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 29.664042667020112
+      },
+      {
+        "row_id": "C04/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -1.378745198249817,
+        "token_length": 1,
+        "pid": 61309,
+        "engine_init_seconds_contended": 31.24011454207357,
+        "engine_init_attributed_seconds_contended": 31.24011454207357,
+        "wall_seconds_contended": 31.900524042081088,
+        "prefill_wall_seconds_contended": 0.5786208750214428,
+        "scoring_wall_seconds_contended": 0.08171004103496671,
+        "prefill_token_count": 92,
+        "expected_input_tokens": 92,
+        "token_scores": [
+          [
+            -1.378745198249817
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 32.16539237496909
+      },
+      {
+        "row_id": "D01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -0.23397018015384674,
+        "token_length": 1,
+        "pid": 62187,
+        "engine_init_seconds_contended": 29.30880116694607,
+        "engine_init_attributed_seconds_contended": 29.30880116694607,
+        "wall_seconds_contended": 29.73060370888561,
+        "prefill_wall_seconds_contended": 0.33924237499013543,
+        "scoring_wall_seconds_contended": 0.0824825830059126,
+        "prefill_token_count": 96,
+        "expected_input_tokens": 96,
+        "token_scores": [
+          [
+            -0.23397018015384674
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 29.992352250032127
+      },
+      {
+        "row_id": "D01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -6.526048183441162,
+        "token_length": 1,
+        "pid": 63036,
+        "engine_init_seconds_contended": 28.069411666016094,
+        "engine_init_attributed_seconds_contended": 28.069411666016094,
+        "wall_seconds_contended": 28.49642604100518,
+        "prefill_wall_seconds_contended": 0.3432358750142157,
+        "scoring_wall_seconds_contended": 0.08369691600091755,
+        "prefill_token_count": 96,
+        "expected_input_tokens": 96,
+        "token_scores": [
+          [
+            -6.526048183441162
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 28.768663166905753
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -9.571036338806152,
+        "token_length": 1,
+        "pid": 63830,
+        "engine_init_seconds_contended": 30.06810925004538,
+        "engine_init_attributed_seconds_contended": 30.06810925004538,
+        "wall_seconds_contended": 30.708765000104904,
+        "prefill_wall_seconds_contended": 0.558057332993485,
+        "scoring_wall_seconds_contended": 0.08251829200889915,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -9.571036338806152
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 30.976217500050552
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -8.94851303100586,
+        "token_length": 1,
+        "pid": 64671,
+        "engine_init_seconds_contended": 30.02906220802106,
+        "engine_init_attributed_seconds_contended": 30.02906220802106,
+        "wall_seconds_contended": 30.683459291001782,
+        "prefill_wall_seconds_contended": 0.5700299170566723,
+        "scoring_wall_seconds_contended": 0.08427979203406721,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -8.94851303100586
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 30.95999645907432
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -0.08685076236724854,
+        "token_length": 1,
+        "pid": 65542,
+        "engine_init_seconds_contended": 28.674464209005237,
+        "engine_init_attributed_seconds_contended": 28.674464209005237,
+        "wall_seconds_contended": 29.33327574993018,
+        "prefill_wall_seconds_contended": 0.5754400830483064,
+        "scoring_wall_seconds_contended": 0.08330333302728832,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -0.08685076236724854
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 29.60463954100851
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -8.743597030639648,
+        "token_length": 1,
+        "pid": 66312,
+        "engine_init_seconds_contended": 28.83062783407513,
+        "engine_init_attributed_seconds_contended": 28.83062783407513,
+        "wall_seconds_contended": 29.475373251130804,
+        "prefill_wall_seconds_contended": 0.5619937089504674,
+        "scoring_wall_seconds_contended": 0.08267683302983642,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -8.743597030639648
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 29.74021650000941
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 4,
+        "label": "E",
+        "token_id": 36,
+        "score": -5.818436145782471,
+        "token_length": 1,
+        "pid": 67169,
+        "engine_init_seconds_contended": 30.84868429193739,
+        "engine_init_attributed_seconds_contended": 30.84868429193739,
+        "wall_seconds_contended": 31.499405833892524,
+        "prefill_wall_seconds_contended": 0.5630951250204816,
+        "scoring_wall_seconds_contended": 0.08755695796571672,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -5.818436145782471
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true,
+        "process_wall_seconds_contended": 31.76571225002408
+      }
+    ],
+    "rows": [
+      {
+        "row_id": "A01/00",
+        "family": "A",
+        "nopts": 4,
+        "scores": [
+          -0.06809007376432419,
+          -9.486038208007812,
+          -9.42845630645752,
+          -9.37228775024414
+        ],
+        "probabilities": [
+          0.9996607938915429,
+          0.00010686136380922257,
+          0.00011300556754565879,
+          0.00011933917710200243
+        ],
+        "argmax": 0,
+        "argmax_oracle": 0,
+        "argmax_identical": true,
+        "max_abs_probability_error": 1.6633620852024578e-05,
+        "tie": false,
+        "oracle_top2_gap": 0.9995197194512002,
+        "finite": true,
+        "wall_seconds_contended": 147.17426804080606,
+        "calls": [
+          {
+            "row_id": "A01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -0.06809007376432419,
+            "token_length": 1,
+            "pid": 50331,
+            "engine_init_seconds_contended": 39.30994862492662,
+            "engine_init_attributed_seconds_contended": 39.30994862492662,
+            "wall_seconds_contended": 39.7759237078717,
+            "prefill_wall_seconds_contended": 0.36858174996450543,
+            "scoring_wall_seconds_contended": 0.09730620798654854,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -0.06809007376432419
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 40.07200962502975
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -9.486038208007812,
+            "token_length": 1,
+            "pid": 51461,
+            "engine_init_seconds_contended": 35.56020287494175,
+            "engine_init_attributed_seconds_contended": 35.56020287494175,
+            "wall_seconds_contended": 36.06488149985671,
+            "prefill_wall_seconds_contended": 0.40383537497837096,
+            "scoring_wall_seconds_contended": 0.10076079098507762,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -9.486038208007812
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 36.354749082936905
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -9.42845630645752,
+            "token_length": 1,
+            "pid": 52440,
+            "engine_init_seconds_contended": 35.38229212502483,
+            "engine_init_attributed_seconds_contended": 35.38229212502483,
+            "wall_seconds_contended": 35.886594625073485,
+            "prefill_wall_seconds_contended": 0.4064727089134976,
+            "scoring_wall_seconds_contended": 0.09774825000204146,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -9.42845630645752
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 36.51516499998979
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -9.37228775024414,
+            "token_length": 1,
+            "pid": 53534,
+            "engine_init_seconds_contended": 34.95715862500947,
+            "engine_init_attributed_seconds_contended": 34.95715862500947,
+            "wall_seconds_contended": 35.44686820800416,
+            "prefill_wall_seconds_contended": 0.39177458302583545,
+            "scoring_wall_seconds_contended": 0.09784908394794911,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -9.37228775024414
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 35.733062500017695
+          }
+        ]
+      },
+      {
+        "row_id": "A03/03",
+        "family": "A",
+        "nopts": 2,
+        "scores": [
+          -1.4738091230392456,
+          -1.4304379224777222
+        ],
+        "probabilities": [
+          0.4894745647301055,
+          0.5105254352698946
+        ],
+        "argmax": 1,
+        "argmax_oracle": 1,
+        "argmax_identical": true,
+        "max_abs_probability_error": 4.324323040483247e-05,
+        "tie": false,
+        "oracle_top2_gap": 0.02096441388130188,
+        "finite": true,
+        "wall_seconds_contended": 73.89813341596164,
+        "calls": [
+          {
+            "row_id": "A03/03",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -1.4738091230392456,
+            "token_length": 1,
+            "pid": 54555,
+            "engine_init_seconds_contended": 36.57896545797121,
+            "engine_init_attributed_seconds_contended": 36.57896545797121,
+            "wall_seconds_contended": 37.4409917909652,
+            "prefill_wall_seconds_contended": 0.7688563750125468,
+            "scoring_wall_seconds_contended": 0.09309204097371548,
+            "prefill_token_count": 107,
+            "expected_input_tokens": 107,
+            "token_scores": [
+              [
+                -1.4738091230392456
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 37.74019379192032
+          },
+          {
+            "row_id": "A03/03",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -1.4304379224777222,
+            "token_length": 1,
+            "pid": 55667,
+            "engine_init_seconds_contended": 35.55138920794707,
+            "engine_init_attributed_seconds_contended": 35.55138920794707,
+            "wall_seconds_contended": 36.45714162499644,
+            "prefill_wall_seconds_contended": 0.8090122080175206,
+            "scoring_wall_seconds_contended": 0.09665308310650289,
+            "prefill_token_count": 107,
+            "expected_input_tokens": 107,
+            "token_scores": [
+              [
+                -1.4304379224777222
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 36.78471404092852
+          }
+        ]
+      },
+      {
+        "row_id": "B01/00",
+        "family": "B",
+        "nopts": 4,
+        "scores": [
+          -6.748132228851318,
+          -0.10022687911987305,
+          -4.058412075042725,
+          -7.4414238929748535
+        ],
+        "probabilities": [
+          0.001537179484339445,
+          0.9767456418834243,
+          0.02093302433440387,
+          0.0007841542978324239
+        ],
+        "argmax": 1,
+        "argmax_oracle": 1,
+        "argmax_identical": true,
+        "max_abs_probability_error": 8.473461490010603e-05,
+        "tie": false,
+        "oracle_top2_gap": 0.9556524083018303,
+        "finite": true,
+        "wall_seconds_contended": 127.79324941814411,
+        "calls": [
+          {
+            "row_id": "B01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -6.748132228851318,
+            "token_length": 1,
+            "pid": 56698,
+            "engine_init_seconds_contended": 34.964578083949164,
+            "engine_init_attributed_seconds_contended": 34.964578083949164,
+            "wall_seconds_contended": 35.39106650091708,
+            "prefill_wall_seconds_contended": 0.333975667017512,
+            "scoring_wall_seconds_contended": 0.09242508292663842,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -6.748132228851318
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 35.700533624971285
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -0.10022687911987305,
+            "token_length": 1,
+            "pid": 57640,
+            "engine_init_seconds_contended": 32.19048858305905,
+            "engine_init_attributed_seconds_contended": 32.19048858305905,
+            "wall_seconds_contended": 32.56380779214669,
+            "prefill_wall_seconds_contended": 0.29122400004416704,
+            "scoring_wall_seconds_contended": 0.08202787500340492,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -0.10022687911987305
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 33.19141562492587
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -4.058412075042725,
+            "token_length": 1,
+            "pid": 58596,
+            "engine_init_seconds_contended": 30.76444633398205,
+            "engine_init_attributed_seconds_contended": 30.76444633398205,
+            "wall_seconds_contended": 31.136654834030196,
+            "prefill_wall_seconds_contended": 0.29042783298064023,
+            "scoring_wall_seconds_contended": 0.08170829201117158,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -4.058412075042725
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 31.443748291931115
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -7.4414238929748535,
+            "token_length": 1,
+            "pid": 59428,
+            "engine_init_seconds_contended": 28.326977125019766,
+            "engine_init_attributed_seconds_contended": 28.326977125019766,
+            "wall_seconds_contended": 28.70172029105015,
+            "prefill_wall_seconds_contended": 0.29362591600511223,
+            "scoring_wall_seconds_contended": 0.08103754103649408,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -7.4414238929748535
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 29.33332254202105
+          }
+        ]
+      },
+      {
+        "row_id": "C04/00",
+        "family": "C",
+        "nopts": 2,
+        "scores": [
+          -1.684478759765625,
+          -1.378745198249817
+        ],
+        "probabilities": [
+          0.42633291612373087,
+          0.5736670838762692
+        ],
+        "argmax": 1,
+        "argmax_oracle": 1,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.004493688242571625,
+        "tie": false,
+        "oracle_top2_gap": 0.1383468508720398,
+        "finite": true,
+        "wall_seconds_contended": 61.01591741817538,
+        "calls": [
+          {
+            "row_id": "C04/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -1.684478759765625,
+            "token_length": 1,
+            "pid": 60441,
+            "engine_init_seconds_contended": 28.44447604205925,
+            "engine_init_attributed_seconds_contended": 28.44447604205925,
+            "wall_seconds_contended": 29.11539337609429,
+            "prefill_wall_seconds_contended": 0.5886008749948815,
+            "scoring_wall_seconds_contended": 0.08223679196089506,
+            "prefill_token_count": 92,
+            "expected_input_tokens": 92,
+            "token_scores": [
+              [
+                -1.684478759765625
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 29.664042667020112
+          },
+          {
+            "row_id": "C04/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -1.378745198249817,
+            "token_length": 1,
+            "pid": 61309,
+            "engine_init_seconds_contended": 31.24011454207357,
+            "engine_init_attributed_seconds_contended": 31.24011454207357,
+            "wall_seconds_contended": 31.900524042081088,
+            "prefill_wall_seconds_contended": 0.5786208750214428,
+            "scoring_wall_seconds_contended": 0.08171004103496671,
+            "prefill_token_count": 92,
+            "expected_input_tokens": 92,
+            "token_scores": [
+              [
+                -1.378745198249817
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 32.16539237496909
+          }
+        ]
+      },
+      {
+        "row_id": "D01/00",
+        "family": "D",
+        "nopts": 2,
+        "scores": [
+          -0.23397018015384674,
+          -6.526048183441162
+        ],
+        "probabilities": [
+          0.9977817447480659,
+          0.0022182552519341317
+        ],
+        "argmax": 0,
+        "argmax_oracle": 0,
+        "argmax_identical": true,
+        "max_abs_probability_error": 4.910543532177236e-05,
+        "tie": false,
+        "oracle_top2_gap": 0.995465342188254,
+        "finite": true,
+        "wall_seconds_contended": 58.22702974989079,
+        "calls": [
+          {
+            "row_id": "D01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -0.23397018015384674,
+            "token_length": 1,
+            "pid": 62187,
+            "engine_init_seconds_contended": 29.30880116694607,
+            "engine_init_attributed_seconds_contended": 29.30880116694607,
+            "wall_seconds_contended": 29.73060370888561,
+            "prefill_wall_seconds_contended": 0.33924237499013543,
+            "scoring_wall_seconds_contended": 0.0824825830059126,
+            "prefill_token_count": 96,
+            "expected_input_tokens": 96,
+            "token_scores": [
+              [
+                -0.23397018015384674
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 29.992352250032127
+          },
+          {
+            "row_id": "D01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -6.526048183441162,
+            "token_length": 1,
+            "pid": 63036,
+            "engine_init_seconds_contended": 28.069411666016094,
+            "engine_init_attributed_seconds_contended": 28.069411666016094,
+            "wall_seconds_contended": 28.49642604100518,
+            "prefill_wall_seconds_contended": 0.3432358750142157,
+            "scoring_wall_seconds_contended": 0.08369691600091755,
+            "prefill_token_count": 96,
+            "expected_input_tokens": 96,
+            "token_scores": [
+              [
+                -6.526048183441162
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 28.768663166905753
+          }
+        ]
+      },
+      {
+        "row_id": "E01/00",
+        "family": "E",
+        "nopts": 5,
+        "scores": [
+          -9.571036338806152,
+          -8.94851303100586,
+          -0.08685076236724854,
+          -8.743597030639648,
+          -5.818436145782471
+        ],
+        "probabilities": [
+          9.980660050481243e-05,
+          0.00018265988641489366,
+          0.9956802790307315,
+          0.00022286661480059816,
+          0.0038143878675482687
+        ],
+        "argmax": 2,
+        "argmax_oracle": 2,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.00012386490338167633,
+        "tie": false,
+        "oracle_top2_gap": 0.9916369607672095,
+        "finite": true,
+        "wall_seconds_contended": 151.7002791260602,
+        "calls": [
+          {
+            "row_id": "E01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -9.571036338806152,
+            "token_length": 1,
+            "pid": 63830,
+            "engine_init_seconds_contended": 30.06810925004538,
+            "engine_init_attributed_seconds_contended": 30.06810925004538,
+            "wall_seconds_contended": 30.708765000104904,
+            "prefill_wall_seconds_contended": 0.558057332993485,
+            "scoring_wall_seconds_contended": 0.08251829200889915,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -9.571036338806152
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 30.976217500050552
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -8.94851303100586,
+            "token_length": 1,
+            "pid": 64671,
+            "engine_init_seconds_contended": 30.02906220802106,
+            "engine_init_attributed_seconds_contended": 30.02906220802106,
+            "wall_seconds_contended": 30.683459291001782,
+            "prefill_wall_seconds_contended": 0.5700299170566723,
+            "scoring_wall_seconds_contended": 0.08427979203406721,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -8.94851303100586
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 30.95999645907432
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -0.08685076236724854,
+            "token_length": 1,
+            "pid": 65542,
+            "engine_init_seconds_contended": 28.674464209005237,
+            "engine_init_attributed_seconds_contended": 28.674464209005237,
+            "wall_seconds_contended": 29.33327574993018,
+            "prefill_wall_seconds_contended": 0.5754400830483064,
+            "scoring_wall_seconds_contended": 0.08330333302728832,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -0.08685076236724854
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 29.60463954100851
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -8.743597030639648,
+            "token_length": 1,
+            "pid": 66312,
+            "engine_init_seconds_contended": 28.83062783407513,
+            "engine_init_attributed_seconds_contended": 28.83062783407513,
+            "wall_seconds_contended": 29.475373251130804,
+            "prefill_wall_seconds_contended": 0.5619937089504674,
+            "scoring_wall_seconds_contended": 0.08267683302983642,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -8.743597030639648
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 29.74021650000941
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 4,
+            "label": "E",
+            "token_id": 36,
+            "score": -5.818436145782471,
+            "token_length": 1,
+            "pid": 67169,
+            "engine_init_seconds_contended": 30.84868429193739,
+            "engine_init_attributed_seconds_contended": 30.84868429193739,
+            "wall_seconds_contended": 31.499405833892524,
+            "prefill_wall_seconds_contended": 0.5630951250204816,
+            "scoring_wall_seconds_contended": 0.08755695796571672,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -5.818436145782471
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true,
+            "process_wall_seconds_contended": 31.76571225002408
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "rows": 6,
+      "argmax_identical": 6,
+      "ties": 0,
+      "max_abs_probability_error": 0.004493688242571625,
+      "all_finite": true
+    },
+    "unique_pids": [
+      50331,
+      51461,
+      52440,
+      53534,
+      54555,
+      55667,
+      56698,
+      57640,
+      58596,
+      59428,
+      60441,
+      61309,
+      62187,
+      63036,
+      63830,
+      64671,
+      65542,
+      66312,
+      67169
+    ]
+  },
+  "shared": {
+    "calls": [
+      {
+        "row_id": "A01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -0.06809007376432419,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 31.079536582925357,
+        "wall_seconds_contended": 31.47987612488214,
+        "prefill_wall_seconds_contended": 0.3180500000016764,
+        "scoring_wall_seconds_contended": 0.08219687500968575,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -0.06809007376432419
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": true
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -8.469343185424805,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.2910952919628471,
+        "prefill_wall_seconds_contended": 0.24942383298184723,
+        "scoring_wall_seconds_contended": 0.04159958299715072,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -8.469343185424805
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -7.918753147125244,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.29443437489680946,
+        "prefill_wall_seconds_contended": 0.25887424999382347,
+        "scoring_wall_seconds_contended": 0.035484167048707604,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -7.918753147125244
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "A01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -6.148261547088623,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.28393758402671665,
+        "prefill_wall_seconds_contended": 0.24891958304215223,
+        "scoring_wall_seconds_contended": 0.034955334034748375,
+        "prefill_token_count": 129,
+        "expected_input_tokens": 129,
+        "token_scores": [
+          [
+            -6.148261547088623
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "A03/03",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -1.6789047718048096,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.5934632079442963,
+        "prefill_wall_seconds_contended": 0.5535289999097586,
+        "scoring_wall_seconds_contended": 0.039873166009783745,
+        "prefill_token_count": 107,
+        "expected_input_tokens": 107,
+        "token_scores": [
+          [
+            -1.6789047718048096
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "A03/03",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -1.8475650548934937,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.5167817919282243,
+        "prefill_wall_seconds_contended": 0.48202495800796896,
+        "scoring_wall_seconds_contended": 0.03469483298249543,
+        "prefill_token_count": 107,
+        "expected_input_tokens": 107,
+        "token_scores": [
+          [
+            -1.8475650548934937
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -3.3581838607788086,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.2551370409782976,
+        "prefill_wall_seconds_contended": 0.21931329194922,
+        "scoring_wall_seconds_contended": 0.03576300002168864,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -3.3581838607788086
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -1.7350276708602905,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.2572200420545414,
+        "prefill_wall_seconds_contended": 0.22144504101015627,
+        "scoring_wall_seconds_contended": 0.03569983399938792,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -1.7350276708602905
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -2.283689498901367,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.2624869589926675,
+        "prefill_wall_seconds_contended": 0.22579204209614545,
+        "scoring_wall_seconds_contended": 0.03663112502545118,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -2.283689498901367
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "B01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -2.8055429458618164,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.250966208986938,
+        "prefill_wall_seconds_contended": 0.2156897080130875,
+        "scoring_wall_seconds_contended": 0.035208749934099615,
+        "prefill_token_count": 40,
+        "expected_input_tokens": 40,
+        "token_scores": [
+          [
+            -2.8055429458618164
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "C04/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -2.384896993637085,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.5284174589905888,
+        "prefill_wall_seconds_contended": 0.49177308299113065,
+        "scoring_wall_seconds_contended": 0.036578333005309105,
+        "prefill_token_count": 92,
+        "expected_input_tokens": 92,
+        "token_scores": [
+          [
+            -2.384896993637085
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "C04/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -2.0539486408233643,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.4963821249548346,
+        "prefill_wall_seconds_contended": 0.4608026660280302,
+        "scoring_wall_seconds_contended": 0.03552391694393009,
+        "prefill_token_count": 92,
+        "expected_input_tokens": 92,
+        "token_scores": [
+          [
+            -2.0539486408233643
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "D01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -1.088108777999878,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.2878248749766499,
+        "prefill_wall_seconds_contended": 0.25114087492693216,
+        "scoring_wall_seconds_contended": 0.03662333299871534,
+        "prefill_token_count": 96,
+        "expected_input_tokens": 96,
+        "token_scores": [
+          [
+            -1.088108777999878
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "D01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -2.9840989112854004,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.29140562494285405,
+        "prefill_wall_seconds_contended": 0.2563577499240637,
+        "scoring_wall_seconds_contended": 0.034983874997124076,
+        "prefill_token_count": 96,
+        "expected_input_tokens": 96,
+        "token_scores": [
+          [
+            -2.9840989112854004
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 0,
+        "label": "A",
+        "token_id": 32,
+        "score": -1.6562660932540894,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.49324537499342114,
+        "prefill_wall_seconds_contended": 0.45813558297231793,
+        "scoring_wall_seconds_contended": 0.03505554096773267,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -1.6562660932540894
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 1,
+        "label": "B",
+        "token_id": 33,
+        "score": -5.9537882804870605,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.48761916696093976,
+        "prefill_wall_seconds_contended": 0.45253891707398,
+        "scoring_wall_seconds_contended": 0.03501499991398305,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -5.9537882804870605
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 2,
+        "label": "C",
+        "token_id": 34,
+        "score": -0.6459535956382751,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.48631212499458343,
+        "prefill_wall_seconds_contended": 0.4513547500828281,
+        "scoring_wall_seconds_contended": 0.034891959046944976,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -0.6459535956382751
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 3,
+        "label": "D",
+        "token_id": 35,
+        "score": -4.529072284698486,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.4922739580506459,
+        "prefill_wall_seconds_contended": 0.4573901250259951,
+        "scoring_wall_seconds_contended": 0.034825957962311804,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -4.529072284698486
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      },
+      {
+        "row_id": "E01/00",
+        "label_index": 4,
+        "label": "E",
+        "token_id": 36,
+        "score": -2.657421350479126,
+        "token_length": 1,
+        "pid": 68041,
+        "engine_init_seconds_contended": 31.079536582925357,
+        "engine_init_attributed_seconds_contended": 0.0,
+        "wall_seconds_contended": 0.4954087910009548,
+        "prefill_wall_seconds_contended": 0.4606345830252394,
+        "scoring_wall_seconds_contended": 0.034712790977209806,
+        "prefill_token_count": 139,
+        "expected_input_tokens": 139,
+        "token_scores": [
+          [
+            -2.657421350479126
+          ]
+        ],
+        "session_fresh": true,
+        "engine_fresh": false
+      }
+    ],
+    "rows": [
+      {
+        "row_id": "A01/00",
+        "family": "A",
+        "nopts": 4,
+        "scores": [
+          -0.06809007376432419,
+          -8.469343185424805,
+          -7.918753147125244,
+          -6.148261547088623
+        ],
+        "probabilities": [
+          0.9965048275627161,
+          0.00028584589703686646,
+          0.00048784916955427367,
+          0.0027214773706927885
+        ],
+        "argmax": 0,
+        "argmax_oracle": 0,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.00313933270797484,
+        "tie": false,
+        "oracle_top2_gap": 0.9995197194512002,
+        "finite": true,
+        "wall_seconds_contended": 32.34934337576851,
+        "calls": [
+          {
+            "row_id": "A01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -0.06809007376432419,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 31.079536582925357,
+            "wall_seconds_contended": 31.47987612488214,
+            "prefill_wall_seconds_contended": 0.3180500000016764,
+            "scoring_wall_seconds_contended": 0.08219687500968575,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -0.06809007376432419
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": true
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -8.469343185424805,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.2910952919628471,
+            "prefill_wall_seconds_contended": 0.24942383298184723,
+            "scoring_wall_seconds_contended": 0.04159958299715072,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -8.469343185424805
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -7.918753147125244,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.29443437489680946,
+            "prefill_wall_seconds_contended": 0.25887424999382347,
+            "scoring_wall_seconds_contended": 0.035484167048707604,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -7.918753147125244
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "A01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -6.148261547088623,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.28393758402671665,
+            "prefill_wall_seconds_contended": 0.24891958304215223,
+            "scoring_wall_seconds_contended": 0.034955334034748375,
+            "prefill_token_count": 129,
+            "expected_input_tokens": 129,
+            "token_scores": [
+              [
+                -6.148261547088623
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      },
+      {
+        "row_id": "A03/03",
+        "family": "A",
+        "nopts": 2,
+        "scores": [
+          -1.6789047718048096,
+          -1.8475650548934937
+        ],
+        "probabilities": [
+          0.5408457350667826,
+          0.4591542649332173
+        ],
+        "argmax": 0,
+        "argmax_oracle": 1,
+        "argmax_identical": false,
+        "max_abs_probability_error": 0.05132795690859471,
+        "tie": false,
+        "oracle_top2_gap": 0.02096441388130188,
+        "finite": true,
+        "wall_seconds_contended": 1.1102449998725206,
+        "calls": [
+          {
+            "row_id": "A03/03",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -1.6789047718048096,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.5934632079442963,
+            "prefill_wall_seconds_contended": 0.5535289999097586,
+            "scoring_wall_seconds_contended": 0.039873166009783745,
+            "prefill_token_count": 107,
+            "expected_input_tokens": 107,
+            "token_scores": [
+              [
+                -1.6789047718048096
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "A03/03",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -1.8475650548934937,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.5167817919282243,
+            "prefill_wall_seconds_contended": 0.48202495800796896,
+            "scoring_wall_seconds_contended": 0.03469483298249543,
+            "prefill_token_count": 107,
+            "expected_input_tokens": 107,
+            "token_scores": [
+              [
+                -1.8475650548934937
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      },
+      {
+        "row_id": "B01/00",
+        "family": "B",
+        "nopts": 4,
+        "scores": [
+          -3.3581838607788086,
+          -1.7350276708602905,
+          -2.283689498901367,
+          -2.8055429458618164
+        ],
+        "probabilities": [
+          0.09630792385106707,
+          0.46564819117198697,
+          0.2733489018592357,
+          0.16469498311771028
+        ],
+        "argmax": 1,
+        "argmax_oracle": 1,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.5110127160965372,
+        "tie": false,
+        "oracle_top2_gap": 0.9556524083018303,
+        "finite": true,
+        "wall_seconds_contended": 1.0258102510124445,
+        "calls": [
+          {
+            "row_id": "B01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -3.3581838607788086,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.2551370409782976,
+            "prefill_wall_seconds_contended": 0.21931329194922,
+            "scoring_wall_seconds_contended": 0.03576300002168864,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -3.3581838607788086
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -1.7350276708602905,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.2572200420545414,
+            "prefill_wall_seconds_contended": 0.22144504101015627,
+            "scoring_wall_seconds_contended": 0.03569983399938792,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -1.7350276708602905
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -2.283689498901367,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.2624869589926675,
+            "prefill_wall_seconds_contended": 0.22579204209614545,
+            "scoring_wall_seconds_contended": 0.03663112502545118,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -2.283689498901367
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "B01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -2.8055429458618164,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.250966208986938,
+            "prefill_wall_seconds_contended": 0.2156897080130875,
+            "scoring_wall_seconds_contended": 0.035208749934099615,
+            "prefill_token_count": 40,
+            "expected_input_tokens": 40,
+            "token_scores": [
+              [
+                -2.8055429458618164
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      },
+      {
+        "row_id": "C04/00",
+        "family": "C",
+        "nopts": 2,
+        "scores": [
+          -2.384896993637085,
+          -2.0539486408233643
+        ],
+        "probabilities": [
+          0.4203567480969247,
+          0.5796432519030753
+        ],
+        "argmax": 1,
+        "argmax_oracle": 1,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.010469856269377797,
+        "tie": false,
+        "oracle_top2_gap": 0.1383468508720398,
+        "finite": true,
+        "wall_seconds_contended": 1.0247995839454234,
+        "calls": [
+          {
+            "row_id": "C04/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -2.384896993637085,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.5284174589905888,
+            "prefill_wall_seconds_contended": 0.49177308299113065,
+            "scoring_wall_seconds_contended": 0.036578333005309105,
+            "prefill_token_count": 92,
+            "expected_input_tokens": 92,
+            "token_scores": [
+              [
+                -2.384896993637085
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "C04/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -2.0539486408233643,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.4963821249548346,
+            "prefill_wall_seconds_contended": 0.4608026660280302,
+            "scoring_wall_seconds_contended": 0.03552391694393009,
+            "prefill_token_count": 92,
+            "expected_input_tokens": 92,
+            "token_scores": [
+              [
+                -2.0539486408233643
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      },
+      {
+        "row_id": "D01/00",
+        "family": "D",
+        "nopts": 2,
+        "scores": [
+          -1.088108777999878,
+          -2.9840989112854004
+        ],
+        "probabilities": [
+          0.8630394080596802,
+          0.13696059194031987
+        ],
+        "argmax": 0,
+        "argmax_oracle": 0,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.13469329481582973,
+        "tie": false,
+        "oracle_top2_gap": 0.995465342188254,
+        "finite": true,
+        "wall_seconds_contended": 0.5792304999195039,
+        "calls": [
+          {
+            "row_id": "D01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -1.088108777999878,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.2878248749766499,
+            "prefill_wall_seconds_contended": 0.25114087492693216,
+            "scoring_wall_seconds_contended": 0.03662333299871534,
+            "prefill_token_count": 96,
+            "expected_input_tokens": 96,
+            "token_scores": [
+              [
+                -1.088108777999878
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "D01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -2.9840989112854004,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.29140562494285405,
+            "prefill_wall_seconds_contended": 0.2563577499240637,
+            "scoring_wall_seconds_contended": 0.034983874997124076,
+            "prefill_token_count": 96,
+            "expected_input_tokens": 96,
+            "token_scores": [
+              [
+                -2.9840989112854004
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      },
+      {
+        "row_id": "E01/00",
+        "family": "E",
+        "nopts": 5,
+        "scores": [
+          -1.6562660932540894,
+          -5.9537882804870605,
+          -0.6459535956382751,
+          -4.529072284698486,
+          -2.657421350479126
+        ],
+        "probabilities": [
+          0.24259858074792726,
+          0.0037398911556260003,
+          0.6469662092589332,
+          0.014913635394360018,
+          0.09178168344315361
+        ],
+        "argmax": 2,
+        "argmax_oracle": 2,
+        "argmax_identical": true,
+        "max_abs_probability_error": 0.34859020486841663,
+        "tie": false,
+        "oracle_top2_gap": 0.9916369607672095,
+        "finite": true,
+        "wall_seconds_contended": 2.454859416000545,
+        "calls": [
+          {
+            "row_id": "E01/00",
+            "label_index": 0,
+            "label": "A",
+            "token_id": 32,
+            "score": -1.6562660932540894,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.49324537499342114,
+            "prefill_wall_seconds_contended": 0.45813558297231793,
+            "scoring_wall_seconds_contended": 0.03505554096773267,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -1.6562660932540894
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 1,
+            "label": "B",
+            "token_id": 33,
+            "score": -5.9537882804870605,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.48761916696093976,
+            "prefill_wall_seconds_contended": 0.45253891707398,
+            "scoring_wall_seconds_contended": 0.03501499991398305,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -5.9537882804870605
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 2,
+            "label": "C",
+            "token_id": 34,
+            "score": -0.6459535956382751,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.48631212499458343,
+            "prefill_wall_seconds_contended": 0.4513547500828281,
+            "scoring_wall_seconds_contended": 0.034891959046944976,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -0.6459535956382751
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 3,
+            "label": "D",
+            "token_id": 35,
+            "score": -4.529072284698486,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.4922739580506459,
+            "prefill_wall_seconds_contended": 0.4573901250259951,
+            "scoring_wall_seconds_contended": 0.034825957962311804,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -4.529072284698486
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          },
+          {
+            "row_id": "E01/00",
+            "label_index": 4,
+            "label": "E",
+            "token_id": 36,
+            "score": -2.657421350479126,
+            "token_length": 1,
+            "pid": 68041,
+            "engine_init_seconds_contended": 31.079536582925357,
+            "engine_init_attributed_seconds_contended": 0.0,
+            "wall_seconds_contended": 0.4954087910009548,
+            "prefill_wall_seconds_contended": 0.4606345830252394,
+            "scoring_wall_seconds_contended": 0.034712790977209806,
+            "prefill_token_count": 139,
+            "expected_input_tokens": 139,
+            "token_scores": [
+              [
+                -2.657421350479126
+              ]
+            ],
+            "session_fresh": true,
+            "engine_fresh": false
+          }
+        ]
+      }
+    ],
+    "engine_creation": "PASS",
+    "process_wall_seconds_contended": 38.824350791983306,
+    "summary": {
+      "rows": 6,
+      "argmax_identical": 5,
+      "ties": 0,
+      "max_abs_probability_error": 0.5110127160965372,
+      "all_finite": true
+    },
+    "unique_pids": [
+      68041
+    ]
+  },
+  "workers": [
+    {
+      "mode": "hermetic",
+      "index": 0,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2697",
+        "--report",
+        "results/engine_calls/hermetic_00_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_00.json",
+        "--call-index",
+        "0"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 40.07200962502975,
+      "result": "results/engine_calls/hermetic_00.json",
+      "process_report": "results/engine_calls/hermetic_00_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 1,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2657",
+        "--report",
+        "results/engine_calls/hermetic_01_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_01.json",
+        "--call-index",
+        "1"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 36.354749082936905,
+      "result": "results/engine_calls/hermetic_01.json",
+      "process_report": "results/engine_calls/hermetic_01_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 2,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2621",
+        "--report",
+        "results/engine_calls/hermetic_02_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_02.json",
+        "--call-index",
+        "2"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 36.51516499998979,
+      "result": "results/engine_calls/hermetic_02.json",
+      "process_report": "results/engine_calls/hermetic_02_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 3,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2585",
+        "--report",
+        "results/engine_calls/hermetic_03_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_03.json",
+        "--call-index",
+        "3"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 35.733062500017695,
+      "result": "results/engine_calls/hermetic_03.json",
+      "process_report": "results/engine_calls/hermetic_03_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 4,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2549",
+        "--report",
+        "results/engine_calls/hermetic_04_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_04.json",
+        "--call-index",
+        "4"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 37.74019379192032,
+      "result": "results/engine_calls/hermetic_04.json",
+      "process_report": "results/engine_calls/hermetic_04_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 5,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2511",
+        "--report",
+        "results/engine_calls/hermetic_05_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_05.json",
+        "--call-index",
+        "5"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 36.78471404092852,
+      "result": "results/engine_calls/hermetic_05.json",
+      "process_report": "results/engine_calls/hermetic_05_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 6,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2474",
+        "--report",
+        "results/engine_calls/hermetic_06_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_06.json",
+        "--call-index",
+        "6"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 35.700533624971285,
+      "result": "results/engine_calls/hermetic_06.json",
+      "process_report": "results/engine_calls/hermetic_06_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 7,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2439",
+        "--report",
+        "results/engine_calls/hermetic_07_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_07.json",
+        "--call-index",
+        "7"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 33.19141562492587,
+      "result": "results/engine_calls/hermetic_07.json",
+      "process_report": "results/engine_calls/hermetic_07_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 8,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2405",
+        "--report",
+        "results/engine_calls/hermetic_08_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_08.json",
+        "--call-index",
+        "8"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 31.443748291931115,
+      "result": "results/engine_calls/hermetic_08.json",
+      "process_report": "results/engine_calls/hermetic_08_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 9,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2374",
+        "--report",
+        "results/engine_calls/hermetic_09_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_09.json",
+        "--call-index",
+        "9"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 29.33332254202105,
+      "result": "results/engine_calls/hermetic_09.json",
+      "process_report": "results/engine_calls/hermetic_09_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 10,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2345",
+        "--report",
+        "results/engine_calls/hermetic_10_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_10.json",
+        "--call-index",
+        "10"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 29.664042667020112,
+      "result": "results/engine_calls/hermetic_10.json",
+      "process_report": "results/engine_calls/hermetic_10_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 11,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2315",
+        "--report",
+        "results/engine_calls/hermetic_11_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_11.json",
+        "--call-index",
+        "11"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 32.16539237496909,
+      "result": "results/engine_calls/hermetic_11.json",
+      "process_report": "results/engine_calls/hermetic_11_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 12,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2283",
+        "--report",
+        "results/engine_calls/hermetic_12_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_12.json",
+        "--call-index",
+        "12"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 29.992352250032127,
+      "result": "results/engine_calls/hermetic_12.json",
+      "process_report": "results/engine_calls/hermetic_12_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 13,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2253",
+        "--report",
+        "results/engine_calls/hermetic_13_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_13.json",
+        "--call-index",
+        "13"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 28.768663166905753,
+      "result": "results/engine_calls/hermetic_13.json",
+      "process_report": "results/engine_calls/hermetic_13_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 14,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2224",
+        "--report",
+        "results/engine_calls/hermetic_14_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_14.json",
+        "--call-index",
+        "14"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 30.976217500050552,
+      "result": "results/engine_calls/hermetic_14.json",
+      "process_report": "results/engine_calls/hermetic_14_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 15,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2193",
+        "--report",
+        "results/engine_calls/hermetic_15_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_15.json",
+        "--call-index",
+        "15"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 30.95999645907432,
+      "result": "results/engine_calls/hermetic_15.json",
+      "process_report": "results/engine_calls/hermetic_15_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 16,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2162",
+        "--report",
+        "results/engine_calls/hermetic_16_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_16.json",
+        "--call-index",
+        "16"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 29.60463954100851,
+      "result": "results/engine_calls/hermetic_16.json",
+      "process_report": "results/engine_calls/hermetic_16_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 17,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2132",
+        "--report",
+        "results/engine_calls/hermetic_17_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_17.json",
+        "--call-index",
+        "17"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 29.74021650000941,
+      "result": "results/engine_calls/hermetic_17.json",
+      "process_report": "results/engine_calls/hermetic_17_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "hermetic",
+      "index": 18,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2103",
+        "--report",
+        "results/engine_calls/hermetic_18_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "hermetic",
+        "--output",
+        "results/engine_calls/hermetic_18.json",
+        "--call-index",
+        "18"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 31.76571225002408,
+      "result": "results/engine_calls/hermetic_18.json",
+      "process_report": "results/engine_calls/hermetic_18_process.json",
+      "engine_creation": "PASS"
+    },
+    {
+      "mode": "shared",
+      "index": null,
+      "command": [
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "scripts/run_bounded.py",
+        "--seconds",
+        "2071",
+        "--report",
+        "results/engine_calls/shared_process.json",
+        "--",
+        "<run-dir>/venv-gate/bin/python",
+        "-B",
+        "-u",
+        "scripts/engine_control_worker.py",
+        "--mode",
+        "shared",
+        "--output",
+        "results/engine_calls/shared.json"
+      ],
+      "returncode": 0,
+      "process_wall_seconds_contended": 38.824350791983306,
+      "result": "results/engine_calls/shared.json",
+      "process_report": "results/engine_calls/shared_process.json",
+      "engine_creation": "PASS"
+    }
+  ],
+  "stop_reason": "",
+  "acceptance": "Completeness only; six rows in both tables; no numerical threshold",
+  "total_wall_seconds_contended": 665.3584877499379
+}

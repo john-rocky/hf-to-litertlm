@@ -87,6 +87,7 @@ reproduce() {
     [ -d $SM/qwen25-3b-gptq-dequant ] || $PY scripts/ingest_gptq_dequant.py Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4 Qwen/Qwen2.5-3B-Instruct $SM/qwen25-3b-gptq-dequant fp32clip
     CACHE=4096 $EXPORT $SM/qwen25-3b-gptq-dequant out/$key templates/chatml_simple.jinja BMIX4_128 ;;  # personal-namespace only (NC license)
 
+  decider-0.8b)        bash decider_work/reproduce.sh out/$key ;;  # fp16 exact + dynamic int8; System One decision model, readout = decider_work/scripts/systemone_litert.py (probability gate, not the 8-question gate)
   s1-mini)             $PY s1mini_work/convert_s1mini.py out/$key ;;  # int8 ONLY (int4 flips punctuation + slower); dedicated script: bakes required system prompt + non-thinking scaffold, strips composite token_str stops; gate with s1mini_work/gate_normalize.py, NOT the 8-question gate
 
   agents-a1-4b)       "$PY" agents_a1_work/build_bundles.py --prepare --download --output "out/$key"; return ;;  # same float parent -> int8 + mixed int4 b32; dual-form XML/tools/thinking template, fp32 activations

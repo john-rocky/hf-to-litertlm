@@ -63,6 +63,9 @@ sys.argv = argv
 rc = main()
 if rc:
     sys.exit(rc)
+if os.environ.get("STOP_AFTER_EXPORT"):
+    print("DONE (float export only):", os.path.join(outdir, "model.litertlm"))
+    sys.exit(0)
 
 fp = os.path.join(outdir, "model.litertlm")
 wi8fc = os.path.join(outdir, "model_wi8fc.litertlm")

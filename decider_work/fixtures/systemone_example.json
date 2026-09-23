@@ -1,0 +1,41 @@
+{
+  "state": {
+    "ticket": "I was charged twice for order ZVX-104. Please refund the duplicate payment. The first payment was correct.",
+    "customer_tier": "basic",
+    "history": [
+      {
+        "step": 1,
+        "event": "Request received"
+      },
+      {
+        "step": 2,
+        "event": "No prior complaint"
+      }
+    ]
+  },
+  "questions": {
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this ticket?",
+      "criteria": {
+        "billing": "Charges, invoices, payments, refunds",
+        "technical": "Software errors, outages, broken features",
+        "accounts": "Login, passwords, account access",
+        "other": null
+      }
+    },
+    "refund_requested": {
+      "type": "noul",
+      "instructions": "Does the customer ask for a refund?"
+    },
+    "frustration": {
+      "type": "score",
+      "instructions": "How frustrated is the customer?",
+      "criteria": [
+        "calm",
+        "frustrated",
+        "very frustrated"
+      ]
+    }
+  }
+}
