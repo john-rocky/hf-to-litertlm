@@ -2216,3 +2216,40 @@ The command ([`qwen3_work/export_qwen3_06b_wi4b32.sh`](qwen3_work/export_qwen3_0
   Peak private footprint (one iteration): 997 MB GPU / 1,222 MB CPU on the Pixel 8a, 538 / 1,393 MB on the S26 (the mixed INT4 file: 892 / 2,883 MB on the Pixel 8a). The mixed INT4 graph decodes at 3.4–5.5 tok/s on XNNPACK with this binary; on CPU this file decodes 5–7× faster, and it leads on both GPUs as well.
 - **Quality.** 8-question gate through the runtime's Session API on the phones (each bundle's own sampler, TOP_P k20 p0.95 t0.6): 7/8 on the Pixel 8a, 6–7/8 on the S26 (the mixed INT4 file 6–7/8). GSM8K through the released litert-lm 0.17.1 CLI, Mac GPU, one process per question, greedy: non-thinking, first 500 test questions, **46.8 %** (mixed INT4 46.6 %, exact McNemar p = 1.0 — two graphs on the same weights; the 10-question spread is the kernel-numerics floor). Thinking mode at a 2,048-token cap, 200 questions: reaches a final answer on 70 (the 2026-08-04 file 62, the mixed INT4 file 110); of the 38 questions all three answer, 35 / 37 / 36 are correct. The lower completion rate is a property of the recipe (INT4 embedding table — measured, not isolated as the cause), not of the refresh: same weights, and the two template generations give identical rows.
 - **Where it runs, measured:** PyPI litert-lm 0.17.1 (Mac CPU and WebGPU), litert-lm-nightly 0.18.0.dev20260918, litertlm-android 0.17.0 (Galaxy S26, GPU and CPU), the 2026-09-18 Android build above (both phones, CPU and GPU) — all on-prompt. The full flag set (qkv_norm_rope + SDPA composites) also fails the desktop WebGPU path of 0.17.1 and of the nightly with about 16,300 WGSL validation errors: a recipe for newer runtimes, not a portable one yet.
+
+## Fun-ASR-Nano-2512 (speech-to-text LLM, audio-in `.litertlm`, one utterance of up to 30 s per message)
+
+`funasr_nano_work/` converts Tongyi Lab's [Fun-ASR-Nano-2512](https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-2512) (SenseVoice SAN-M encoder, 70 layers, + 2-layer adaptor + Qwen3-0.6B, zh / en / ja, Apache-2.0) into one `.litertlm` that LiteRT-LM's released runtime (v0.16.1 CLI, 0.17.1 Python) drives through its **generic audio path**: the runtime frames 16 kHz PCM into 60 ms frames, runs the bundled encoder on a 30.24 s window, and splices the embeddings into a ChatML prompt at `<|AUDIO|>`. No runtime patch, no litert-torch patch. Hub repo: `litert-community/Fun-ASR-Nano-2512`.
+
+```sh
+cd funasr_nano_work
+MODE=serial ./dl_weights.sh both                  # -vllm model.safetensors (export source) + official model.pt (reference), sha256-checked
+HF_HUB_DISABLE_XET=1 hf download FunAudioLLM/Fun-ASR-Nano-2512-vllm --revision a4362c943d48951f98ca2a62181cc028970270c5 \
+  --include "config.json" "config.yaml" "configuration.json" "tokenizer.json" "tokenizer_config.json" "vocab.json" "merges.txt" \
+  "generation_config.json" "preprocessor_config.json" "LICENSE" "MODEL_PROVENANCE.json" "README.md" "example/*" --local-dir out/hf_vllm
+HF_HUB_DISABLE_XET=1 hf download FunAudioLLM/Fun-ASR-Nano-2512 --revision 272c57b82523ada6fd87095e955f8e29100979ab \
+  --include "README.md" "config.yaml" "configuration.json" "Qwen3-0.6B/*" "multilingual.tiktoken" "example/*" --local-dir out/hf_official
+python make_fixtures.py                           # 5 official examples + 20 LibriSpeech dev-clean clips -> 16 kHz s16 mono WAV
+python oracle_funasr.py                           # reference: funasr 1.4.16, fp32, dither 0, greedy, one discarded warm-up call
+python build_lm_native.py                         # out/lm_native: Qwen3ForCausalLM from the llm.* tensors (tied head) + tokenizer
+python port_eval.py                               # torch port of fbank + LFR + SAN-M + adaptor: bit-exact vs funasr on 25/25 clips
+python export_audio_encoder.py                    # audio_encoder_504f_fp32.tflite: audio [1,504,960] -> features [1,63,1024] + mask [1,63]
+python quant_encoder.py --variants fp16           # fp16 weights (FLOAT_CASTING), fp32 compute: transcripts 25/25 = reference
+cd .. && EXTERNALIZE_EMBEDDER=1 CACHE=2048 PREFILL=512,128,32 python scripts/export_simple_template.py \
+  funasr_nano_work/out/lm_native funasr_nano_work/out/lm_int8 templates/chatml_simple.jinja dynamic_wi8_afp32 && cd funasr_nano_work
+litert-lm unpack out/lm_int8/model.litertlm --output-dir out/lm_int8/unpack          # tf_lite_prefill_decode + tf_lite_embedder
+python build_bundle.py --enc out/audio_encoder/audio_encoder_504f_fp16.tflite --lm out/lm_int8/unpack \
+  --out-name Fun-ASR-Nano-2512.litertlm --prefer-act fp32                              # GenericModel audio metadata + ChatML jinja
+python mac_gate.py --bundle out/bundle/Fun-ASR-Nano-2512.litertlm --backend cpu --tag cpu   # 25-clip runtime gate: 21/25 = reference, WER 19/448
+python mac_gate.py --bundle out/bundle/Fun-ASR-Nano-2512.litertlm --backend gpu --tag gpu   # LM on the GPU, audio on the CPU: 24/25, WER 20/448
+```
+
+Env: the reference runs in a separate venv (python 3.12, torch 2.14, torchaudio 2.11, funasr 1.4.16, transformers 5.17); the port, the encoder export and the bundle use torch 2.13 + litert-torch 0.9.4 + ai-edge-quantizer 0.9.0 + ai-edge-litert 2.2.0 + litert-lm-builder 0.16.1; the LM export (`export_simple_template.py`) uses litert-torch 0.9.3 + ai-edge-quantizer 0.8.0 + transformers 5.14.1; `mac_gate.py` is pure Python on `litert-lm-api` 0.17.1.
+
+**The encoder graph starts at raw PCM.** The runtime's generic audio path hands the encoder framed PCM (`skip_mel_spectrogram_extraction`, frame = hop = 960 samples, `audio_input_scale` 1.0) and no clip length. So the Kaldi fbank (torchaudio's, which funasr calls; DFT and mel as constant matmuls), the LFR stacking (m 7, n 6), the SAN-M encoder and the adaptor are one graph, and the graph takes the length from the last non-zero sample. It emits a uint8 `mask`; the runtime keeps the embeddings up to its last non-zero entry, so the number of audio tokens per clip (ceil(L/8)) is decided in the graph. Consequence: exact digital silence at the end of a clip counts as padding (2 of the 25 clips lose one 60 ms LFR row; the transcripts do not change).
+
+**One message = one window; long audio = one conversation per piece.** Without an adapter section the runtime treats the encoder as streaming with window = stride = 504 frames (30.24 s) and concatenates the windows' embeddings, but the model transcribes only the first window's speech (60.2 s clip: WER 83/143). Cutting the clip at 30.24 s and sending each piece in a new conversation gives 10/143, the reference's whole-clip figure; two turns of one conversation give 22/143 (the second turn repeats the first).
+
+**The GPU needs fp32 activations for the LM.** With the GPU's default fp16 activations the Qwen3 LM emits token 0 (`!`) at every step, also for a text-only prompt, on the Mac (WebGPU) and on the Galaxy S26 (OpenCL). `build_bundle.py --prefer-act fp32` writes `prefer_activation_type: fp32` on the prefill/decode section; LiteRT-LM applies it when the app sets no activation type (v0.16.1 and 0.17.1 both read it), and the GPU transcripts then match the CPU's (24/25 = reference on both GPUs). The audio encoder stays on the CPU: the Mac GPU delegate does not take its DEQUANTIZE / PAD / SELECT_V2 ops.
+
+**Quantization.** fp16 encoder weights are transcript-lossless (25/25); int8 dynamic encoder weights are not (19/25). The LM is the standard int8 dynamic export with an int8 embedder: 21/25 transcripts equal the reference (a proper-noun spelling, two punctuation differences, kana on the Korean smoke clip), English WER 19/448 against the reference's 20/448, and the unquantized LM gives 25/25, so every difference is the int8 LM. FLEURS (50 clips per language): en WER 5.48 % vs 5.13 %, zh CER 6.86 % vs 6.86 %, ja CER 6.81 % vs 6.95 %. An int4 LM (blockwise) gives 14/25 and is not shipped.

@@ -314,6 +314,11 @@
     "group": 4,
     "recipe": "cards/vibevoice-asr-streaming-1.5b-litert.md"
   },
+  "Fun-ASR-Nano-2512": {
+    "task": "speech to text (zh / en / ja)",
+    "group": 4,
+    "recipe": "cards/fun-asr-nano-2512-litert.md"
+  },
   "Zamba2-1.2B-instruct": {
     "task": "chat",
     "group": 1,
