@@ -1746,6 +1746,29 @@ The non-obvious parts:
 - **⚠ Runtime integration**: attach the XNNPACK delegate explicitly (with `num_threads`) when using the C API — the reference-kernel fallback is orders of magnitude slower AND numerically wrong on blockwise int4.
 - **Measured**: Mac CPU 8 threads ≈ 19 s/image (512×512, 4 steps); iPhone 17 Pro (XNNPACK, 6 threads) ≈ 64 s/image, 2.9 GiB peak, bit-exact vs desktop (51.2 dB PSNR on the final PNG).
 
+### 256×256 pair (same weights; DiT step 3.4× and VAE 4.3× faster on a Galaxy S26)
+
+`bonsai_image_work/size256/` re-traces the DiT at 256 image tokens (16×16 patch grid) and the VAE decoder at a 32×32 latent — nothing else changes: the text encoder, tokenizer and latent constants are shared, and the int4 recipe is `quantize_dit.py` unmodified. Published next to the 512 pair on the same card (`dit_256_int4b32.tflite`, `vae_dec_256_fp32.tflite`, `pipeline_meta.json` → `variants.256`, `generate.py --size 256`).
+
+```bash
+cd bonsai_image_work
+SIZE=256 WORK=out256 python size256/export_dit_256.py        # fp32 export, rope check with REAL ids -> out256/dit_fp32.tflite
+(cd out256 && python ../quantize_dit.py)                     # same recipe as 512 -> dit_int4b32.tflite
+python size256/fix_scales.py out256/dit_int4b32.tflite out256/dit_256_int4b32.tflite   # 15 zero scales, as at 512
+SIZE=256 WORK=out256 python size256/export_vae_256.py        # -> out256/vae_dec_256_fp32.tflite
+SIZE=256 WORK=out256 python size256/verify_dit_256.py        # tflite vs torch fp64 with REAL ids, inputs mapped by position
+python size256/reference_torch.py --hub-dir <card dir> --size 256 --out ref256.png --noise-out noise256.bin
+BONSAI_INIT_LATENTS=noise256.bin python size256/generate.py --model-dir <card dir> --size 256 --out gen256.png
+python size256/compare.py ref256.png gen256.png              # PSNR + Laplacian variance
+```
+
+Measured (2026-09-27):
+
+- **Galaxy S26, CPU/XNNPACK 6 threads, `benchmark_model` (the binary behind `litert benchmark --android --cpu`), one call per graph**: DiT 14.6 s → 4.3 s per step, VAE decoder 4.9 s → 1.1 s, text encoder 1.8 s either way; the sum for a 4-step image goes ≈ 65 s → ≈ 20 s. **Peak memory does not move** (4.08 GB → 4.06 GB on the DiT): the file is the same 2.11 GiB, so 256 helps slow phones, not phones that run out of memory. `size256/bench_android.sh` is the runner.
+- **Fidelity**: with the same prompt embeds and the same initial noise, the all-tflite 256 image scores **39.2 dB PSNR** against the torch pipeline (Laplacian variance 873 vs 865); the random-input DiT check gives cosine 0.9986 (the shipped 512 file: 0.9993 under the same check). The pipeline's sigma schedule and `flowmatch_sigmas(steps, tokens)` agree to 6e-8 at 256 tokens — `mu` is a function of the image-token count, so a host port must recompute it for the new size.
+- **Trap**: at 256×256 `img_ids` and `txt_ids` are both (256, 4). A host that maps DiT inputs by shape (as the first 512 verifier did) silently swaps them; map by `args_<n>`.
+- `size256/sweep_sizes.py` renders the six stress prompts at both sizes into one grid (`grid_512_vs_256.png` on the card); the OPEN sign, the face and the feather survive at 256.
+
 ### macOS GPU demo app (DiT on the Apple GPU — 6.6 s/image)
 
 `device/BonsaiAppMac/` is a SwiftUI app that runs the DiT on the Apple GPU through the LiteRT Metal accelerator: **0.76 s/DiT-step, 6.6 s/image total** (vs ≈19 s all-CPU), after a one-time ~40 s Metal compile per launch. Text encoder and VAE stay on CPU, where the CompiledModel path is bit-exact vs the fixture set. GPU vs same-latent CPU pipeline: 31.6 dB PSNR, visually identical.
