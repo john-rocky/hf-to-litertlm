@@ -355,8 +355,13 @@ if os.environ.get("STRIP_SOFTMAX_COMPOSITE"):
 # minja can't render → broken prompt). Force False so parse_chat_template extracts
 # the STRUCTURED prompt_templates (simple ChatML prefixes) the runtime applies —
 # matching the official litert-community models.
-# "NONE" → no quantization (fp32 reference, for logit-parity isolation of the converter).
-quant_recipe = None if quant.upper() in ("NONE", "FP32") else quant
+# "NONE" / "FP32" → no quantization (fp32 reference, for logit-parity isolation of the
+# converter). This must be the STRING "none", not Python None: export() drops every
+# None-valued kwarg before building ExportableModuleConfig, whose quantization_recipe
+# DEFAULTS to 'dynamic_wi8_afp32' — so None silently exported int8 (litert-torch 0.9.3 and
+# 0.9.4, export.py provided_args filter + core/exportable_module_config.py). The string
+# reaches maybe_quantize_model, which returns the float model for 'none'/'null'/'false'/''.
+quant_recipe = "none" if quant.upper() in ("NONE", "FP32") else quant
 
 # PREFILL takes a comma-separated ladder ("1024,512,...,1"); a single value stays valid.
 # The engine picks the tightest chunk per prompt, so a sparse ladder forces padded
