@@ -405,7 +405,10 @@ def main():
 
   from litert_torch.generative.export_hf.export import export  # noqa: E402
 
-  quant_recipe = None if quant.upper() in ("NONE", "FP32") else quant
+  # "NONE" / "FP32" must reach export() as the STRING "none": export() drops None-valued
+  # kwargs and ExportableModuleConfig then defaults to 'dynamic_wi8_afp32' (int8). See
+  # scripts/export_simple_template.py for the source trail (litert-torch 0.9.3 / 0.9.4).
+  quant_recipe = "none" if quant.upper() in ("NONE", "FP32") else quant
   export(
       model=model_id,
       output_dir=out_dir,
