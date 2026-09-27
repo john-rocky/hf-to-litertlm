@@ -176,12 +176,12 @@ End to end on the Mac (audio in, text out; engine loaded once, one conversation 
 
 Galaxy S26 (SM-S942Q, Snapdragon SM8850), `litert_lm_advanced_main` built from the LiteRT-LM v0.16.1 tag, `--benchmark --benchmark_prefill_tokens=256 --benchmark_decode_tokens=256`, text prompt (language model only), one reading per backend, CPU uncapped and SKIN below 40 °C before each leg:
 
-| Backend | Prefill (256) | Decode | TTFT | Peak memory (25-clip run) | Per clip, engine loaded |
-|---|---|---|---|---|---|
-| GPU (OpenCL) | 386 tok/s | 26.3 tok/s | 0.70 s | 2,233 MB | 2.26 s (RTF 0.330) |
-| CPU | 331 tok/s | 31.6 tok/s | 0.80 s | 2,411 MB | 0.51 s (RTF 0.108) |
+| Backend | Prefill (256) | Decode | TTFT | Peak memory (25-clip run) |
+|---|---|---|---|---|
+| GPU (OpenCL) | 386 tok/s | 26.3 tok/s | 0.70 s | 2,233 MB |
+| CPU | 331 tok/s | 31.6 tok/s | 0.80 s | 2,411 MB |
 
-"Per clip" is derived: each clip of the 25-clip run above ran as its own process, so its time includes the engine load; the column subtracts the median of three load-only runs (2.5 s (CPU), 3.0 s (GPU), same flags, the CLI exits before the first prompt) and gives the median per clip and the real-time factor over the 25 clips. Each process also pays its backend's first-inference setup, which a long-lived engine pays once; the Mac figures above are per clip with one engine.
+With the engine loaded once (a Kotlin app on LiteRT-LM Android 0.17.1, language model and audio encoder on the CPU), the three official samples took 1.03 s (5.6 s of Chinese), 1.24 s (7.2 s of English) and 1.42 s (7.2 s of Japanese) from sendMessage to the text; engine load 0.64 s with the runtime cache present. No such measurement was made with the language model on the GPU.
 
 ## Conversion notes
 
