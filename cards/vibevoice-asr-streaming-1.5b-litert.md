@@ -66,6 +66,8 @@ The runtime rows sit within ±0.7 pp of the fp32 reference in both directions (t
 
 ## Usage
 
+Python (`pip install litert-lm-api`; this block was run as written on 0.16.1 and 0.17.1):
+
 ```python
 import litert_lm
 from litert_lm import Message, Contents, Content
@@ -75,6 +77,13 @@ SR, HOP, WIN, ADV = 24000, 3200, 26 * 3200, 22 * 3200   # 3.467 s window, 2.933 
 engine = litert_lm.Engine("VibeVoice-ASR-Streaming-1.5B.litertlm", backend=GPU(), audio_backend=CPU())
 conv = engine.create_conversation(sampler_config=litert_lm.SamplerConfig(top_k=1, top_p=1.0, temperature=0.0),
                                   max_output_tokens=256)
+
+def response_text(resp):
+    # litert-lm-api 0.15-0.17.1 return a dict of content parts; later builds return a Message whose str() is its text
+    if type(resp) is dict:
+        return "".join(p.get("text", "") for p in resp.get("content", []) if isinstance(p, dict))
+    return str(resp)
+
 pcm = load_mono_float_24k("clip.wav")          # your decoder; any length
 pos, text = 0, []
 while pos < len(pcm):
@@ -82,7 +91,7 @@ while pos < len(pcm):
     window = window + [0.0] * (WIN - len(window))  # zero-pad the last window
     write_wav("window.wav", window, SR)           # 16-bit PCM mono
     resp = conv.send_message(Message.user(Contents.of([Content.AudioFile("window.wav")])))
-    text.append("".join(c.text for c in resp.contents.contents))
+    text.append(response_text(resp))
     print(text[-1], flush=True)                    # appears ~0.3–0.5 s after each window
     pos += ADV
 conv.close()
