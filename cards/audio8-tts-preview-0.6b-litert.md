@@ -107,7 +107,7 @@ Measured, not estimated. The host loop is Python; on a phone the same graphs wou
 | `codec_decoder_fp16_T192.tflite` | `decode` | GPU (OpenCL) | 1425 ms per 8.9 s | 1109 MB |
 | `codec_decoder_fp16_T128.tflite` | `decode` | CPU | 3664 ms per 5.9 s | 862 / 1433 MB |
 | `codec_decoder_int8_T128.tflite` | `decode` | CPU | 1959 ms per 5.9 s | 259 / 836 MB |
-| `codec_encoder_fp16_10s.tflite` | `encode` | CPU | 2287 ms per 10 s | 1206 / 1952 MB |
+| `codec_encoder_fp16_10s.tflite` | `encode` | CPU | 2365 ms per 10 s | 1206 / 1899 MB |
 
 Per generated frame the two AR graphs cost 12.3 + 9.7 = 22 ms on the CPU, i.e. an autoregressive real-time factor of about 0.5 at the codec's 21.5 frames/s, before the codec. A 256-frame decoder does not prepare on the S26 GPU (`Dilated im2col buffer size overflowed`) and is not shipped; int8 convolutions do not run on that GPU; the fp32 decoder delegates 971/971 ops but runs at the same 924 ms with a 1462 MB footprint; the AR graphs stay on the CPU (their codebook gather is not delegated). Memory figures are the benchmark tool's footprint; the multi-signature slow graph packs its weights once per signature.
 

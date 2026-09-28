@@ -90,7 +90,7 @@ Long text (290 frames = 13.5 s, T192 windows with 128-frame context): RTF 0.94.
 Galaxy S26 (SM-S942Q, `benchmark_model` from /data/local/tmp/litert-cli, 4 threads, frequency caps checked before each leg):
 see NOTES.md / card table. AR per frame 12.3 + 9.7 ms -> AR RTF 0.51; codec fp16 T128 on GPU 923 ms per 5.94 s (936/1069 ops on CL;
 the CPU remainder is the fp16 DEQUANTIZE + EMBEDDING_LOOKUP), fp16 T192 GPU 1425 ms per 8.9 s, fp32 T128 fully delegated at the same
-924 ms (1462 MB); int8 codec CPU 1959 ms; encoder fp16 CPU 2287 ms per 10 s.
+924 ms (1462 MB); int8 codec CPU 1959 ms; encoder fp16 CPU 2365 ms per 10 s (the published g2 build; the earlier `_g` build read 2287 ms and was quoted on the card until 2026-09-28 10:5x, corrected).
 
 ## 7. Codec windowing
 The decoder is causal but its post-transformer stacks 8 sliding-window (128) layers, so a fixed window is never exactly the

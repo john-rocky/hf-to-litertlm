@@ -75,5 +75,32 @@ The init footprint of the 3-signature slow graph is ~2.6x its file size (XNNPACK
 | codec fp16 T128 g2 | decode | CPU 4t | 3664 | 862 / 1433 | |
 | codec fp16 T256 g2 | decode | GPU | FAIL | | "Dilated im2col buffer size overflowed" (CONV_2D prepare) |
 | codec int8 T128 g2 (native, fp32 codebooks) | decode | CPU 4t | 1959 | 259 / 836 | GPU: int8 conv kernel init fails |
-| codec encoder fp16 10 s g | encode | CPU 4t | 2287 | 1206 / 1952 | GPU: ARG_MAX/CAST int64 not supported |
+| codec encoder fp16 10 s g (unpublished build) | encode | CPU 4t | 2287 | 1206 / 1952 | GPU: ARG_MAX/CAST int64 not supported |
+| codec encoder fp16 10 s g2 (= shipped file) | encode | CPU 4t | 2365 (min 2052) | 1206 / 1899 | s26_codec2_bench.log; the card row was corrected to this on 2026-09-28 |
 Ship smoke (out/ship, Mac 4t): en 95 frames RTF 0.98, ja 72 frames RTF 1.14, register-voice via fp16 encoder = 99.8% codes vs oracle.
+
+## Appendix — tables that only existed in the session transcript (2026-09-28)
+Codec window left-context sweep (T128 windows vs one T256 decode of a 200-frame sequence; error over frames >= 128):
+| ctx frames | max|d| | corr | first new frame max|d| | last frame max|d| |
+|---|---|---|---|---|
+| 32 | 0.494 | 0.698 | 0.161 | 0.062 |
+| 64 | 0.334 | 0.966 | 0.052 | 0.065 |
+| 96 | 0.333 | 0.973 | 0.041 | 0.062 |
+| 112 | 0.074 | 0.995 | 0.019 | 0.019 |
+| 120 | 0.126 | 0.995 | 0.019 | 0.050 |
+| 124 | 0.078 | 0.996 | 0.009 | 0.050 |
+| 127 | 0.080 | 0.997 | 0.003 | 0.050 |
+No fixed context is sample-exact (8 stacked 128-frame windows compound the receptive field); the residual at ctx >= 112 is ~0.08 on a +-1 waveform.
+
+Fast AR int8 per-group sensitivity (one group quantized at a time, 3 cases x 8 frames x 9 steps vs oracle logits; fp32 = 216/216):
+| group | file MB | max|d| | mean|d| | argmax match |
+|---|---|---|---|---|
+| embedding only | 257 | 0.47 | 0.023 | 212/216 |
+| head only | 257 | 0.21 | 0.021 | 211/216 |
+| block 0 | 223 | 3.05 | 0.186 | 195/216 |
+| block 1 | 223 | 2.87 | 0.162 | 202/216 |
+| block 2 | 223 | 2.14 | 0.126 | 205/216 |
+| block 3 | 223 | 1.66 | 0.098 | 202/216 |
+| all FC (emb fp32) | 68 | 4.86 | 0.298 | 185/216 |
+| all FC + emb (head fp32) | 79 | 4.86 | 0.297 | 185/216 |
+Error accumulates across blocks; it is the dynamic activation quantization, not one tensor.
