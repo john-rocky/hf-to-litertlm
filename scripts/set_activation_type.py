@@ -14,6 +14,13 @@ Weights are untouched, so this is a repack, not a re-export.
     python scripts/set_activation_type.py in.litertlm out.litertlm [--type fp32]
 
 Needs the `litert-lm` CLI (>= 0.15, for `unpack`/`pack`) on PATH.
+
+Two CLI traps this script absorbs (measured with litert-lm 0.17.1, 2026-09-28):
+  * `litert-lm unpack` of an older bundle writes `model_type = "TF_LITE_PREFILL_DECODE"`,
+    which the same version's `pack` rejects ("'tf_lite_tf_lite_prefill_decode' is not a
+    valid TfLiteModelType") -- the name is normalized to the tf-free form here.
+  * `litert-lm pack` prints "Error packing model: ..." and still exits 0, so the output
+    file is checked for existence instead of trusting the exit code.
 """
 import argparse
 import os
@@ -42,6 +49,12 @@ def main():
     marker = 'section_type = "TFLiteModel"'
     if marker not in toml:
       raise SystemExit("model.toml has no TFLiteModel section")
+    # 0.17.1 unpack emits the legacy TF_LITE_* spelling that its own pack refuses.
+    toml = re.sub(
+        r'model_type = "TF_LITE_([A-Z_]+)"',
+        lambda m: f'model_type = "{m.group(1).lower()}"',
+        toml,
+    )
     if "prefer_activation_type" in toml:
       toml = re.sub(
           r'prefer_activation_type = "[^"]*"',
@@ -59,6 +72,9 @@ def main():
       os.remove(args.dst)
     subprocess.run([args.litert_lm, "pack", toml_path, "--output", args.dst],
                    check=True)
+    # `litert-lm pack` exits 0 on "Error packing model"; the file is the proof.
+    if not os.path.exists(args.dst) or os.path.getsize(args.dst) == 0:
+      raise SystemExit(f"FAILED: {args.dst} was not written (see pack output above)")
   print(f"OK: {args.dst} (prefer_activation_type = {args.type})")
 
 
