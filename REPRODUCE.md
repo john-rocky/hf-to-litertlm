@@ -281,6 +281,40 @@ CODEC_SPLIT=1 python hostloop_e2e.py                         # end-to-end with t
 The host loop runs Part A (fp32) → hidden [1,512,T] → Part B (fp16) → PCM. On a Pixel 8a the codec drops from ≈114 to ≈40 ms/frame (2.5×); combined with the folded int8 MTP the end-to-end **RTF falls from ≈6.7 to ≈2.06** (~3.2×), ASR-lossless. Gate the codec on the "Hello…" e2e_ref codes (`hostloop_e2e.py` writes the waveform) — the standalone `codec_equiv_ref` clip isn't speech and won't ASR. `quantize_codec.py` records the int8/fp16 attempts that don't work.
 
 
+## Audio8-TTS-Preview-0.6b (DualAR speech LM, 44.1 kHz codec, zero-shot voice cloning) — host-loop tflite set
+
+`audio8_tts_work/` converts [Edge0/Audio8-TTS-Preview-0.6b](https://huggingface.co/Edge0/Audio8-TTS-Preview-0.6b) (Apache-2.0, 601M + 337M codec, 11 languages) into four LiteRT graphs plus a Python host loop. The architecture is Fish-Audio-S2-Pro-style DualAR: a 24-layer "slow" transformer (Qwen2.5-0.5B geometry) emits one semantic token per 46 ms frame, a 4-layer "fast" transformer fills the frame's 10 codebooks one at a time, and a causal codec (RVQ + 8-layer windowed transformer + SEANet upsampler) turns frames into 44.1 kHz audio.
+
+```bash
+cd audio8_tts_work
+# 1. oracle dumps (env with transformers 4.57.x = the vendor's family; soundfile, scipy):
+python oracle_ref.py                                   # 14 seeded cases -> out/oracle/*.npz + .wav, fixtures/ref_*_codes.npy
+# 2. port parity, then export (env with litert-torch 0.9.4, ai-edge-litert 2.2.0, ai-edge-quantizer):
+python verify_port.py 3                                # torch port vs oracle: slow/fast logits ~3e-5, codec bit-exact
+PREFILL=256 SUFFIX=_p256 python export_slow.py         # slow AR: prefill_256 + decode, KV 2048, fp32 (2.15 GB)
+SUFFIX=_v3 python export_fast.py                       # fast AR step graph, fp32
+T=128 SUFFIX=_g2 python export_codec.py && T=192 SUFFIX=_g2 python export_codec.py
+SEC=10 SUFFIX=_g2 python export_codec_encoder.py       # voice registration encoder (10 s bucket)
+# 3. quantize (post-hoc ai-edge-quantizer) and gate
+python quantize_ar.py out/slow/slow_fp32_c2048_p256.tflite drq8     # dynamic int8 (ships)
+python quantize_ar.py out/slow/slow_fp32_c2048_p256.tflite bo4      # blockwise-32 OCTAV int4 (small option)
+python quantize_ar.py out/fast/fast_fp32_v3.tflite drq8
+python quantize_codec.py out/codec/codec_decoder_fp32_T128_g2.tflite fp16   # exact; GPU-capable
+python quantize_codec.py out/codec/codec_decoder_fp32_T192_g2.tflite fp16
+python quantize_encoder.py out/codec/codec_encoder_fp32_10s_g2.tflite fp16
+T=128 SUFFIX=_g2 python export_codec_native_i8.py && python fix_native_i8_tables.py \
+  out/codec/codec_decoder_i8native_T128_g2.tflite out/codec/codec_decoder_i8nativefix_T128_g2.tflite   # CPU int8 codec
+python verify_tflite_slow.py out/slow/slow_drq8_c2048_p256.tflite 3 && python verify_tflite_fast.py out/fast/fast_drq8_v3.tflite 3
+SLOW=out/slow/slow_drq8_c2048_p256.tflite FAST=out/fast/fast_drq8_v3.tflite CODEC=out/codec/codec_decoder_fp16_T128_g2.tflite TAG=q1 python hostloop_e2e.py
+python gate_audio.py asr out/e2e/q1; python gate_audio.py spk out/e2e/q1; python gate_audio.py report out/e2e/q1   # whisper turbo / TitaNet
+python assemble_ship.py out/ship                       # published layout (+ voices/, tokenizer.json, host loop)
+python out/ship/audio8_tts_litert.py --model-dir out/ship --text "Hello from LiteRT." --voice out/ship/voices/en_librispeech_1272 --out hello.wav
+```
+
+Gates: fp32 graphs reproduce the PyTorch oracle's code sequence frame-for-frame on all 14 cases (same seeded sampler); codec decoder bit-exact at torch level, 1.9e-6 as .tflite; int8 slow + int8 fast + fp16 codec keeps the oracle's WER (en 1.1%, ja 0.0%, whisper large-v3-turbo) and speaker cosine (TitaNet-L, en 0.68 / ja 0.76 vs oracle 0.66 / 0.74).
+
+Walls and fixes recorded in `audio8_tts_work/FINDINGS.md`: `repeat_interleave` on the KV cache lowers to BROADCAST_TO and costs 615 ms/step (fold GQA heads into the matmul rows: 16 ms); `torch.polar` has no lowering (eager-cached real tables); the vendor's bf16-rounded RoPE table is reproduced exactly by permuting q/k rows to the rotate-half layout; litert-torch's PT2E dynamic mode also quantizes unannotated embedding tables asymmetrically, which TFLite's EMBEDDING_LOOKUP refuses (write the fp32 codebooks back); ai-edge-quantizer's >32 MiB chunked path breaks on 4-D conv weights; every gather index is clamped in-graph so random-input benchmark tools do not fault.
+
 ## MiniCPM family (new-style: full-jinja LlmMetadata + post-hoc quantization)
 
 `minicpm_work/` converts the MiniCPM family with the newer packaging used by litert-community/MiniCPM5-1B: the LlmMetadata carries the model's **full `chat_template.jinja` verbatim** plus a `thought` channel (`<think>`/`</think>`), so hybrid-reasoning works natively in LiteRT-LM ≥0.14 (`enable_thinking` via conversation extra context; thinking text arrives on a separate channel). Export unquantized (`--quantization_recipe=""`), then quantize with ai-edge-quantizer, then repackage with `litert-lm-builder`:
