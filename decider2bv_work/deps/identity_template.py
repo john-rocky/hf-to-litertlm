@@ -1,0 +1,2 @@
+"""The exact one-line identity template; no trailing newline."""
+IDENTITY = "{%- for message in messages -%}{%- if message.content is string -%}{{ message.content }}{%- else -%}{%- for part in message.content -%}{%- if part.type == 'text' -%}{{ part.text }}{%- endif -%}{%- endfor -%}{%- endif -%}{%- endfor -%}"

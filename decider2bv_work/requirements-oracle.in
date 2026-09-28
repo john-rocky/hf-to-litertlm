@@ -1,0 +1,10 @@
+# Oracle venv for decider-2b-vision round 1 (HF fp32 CPU). Starting point: decider_work/requirements-lock-oracle.txt
+# without the "decider @ git+..." line (the checkpoint's own decider/ package is imported from the snapshot).
+torch==2.14.0
+torchvision==0.29.0
+transformers==5.17.0
+tokenizers==0.23.2
+huggingface-hub==1.32.0
+safetensors==0.8.0
+numpy==2.5.3
+pillow==12.3.0
