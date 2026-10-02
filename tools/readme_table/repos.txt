@@ -65,3 +65,4 @@ litert-community/Agents-A1-4B
 litert-community/decider-0.8b-LiteRT
 litert-community/Fun-ASR-Nano-2512
 litert-community/decider-2b-vision-LiteRT
+mlboydaisuke/Confucius4-R2T2-LiteRT
