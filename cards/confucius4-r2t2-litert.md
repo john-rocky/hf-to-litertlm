@@ -1,7 +1,7 @@
 ---
 license: other
 license_name: netease-model-use-license-agreement
-license_link: MODEL_LICENSE
+license_link: https://huggingface.co/mlboydaisuke/Confucius4-R2T2-LiteRT/blob/main/MODEL_LICENSE
 base_model: netease-youdao/Confucius4-R2T2
 base_model_relation: quantized
 pipeline_tag: automatic-speech-recognition
