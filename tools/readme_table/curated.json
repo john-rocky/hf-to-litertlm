@@ -320,6 +320,7 @@
     "recipe": "cards/fun-asr-nano-2512-litert.md"
   },
   "Confucius4-R2T2": {"task": "streaming speech to text (zh / en / ja)", "group": 4, "recipe": "cards/confucius4-r2t2-litert.md"},
+  "Qwen3-ASR-1.7B": {"task": "speech to text (scored on zh / en / ja)", "group": 4, "recipe": "cards/qwen3-asr-1.7b-litert.md"},
   "Zamba2-1.2B-instruct": {
     "task": "chat",
     "group": 1,

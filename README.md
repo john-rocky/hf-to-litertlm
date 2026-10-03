@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 68 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 69 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 ## Hugging Face model → `.litertlm` → phone
@@ -121,6 +121,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Fun-ASR-Nano-2512](https://huggingface.co/litert-community/Fun-ASR-Nano-2512) | 0.83B | speech to text (zh / en / ja) | Galaxy S26 CPU 31.6 | M4 Max GPU 143.0 | [card](cards/fun-asr-nano-2512-litert.md) |
 | [Confucius4-R2T2](https://huggingface.co/mlboydaisuke/Confucius4-R2T2-LiteRT) | 2.04B | streaming speech to text (zh / en / ja) | — | — | [card](cards/confucius4-r2t2-litert.md) |
 | [Hy-MT2-1.8B](https://huggingface.co/litert-community/Hy-MT2-1.8B) | 2.04B | translation, 33 languages | Galaxy S26 GPU 20.4–20.8 | M4 Max GPU 105.8 | [recipe](REPRODUCE.md#2026-08-27--hy-mt2-18b-intake-one-config-bake-closes-the-sweeps-real-gap-and-the-engines-start_token-prepend-gets-proven) |
+| [Qwen3-ASR-1.7B](https://huggingface.co/litert-community/Qwen3-ASR-1.7B) | 2.04B | speech to text (scored on zh / en / ja) | Galaxy S26 CPU 25.3 | — | [card](cards/qwen3-asr-1.7b-litert.md) |
 | [VibeVoice-ASR-BitNet](https://huggingface.co/litert-community/VibeVoice-ASR-BitNet) | 2.2B | speech to text | Galaxy S26 GPU 36.1 | M4 Max GPU 138.6 | [card](cards/vibevoice-asr-bitnet-litert.md) |
 | [decider-2b-vision](https://huggingface.co/litert-community/decider-2b-vision-LiteRT) | 2.21324B | decisions from an image with calibrated option probabilities (System One) | Galaxy S26 GPU 8.6 | — | [recipe](REPRODUCE.md#decider-2b-vision-mapika--a-vision-system-one-model-on-the-qwen35-2b-hybrid-rail-the-authors-m-rope-positions-are-derived-inside-the-graph-2026-09-29) |
 | [VibeVoice-ASR-Streaming-1.5B](https://huggingface.co/litert-community/VibeVoice-ASR-Streaming-1.5B) | 2.8B | streaming speech to text | Galaxy S26 CPU 46.5 | M4 Max GPU 139.6 | [card](cards/vibevoice-asr-streaming-1.5b-litert.md) |
