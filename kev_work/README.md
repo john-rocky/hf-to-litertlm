@@ -23,7 +23,7 @@ A shared-state pair computes the state once per request instead of once per ques
 | `host/kev_litert.py`, `host/requirements-host.txt` | The Python host for both models (tokenizers + numpy + safetensors + ai-edge-litert 2.2.0; no PyTorch, no kev package) and its requirements |
 | `examples/run_example.py`, `examples/run_example.expected.json`, `examples/run_example.expected_4b.json` | The host example and its expected output for Kev-0.8B and for Kev-4B |
 | `android/CardSnippet.kt` | The Kotlin CompiledModel calls: `KevRowGraph` for a row graph, `KevPairGraph` for a pair, the GPU at `FP16_WITH_FP32_ACCUM` by default |
-| `android/measure/` | `GateActivity.kt` and `RowCodec.kt`, the measurement activity behind the Galaxy S26 GPU numbers; `kev_npu_runner.cc`, the NPU runner on the LiteRT 2.2.0 C API; `README.md` with the build and run commands and the settings behind each number. They are not a sample app |
+| `android/measure/` | `GateActivity.kt` and `RowCodec.kt`, the measurement activity behind the Galaxy S26 GPU numbers; `kev_npu_runner.cc`, the NPU runner on the LiteRT 2.2.0 C API; `README.md` with the build and run commands and the settings behind each number. They are not a sample app. A sample app in a separate repository ([github.com/john-rocky/LiteRT-Models/tree/main/kev](https://github.com/john-rocky/LiteRT-Models/tree/main/kev)) runs the Kev-0.8B files on the GPU and, for rows of up to 256 tokens, on the NPU |
 | `NOTICE-Kev-0.8B`, `NOTICE-Kev-4B` | Attribution (code adapted from the kev package and from litert-torch) |
 
 ## How to reproduce
@@ -201,7 +201,13 @@ Each timing run loaded the file from its cache. A time is write + run + read, ti
 
 NPU times move by about 5% from process to process (L128: 67.8 and 71.1 ms). The GPU times for L64 and L256 come from graphs with the same weights but without the 24 SUMs; on L128 the published file took 101.9 ms and the graph without the SUMs 101.1 ms. In the host's samples during these runs the GPU clock was never capped, and in the 128- and 256-token runs the cores of `cpufreq/policy6` were capped at 4.26 to 4.65 GHz of 4.74 GHz. The samples do not include the NPU's clock.
 
-The initial load of a file compiles it on the phone (JIT): 55.7 s for L64, 191.2 s for L128 and 263.3 s for L256, with a process VmHWM of 5.5 to 6.2 GB and a smallest MemAvailable of 3.3 to 4.2 GB meanwhile. Each file leaves a cache of 1.27 to 1.29 GB. Later loads read it in 1.5 to 1.7 s, with a VmHWM of 2.3 to 2.4 GB. Not measured: the NPU through the Kotlin CompiledModel API, other phones or SoCs, the initial compile inside an app, and files compiled ahead of time (on small graphs, AOT gave the same bits as the JIT).
+The initial load of a file compiles it on the phone (JIT): 55.7 s for L64, 191.2 s for L128 and 263.3 s for L256, with a process VmHWM of 5.5 to 6.2 GB and a smallest MemAvailable of 3.3 to 4.2 GB meanwhile. Each file leaves a cache of 1.27 to 1.29 GB. Later loads read it in 1.5 to 1.7 s, with a VmHWM of 2.3 to 2.4 GB.
+
+A sample app (see What this folder holds) also ran the published L64, L128 and L256 files through the Kotlin CompiledModel API, with the accelerators NPU and CPU. It used the 181 questions whose text the repository carries (the 144 SemIf questions and the 37 invented ones). Each file stayed within the tolerance on the rows it holds: max |Δp| 0.0105 on L64 (34 questions), 0.0134 on L128 (147) and 0.0134 on L256 (172).
+
+In the app, one call took 45.1 ms on L64, 65.8 ms on L128 (68.5 ms in another process) and 121.9 ms on L256. These times are medians of 60 calls after 5 warm-up calls, with each graph loaded from its cache. A time is write + run + read.
+
+Inside the app, the initial compile took 81.6 s for L64, 179.0 s for L128 and 298.2 s for L256, one file per process. Later loads read the cache in 0.9 to 1.5 s. Not measured: other phones or SoCs, and files compiled ahead of time (on small graphs, AOT gave the same bits as the JIT).
 
 ### Kev-0.8B: against the 2026-10-04 files
 
@@ -275,7 +281,7 @@ Not measured for Kev-4B: phones with more than 12 GB, the NPU, and GPUs on Linux
 - A choice question takes at most 255 options.
 - The GPU's default precision (float16 activations) is outside the tolerance on both models. Use float32 on the desktop. On Android, use `FP16_WITH_FP32_ACCUM` or `FP32` with Kev-0.8B; rows longer than 1,024 tokens stay closer to the reference at `FP32` (0.0015 and 4.3e-4 on the 9 long rows, against 0.0093 and 1.84e-3). Kev-4B passes at float32; it has not been checked at `FP16_WITH_FP32_ACCUM`.
 - Probabilities differ from the reference by up to 0.0104 (Kev-0.8B on the desktop at float32), 0.0110 (Kev-0.8B on the S26 GPU), 0.0134 (Kev-0.8B on the S26 NPU) and 0.0152 (Kev-4B at float32). In these runs, no question outside the near ties changed its answer. A question whose two most likely options are 0.002 or less apart can change its answer: on the desktop, 2 of the 401 Kev-0.8B questions did.
-- The NPU runs only the Kev-0.8B L64, L128 and L256 files. Its initial compile on the phone takes 55.7 to 263.3 s, and its cache takes 1.27 to 1.29 GB per file. It was measured on one Galaxy S26 only, and not through the Kotlin API.
+- The NPU runs only the Kev-0.8B L64, L128 and L256 files. Its initial compile on the phone takes 55.7 to 263.3 s, and its cache takes 1.27 to 1.29 GB per file. It was measured on one Galaxy S26 only; inside a sample app, the initial compile took 81.6 to 298.2 s.
 - A pair without constant tensor sharing uses about twice the memory: on Kev-0.8B, a process footprint of 6.3 GB against 3.0 GB on the Mac after one request, and a VmHWM of 6.6 to 7.0 GB against 3.1 to 3.2 GB on the S26.
 - Continuous load slows the phone; compare the cool and sustained columns.
 - Kev-4B needs desktop-class memory: on the Mac GPU, 17.0 to 20.8 GB after compile with one row graph and a peak of 37.0 to 38.1 GB, and 36.9 GB with a peak of 54.9 GB with a pair without sharing. It did not fit the 12 GB Galaxy S26 in two tries.
