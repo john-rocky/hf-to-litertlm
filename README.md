@@ -48,6 +48,30 @@ a **Pixel 8a with 8 GB RAM, Android 16**; installation needs **API 31+, compileS
 and a 736 MB download plus cache space. [Other SDK entry points](readers/README.md#sdk-entry-points)
 are listed separately with their verification scope.
 
+## Used in other projects
+
+- [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) — on-device LLM
+  inference for React Native on LiteRT-LM. Since 0.7.0 its `resolveFromManifest()` picks the
+  `.litertlm` file, backend, sampler defaults, and stream channels from a model repo's
+  [`litertlm_manifest.json`](#deployment-manifests)
+  ([source](https://github.com/hung-yueh/react-native-litert-lm/blob/568552814d9e512a09763b547261918dccd5224b/src/manifestResolver.ts)).
+- [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai) (formerly flutter_gemma) —
+  on-device AI for Flutter. Its LiteRT-LM package has shipped `LitertlmManifestResolver` since
+  `flutter_gemma_litertlm` 1.6.0 (now `flutter_edge_ai_litertlm`). The resolver reads a Hugging
+  Face repo's manifest and returns the `.litertlm` file that fits the platform
+  ([source](https://github.com/DenisovAV/flutter_edge_ai/tree/712ff53881695c8866eb7a0ae56e9b72ee85dc12/packages/flutter_edge_ai_litertlm/lib/src/manifest)).
+- [local_assistant_v2](https://github.com/taslimmuhammed/local_assistant_v2) — an Android
+  assistant app with on-device memory search. Its EmbeddingGemma converter, which builds a
+  LiteRT-LM EmbeddingEngine bundle, follows the recipe in
+  [`embedding_engine_work/`](embedding_engine_work/)
+  ([source](https://github.com/taslimmuhammed/local_assistant_v2/blob/e352d9536fb86ff7f31b9b56258342db7dad9d2b/tools/embedder/convert_embeddinggemma.py)).
+
+Both manifest resolvers vendor the reference readers in [`readers/`](readers/) and were
+contributed from this repository as pull requests
+([#25](https://github.com/hung-yueh/react-native-litert-lm/pull/25),
+[#469](https://github.com/DenisovAV/flutter_edge_ai/pull/469)). The SDKs' maintainers merged
+them and now ship and maintain them.
+
 ## Converted models
 
 Decode speed is tokens per second, read from each repo's `litertlm_manifest.json`: the fastest
