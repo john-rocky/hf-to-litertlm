@@ -249,10 +249,11 @@ What the lists contain:
   Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, **Qwen3.5-0.8B/2B/4B**,
   LFM2.5-1.2B-Instruct/-Thinking/-JP and 2.6B, MiniCPM5-1B / MiniCPM4-0.5B / MiniCPM4.1-8B,
   Qwen2.5-Coder-1.5B-Instruct, Shieldstral-1.0-3B.
-- **Beyond chat (11)**: LFM2.5-Encoder-350M/-230M and the four 350M task encoders
+- **Beyond chat (13)**: LFM2.5-Encoder-350M/-230M and the four 350M task encoders
   (PII / policy-linter / prompt-router / spellchecker), LFM2.5-Embedding-350M,
   LFM2.5-ColBERT-350M, granite-embedding-311m — plain LiteRT `.tflite` encoders — plus
-  Qwen3-TTS-12Hz-0.6B (speech) and Bonsai-Image-ternary-4B (FLUX.2-klein image generation),
+  Qwen3-TTS-12Hz-0.6B (speech), Bonsai-Image-ternary-4B (FLUX.2-klein image generation)
+  and Kev-0.8B/4B (typed questions answered with option probabilities, `kev_work/`),
   which run as LiteRT graphs under host loops rather than `.litertlm` bundles.
 
 ## Convert a new architecture

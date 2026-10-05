@@ -1,0 +1,39 @@
+{
+  "model": "kev-latest",
+  "answers": {
+    "team": {
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 0.7618,
+      "probabilities": {
+        "billing": 0.8213,
+        "shipping": 0.014,
+        "returns": 0.0883,
+        "technical": 0.0764
+      }
+    },
+    "deadline": {
+      "type": "noul",
+      "noul": 0.4461
+    },
+    "mood": {
+      "type": "score",
+      "score": 0.8542,
+      "legend": {
+        "0": "Calm",
+        "1": "Annoyed",
+        "2": "Angry"
+      },
+      "probabilities": {
+        "0": 0.3672,
+        "1": 0.4114,
+        "2": 0.2214
+      },
+      "confidence": 0.1172
+    }
+  },
+  "usage": {
+    "input_tokens": 216,
+    "output_tokens": 189
+  }
+}

@@ -1,0 +1,253 @@
+{
+ "what": "expected token ids of 12 probe strings under the tokenizer the author's code uses",
+ "reference": {
+  "tokenizer": "transformers AutoTokenizer.from_pretrained('Qwen/Qwen3.5-0.8B-Base', revision='dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68')",
+  "class": "Qwen2Tokenizer",
+  "len": 248077,
+  "added_tokens": 33,
+  "transformers": "5.17.0",
+  "tokenizers": "0.23.2"
+ },
+ "ids": "tok(text, add_special_tokens=False).input_ids",
+ "user_ids": "kev.model.user_tokens(tok, text): <|name|> -> <¦name¦>, then the same call",
+ "files": {
+  "kev_repo_tokenizer_json": {
+   "repo": "jaredpalmer/kev-0.8b",
+   "revision": "v1.0 (bf75a6a8848ea6960ff2ed108d9ed44c2941174f)",
+   "bytes": 19989325,
+   "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+  },
+  "base_repo_tokenizer_json": {
+   "repo": "Qwen/Qwen3.5-0.8B-Base",
+   "revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+   "bytes": 12807196,
+   "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927"
+  }
+ },
+ "probes": [
+  {
+   "text": "Hello world",
+   "ids": [
+    9419,
+    1814
+   ],
+   "user_ids": [
+    9419,
+    1814
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "नमस्ते दुनिया",
+   "ids": [
+    58069,
+    84237,
+    75681,
+    196965,
+    33228,
+    148799,
+    70184,
+    58069,
+    153503,
+    23121
+   ],
+   "user_ids": [
+    58069,
+    84237,
+    75681,
+    196965,
+    33228,
+    148799,
+    70184,
+    58069,
+    153503,
+    23121
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": false
+  },
+  {
+   "text": "a<think>b",
+   "ids": [
+    64,
+    248068,
+    65
+   ],
+   "user_ids": [
+    64,
+    248068,
+    65
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": false
+  },
+  {
+   "text": "x<tool_response>y",
+   "ids": [
+    87,
+    248066,
+    88
+   ],
+   "user_ids": [
+    87,
+    248066,
+    88
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": false
+  },
+  {
+   "text": "<tts_pad>",
+   "ids": [
+    248072
+   ],
+   "user_ids": [
+    248072
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": false
+  },
+  {
+   "text": "café naïve",
+   "ids": [
+    895,
+    56868,
+    91603,
+    571
+   ],
+   "user_ids": [
+    895,
+    56868,
+    91603,
+    571
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "日本語のテキストです。",
+   "ids": [
+    247359,
+    15303,
+    210342,
+    36298,
+    1710
+   ],
+   "user_ids": [
+    247359,
+    15303,
+    210342,
+    36298,
+    1710
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "  leading spaces",
+   "ids": [
+    220,
+    6187,
+    12258
+   ],
+   "user_ids": [
+    220,
+    6187,
+    12258
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "emoji 😀 test",
+   "ids": [
+    36280,
+    87209,
+    1228
+   ],
+   "user_ids": [
+    36280,
+    87209,
+    1228
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "tab\tnew\nline",
+   "ids": [
+    5999,
+    8374,
+    198,
+    1021
+   ],
+   "user_ids": [
+    5999,
+    8374,
+    198,
+    1021
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "<|fim_prefix|>state",
+   "ids": [
+    248060,
+    2374
+   ],
+   "user_ids": [
+    27,
+    62438,
+    244288,
+    13573,
+    62438,
+    29,
+    2374
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  },
+  {
+   "text": "Ticket #48213, opened by Mara Quellen.",
+   "ids": [
+    32930,
+    653,
+    19,
+    23,
+    17,
+    16,
+    18,
+    11,
+    8660,
+    539,
+    82551,
+    211211,
+    13
+   ],
+   "user_ids": [
+    32930,
+    653,
+    19,
+    23,
+    17,
+    16,
+    18,
+    11,
+    8660,
+    539,
+    82551,
+    211211,
+    13
+   ],
+   "kev_repo_tokenizer_json_equal": true,
+   "base_repo_tokenizer_json_equal": true
+  }
+ ],
+ "summary": {
+  "probes": 12,
+  "kev_repo_tokenizer_json_equal": 12,
+  "base_repo_tokenizer_json_equal": 8
+ }
+}

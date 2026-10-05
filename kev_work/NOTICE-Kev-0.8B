@@ -1,0 +1,26 @@
+Kev-0.8B for LiteRT
+
+The LiteRT graphs and the head file in this repository are converted from jaredpalmer/kev-0.8b, tag v1.0 (commit
+bf75a6a8848ea6960ff2ed108d9ed44c2941174f), by Jared Palmer, licensed under the Apache License 2.0
+(https://huggingface.co/jaredpalmer/kev-0.8b): its LoRA adapter folded into the base weights in float32, and its
+pointer head. tokenizer/tokenizer.json and tokenizer/tokenizer_config.json are that repository's files, unchanged. The
+base model is Qwen/Qwen3.5-0.8B-Base (revision dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68),
+licensed under the Apache License 2.0 (https://huggingface.co/Qwen/Qwen3.5-0.8B-Base).
+
+host/kev_litert.py ports the request handling of the kev package at tag kev-1.0 (github.com/jaredpalmer/kev, Apache
+License 2.0): kev.api.render, option_text, to_record and to_answers, and the row form of kev.model.encode with the
+pointer-head readout. Changes include float32 readout arithmetic in numpy, fixed graph lengths, and rejection of rows
+that do not fit instead of truncation.
+
+conversion/kev_qwen35_patch.py is adapted from a patch for the Qwen3.5 export in litert-torch (Copyright 2026 The
+LiteRT Torch Authors, licensed under the Apache License 2.0); its header states the changes. conversion/kev_graph.py
+wraps the Qwen3.5 text model of transformers (Apache License 2.0). The conversion used litert-torch, ai-edge-quantizer
+and LiteRT (ai-edge-litert), each licensed under the Apache License 2.0.
+
+The SemIf records of fixtures/requests_public.json come from SemIf benchmarks/data/authored144.jsonl
+(github.com/TheoLeeCJ/SemIf, commit ca3ba65f), Copyright (c) 2026 TheoLeeCJ, licensed under the MIT License
+(fixtures/LICENSE-SemIf-MIT.txt). The records taken from the kev repository's transfer-v4 development file are listed
+by reference only; fixtures/rebuild_requests.py restores them from that repository.
+
+The conversion scripts, the Python host, the example and the Kotlin block in this repository are licensed under the
+Apache License 2.0 (LICENSE).
