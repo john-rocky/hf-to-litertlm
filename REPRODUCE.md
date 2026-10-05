@@ -14,6 +14,56 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
+
+The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
+
+**The re-ship rewrites only the prefill/decode graph into the flag's form; every weight buffer keeps its bytes.** The two KV-cache writes per layer become one STABLEHLO_COMPOSITE `odml.cache_update`, and each BATCH_MATMUL(adjY) attention product becomes `odml.runtime_bmm`. A signature input `param_tensor` INT32[1,1,1,7] is added, and the runtime fills in start and end. The attention mask stays a FLOAT32 input and is added to the logits by broadcast.
+
+Seven of the files also get `prefill_16`, a 16-token prefill signature copied from the existing one (`prefill_128`, or `prefill_256` in `SmolLM3-3B.litertlm`). It shares every weight buffer, and every existing subgraph and SignatureDef keeps its index and bytes. On the Mac GPU, the new files decode 1.22–1.46× as fast as the previous ones. On the seven with `prefill_16`, the Mac GPU time to first token for a 16-token prompt drops to 0.18–0.40 of the previous value (last table).
+
+Step 1 ran on all eight files; `previous.litertlm` is the file at the Hub commit in the first table below. Step 2 ran on all but Phi-4-mini-reasoning, with `--source prefill_256` for `SmolLM3-3B.litertlm`. The scripts unpack and pack the bundle with the CLI named in `LITERT_LM_CLI`.
+
+```
+export LITERT_LM_CLI=/path/to/litert-lm
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm retrofit.litertlm --decomp exporter --mask add_bcast
+python tools/gpu_graph/prefill_bucket_clone.py build retrofit.litertlm new.litertlm --lengths 16 --source prefill_128 --report bucket.json
+```
+
+Phi-4-mini-reasoning ships without `prefill_16`. With it, on the Mac GPU with fp16 activations, the file got 7 of 8 questions and 26 of 30 GSM8K questions right. The plain retrofit got 8 of 8 and 28 of 30, the same as the previous file.
+
+The copies in [`tools/gpu_graph/`](tools/gpu_graph/) rebuild all eight files from the previous files, with every bundle section byte-identical to the shipped file (sha256 per section). Only the bundle header differs because `litert-lm pack` writes a new uuid and timestamp. So the whole-file sha256 of a rebuild does not match the table.
+
+Checks:
+- All eight: every bundle section other than the prefill/decode graph is byte-identical to the previous file, and so is the graph's weight region (checked per section and per buffer).
+- The seven with `prefill_16`, on CPU: `prefill_16` and the signature it was copied from give bit-identical results on the same tokens (KV cache at the valid positions and 3 decode steps; 2 of 2 cases).
+- The same seven: answers are byte-identical to the plain retrofit's (step 1 only) on 9 prompts (8 questions and 1 long prompt). This holds on CPU with the `litert-lm` CLI and on the Mac GPU with fp32 activations.
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| SmolLM3-3B | `SmolLM3-3B_q4_block32_ekv4096.litertlm` | 2,004,633,520 | `bdd7eb05b676` | `c29e7655125f` |
+| SmolLM3-3B | `SmolLM3-3B.litertlm` (int8) | 3,125,204,208 | `c1c6c6351947` | `c29e7655125f` |
+| Ministral-3-3B-Instruct-2512 | `Ministral-3-3B-Instruct-2512_q4_block32_ekv4096.litertlm` | 2,342,866,928 | `13c47bcbaf30` | `613e437fea97` |
+| VibeThinker-3B | `model.litertlm` | 2,059,236,272 | `7885496ccd8f` | `087512d2eba6` |
+| Hy-MT2-1.8B | `Hy-MT2-1.8B_int8.litertlm` | 1,827,026,224 | `275ff52bf04c` | `18cc1a6794d7` |
+| Phi-4-mini-reasoning | `model.litertlm` | 2,784,187,376 | `d507262ca3d0` | `ea890746c4f4` |
+| Qwen3-4B-Thinking-2507 | `model.litertlm` | 2,477,192,112 | `8a8a6a419a55` | `92751be3c031` |
+| DeepSeek-R1-Distill-Qwen-7B | `DeepSeek-R1-Distill-Qwen-7B_q4_block32_ekv4096.litertlm` | 4,533,682,160 | `050787a59d80` | `96991f3653ce` |
+
+Mac GPU with fp16 activations, previous → new file. Decode and TTFT (time to first token): Mac Studio M4 Max, `litert-lm` 0.17.1 CLI `benchmark --cache no` (WebGPU on Metal), both files run in the same window, median of 3 runs. Decode uses a 256-token prompt and 256 decode tokens. GSM8K: 30 questions, greedy, up to 2048 tokens.
+
+| Model | Decode tok/s | TTFT, 16-token prompt (s) | GSM8K (of 30) |
+|---|---:|---:|---:|
+| SmolLM3-3B q4 | 90.5 → 131.8 | 0.111 → 0.035 | 26 → 26 |
+| SmolLM3-3B int8 | 77.0 → 106.0 | 0.205 → 0.038 | — |
+| Ministral-3-3B-Instruct-2512 | 92.4 → 129.5 | 0.121 → 0.038 | 26 → 26 |
+| VibeThinker-3B | 92.0 → 125.6 | 0.107 → 0.035 | 29 → 30 |
+| Hy-MT2-1.8B | 103.5 → 150.7 | 0.076 → 0.031 | — |
+| Phi-4-mini-reasoning (no `prefill_16`) | 80.6 → 114.9 | 0.130 → 0.113 | 28 → 28 |
+| Qwen3-4B-Thinking-2507 | 66.6 → 92.1 | 0.152 → 0.037 | 26 → 26 |
+| DeepSeek-R1-Distill-Qwen-7B | 65.0 → 79.1 | 0.220 → 0.046 | 27 → 28 |
+
+
 ## 2026-08-30 — tokenizer section re-ship (17 files, weights unchanged)
 
 An audit of every published `.litertlm` (91 files) against the upstream tokenizers found that the 14 bundles whose tokenizer was a SentencePiece conversion of a byte-level BPE vocabulary (litert-torch `tokenizer_to_sentencepiece_lib`, our `FORCE_SPM` recipe) mis-tokenize standalone accented/special characters, turn characters without a whole-character piece (emoji, most of Latin Extended-A) into the token the conversion had reused as UNK, and — for `SmolLM3-3B.litertlm` — never match `<|im_end|>` in the prompt (reported upstream as [litert-torch #1205](https://github.com/google-ai-edge/litert-torch/issues/1205); repro and a measured converter patch in [`tools/tokenizer_parity/`](tools/tokenizer_parity/)). Two OLMo-2 bundles carried a re-serialized `tokenizer.json` with the GPT-2 default pre-tokenizer instead of the model's regex, and PaddleOCR-VL's vendor SentencePiece model typed `</s>` as a control symbol the template writes as text.

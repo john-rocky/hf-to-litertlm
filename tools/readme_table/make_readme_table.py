@@ -67,10 +67,15 @@ def device(d):
 def best_rows(manifest):
     phone = mac = None
     for v in manifest["variants"]:
-        for r in v.get("measured", []):
+        rows = v.get("measured", [])
+        is_mac = lambda r: bool(MAC.search(r.get("device", ""))) or str(r.get("os", "")).lower() == "macos"
+        long_side = {side: any((r.get("decode_tokens") or 256) >= 64 and is_mac(r) == side for r in rows) for side in (True, False)}
+        for r in rows:
             d = lo(r.get("decode_tps"))
             if d < 0:
                 continue
+            if long_side[is_mac(r)] and (r.get("decode_tokens") or 256) < 64:
+                continue  # a short-prompt TTFT cell (16 prompt / 32 decode tokens) is not the decode-throughput row when a longer run exists on that side
             dev = r.get("device", "")
             cell = (d, f'{device(dev)} {r.get("backend", "?").upper()} {fmt(r["decode_tps"])}')
             if MAC.search(dev) or str(r.get("os", "")).lower() == "macos":
