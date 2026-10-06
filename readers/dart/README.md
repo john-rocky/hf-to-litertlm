@@ -2,7 +2,7 @@
 
 Reference reader for `litertlm_manifest.json` — the deployment manifest shipped at the root of `.litertlm` model repos on Hugging Face. Given a device, it answers: which file to download, on which backend, with which settings (thinking markers, session defaults, caveats). No dependencies beyond `dart:convert`; it does not run models — fetch the JSON with your own HTTP stack.
 
-Version 0.2.2 is available as source in this checkout. As of 2026-09-08, `litertlm_manifest` is not published on pub.dev. In your app's `pubspec.yaml`, use a local path to a checkout containing this version:
+Version 0.2.3 is available as source in this checkout. As of 2026-09-08, `litertlm_manifest` is not published on pub.dev. In your app's `pubspec.yaml`, use a local path to a checkout containing this version:
 
 ```yaml
 dependencies:
@@ -26,6 +26,7 @@ r.url;              // exact .litertlm to download (sha256 in r.variant.sha256)
 r.backend;          // verified-fastest backend for the platform
 r.thinkingChannel;  // the model's exact <think> markers, whitespace included
 r.sessionDefaults;  // e.g. {'max_output_tokens_min': 2048}
+manifest.thinkingControl; // 'switch' | 'always' | 'never' | 'model', or null (manifest 0.1.3+)
 ```
 
 `resolve()` returns `null` when no candidate remains, including when an explicitly requested backend is not listed or backend lists have been emptied after parsing. It only chooses declared backends.

@@ -214,6 +214,36 @@ void main() {
     expect(t.end, '\n</think>');
   });
 
+  test('0.1.3 thinking control: shipped values, each known value, absent and unknown -> null', () {
+    expect(qwen.thinkingControl, 'always');
+    expect(lfm.thinkingControl, 'model');
+    expect(qwen.resolve()!.capabilities.thinkingControl, 'always');
+    LitertlmManifest withControl(Object? control, {bool present = true}) {
+      final m = fixture();
+      m['model'] = <String, dynamic>{
+        'display_name': 'Fixture',
+        'capabilities': <String, dynamic>{
+          'thinking': <String, dynamic>{
+            'declared': true,
+            'channel': {'start': '<think>', 'end': '</think>'},
+            if (present) 'control': control,
+          },
+        },
+      };
+      return LitertlmManifest.fromJson(m);
+    }
+
+    for (final c in ['switch', 'always', 'never', 'model']) {
+      expect(withControl(c).thinkingControl, c);
+    }
+    expect(withControl(null, present: false).thinkingControl, isNull);
+    // A value a later 0.1.x adds, or a wrong type, is no statement — never a parse error.
+    for (final c in <Object?>['budget', '', 1, null]) {
+      expect(withControl(c).thinkingControl, isNull, reason: jsonEncode(c));
+    }
+    expect(LitertlmManifest.fromJson(fixture()).thinkingControl, isNull);
+  });
+
   test('Qwen session defaults carry the 2048 output budget', () {
     final r = qwen.resolve(platform: 'macos')!;
     expect(r.sessionDefaults?['max_output_tokens_min'], 2048);

@@ -1,7 +1,7 @@
 {
-  "manifest_schema": "0.1.2",
+  "manifest_schema": "0.1.3",
   "repo": "litert-community/Qwen3-4B-Thinking-2507",
-  "generated": "2026-09-06",
+  "generated": "2026-10-07",
   "generator": "make_manifest.py",
   "model": {
     "display_name": "Qwen3-4B-Thinking-2507",
@@ -22,7 +22,8 @@
         "channel": {
           "start": "<think>\n",
           "end": "\n</think>"
-        }
+        },
+        "control": "always"
       },
       "channels": [
         {
@@ -95,8 +96,8 @@
     },
     {
       "file": "model.litertlm",
-      "sha256": "356b2d7778d27d55fbb0d2e0c5e8801e9de136db59849c41c882bd97333840d5",
-      "size_bytes": 2474357680,
+      "sha256": "8a8a6a419a5570b3f4814d358fb795c0dcb6931206c7dae29480f47564c3f04d",
+      "size_bytes": 2477192112,
       "sections": [
         {
           "type": "LlmMetadataProto",
@@ -108,7 +109,7 @@
         },
         {
           "type": "TFLiteModel",
-          "size_bytes": 2079558192,
+          "size_bytes": 2082392624,
           "model_type": "tf_lite_prefill_decode"
         },
         {
@@ -126,89 +127,168 @@
       "min_runtime_version": "0.15.0",
       "recommended": [
         {
+          "platform": "android",
+          "device_class": "flagship",
+          "backend": "gpu",
+          "reason": "Galaxy S26 (SM-S942Q, Android 16), litert_lm_advanced_main from a LiteRT-LM main build of 2026-09-18: prefill_128 (1707/1707 nodes), prefill_16 (1707/1707) and decode (1631/1631) run fully on the OpenCL GPU delegate, one partition each, and the file answered 5 of 5 gate prompts correctly. At 1024 prompt / 256 decode tokens the GPU decodes 13.9-20.2 tok/s and prefills 130-264 tok/s (3 iterations in one process, cold to warm), against 7.2-7.4 and 47-65 tok/s on CPU (XNNPACK, 4 threads, weight cache, 2 iterations) on the same phone; peak memory (VmHWM) is 1.17 GB on GPU against 4.08 GB on CPU"
+        },
+        {
           "platform": "macos",
           "backend": "gpu",
-          "reason": "~9x prefill and ~3.8x decode vs CPU on the same file"
+          "reason": "Mac Studio M4 Max, litert-lm 0.17.1 benchmark --cache no, 256 prompt / 256 decode tokens: GPU (WebGPU on Metal, fp16 activations) decodes 92.1 tok/s and prefills 1100 tok/s, against 18.4 and 113 tok/s on CPU (XNNPACK) for the same file (median of 3 and 2 processes); TTFT for a 16-token prompt is 0.037 s on GPU against 0.478 s on CPU"
         },
         {
           "platform": "ios",
           "backend": "gpu",
-          "reason": "block-128 is the iPhone-safe int4 recipe for this family; prefer this file over the block-32 variant on iPhone GPU"
+          "reason": "block-128 is the iPhone-safe int4 recipe for this family; prefer this file over the block-32 variant on iPhone GPU. This file's iPhone run (iPhone 17 Pro) was on the previous model.litertlm, before the 2026-10-06 GPU graph rewrite, and was not repeated on the current file"
         }
       ],
       "requirements": {
         "platform_notes": [
-          "4B-class file (2.47 GB): budget device RAM accordingly; on Android import via AI Edge Gallery and enable the GPU toggle at import",
+          "4B-class file (2.48 GB): budget device RAM accordingly; on Android import via AI Edge Gallery and enable the GPU toggle at import",
           "iPhone 17 Pro Metal decode was observed at ~14 tok/s in an earlier on-device note; its run log is not retained, so it is not listed as a measured row"
         ]
       },
       "measured": [
         {
           "device": "Apple M4 Max",
-          "os": "macOS",
+          "os": "macOS 27.0",
           "backend": "gpu",
-          "runtime": "litert-lm 0.15.0 (pip CLI benchmark)",
+          "runtime": "litert-lm 0.17.1 (pip CLI benchmark), GPU fp16 activations (WebGPU on Metal)",
           "prompt_tokens": 256,
           "decode_tokens": 256,
-          "prefill_tps": 999.3,
-          "decode_tps": 68.5,
-          "ttft_s": 0.28,
-          "max_num_tokens": 4096,
+          "prefill_tps": 1099.8,
+          "decode_tps": 92.1,
+          "ttft_s": 0.244,
+          "load_s": 2.17,
           "cache": "no",
           "runs": 3,
-          "date": "2026-08-11",
-          "source": "cardbench Mac LLM sweep; model card Performance table"
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship card bench: 3 separate benchmark processes, median; the previous file measured in the same window: prefill 984.0 tok/s, decode 66.6 tok/s, TTFT 0.282 s"
         },
         {
           "device": "Apple M4 Max",
-          "os": "macOS",
+          "os": "macOS 27.0",
           "backend": "cpu",
-          "runtime": "litert-lm 0.15.0 (pip CLI benchmark)",
+          "runtime": "litert-lm 0.17.1 (pip CLI benchmark) (XNNPACK)",
           "prompt_tokens": 256,
           "decode_tokens": 256,
-          "prefill_tps": 111.0,
-          "decode_tps": 17.8,
-          "ttft_s": 2.49,
-          "max_num_tokens": 4096,
-          "cache": "no",
-          "runs": 3,
-          "date": "2026-08-11",
-          "source": "cardbench Mac LLM sweep; model card Performance table"
-        },
-        {
-          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
-          "backend": "gpu",
-          "runtime": "litert_lm_advanced_main v0.16.0, LiteRT CL delegate",
-          "prompt_tokens": 202,
-          "decode_tokens": 1908,
-          "prefill_tps": 129.4,
-          "decode_tps": 8.98,
-          "ttft_s": 1.67,
-          "load_s": 11.0,
-          "peak_memory_mb": 971,
-          "runs": 1,
-          "date": "2026-08-24",
-          "source": "S4 GPU gate, 205-token benchmark, single run; full delegation (3270 ops across 2 subgraphs); generation gate answered the probe correctly. No same-device CPU control was taken, so this is a GPU speed, not a measured win over CPU."
-        },
-        {
-          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
-          "backend": "cpu",
-          "runtime": "litert_lm_advanced_main v0.16.0 (XNNPACK CPU)",
-          "prompt_tokens": 204,
-          "decode_tokens": 1694,
-          "prefill_tps": "63.0-64.7",
-          "decode_tps": 5.96,
-          "ttft_s": "3.32-3.4",
-          "load_s": 3.4,
-          "peak_memory_mb": 3787,
+          "prefill_tps": 113.3,
+          "decode_tps": 18.4,
+          "ttft_s": 2.567,
+          "load_s": 2.11,
           "cache": "no",
           "runs": 2,
-          "date": "2026-09-05",
-          "source": "S7 Android backfill: same-device CPU control - identical binary, prompt file and flags, only --backend differs; 205-token prompt with --benchmark, 2 cold runs (compile/weight caches deleted between runs, device cooled below 42 C before each run); same-device control for an existing GPU row on this handset"
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship card bench: 2 separate benchmark processes, median; the previous file measured in the same window: prefill 113.0 tok/s, decode 18.5 tok/s, TTFT 2.570 s"
+        },
+        {
+          "device": "Apple M4 Max",
+          "os": "macOS 27.0",
+          "backend": "gpu",
+          "runtime": "litert-lm 0.17.1 (pip CLI benchmark), GPU fp16 activations (WebGPU on Metal)",
+          "prompt_tokens": 16,
+          "decode_tokens": 32,
+          "prefill_tps": 695.5,
+          "decode_tps": 89.7,
+          "ttft_s": 0.037,
+          "load_s": 2.16,
+          "cache": "no",
+          "runs": 3,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship card bench (short-prompt cell, TTFT is the figure of interest): 3 separate benchmark processes, median; the previous file measured in the same window: prefill 122.4 tok/s, decode 64.7 tok/s, TTFT 0.152 s"
+        },
+        {
+          "device": "Apple M4 Max",
+          "os": "macOS 27.0",
+          "backend": "cpu",
+          "runtime": "litert-lm 0.17.1 (pip CLI benchmark) (XNNPACK)",
+          "prompt_tokens": 16,
+          "decode_tokens": 32,
+          "prefill_tps": 96.2,
+          "decode_tps": 16.0,
+          "ttft_s": 0.478,
+          "load_s": 2.09,
+          "cache": "no",
+          "runs": 2,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship card bench (short-prompt cell, TTFT is the figure of interest): 2 separate benchmark processes, median; the previous file measured in the same window: prefill 14.2 tok/s, decode 15.6 tok/s, TTFT 1.444 s"
+        },
+        {
+          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
+          "os": "Android 16",
+          "backend": "gpu",
+          "runtime": "litert_lm_advanced_main (LiteRT-LM main, 2026-09-18 build), LiteRT OpenCL delegate, fp16 activations",
+          "prompt_tokens": 1024,
+          "decode_tokens": 256,
+          "prefill_tps": "129.9-264.1",
+          "decode_tps": "13.87-20.23",
+          "ttft_s": "3.93-7.95",
+          "load_s": 7.92,
+          "max_num_tokens": 1280,
+          "cache": "no",
+          "runs": 3,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship device leg (round 16, turn T2): 3 iterations in one process; the handset throttles after the first iteration, so the range spans cold to warm; cold engine init (--disable_cache=true)",
+          "peak_memory_mb": 1118.7
+        },
+        {
+          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
+          "os": "Android 16",
+          "backend": "gpu",
+          "runtime": "litert_lm_advanced_main (LiteRT-LM main, 2026-09-18 build), LiteRT OpenCL delegate, fp16 activations",
+          "prompt_tokens": 16,
+          "decode_tokens": 32,
+          "prefill_tps": "165.2-175.6",
+          "decode_tps": "17.35-21.01",
+          "ttft_s": "0.14-0.15",
+          "load_s": 7.88,
+          "max_num_tokens": 1280,
+          "cache": "no",
+          "runs": 3,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship device leg (round 16, turn T2): 3 iterations in one process; cold engine init (--disable_cache=true)",
+          "peak_memory_mb": 1115.5
+        },
+        {
+          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
+          "os": "Android 16",
+          "backend": "cpu",
+          "runtime": "litert_lm_advanced_main (LiteRT-LM main, 2026-09-18 build), XNNPACK 4 threads, weight cache",
+          "prompt_tokens": 1024,
+          "decode_tokens": 256,
+          "prefill_tps": "46.6-65.5",
+          "decode_tps": "7.2-7.39",
+          "ttft_s": "15.78-22.13",
+          "load_s": 2.81,
+          "max_num_tokens": 1280,
+          "cache": "disk (XNNPACK weight cache)",
+          "runs": 2,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship device leg (round 16, turn T2): 2 iterations in one process; init includes writing the weight cache",
+          "peak_memory_mb": 3893.6
+        },
+        {
+          "device": "Galaxy S26 (SM-S942Q, Qualcomm SM8850, Adreno)",
+          "os": "Android 16",
+          "backend": "cpu",
+          "runtime": "litert_lm_advanced_main (LiteRT-LM main, 2026-09-18 build), XNNPACK 4 threads, weight cache",
+          "prompt_tokens": 16,
+          "decode_tokens": 32,
+          "prefill_tps": "52.8-56.4",
+          "decode_tps": "7.66-8.78",
+          "ttft_s": "0.4-0.43",
+          "load_s": 2.82,
+          "max_num_tokens": 1280,
+          "cache": "disk (XNNPACK weight cache)",
+          "runs": 3,
+          "date": "2026-10-05",
+          "source": "GPU-graph re-ship device leg (round 16, turn T2): 3 iterations in one process; the first iteration writes the XNNPACK weight cache, so the values are iterations 2-3; init includes writing the weight cache",
+          "peak_memory_mb": 3502.3
         }
       ],
       "known_issues": [
-        "Pixel 8a (8 GB): the prefill graph delegates 1674/1674 nodes on OpenCL but execution OOM-reboots the phone (Android GPU re-gate 2026-08-17, transfer verified byte-for-byte); use CPU or a 12 GB-class device for GPU"
+        "Pixel 8a (8 GB), measured on the previous file (before the 2026-10-06 GPU graph rewrite; not re-measured on the current file): the prefill graph delegated 1674/1674 nodes on OpenCL but execution OOM-rebooted the phone (Android GPU re-gate 2026-08-17, transfer verified byte-for-byte); use CPU or a 12 GB-class device for GPU"
       ]
     }
   ]

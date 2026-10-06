@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { declaredChannels, fetchManifest, parseManifest, resolve, thinkingMarkers } from "../dist/index.js";
+import { declaredChannels, fetchManifest, parseManifest, resolve, thinkingControl, thinkingMarkers } from "../dist/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const examples = join(here, "..", "..", "..", "manifest", "examples");
@@ -182,6 +182,22 @@ test("parse checks string-list elements eagerly: a non-string in backends, platf
 test("Qwen thinking markers keep exact whitespace", () => {
   const t = thinkingMarkers(qwen);
   assert.deepEqual(t, { start: "<think>\n", end: "\n</think>" });
+});
+
+test("0.1.3 thinking control: shipped values, each known value, absent and unknown -> undefined", () => {
+  assert.equal(thinkingControl(qwen), "always");
+  assert.equal(thinkingControl(lfm), "model");
+  const withControl = (control) => {
+    const m = fixture();
+    m.model.capabilities = { thinking: { declared: true, channel: { start: "<think>", end: "</think>" } } };
+    if (control !== undefined) m.model.capabilities.thinking.control = control;
+    return parseManifest(m);
+  };
+  for (const c of ["switch", "always", "never", "model"]) assert.equal(thinkingControl(withControl(c)), c);
+  assert.equal(thinkingControl(withControl(undefined)), undefined);
+  // A value a later 0.1.x adds, or a wrong type, is no statement — never a parse error.
+  for (const c of ["budget", "", 1, null]) assert.equal(thinkingControl(withControl(c)), undefined, JSON.stringify(c));
+  assert.equal(thinkingControl(parseManifest(fixture())), undefined);
 });
 
 test("Qwen session defaults carry the 2048 output budget", () => {

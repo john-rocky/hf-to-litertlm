@@ -1,7 +1,7 @@
 {
-  "manifest_schema": "0.1.2",
+  "manifest_schema": "0.1.3",
   "repo": "litert-community/LFM2.5-1.2B-Instruct",
-  "generated": "2026-09-06",
+  "generated": "2026-10-07",
   "generator": "make_manifest.py",
   "model": {
     "display_name": "LFM2.5-1.2B-Instruct",
@@ -18,7 +18,8 @@
         "channel": {
           "start": "<think>",
           "end": "</think>"
-        }
+        },
+        "control": "model"
       },
       "channels": [
         {
@@ -32,12 +33,12 @@
   "variants": [
     {
       "file": "LFM2.5-1.2B-Instruct_int4.litertlm",
-      "sha256": "a28b5c59ac204e2e51c1f98d2d6db6982f0e12da59a268fe498edcb33237e906",
+      "sha256": "96041e6c72b1d2e9b73a122870606bbf18a3819bf14c43c3f2b74685ed62c24d",
       "size_bytes": 736015744,
       "sections": [
         {
           "type": "LlmMetadataProto",
-          "size_bytes": 1856
+          "size_bytes": 2223
         },
         {
           "type": "ExecutorMetadataProto",
@@ -78,12 +79,12 @@
     },
     {
       "file": "LFM2.5-1.2B-Instruct_int4_gpu.litertlm",
-      "sha256": "36f7f0221bcc42c75291da1d7e3422901024a5b06b9bfa3c02d7feface04f70a",
+      "sha256": "97e6a9700208f59fce2ceb993cd6c18ea77ada8c2a940f68332004f38a404671",
       "size_bytes": 736220768,
       "sections": [
         {
           "type": "LlmMetadataProto",
-          "size_bytes": 1856
+          "size_bytes": 2223
         },
         {
           "type": "ExecutorMetadataProto",
@@ -238,12 +239,12 @@
     },
     {
       "file": "LFM2.5-1.2B-Instruct_int8.litertlm",
-      "sha256": "e002a91545cec6328be2a86e9b8b4fccb2dd9dde7e6c8b29d730f915a0a697fe",
+      "sha256": "41c192feac3a028cfd35f4a0c5db2a70961dc388ecb4ad2cac9a094be0a078ea",
       "size_bytes": 1247091440,
       "sections": [
         {
           "type": "LlmMetadataProto",
-          "size_bytes": 1856
+          "size_bytes": 2223
         },
         {
           "type": "ExecutorMetadataProto",

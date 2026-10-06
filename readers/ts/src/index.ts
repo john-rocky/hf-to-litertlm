@@ -16,6 +16,9 @@ export interface ThinkingChannel {
   end: string;
 }
 
+/** What the bundle's template does about thinking (manifest 0.1.3+); see thinkingControl(). */
+export type ThinkingControl = "switch" | "always" | "never" | "model";
+
 /** One entry of the bundle's declared channel set (manifest 0.1.1+). */
 export interface DeclaredChannel {
   name: string;
@@ -27,7 +30,8 @@ export interface DeclaredChannel {
 export interface Capabilities {
   vision?: boolean;
   audio?: boolean;
-  thinking?: { declared: boolean; channel?: ThinkingChannel };
+  /** `control` (0.1.3+) is the file's raw string; thinkingControl() returns it only when known. */
+  thinking?: { declared: boolean; channel?: ThinkingChannel; control?: string };
   /** Full bundle-declared channel set (0.1.1+); `thinking` mirrors the first entry. */
   channels?: DeclaredChannel[];
 }
@@ -262,6 +266,20 @@ export function resolve(manifest: Manifest, opts: ResolveOptions = {}): Resoluti
 export function thinkingMarkers(manifest: Manifest): ThinkingChannel | undefined {
   const t = manifest.model.capabilities?.thinking;
   return t?.declared ? t.channel : undefined;
+}
+
+const THINKING_CONTROLS: readonly string[] = ["switch", "always", "never", "model"];
+
+/**
+ * What the bundle's template does about thinking (manifest 0.1.3+):
+ * "switch" — it reads `enable_thinking`, so set that per turn; "always" —
+ * every reply starts inside the thought channel; "never" — no reply does;
+ * "model" — the template leaves it to the model. Undefined when the
+ * manifest does not say, or says a value this reader does not know.
+ */
+export function thinkingControl(manifest: Manifest): ThinkingControl | undefined {
+  const c = manifest.model.capabilities?.thinking?.control;
+  return typeof c === "string" && THINKING_CONTROLS.includes(c) ? (c as ThinkingControl) : undefined;
 }
 
 /**

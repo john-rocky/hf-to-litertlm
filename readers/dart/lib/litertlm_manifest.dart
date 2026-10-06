@@ -38,6 +38,15 @@ class Capabilities {
   final bool thinkingDeclared;
   final ThinkingChannel? thinkingChannel;
 
+  /// What the bundle's template does about thinking (manifest 0.1.3+):
+  /// `switch` — it reads `enable_thinking`, so set that per turn; `always` —
+  /// every reply starts inside the thought channel; `never` — no reply does;
+  /// `model` — the template leaves it to the model. Null when the manifest
+  /// does not say, or says a value this reader does not know.
+  final String? thinkingControl;
+
+  static const _thinkingControls = {'switch', 'always', 'never', 'model'};
+
   /// Full bundle-declared channel set (0.1.1+) — thinking, tool-call, or
   /// anything else a model declares. Empty for 0.1.0 manifests; fall back to
   /// [thinkingChannel] plus your runtime's default channels.
@@ -48,6 +57,7 @@ class Capabilities {
     this.audio = false,
     this.thinkingDeclared = false,
     this.thinkingChannel,
+    this.thinkingControl,
     this.channels = const [],
   });
 
@@ -55,6 +65,7 @@ class Capabilities {
     if (j == null) return const Capabilities();
     final t = j['thinking'] as Map<String, dynamic>?;
     final ch = t?['channel'] as Map<String, dynamic>?;
+    final control = t?['control'];
     return Capabilities(
       vision: j['vision'] == true,
       audio: j['audio'] == true,
@@ -62,6 +73,8 @@ class Capabilities {
       thinkingChannel: ch == null
           ? null
           : ThinkingChannel(ch['start'] as String? ?? '', ch['end'] as String? ?? ''),
+      thinkingControl:
+          control is String && _thinkingControls.contains(control) ? control : null,
       channels: ((j['channels'] as List?) ?? const [])
           .map((e) => e as Map<String, dynamic>)
           .map((e) => DeclaredChannel(
@@ -188,6 +201,10 @@ class LitertlmManifest {
   /// The model's declared thinking markers (exact strings, whitespace included).
   ThinkingChannel? get thinkingMarkers =>
       capabilities.thinkingDeclared ? capabilities.thinkingChannel : null;
+
+  /// What the bundle's template does about thinking (manifest 0.1.3+); see
+  /// [Capabilities.thinkingControl]. Null when absent or unknown.
+  String? get thinkingControl => capabilities.thinkingControl;
 
   /// The bundle's full declared channel set (manifest 0.1.1+). Empty for
   /// 0.1.0 manifests — fall back to [thinkingMarkers] plus your runtime's

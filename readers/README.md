@@ -4,8 +4,8 @@ Two dependency-free readers for [`litertlm_manifest.json`](../manifest/SCHEMA.md
 
 | package | where | status |
 |---|---|---|
-| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | 0.2.2 source; `npm test` (24 tests, including shipped manifests) |
-| `litertlm_manifest` (Dart) | [`dart/`](dart/) | 0.2.2 source; `dart test` (21 tests against the same fixtures, Dart 3.13) |
+| `litertlm-manifest` (TypeScript) | [`ts/`](ts/) | 0.2.3 source; `npm test` (25 tests, including shipped manifests) |
+| `litertlm_manifest` (Dart) | [`dart/`](dart/) | 0.2.3 source; `dart test` (22 tests against the same fixtures, Dart 3.13) |
 
 Distribution is through this repository's source. As of 2026-09-08, neither reference package name is published on npm or pub.dev; the version fields identify the source, not a registry release. See each package README for local installation and its changelog for the changes in this source version.
 
@@ -33,7 +33,7 @@ uses Qwen2.5-1.5B and has its own device record and conditions.
 ## Usage (TypeScript)
 
 ```ts
-import { declaredChannels, fetchManifest, resolve } from "litertlm-manifest";
+import { declaredChannels, fetchManifest, resolve, thinkingControl } from "litertlm-manifest";
 
 const manifest = await fetchManifest("litert-community/LFM2.5-1.2B-Instruct");
 const r = resolve(manifest, { platform: "android", deviceClass: "midrange-2023+" });
@@ -46,6 +46,9 @@ if (!r) throw new Error("No variant supports the requested device/backend");
 
 declaredChannels(manifest); // 0.1.1+: the bundle's full channel set (thinking, tool-call, ...)
                             // — empty for 0.1.0 manifests; Dart: manifest.declaredChannels
+thinkingControl(manifest);  // 0.1.3+: "switch" | "always" | "never" | "model" — what the bundle's
+                            // template does about thinking; undefined when absent or unknown;
+                            // Dart: manifest.thinkingControl
 ```
 
 Dart mirrors the selection API: `LitertlmManifest.fromJson(...)` then `.resolve(platform: 'ios')`.
@@ -64,6 +67,8 @@ Parsing requires non-empty string `repo` and variant `file` fields, with a descr
 Download URLs use the fetch source repo and revision, including when a fork's copied manifest still names its origin. TS `fetchManifest(repo, rev)` sets both; Dart accepts `sourceRepo` and `revision` in `fromJson`. Without source context, parsing uses the file's required `repo`. A per-resolve `revision` overrides the fetched revision; the default is `main`. Source context does not make a malformed manifest valid.
 
 TS `fetchManifest` continues to throw on HTTP or parse failure. Thinking markers and declared channels retain their existing reference API behavior.
+
+`thinkingControl` (0.2.3) reads `model.capabilities.thinking.control`, defined in [SCHEMA.md](../manifest/SCHEMA.md#capabilitiesthinkingcontrol--what-the-template-does-about-thinking). Only `switch` means the app can turn thinking on and off, by setting `enable_thinking` per turn. Resolution does not use it.
 
 The 0.2.2 fixes incorporate the parser, fork-source and empty-backend corrections by Hugh (@hung-yueh) in [react-native-litert-lm 0.7.0](https://github.com/hung-yueh/react-native-litert-lm/releases/tag/v0.7.0). Each package includes the upstream MIT notice alongside its Apache-2.0 license.
 

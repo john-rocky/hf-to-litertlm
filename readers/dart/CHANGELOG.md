@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 — 2026-10-07 (source release)
+
+- Add `LitertlmManifest.thinkingControl` and `Capabilities.thinkingControl` for `model.capabilities.thinking.control` (manifest 0.1.3): `switch`, `always`, `never` or `model`. An absent value, or one this reader does not know, is `null`; parsing does not fail on it.
+- Resolution is unchanged.
+
 ## 0.2.2 — 2026-09-08 (source release)
 
 - Report missing, empty or non-string `repo` and variant `file` values with descriptive `FormatException`s.

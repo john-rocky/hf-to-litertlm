@@ -2,7 +2,7 @@
 
 Reference reader for `litertlm_manifest.json` — the deployment manifest shipped at the root of `.litertlm` model repos on Hugging Face. Given a device, it answers: which file to download, on which backend, with which settings (thinking markers, session defaults, caveats). Dependency-free; it does not run models.
 
-Version 0.2.2 is available as source in this checkout. As of 2026-09-08, `litertlm-manifest` is not published on npm. From a checkout containing this version:
+Version 0.2.3 is available as source in this checkout. As of 2026-09-08, `litertlm-manifest` is not published on npm. From a checkout containing this version:
 
 ```sh
 cd readers/ts
@@ -11,10 +11,10 @@ npm test
 npm pack
 ```
 
-`npm pack` builds the JavaScript and type declarations. Install the resulting archive from your app with `npm install /path/to/litertlm-manifest-0.2.2.tgz`. The source tests use the fixtures in `manifest/examples/` at the repository root.
+`npm pack` builds the JavaScript and type declarations. Install the resulting archive from your app with `npm install /path/to/litertlm-manifest-0.2.3.tgz`. The source tests use the fixtures in `manifest/examples/` at the repository root.
 
 ```ts
-import { fetchManifest, resolve } from "litertlm-manifest";
+import { fetchManifest, resolve, thinkingControl } from "litertlm-manifest";
 
 const manifest = await fetchManifest("litert-community/LFM2.5-1.2B-Instruct");
 const r = resolve(manifest, { platform: "android" });
@@ -23,6 +23,7 @@ r.url;             // exact .litertlm to download (sha256 in r.variant.sha256)
 r.backend;         // verified-fastest backend for the platform
 r.thinkingChannel; // the model's exact <think> markers, whitespace included
 r.sessionDefaults; // e.g. { max_output_tokens_min: 2048 }
+thinkingControl(manifest); // "switch" | "always" | "never" | "model", or undefined (manifest 0.1.3+)
 ```
 
 `resolve()` returns `null` when no candidate remains, including when an explicitly requested backend is not listed or all backend lists are empty. It only chooses declared backends.

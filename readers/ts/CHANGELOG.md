@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 — 2026-10-07 (source release)
+
+- Add `thinkingControl(manifest)` for `model.capabilities.thinking.control` (manifest 0.1.3): `"switch"`, `"always"`, `"never"` or `"model"`. An absent value, or one this reader does not know, returns `undefined`; parsing does not fail on it.
+- Resolution is unchanged.
+
 ## 0.2.2 — 2026-09-08 (source release)
 
 - Reject missing, empty or non-string `repo` and variant `file` values with descriptive parse errors.
