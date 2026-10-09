@@ -64,6 +64,8 @@ On the Galaxy S26 (LiteRT 2.2.0, GPU through OpenCL), one call, median:
 
 These are the C-API runner's numbers. The measurement app (Kotlin CompiledModel API) gave 39.8 ms on L128 and 75.4 ms on L256 at FP16_WITH_FP32_ACCUM. On the NPU (Qualcomm JIT through LiteRT 2.2.0), L128 takes 29.6 ms with max |Δp| 0.0167 and mean 0.00173, within the bar; L256 (41.4 ms, mean 0.00204), the vision tower and the T1001 audio encoder fall outside it there. The shipped L4096 file has not run on the phone.
 
+A later run (2026-10-09, the demo app on the Kotlin CompiledModel API, the Hub file) of all 210 public L128 text rows: FP16_WITH_FP32_ACCUM max |Δp| 0.040 on one row (`semif_46b7029b9a704138b77a/answer`, argmax unchanged, mean 0.0019; the same scores on five repeats), FP32 max 0.0019 on the same rows; L256 (43 rows) 0.0064 / 0.0012. The conversion lane's per-bucket tables above are its 101 to 108 gate rows. For a guaranteed 0.02 bound on Android use FP32; FP16_WITH_FP32_ACCUM trades a rare 0.04 deviation for speed.
+
 ## Where each number comes from
 
 | Numbers | Result file |
