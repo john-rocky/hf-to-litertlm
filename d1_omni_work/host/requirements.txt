@@ -1,0 +1,7 @@
+# d1-omni-600M LiteRT host (numpy + tokenizers + Pillow + soundfile + ai-edge-litert; no PyTorch, no transformers).
+# Pinned to the versions the host tests and verify.py passed with (Python 3.12, macOS arm64).
+ai-edge-litert==2.2.0
+numpy==2.5.3
+tokenizers==0.23.2
+Pillow==12.3.0
+soundfile==0.14.0

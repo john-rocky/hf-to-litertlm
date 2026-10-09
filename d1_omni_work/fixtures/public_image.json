@@ -1,0 +1,815 @@
+{
+ "what": "d1-omni-600M public check set, image requests, with the provider's own float32 answers (host/verify.py reads it); `licences` gives each source's licence and its file",
+ "mode": "image",
+ "reference": {
+  "model": "LiquidAI/d1-omni-600M",
+  "revision": "414f8d6438174f5b2133a9c21a478fc42625e308",
+  "how": "the provider's own code: AutoModel.from_pretrained(<snapshot>, trust_remote_code=True, dtype=torch.float32), CPU, 12 threads; probabilities(state, questions, images, audio) once per record",
+  "versions": {
+   "transformers": "5.19.0",
+   "torch": "2.14.1"
+  },
+  "image_reader": "transformers.image_utils.load_image (EXIF orientation applied, RGB); resize on the float path (uint8 -> float32 -> bilinear antialias -> round -> clamp), as torchvision 0.24 does it",
+  "audio_reader": "soundfile.read(path, dtype='int16'), 16 kHz mono",
+  "values": "expected[].probs = each question's distribution in option order ([yes, no] for a noul); ids / markers / P = the provider's encoded row (P = media prefix rows)"
+ },
+ "near_tie_gap": 0.02,
+ "counts": {
+  "records": 5,
+  "questions": 12,
+  "by_source": {
+   "img": 3,
+   "own_image": 2
+  }
+ },
+ "licences": [
+  {
+   "source": "img",
+   "records": 3,
+   "licence": "CC0 1.0: photographs from Wikimedia Commons (page and author in each record's provenance)",
+   "file": null
+  },
+  {
+   "source": "own_image",
+   "records": 2,
+   "licence": "CC0 1.0: photographs from Wikimedia Commons (page and author in each record's provenance)",
+   "file": null
+  }
+ ],
+ "records": [
+  {
+   "id": "img_dogs_01",
+   "source": "img",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Two_French_bulldogs_swimming_in_life_jackets.jpg, by W.carter (Wikimedia Commons user)), long side resized to 384 px",
+   "state": null,
+   "questions": {
+    "count": {
+     "type": "choice",
+     "instructions": "How many dogs are in the photo?",
+     "criteria": {
+      "one": "One",
+      "two": "Two",
+      "more": "Three or more"
+     }
+    },
+    "water": {
+     "type": "noul",
+     "instructions": "Are the animals in the water?"
+    }
+   },
+   "media": {
+    "kind": "image",
+    "file": "media/img_dogs_01.png",
+    "sha256": "dde44ce93c4f0722a4262499e91afc636667dcb5ff9f8c917010ff6b48c5c519",
+    "bytes": 138690
+   },
+   "expected": [
+    {
+     "name": "count",
+     "type": "choice",
+     "K": 3,
+     "P": 84,
+     "ids": [
+      1,
+      17,
+      18,
+      4023,
+      1697,
+      9889,
+      938,
+      797,
+      779,
+      11697,
+      540,
+      19,
+      16,
+      1235,
+      535,
+      3732,
+      20,
+      19,
+      16,
+      1547,
+      535,
+      8726,
+      20,
+      19,
+      16,
+      1209,
+      535,
+      13016,
+      933,
+      1209,
+      20,
+      21
+     ],
+     "markers": [
+      12,
+      18,
+      24
+     ],
+     "probs": [
+      0.6648232340812683,
+      0.3302094042301178,
+      0.0049673388712108135
+     ]
+    },
+    {
+     "name": "water",
+     "type": "noul",
+     "K": 2,
+     "P": 84,
+     "ids": [
+      1,
+      17,
+      18,
+      17965,
+      779,
+      5165,
+      797,
+      779,
+      1883,
+      540,
+      19,
+      16,
+      4831,
+      535,
+      1295,
+      20,
+      19,
+      16,
+      3347,
+      535,
+      18672,
+      20,
+      21
+     ],
+     "markers": [
+      11,
+      17
+     ],
+     "probs": [
+      0.9999991655349731,
+      8.257583772319776e-07
+     ]
+    }
+   ],
+   "usage_input_tokens": 223
+  },
+  {
+   "id": "img_cat_02",
+   "source": "img",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg, by AdinaVoicu (via Pixabay, CC0 on Commons)), long side resized to 384 px",
+   "state": null,
+   "questions": {
+    "eyes": {
+     "type": "choice",
+     "instructions": "What colour are the animal's eyes?",
+     "criteria": {
+      "blue": "Blue",
+      "green": "Green",
+      "brown": "Brown",
+      "yellow": "Yellow"
+     }
+    },
+    "dog": {
+     "type": "noul",
+     "instructions": "Is there a dog in the photo?"
+    }
+   },
+   "media": {
+    "kind": "image",
+    "file": "media/img_cat_02.png",
+    "sha256": "243fe8e9ca1b666558f50cb5e55d58b385a0ad81d2ce4af7a3369562fcc62df9",
+    "bytes": 198215
+   },
+   "expected": [
+    {
+     "name": "eyes",
+     "type": "choice",
+     "K": 4,
+     "P": 120,
+     "ids": [
+      1,
+      17,
+      18,
+      3493,
+      12284,
+      938,
+      779,
+      6134,
+      1090,
+      5855,
+      540,
+      19,
+      16,
+      7043,
+      535,
+      11401,
+      20,
+      19,
+      16,
+      5253,
+      535,
+      6941,
+      20,
+      19,
+      16,
+      10800,
+      535,
+      9420,
+      20,
+      19,
+      16,
+      9897,
+      535,
+      24015,
+      20,
+      21
+     ],
+     "markers": [
+      12,
+      18,
+      24,
+      30
+     ],
+     "probs": [
+      0.017111264169216156,
+      0.0005395037587732077,
+      0.9637463092803955,
+      0.018602898344397545
+     ]
+    },
+    {
+     "name": "dog",
+     "type": "noul",
+     "K": 2,
+     "P": 120,
+     "ids": [
+      1,
+      17,
+      18,
+      4940,
+      1413,
+      768,
+      4949,
+      797,
+      779,
+      11697,
+      540,
+      19,
+      16,
+      4831,
+      535,
+      1295,
+      20,
+      19,
+      16,
+      3347,
+      535,
+      18672,
+      20,
+      21
+     ],
+     "markers": [
+      12,
+      18
+     ],
+     "probs": [
+      1.7608399502933025e-05,
+      0.9999823570251465
+     ]
+    }
+   ],
+   "usage_input_tokens": 300
+  },
+  {
+   "id": "img_bike_03",
+   "source": "img",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg, by Wilfredor (Wikimedia Commons user)), long side resized to 384 px",
+   "state": null,
+   "questions": {
+    "vehicle": {
+     "type": "choice",
+     "instructions": "What vehicle is in the photo?",
+     "criteria": {
+      "bicycle": "A bicycle",
+      "car": "A car",
+      "boat": "A boat",
+      "bus": "A bus"
+     }
+    },
+    "daylight": {
+     "type": "noul",
+     "instructions": "Was the photo taken in daylight?"
+    }
+   },
+   "media": {
+    "kind": "image",
+    "file": "media/img_bike_03.png",
+    "sha256": "a99c8b7a314f01cc15e8d340906eaa7220ea62df883c2884e0f1f05ee08c03ba",
+    "bytes": 165090
+   },
+   "expected": [
+    {
+     "name": "vehicle",
+     "type": "choice",
+     "K": 4,
+     "P": 96,
+     "ids": [
+      1,
+      17,
+      18,
+      3493,
+      10052,
+      856,
+      797,
+      779,
+      11697,
+      540,
+      19,
+      16,
+      39391,
+      535,
+      835,
+      39391,
+      20,
+      19,
+      16,
+      1681,
+      535,
+      835,
+      1681,
+      20,
+      19,
+      16,
+      15332,
+      535,
+      835,
+      15332,
+      20,
+      19,
+      16,
+      2689,
+      535,
+      835,
+      2689,
+      20,
+      21
+     ],
+     "markers": [
+      11,
+      18,
+      25,
+      32
+     ],
+     "probs": [
+      0.9999998807907104,
+      1.0742727596380064e-07,
+      1.447577169244596e-09,
+      1.2757875866853396e-09
+     ]
+    },
+    {
+     "name": "daylight",
+     "type": "noul",
+     "K": 2,
+     "P": 96,
+     "ids": [
+      1,
+      17,
+      18,
+      28519,
+      779,
+      11697,
+      4281,
+      797,
+      43142,
+      540,
+      19,
+      16,
+      4831,
+      535,
+      1295,
+      20,
+      19,
+      16,
+      3347,
+      535,
+      18672,
+      20,
+      21
+     ],
+     "markers": [
+      11,
+      17
+     ],
+     "probs": [
+      0.07834406942129135,
+      0.9216558933258057
+     ]
+    }
+   ],
+   "usage_input_tokens": 254
+  },
+  {
+   "id": "img_02",
+   "source": "own_image",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ABed_in_hotel_room_5.jpg, by Kurt Kaiser), resized to 384x288 px",
+   "state": "Photo from a room check.",
+   "questions": {
+    "room": {
+     "type": "choice",
+     "instructions": "What kind of room is this?",
+     "criteria": {
+      "kitchen": "A kitchen",
+      "bedroom": "A bedroom",
+      "office": "An office",
+      "bathroom": "A bathroom"
+     }
+    },
+    "lamp": {
+     "type": "noul",
+     "instructions": "Is a lamp switched on?"
+    },
+    "brightness": {
+     "type": "score",
+     "instructions": "How bright is the room?",
+     "criteria": [
+      "Dark",
+      "Dim",
+      "Bright"
+     ]
+    }
+   },
+   "media": {
+    "kind": "image",
+    "file": "media/img_02.png",
+    "sha256": "1864e1c215f23774abbd74860272c5f8e9ce439e75857b48b4cabaabf09195b7",
+    "bytes": 146091
+   },
+   "expected": [
+    {
+     "name": "room",
+     "type": "choice",
+     "K": 4,
+     "P": 108,
+     "ids": [
+      1,
+      17,
+      26252,
+      988,
+      768,
+      5362,
+      3999,
+      523,
+      18,
+      3493,
+      3746,
+      803,
+      5362,
+      856,
+      1033,
+      540,
+      19,
+      16,
+      15936,
+      535,
+      835,
+      15936,
+      20,
+      19,
+      16,
+      32874,
+      535,
+      835,
+      32874,
+      20,
+      19,
+      16,
+      6756,
+      535,
+      1592,
+      6756,
+      20,
+      19,
+      16,
+      32062,
+      535,
+      835,
+      32062,
+      20,
+      21
+     ],
+     "markers": [
+      17,
+      24,
+      31,
+      38
+     ],
+     "probs": [
+      1.6669948976755222e-08,
+      0.9919720888137817,
+      3.507361725496594e-07,
+      0.008027547970414162
+     ]
+    },
+    {
+     "name": "lamp",
+     "type": "noul",
+     "K": 2,
+     "P": 108,
+     "ids": [
+      1,
+      17,
+      26252,
+      988,
+      768,
+      5362,
+      3999,
+      523,
+      18,
+      4940,
+      768,
+      29114,
+      35589,
+      884,
+      540,
+      19,
+      16,
+      4831,
+      535,
+      1295,
+      20,
+      19,
+      16,
+      3347,
+      535,
+      18672,
+      20,
+      21
+     ],
+     "markers": [
+      16,
+      22
+     ],
+     "probs": [
+      0.14448046684265137,
+      0.8555194735527039
+     ]
+    },
+    {
+     "name": "brightness",
+     "type": "score",
+     "K": 3,
+     "P": 108,
+     "ids": [
+      1,
+      17,
+      26252,
+      988,
+      768,
+      5362,
+      3999,
+      523,
+      18,
+      4023,
+      9899,
+      856,
+      779,
+      5362,
+      540,
+      19,
+      16,
+      2119,
+      730,
+      525,
+      535,
+      18003,
+      20,
+      19,
+      16,
+      2119,
+      730,
+      526,
+      535,
+      19640,
+      20,
+      19,
+      16,
+      2119,
+      730,
+      527,
+      535,
+      32989,
+      20,
+      21
+     ],
+     "markers": [
+      16,
+      24,
+      32
+     ],
+     "probs": [
+      0.14216427505016327,
+      0.8247799873352051,
+      0.03305577486753464
+     ]
+    }
+   ],
+   "usage_input_tokens": 437
+  },
+  {
+   "id": "img_03",
+   "source": "own_image",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ARoom_at_Siamaze_Hostel.jpg, by Mx. Granger), resized to 768x1024 px",
+   "state": null,
+   "questions": {
+    "beds": {
+     "type": "choice",
+     "instructions": "How many beds are in the room?",
+     "criteria": {
+      "one": "One bed",
+      "two": "Two beds",
+      "more": "Three or more beds"
+     }
+    },
+    "towel": {
+     "type": "noul",
+     "instructions": "Is there a folded towel on a bed?"
+    },
+    "tidy": {
+     "type": "score",
+     "instructions": "How tidy is the room?",
+     "criteria": [
+      "Very cluttered",
+      "Some clutter",
+      "Tidy"
+     ]
+    }
+   },
+   "media": {
+    "kind": "image",
+    "file": "media/img_03.png",
+    "sha256": "28080dd775920ac0b701d6640eb08e0500542946a19c84ab80e263e595224312",
+    "bytes": 566869
+   },
+   "expected": [
+    {
+     "name": "beds",
+     "type": "choice",
+     "K": 3,
+     "P": 1770,
+     "ids": [
+      1,
+      17,
+      18,
+      4023,
+      1697,
+      25893,
+      938,
+      797,
+      779,
+      5362,
+      540,
+      19,
+      16,
+      1235,
+      535,
+      3732,
+      6100,
+      20,
+      19,
+      16,
+      1547,
+      535,
+      8726,
+      25893,
+      20,
+      19,
+      16,
+      1209,
+      535,
+      13016,
+      933,
+      1209,
+      25893,
+      20,
+      21
+     ],
+     "markers": [
+      12,
+      19,
+      26
+     ],
+     "probs": [
+      0.10669785737991333,
+      0.8932854533195496,
+      1.6734611563151702e-05
+     ]
+    },
+    {
+     "name": "towel",
+     "type": "noul",
+     "K": 2,
+     "P": 1770,
+     "ids": [
+      1,
+      17,
+      18,
+      4940,
+      1413,
+      768,
+      41478,
+      50624,
+      884,
+      768,
+      6100,
+      540,
+      19,
+      16,
+      4831,
+      535,
+      1295,
+      20,
+      19,
+      16,
+      3347,
+      535,
+      18672,
+      20,
+      21
+     ],
+     "markers": [
+      13,
+      19
+     ],
+     "probs": [
+      0.0015259083593264222,
+      0.9984740614891052
+     ]
+    },
+    {
+     "name": "tidy",
+     "type": "score",
+     "K": 3,
+     "P": 1770,
+     "ids": [
+      1,
+      17,
+      18,
+      4023,
+      18584,
+      598,
+      856,
+      779,
+      5362,
+      540,
+      19,
+      16,
+      2119,
+      730,
+      525,
+      535,
+      25913,
+      1064,
+      11119,
+      791,
+      20,
+      19,
+      16,
+      2119,
+      730,
+      526,
+      535,
+      4260,
+      1064,
+      11119,
+      20,
+      19,
+      16,
+      2119,
+      730,
+      527,
+      535,
+      837,
+      48307,
+      20,
+      21
+     ],
+     "markers": [
+      11,
+      22,
+      32
+     ],
+     "probs": [
+      0.00039162018219940364,
+      0.011374534107744694,
+      0.9882338047027588
+     ]
+    }
+   ],
+   "usage_input_tokens": 5411
+  }
+ ]
+}

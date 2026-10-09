@@ -1,0 +1,54 @@
+{
+  "text": {
+    "answers": {
+      "refund": {
+        "type": "noul",
+        "noul": 0.9984676994529568
+      },
+      "team": {
+        "type": "choice",
+        "choice": "billing",
+        "confidence": 0.9928545474661353,
+        "probabilities": {
+          "billing": 0.9928545474661353,
+          "technical": 0.005436893519986953,
+          "fraud": 0.0017085590138777218
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 103,
+      "output_tokens": 0
+    }
+  },
+  "image": {
+    "answers": {
+      "count": {
+        "type": "choice",
+        "choice": "one",
+        "confidence": 0.6653182172525584,
+        "probabilities": {
+          "one": 0.6653182172525584,
+          "two": 0.329706256525683,
+          "more": 0.004975526221758621
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 116,
+      "output_tokens": 0
+    }
+  },
+  "audio": {
+    "answers": {
+      "wants": {
+        "type": "noul",
+        "noul": 0.8002604016739182
+      }
+    },
+    "usage": {
+      "input_tokens": 154,
+      "output_tokens": 0
+    }
+  }
+}
