@@ -14,6 +14,28 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## 2026-10-10 — metadata re-ship to the official LiteRT-LM configuration (8 files, weights unchanged)
+
+Eight published `.litertlm` files get the LiteRT-LM official configuration of their family, `models/<family>/LlmMetadataProto.pbtext` + `chat_template.jinja` at LiteRT-LM commit `4a363c0728d4461eaf05c4d87250ef3e90deb035`, with the file's own `max_num_tokens` kept and every other section byte-identical (the script compares the unpacked section files by content). litert-lm 0.18.0 hands the chat template each message's content as a list of parts; the official templates read parts, so the re-packed files need litert-lm 0.18.0 or newer (on 0.17.x the user turn renders empty).
+
+```bash
+bash scripts/repack_official_metadata.sh <hf-repo> <file.litertlm> <family> <hub-commit-of-the-original> [max_num_tokens]
+# -> out/repack/<file.litertlm>, sha256 printed last; the two diffs / the section check print nothing on success
+```
+
+| repo | file | family | original (Hub commit) | max_num_tokens | sha256 of the file in the PR (first 16) |
+|---|---|---|---|---|---|
+| litert-community/MiniCPM5-1B | minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm | minicpm5 | f6a837aa9437aa389f0161f2a1a65c715ae1c17a | 1024 | 40ffba999ca45223 |
+| litert-community/MiniCPM5-1B | minicpm_wi4b32_wi8_afp32.litertlm | minicpm5 | f6a837aa9437aa389f0161f2a1a65c715ae1c17a | 1024 | ee1b70697ef583c4 |
+| litert-community/MiniCPM5-1B | MiniCPM5-1B_dynamic_wi8_afp32.litertlm | minicpm5 | f6a837aa9437aa389f0161f2a1a65c715ae1c17a | 4096 (unchanged) | 13ec3c4372dd4172 |
+| litert-community/MiniCPM5-2B | MiniCPM5-2B_int4.litertlm | minicpm5 | 8f5f487a72141710604742866bc6f67afdffc798 | 4096 (unchanged) | 05b78bb57dd5ded8 |
+| litert-community/Qwen3-1.7B | Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm | qwen3 | 73fbc3fe8271c162a603ee66f6e7ed25b6211195 | 4096 (unchanged) | 2a72330b504a6596 |
+| litert-community/Qwen3-1.7B | Qwen3_1.7B.litertlm | qwen3 | 73fbc3fe8271c162a603ee66f6e7ed25b6211195 | 4096 (unchanged) | 362ec1c906a49bbe |
+| litert-community/Qwen3-4B | qwen3_4b_mixed_int4.litertlm | qwen3 | 84cc5a35c9c65cd18fcd65bb1f3a7d77a4acfe6e | 2048 | 569fe029f51e55b6 |
+| litert-community/Qwen2.5-1.5B-Instruct | Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm | qwen2_5 | 19edb84c69a0212f29a6ef17ba0d6f278b6a1614 | 4096 (official; the original left it unset) | c4a9b7289365ab80 |
+
+A re-run reproduces every section byte for byte but not the file's sha256: the packer writes a new uuid and creation timestamp into the container header (37 bytes differed between two runs on the first file above, same size). The resulting files are proposed to the repos as Hub pull requests (metadata only); until a PR merges, `main` serves the original. Checks that ran on each result with litert-lm 0.18.0 (python API, CPU, one process per check): describe, a plain prompt, an automatic tool call answered from its result, thinking on and off, two turns, a tool result read from the tool message, and a system-prompt instruction. Exceptions worth knowing: `qwen3_4b_mixed_int4.litertlm` keeps a 2,048-token context, and with thinking on (the official qwen3 default) and no `thinking_token_budget` the thought can use it up before the answer; the Qwen2.5 official configuration sets `min_runtime_version 0.18.0` and `supports_function_calling`.
+
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
 The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
