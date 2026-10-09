@@ -1,0 +1,2346 @@
+{
+ "what": "Mac M4 Max request times through the CompiledModel API (ai-edge-litert 2.2.0): every graph call = write + run + read-back; median of 20 timed requests after 5 warm-ups, one measurement window per file and accelerator",
+ "text": [
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 337.28,
+   "min_ms": 335.5793,
+   "max_ms": 421.7363,
+   "n": 20,
+   "state_call_median_ms": 210.0628,
+   "question_call_median_ms": 127.4301,
+   "row_call_median_ms": null,
+   "load1": [
+    6.55,
+    6.59
+   ],
+   "compile_s": 8.975,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21046332904,
+   "lifetime_max_phys_footprint": 21074448088,
+   "label": "pair-Ls128-e-cpu",
+   "started_at": "2026-10-09T09:39:32+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 337.2396,
+   "min_ms": 336.0305,
+   "max_ms": 338.288,
+   "n": 20,
+   "state_call_median_ms": 210.1208,
+   "question_call_median_ms": 127.0376,
+   "row_call_median_ms": null,
+   "load1": [
+    6.59,
+    6.47
+   ],
+   "compile_s": 8.975,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21046332904,
+   "lifetime_max_phys_footprint": 21074448088,
+   "label": "pair-Ls128-e-cpu",
+   "started_at": "2026-10-09T09:39:41+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 591.4518,
+   "min_ms": 589.1811,
+   "max_ms": 774.4702,
+   "n": 20,
+   "state_call_median_ms": 210.0951,
+   "question_call_median_ms": 127.0699,
+   "row_call_median_ms": null,
+   "load1": [
+    6.47,
+    6.47
+   ],
+   "compile_s": 8.975,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21046332904,
+   "lifetime_max_phys_footprint": 21074448088,
+   "label": "pair-Ls128-e-cpu",
+   "started_at": "2026-10-09T09:39:49+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 591.5896,
+   "min_ms": 589.1174,
+   "max_ms": 612.9061,
+   "n": 20,
+   "state_call_median_ms": 210.5605,
+   "question_call_median_ms": 126.9352,
+   "row_call_median_ms": null,
+   "load1": [
+    6.47,
+    7.01
+   ],
+   "compile_s": 8.975,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21046332904,
+   "lifetime_max_phys_footprint": 21074448088,
+   "label": "pair-Ls128-e-cpu",
+   "started_at": "2026-10-09T09:40:04+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 99.3527,
+   "min_ms": 99.0318,
+   "max_ms": 99.6725,
+   "n": 20,
+   "state_call_median_ms": 60.4001,
+   "question_call_median_ms": 38.956,
+   "row_call_median_ms": null,
+   "load1": [
+    3.69,
+    3.69
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:20+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 100.4161,
+   "min_ms": 100.1692,
+   "max_ms": 100.8481,
+   "n": 20,
+   "state_call_median_ms": 61.3741,
+   "question_call_median_ms": 39.052,
+   "row_call_median_ms": null,
+   "load1": [
+    3.69,
+    3.79
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:23+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 99.3019,
+   "min_ms": 99.13,
+   "max_ms": 99.5123,
+   "n": 20,
+   "state_call_median_ms": 60.3577,
+   "question_call_median_ms": 38.9312,
+   "row_call_median_ms": null,
+   "load1": [
+    3.79,
+    3.79
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:25+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 100.3291,
+   "min_ms": 100.1447,
+   "max_ms": 100.7544,
+   "n": 20,
+   "state_call_median_ms": 61.4353,
+   "question_call_median_ms": 38.9101,
+   "row_call_median_ms": null,
+   "load1": [
+    3.79,
+    3.73
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:28+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one256",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 102,
+   "question_tokens": [
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 99.3763,
+   "min_ms": 99.1288,
+   "max_ms": 99.5852,
+   "n": 20,
+   "state_call_median_ms": 60.4574,
+   "question_call_median_ms": 38.8785,
+   "row_call_median_ms": null,
+   "load1": [
+    3.73,
+    3.73
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:30+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one256",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 102,
+   "question_tokens": [
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 100.4331,
+   "min_ms": 100.1004,
+   "max_ms": 100.6755,
+   "n": 20,
+   "state_call_median_ms": 61.4853,
+   "question_call_median_ms": 38.943,
+   "row_call_median_ms": null,
+   "load1": [
+    3.73,
+    3.67
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:33+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 138.3074,
+   "min_ms": 138.0115,
+   "max_ms": 138.7319,
+   "n": 20,
+   "state_call_median_ms": 60.4523,
+   "question_call_median_ms": 38.9186,
+   "row_call_median_ms": null,
+   "load1": [
+    3.67,
+    3.67
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:35+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 139.3495,
+   "min_ms": 138.9809,
+   "max_ms": 140.2625,
+   "n": 20,
+   "state_call_median_ms": 61.4576,
+   "question_call_median_ms": 38.9288,
+   "row_call_median_ms": null,
+   "load1": [
+    3.67,
+    13.15
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:39+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 177.1653,
+   "min_ms": 176.9251,
+   "max_ms": 177.8028,
+   "n": 20,
+   "state_call_median_ms": 60.4335,
+   "question_call_median_ms": 38.9095,
+   "row_call_median_ms": null,
+   "load1": [
+    13.15,
+    12.25
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:42+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 178.225,
+   "min_ms": 177.945,
+   "max_ms": 178.6553,
+   "n": 20,
+   "state_call_median_ms": 61.4692,
+   "question_call_median_ms": 38.9119,
+   "row_call_median_ms": null,
+   "load1": [
+    12.25,
+    11.67
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:47+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "most",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/signed",
+    "own_fiveq_09/where",
+    "own_fiveq_09/damaged",
+    "own_fiveq_09/request_followed",
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 102,
+   "question_tokens": [
+    41,
+    46,
+    42,
+    44,
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 255.06,
+   "min_ms": 254.4228,
+   "max_ms": 255.7844,
+   "n": 20,
+   "state_call_median_ms": 60.4715,
+   "question_call_median_ms": 38.9106,
+   "row_call_median_ms": null,
+   "load1": [
+    11.67,
+    11.14
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:51+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "most",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/signed",
+    "own_fiveq_09/where",
+    "own_fiveq_09/damaged",
+    "own_fiveq_09/request_followed",
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 102,
+   "question_tokens": [
+    41,
+    46,
+    42,
+    44,
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 256.1954,
+   "min_ms": 255.5854,
+   "max_ms": 256.9792,
+   "n": 20,
+   "state_call_median_ms": 61.4914,
+   "question_call_median_ms": 38.9193,
+   "row_call_median_ms": null,
+   "load1": [
+    11.14,
+    10.41
+   ],
+   "compile_s": 45.464,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23169110656,
+   "lifetime_max_phys_footprint": 33311993840,
+   "label": "pair-Ls128-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:28:58+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls128_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing)",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 99.1416,
+   "min_ms": 98.9264,
+   "max_ms": 99.7614,
+   "n": 20,
+   "state_call_median_ms": 60.2878,
+   "question_call_median_ms": 38.8937,
+   "row_call_median_ms": null,
+   "load1": [
+    3.94,
+    3.94
+   ],
+   "compile_s": 51.384,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23700804752,
+   "lifetime_max_phys_footprint": 34609853456,
+   "label": "pair-Ls128-ids-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:37:02+0900",
+   "file": "real_sharedstate_Ls128_Lq64_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing)",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 100.302,
+   "min_ms": 100.0946,
+   "max_ms": 100.4633,
+   "n": 20,
+   "state_call_median_ms": 61.3641,
+   "question_call_median_ms": 38.9106,
+   "row_call_median_ms": null,
+   "load1": [
+    3.94,
+    3.95
+   ],
+   "compile_s": 51.384,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23700804752,
+   "lifetime_max_phys_footprint": 34609853456,
+   "label": "pair-Ls128-ids-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:37:05+0900",
+   "file": "real_sharedstate_Ls128_Lq64_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing)",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 177.1168,
+   "min_ms": 176.6083,
+   "max_ms": 180.26,
+   "n": 20,
+   "state_call_median_ms": 60.4476,
+   "question_call_median_ms": 38.9236,
+   "row_call_median_ms": null,
+   "load1": [
+    3.95,
+    3.87
+   ],
+   "compile_s": 51.384,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23700804752,
+   "lifetime_max_phys_footprint": 34609853456,
+   "label": "pair-Ls128-ids-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:37:07+0900",
+   "file": "real_sharedstate_Ls128_Lq64_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls128+Lq64 (no sharing)",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 178.2017,
+   "min_ms": 177.8746,
+   "max_ms": 178.7162,
+   "n": 20,
+   "state_call_median_ms": 61.4455,
+   "question_call_median_ms": 38.9181,
+   "row_call_median_ms": null,
+   "load1": [
+    3.87,
+    3.88
+   ],
+   "compile_s": 51.384,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23700804752,
+   "lifetime_max_phys_footprint": 34609853456,
+   "label": "pair-Ls128-ids-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:37:11+0900",
+   "file": "real_sharedstate_Ls128_Lq64_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 168.8476,
+   "min_ms": 168.545,
+   "max_ms": 169.0883,
+   "n": 20,
+   "state_call_median_ms": 105.954,
+   "question_call_median_ms": 62.8896,
+   "row_call_median_ms": null,
+   "load1": [
+    7.4,
+    7.4
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:29:45+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 170.155,
+   "min_ms": 169.9375,
+   "max_ms": 170.3501,
+   "n": 20,
+   "state_call_median_ms": 107.2406,
+   "question_call_median_ms": 62.9269,
+   "row_call_median_ms": null,
+   "load1": [
+    7.4,
+    6.89
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:29:49+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 168.9307,
+   "min_ms": 168.8047,
+   "max_ms": 169.482,
+   "n": 20,
+   "state_call_median_ms": 106.034,
+   "question_call_median_ms": 62.9224,
+   "row_call_median_ms": null,
+   "load1": [
+    6.89,
+    6.74
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:29:53+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 170.335,
+   "min_ms": 169.97,
+   "max_ms": 171.05,
+   "n": 20,
+   "state_call_median_ms": 107.299,
+   "question_call_median_ms": 62.9714,
+   "row_call_median_ms": null,
+   "load1": [
+    6.74,
+    6.36
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:29:57+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one256",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 102,
+   "question_tokens": [
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 168.9594,
+   "min_ms": 168.6993,
+   "max_ms": 171.8782,
+   "n": 20,
+   "state_call_median_ms": 106.0566,
+   "question_call_median_ms": 62.9153,
+   "row_call_median_ms": null,
+   "load1": [
+    6.36,
+    6.17
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:02+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one256",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 102,
+   "question_tokens": [
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 170.3464,
+   "min_ms": 169.9755,
+   "max_ms": 171.2623,
+   "n": 20,
+   "state_call_median_ms": 107.3651,
+   "question_call_median_ms": 62.9733,
+   "row_call_median_ms": null,
+   "load1": [
+    6.17,
+    7.2
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:06+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 232.028,
+   "min_ms": 231.7238,
+   "max_ms": 232.5438,
+   "n": 20,
+   "state_call_median_ms": 106.0496,
+   "question_call_median_ms": 62.9706,
+   "row_call_median_ms": null,
+   "load1": [
+    7.2,
+    6.86
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:10+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 233.3559,
+   "min_ms": 233.0243,
+   "max_ms": 233.8261,
+   "n": 20,
+   "state_call_median_ms": 107.3525,
+   "question_call_median_ms": 62.9784,
+   "row_call_median_ms": null,
+   "load1": [
+    6.86,
+    6.55
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:16+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 294.8682,
+   "min_ms": 294.4242,
+   "max_ms": 295.8558,
+   "n": 20,
+   "state_call_median_ms": 105.9919,
+   "question_call_median_ms": 62.9581,
+   "row_call_median_ms": null,
+   "load1": [
+    6.55,
+    6.35
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:22+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 295.888,
+   "min_ms": 295.6694,
+   "max_ms": 296.4415,
+   "n": 20,
+   "state_call_median_ms": 107.3407,
+   "question_call_median_ms": 62.875,
+   "row_call_median_ms": null,
+   "load1": [
+    6.35,
+    5.68
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:29+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "most",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/signed",
+    "own_fiveq_09/where",
+    "own_fiveq_09/damaged",
+    "own_fiveq_09/request_followed",
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 102,
+   "question_tokens": [
+    41,
+    46,
+    42,
+    44,
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 420.7116,
+   "min_ms": 420.223,
+   "max_ms": 443.7287,
+   "n": 20,
+   "state_call_median_ms": 106.0462,
+   "question_call_median_ms": 62.935,
+   "row_call_median_ms": null,
+   "load1": [
+    5.68,
+    5.27
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:37+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "most",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/signed",
+    "own_fiveq_09/where",
+    "own_fiveq_09/damaged",
+    "own_fiveq_09/request_followed",
+    "own_fiveq_09/photo"
+   ],
+   "form": "pair Ls256+Lq128 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 102,
+   "question_tokens": [
+    41,
+    46,
+    42,
+    44,
+    37
+   ],
+   "row_tokens": null,
+   "median_ms": 421.8936,
+   "min_ms": 421.5407,
+   "max_ms": 437.9451,
+   "n": 20,
+   "state_call_median_ms": 107.3289,
+   "question_call_median_ms": 62.9122,
+   "row_call_median_ms": null,
+   "load1": [
+    5.27,
+    5.22
+   ],
+   "compile_s": 39.242,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23189885568,
+   "lifetime_max_phys_footprint": 33332981744,
+   "label": "pair-Ls256-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:30:47+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls256_Lq128_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls64+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 248.7039,
+   "min_ms": 248.0893,
+   "max_ms": 250.9342,
+   "n": 20,
+   "state_call_median_ms": 123.0204,
+   "question_call_median_ms": 125.7039,
+   "row_call_median_ms": null,
+   "load1": [
+    5.45,
+    5.74
+   ],
+   "compile_s": 8.152,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21036142080,
+   "lifetime_max_phys_footprint": 21060161264,
+   "label": "pair-Ls64-e-cpu",
+   "started_at": "2026-10-09T09:38:44+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls64+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 248.9641,
+   "min_ms": 247.5756,
+   "max_ms": 250.2983,
+   "n": 20,
+   "state_call_median_ms": 123.0933,
+   "question_call_median_ms": 125.7762,
+   "row_call_median_ms": null,
+   "load1": [
+    5.74,
+    6.0
+   ],
+   "compile_s": 8.152,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21036142080,
+   "lifetime_max_phys_footprint": 21060161264,
+   "label": "pair-Ls64-e-cpu",
+   "started_at": "2026-10-09T09:38:50+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls64+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 500.6414,
+   "min_ms": 498.2047,
+   "max_ms": 511.4459,
+   "n": 20,
+   "state_call_median_ms": 123.102,
+   "question_call_median_ms": 125.7615,
+   "row_call_median_ms": null,
+   "load1": [
+    6.0,
+    6.46
+   ],
+   "compile_s": 8.152,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21036142080,
+   "lifetime_max_phys_footprint": 21060161264,
+   "label": "pair-Ls64-e-cpu",
+   "started_at": "2026-10-09T09:38:56+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls64+Lq64 embeds",
+   "accel": "cpu",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 500.3184,
+   "min_ms": 498.5779,
+   "max_ms": 501.4539,
+   "n": 20,
+   "state_call_median_ms": 123.0122,
+   "question_call_median_ms": 125.743,
+   "row_call_median_ms": null,
+   "load1": [
+    6.46,
+    7.38
+   ],
+   "compile_s": 8.152,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 21036142080,
+   "lifetime_max_phys_footprint": 21060161264,
+   "label": "pair-Ls64-e-cpu",
+   "started_at": "2026-10-09T09:39:09+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 76.4807,
+   "min_ms": 76.2704,
+   "max_ms": 76.7607,
+   "n": 20,
+   "state_call_median_ms": 37.81,
+   "question_call_median_ms": 38.7348,
+   "row_call_median_ms": null,
+   "load1": [
+    4.23,
+    4.23
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:12+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20
+   ],
+   "row_tokens": null,
+   "median_ms": 77.591,
+   "min_ms": 77.363,
+   "max_ms": 77.885,
+   "n": 20,
+   "state_call_median_ms": 38.777,
+   "question_call_median_ms": 38.7975,
+   "row_call_median_ms": null,
+   "load1": [
+    4.23,
+    4.21
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:14+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 76.5764,
+   "min_ms": 76.3167,
+   "max_ms": 76.8335,
+   "n": 20,
+   "state_call_median_ms": 37.7928,
+   "question_call_median_ms": 38.7611,
+   "row_call_median_ms": null,
+   "load1": [
+    4.21,
+    4.21
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:16+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 42,
+   "question_tokens": [
+    64
+   ],
+   "row_tokens": null,
+   "median_ms": 77.522,
+   "min_ms": 77.2234,
+   "max_ms": 77.9393,
+   "n": 20,
+   "state_call_median_ms": 38.6842,
+   "question_call_median_ms": 38.8432,
+   "row_call_median_ms": null,
+   "load1": [
+    4.21,
+    4.28
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:18+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 115.3399,
+   "min_ms": 114.9926,
+   "max_ms": 115.5879,
+   "n": 20,
+   "state_call_median_ms": 37.8259,
+   "question_call_median_ms": 38.713,
+   "row_call_median_ms": null,
+   "load1": [
+    4.28,
+    4.28
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:20+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42
+   ],
+   "row_tokens": null,
+   "median_ms": 116.344,
+   "min_ms": 116.0599,
+   "max_ms": 116.8801,
+   "n": 20,
+   "state_call_median_ms": 38.7102,
+   "question_call_median_ms": 38.7869,
+   "row_call_median_ms": null,
+   "load1": [
+    4.28,
+    4.41
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:23+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "direct",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 153.9249,
+   "min_ms": 153.5472,
+   "max_ms": 154.4172,
+   "n": 20,
+   "state_call_median_ms": 37.743,
+   "question_call_median_ms": 38.6934,
+   "row_call_median_ms": null,
+   "load1": [
+    4.41,
+    4.22
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:26+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "pair Ls64+Lq64 (no sharing) embeds",
+   "accel": "gpu_f32",
+   "handover": "host",
+   "state_tokens": 19,
+   "question_tokens": [
+    20,
+    42,
+    35
+   ],
+   "row_tokens": null,
+   "median_ms": 154.8927,
+   "min_ms": 154.459,
+   "max_ms": 155.226,
+   "n": 20,
+   "state_call_median_ms": 38.7218,
+   "question_call_median_ms": 38.7156,
+   "row_call_median_ms": null,
+   "load1": [
+    4.22,
+    4.22
+   ],
+   "compile_s": 45.479,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 23168275072,
+   "lifetime_max_phys_footprint": 33311535088,
+   "label": "pair-Ls64-e-gpu-f32-noshare",
+   "started_at": "2026-10-09T09:27:29+0900",
+   "file": "d1-3b_sharedstate_embeds_Ls64_Lq64_fp16fc.tflite"
+  },
+  {
+   "set": "b1024",
+   "request": "own_mid_08k_001",
+   "keys": [
+    "own_mid_08k_001/discarded"
+   ],
+   "form": "row L1024 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 816,
+   "question_tokens": null,
+   "row_tokens": [
+    837
+   ],
+   "median_ms": 420.3764,
+   "min_ms": 420.0593,
+   "max_ms": 420.7409,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 420.3744,
+   "load1": [
+    4.76,
+    4.41
+   ],
+   "compile_s": 26.967,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13933263080,
+   "lifetime_max_phys_footprint": 24302671592,
+   "label": "row-L1024-e-gpu-f32",
+   "started_at": "2026-10-09T09:31:59+0900",
+   "file": "d1-3b_rowprefill_embeds_L1024_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "row L128 embeds",
+   "accel": "cpu",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39
+   ],
+   "median_ms": 213.8317,
+   "min_ms": 213.3887,
+   "max_ms": 214.9571,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 213.83,
+   "load1": [
+    3.67,
+    3.86
+   ],
+   "compile_s": 9.116,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 10773966752,
+   "lifetime_max_phys_footprint": 10803523704,
+   "label": "row-L128-e-cpu",
+   "started_at": "2026-10-09T09:37:26+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "row L128 embeds",
+   "accel": "cpu",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61,
+    54
+   ],
+   "median_ms": 641.7099,
+   "min_ms": 640.8657,
+   "max_ms": 731.4947,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 213.9577,
+   "load1": [
+    3.86,
+    4.97
+   ],
+   "compile_s": 9.116,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 10773966752,
+   "lifetime_max_phys_footprint": 10803523704,
+   "label": "row-L128-e-cpu",
+   "started_at": "2026-10-09T09:37:32+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "row L128 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39
+   ],
+   "median_ms": 61.8348,
+   "min_ms": 61.6222,
+   "max_ms": 62.3921,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 61.8336,
+   "load1": [
+    4.89,
+    4.89
+   ],
+   "compile_s": 28.31,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13904361584,
+   "lifetime_max_phys_footprint": 24272656008,
+   "label": "row-L128-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:12+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "row L128 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 42,
+   "question_tokens": null,
+   "row_tokens": [
+    106
+   ],
+   "median_ms": 61.826,
+   "min_ms": 61.6095,
+   "max_ms": 61.9379,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 61.8246,
+   "load1": [
+    4.89,
+    4.74
+   ],
+   "compile_s": 28.31,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13904361584,
+   "lifetime_max_phys_footprint": 24272656008,
+   "label": "row-L128-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:14+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "row L128 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61
+   ],
+   "median_ms": 123.6692,
+   "min_ms": 123.4789,
+   "max_ms": 134.1645,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 61.8595,
+   "load1": [
+    4.74,
+    4.74
+   ],
+   "compile_s": 28.31,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13904361584,
+   "lifetime_max_phys_footprint": 24272656008,
+   "label": "row-L128-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:15+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "row L128 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61,
+    54
+   ],
+   "median_ms": 185.4938,
+   "min_ms": 185.0689,
+   "max_ms": 185.7462,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 61.8456,
+   "load1": [
+    4.74,
+    4.84
+   ],
+   "compile_s": 28.31,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13904361584,
+   "lifetime_max_phys_footprint": 24272656008,
+   "label": "row-L128-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:19+0900",
+   "file": "d1-3b_rowprefill_embeds_L128_fp16fc.tflite"
+  },
+  {
+   "set": "b2048",
+   "request": "own_long_log_10",
+   "keys": [
+    "own_long_log_10/first_failure"
+   ],
+   "form": "row L2048 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 1600,
+   "question_tokens": null,
+   "row_tokens": [
+    1652
+   ],
+   "median_ms": 889.2911,
+   "min_ms": 888.3792,
+   "max_ms": 890.1165,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 889.2888,
+   "load1": [
+    4.38,
+    4.19
+   ],
+   "compile_s": 26.338,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13974354248,
+   "lifetime_max_phys_footprint": 24352675680,
+   "label": "row-L2048-e-gpu-f32",
+   "started_at": "2026-10-09T09:32:37+0900",
+   "file": "d1-3b_rowprefill_embeds_L2048_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "row L256 embeds",
+   "accel": "cpu",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39
+   ],
+   "median_ms": 390.4963,
+   "min_ms": 388.8273,
+   "max_ms": 393.467,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 390.4946,
+   "load1": [
+    4.97,
+    5.42
+   ],
+   "compile_s": 6.035,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 10753028048,
+   "lifetime_max_phys_footprint": 10797691048,
+   "label": "row-L256-e-cpu",
+   "started_at": "2026-10-09T09:37:55+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "row L256 embeds",
+   "accel": "cpu",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61,
+    54
+   ],
+   "median_ms": 1170.4504,
+   "min_ms": 1169.1652,
+   "max_ms": 1173.846,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 390.2743,
+   "load1": [
+    5.42,
+    5.98
+   ],
+   "compile_s": 6.035,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 10753028048,
+   "lifetime_max_phys_footprint": 10797691048,
+   "label": "row-L256-e-cpu",
+   "started_at": "2026-10-09T09:38:05+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39
+   ],
+   "median_ms": 108.7237,
+   "min_ms": 108.54,
+   "max_ms": 108.9654,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.7216,
+   "load1": [
+    4.44,
+    4.44
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:50+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "one128",
+   "request": "tv4_000",
+   "keys": [
+    "tv4_000/answer"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 42,
+   "question_tokens": null,
+   "row_tokens": [
+    106
+   ],
+   "median_ms": 108.7059,
+   "min_ms": 108.496,
+   "max_ms": 109.0574,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.7042,
+   "load1": [
+    4.44,
+    4.16
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:53+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "one256",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/photo"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 102,
+   "question_tokens": null,
+   "row_tokens": [
+    139
+   ],
+   "median_ms": 108.7074,
+   "min_ms": 108.5347,
+   "max_ms": 108.8711,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.7059,
+   "load1": [
+    4.16,
+    4.16
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:55+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "two",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61
+   ],
+   "median_ms": 217.4512,
+   "min_ms": 217.122,
+   "max_ms": 217.8534,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.694,
+   "load1": [
+    4.16,
+    3.99
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:25:58+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61,
+    54
+   ],
+   "median_ms": 326.2667,
+   "min_ms": 325.9054,
+   "max_ms": 327.1267,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.7066,
+   "load1": [
+    3.99,
+    3.92
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:26:03+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "most",
+   "request": "own_fiveq_09",
+   "keys": [
+    "own_fiveq_09/signed",
+    "own_fiveq_09/where",
+    "own_fiveq_09/damaged",
+    "own_fiveq_09/request_followed",
+    "own_fiveq_09/photo"
+   ],
+   "form": "row L256 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 102,
+   "question_tokens": null,
+   "row_tokens": [
+    143,
+    148,
+    144,
+    146,
+    139
+   ],
+   "median_ms": 544.0045,
+   "min_ms": 543.5045,
+   "max_ms": 544.3257,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.7746,
+   "load1": [
+    3.92,
+    4.04
+   ],
+   "compile_s": 25.23,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13910259848,
+   "lifetime_max_phys_footprint": 24277538464,
+   "label": "row-L256-e-gpu-f32",
+   "started_at": "2026-10-09T09:26:12+0900",
+   "file": "d1-3b_rowprefill_embeds_L256_fp16fc.tflite"
+  },
+  {
+   "set": "one",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund"
+   ],
+   "form": "row L256",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39
+   ],
+   "median_ms": 108.5785,
+   "min_ms": 108.3826,
+   "max_ms": 109.0328,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.5771,
+   "load1": [
+    3.75,
+    3.93
+   ],
+   "compile_s": 25.835,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 14246099464,
+   "lifetime_max_phys_footprint": 25309633000,
+   "label": "row-L256-ids-gpu-f32",
+   "started_at": "2026-10-09T09:35:58+0900",
+   "file": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "three",
+   "request": "card_text_001",
+   "keys": [
+    "card_text_001/refund",
+    "card_text_001/team",
+    "card_text_001/urgency"
+   ],
+   "form": "row L256",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 19,
+   "question_tokens": null,
+   "row_tokens": [
+    39,
+    61,
+    54
+   ],
+   "median_ms": 325.6518,
+   "min_ms": 325.309,
+   "max_ms": 326.1833,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 108.5442,
+   "load1": [
+    3.93,
+    4.01
+   ],
+   "compile_s": 25.835,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 14246099464,
+   "lifetime_max_phys_footprint": 25309633000,
+   "label": "row-L256-ids-gpu-f32",
+   "started_at": "2026-10-09T09:36:01+0900",
+   "file": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "long",
+   "request": "own_long_34k_001",
+   "keys": [
+    "own_long_34k_001/refunded_twice"
+   ],
+   "form": "row L4096 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 3425,
+   "question_tokens": null,
+   "row_tokens": [
+    3470
+   ],
+   "median_ms": 2049.9954,
+   "min_ms": 2036.2211,
+   "max_ms": 2090.6628,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 2049.9932,
+   "load1": [
+    4.21,
+    3.88
+   ],
+   "compile_s": 20.341,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 14072248696,
+   "lifetime_max_phys_footprint": 24499967912,
+   "label": "row-L4096-e-gpu-f32",
+   "started_at": "2026-10-09T09:33:21+0900",
+   "file": "d1-3b_rowprefill_embeds_L4096_fp16fc.tflite"
+  },
+  {
+   "set": "long",
+   "request": "own_long_34k_001",
+   "keys": [
+    "own_long_34k_001/refunded_twice"
+   ],
+   "form": "row L4096",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 3425,
+   "question_tokens": null,
+   "row_tokens": [
+    3470
+   ],
+   "median_ms": 2050.3743,
+   "min_ms": 2038.5825,
+   "max_ms": 2088.9974,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 2050.3719,
+   "load1": [
+    3.27,
+    3.95
+   ],
+   "compile_s": 26.29,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 14413232864,
+   "lifetime_max_phys_footprint": 25559702280,
+   "label": "row-L4096-ids-gpu-f32",
+   "started_at": "2026-10-09T09:34:40+0900",
+   "file": "real_rowprefill_L4096_v2_fp16fc_i8emb.tflite"
+  },
+  {
+   "set": "b512",
+   "request": "tv4_009",
+   "keys": [
+    "tv4_009/answer"
+   ],
+   "form": "row L512 embeds",
+   "accel": "gpu_f32",
+   "handover": null,
+   "state_tokens": 278,
+   "question_tokens": null,
+   "row_tokens": [
+    339
+   ],
+   "median_ms": 207.5422,
+   "min_ms": 207.2647,
+   "max_ms": 208.0026,
+   "n": 20,
+   "state_call_median_ms": null,
+   "question_call_median_ms": null,
+   "row_call_median_ms": 207.5407,
+   "load1": [
+    4.81,
+    4.67
+   ],
+   "compile_s": 26.166,
+   "is_fully_accelerated": true,
+   "phys_footprint_after_compile": 13919336608,
+   "lifetime_max_phys_footprint": 24286385848,
+   "label": "row-L512-e-gpu-f32",
+   "started_at": "2026-10-09T09:31:25+0900",
+   "file": "d1-3b_rowprefill_embeds_L512_fp16fc.tflite"
+  }
+ ],
+ "pictures": {
+  "one_picture_one_question_gpu_f32": {
+   "total_median_ms": 389.275,
+   "parts_median_ms": {
+    "preprocess": 24.284,
+    "tower": 156.153,
+    "unshuffle": 0.141,
+    "projector": 1.058,
+    "embed": 0.27,
+    "row_graph": 207.272,
+    "readout": 0.049
+   },
+   "min_ms": 388.428,
+   "max_ms": 390.421,
+   "n": 20,
+   "load1": [
+    5.03,
+    4.87
+   ],
+   "window": "d1a-r8-timing-one-picture-gpu pid 65914 since 2026-10-09T03:28:33+0900"
+  },
+  "split_picture_one_question_gpu_f32": {
+   "total_median_ms": 2183.528,
+   "parts_median_ms": {
+    "preprocess": 160.701,
+    "tower": 1093.467,
+    "unshuffle": 1.061,
+    "projector": 7.924,
+    "embed": 1.221,
+    "row_graph": 920.211,
+    "readout": 0.047
+   },
+   "min_ms": 2168.929,
+   "max_ms": 2216.532,
+   "n": 20,
+   "load1": [
+    4.43,
+    4.45
+   ],
+   "window": "d1a-r8-timing-split-picture-gpu pid 68611 since 2026-10-09T03:29:44+0900"
+  },
+  "one_picture_one_question_cpu": {
+   "total_median_ms": 1176.851,
+   "parts_median_ms": {
+    "preprocess": 24.787,
+    "tower": 403.528,
+    "unshuffle": 0.144,
+    "projector": 2.364,
+    "embed": 0.254,
+    "row_graph": 745.388,
+    "readout": 0.051
+   },
+   "min_ms": 1172.984,
+   "max_ms": 1198.808,
+   "n": 20,
+   "load1": [
+    4.64,
+    6.93
+   ],
+   "window": "d1a-r8-timing-one-picture-cpu pid 72857 since 2026-10-09T03:31:42+0900"
+  }
+ },
+ "records": [
+  {
+   "file": "results/timing_mac_r10.json",
+   "sha256": "718542287410e7528b3917f8994b4000b41e09bdcabc2d53f6669807d1731005"
+  },
+  {
+   "file": "results/timing_mac_image.json",
+   "sha256": "b9829b6e74a3c042685bc1c9b9416fec25acd91537f2b92779559767acb6e8b0"
+  }
+ ]
+}

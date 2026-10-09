@@ -1,0 +1,290 @@
+{
+ "what": "the picture path end to end through the host (D1Host) on the shipped picture graphs + the embeds row graphs, against the provider's float32 CPU pass on three requests (one tile; a 2 x 3 split + thumbnail; two pictures)",
+ "runs": {
+  "cpu": {
+   "summary": {
+    "requests": 3,
+    "exact_checks_pass": true,
+    "max_abs_dp": 3.3802423621498434e-05,
+    "mean_abs_dp_all_options": 1.428819555385403e-05,
+    "argmax_equal_non_near_tie": "3/3",
+    "nonfinite": 0,
+    "pass": true
+   },
+   "requests": [
+    {
+     "name": "one_tile",
+     "record": "card_cats_001",
+     "question": "cats",
+     "tokens": 271,
+     "L": 512,
+     "tiles": 1,
+     "picture_tokens": 234,
+     "keys": [
+      "one",
+      "two",
+      "more"
+     ],
+     "probs": [
+      0.0061318339969621775,
+      0.9853143317657358,
+      0.00855383423730201
+     ],
+     "provider_probs": [
+      0.00613035890381215,
+      0.9853197075651394,
+      0.008549933531048414
+     ],
+     "max_abs_dp": 5.375799403628534e-06,
+     "argmax_key": "two",
+     "provider_argmax_key": "two"
+    },
+    {
+     "name": "split_thumbnail",
+     "record": "tv4x_qnli_07",
+     "question": "answers",
+     "tokens": 1856,
+     "L": 2048,
+     "tiles": 7,
+     "picture_tokens": 1783,
+     "keys": [
+      "true",
+      "false"
+     ],
+     "probs": [
+      0.5198026969190178,
+      0.4801973030809821
+     ],
+     "provider_probs": [
+      0.5197688944953964,
+      0.4802311055046036
+     ],
+     "max_abs_dp": 3.3802423621498434e-05,
+     "argmax_key": "true",
+     "provider_argmax_key": "true"
+    },
+    {
+     "name": "two_pictures",
+     "record": "tv4s_00",
+     "question": "decision",
+     "tokens": 621,
+     "L": 1024,
+     "tiles": 2,
+     "picture_tokens": 496,
+     "keys": [
+      "0",
+      "1",
+      "2"
+     ],
+     "probs": [
+      0.2514463955613617,
+      0.7442405735612221,
+      0.0043130308774161925
+     ],
+     "provider_probs": [
+      0.2514284210021714,
+      0.7442583464021263,
+      0.004313232595702344
+     ],
+     "max_abs_dp": 1.797455919033686e-05,
+     "argmax_key": "1",
+     "provider_argmax_key": "1"
+    }
+   ],
+   "record": {
+    "file": "results/real_vision_e2e_ship_cpu.json",
+    "sha256": "8c399f0248e11f411ba8f55d78cb72f926b9b6a8354f043472f4cbd778ccd98e"
+   }
+  },
+  "gpu_f32": {
+   "summary": {
+    "requests": 3,
+    "exact_checks_pass": true,
+    "max_abs_dp": 3.142197718430939e-05,
+    "mean_abs_dp_all_options": 1.3867436797847222e-05,
+    "argmax_equal_non_near_tie": "3/3",
+    "nonfinite": 0,
+    "pass": true
+   },
+   "requests": [
+    {
+     "name": "one_tile",
+     "record": "card_cats_001",
+     "question": "cats",
+     "tokens": 271,
+     "L": 512,
+     "tiles": 1,
+     "picture_tokens": 234,
+     "keys": [
+      "one",
+      "two",
+      "more"
+     ],
+     "probs": [
+      0.0061318224231638385,
+      0.9853143513272823,
+      0.008553826249553868
+     ],
+     "provider_probs": [
+      0.00613035890381215,
+      0.9853197075651394,
+      0.008549933531048414
+     ],
+     "max_abs_dp": 5.3562378571347935e-06,
+     "argmax_key": "two",
+     "provider_argmax_key": "two"
+    },
+    {
+     "name": "split_thumbnail",
+     "record": "tv4x_qnli_07",
+     "question": "answers",
+     "tokens": 1856,
+     "L": 2048,
+     "tiles": 7,
+     "picture_tokens": 1783,
+     "keys": [
+      "true",
+      "false"
+     ],
+     "probs": [
+      0.5198003164725807,
+      0.48019968352741926
+     ],
+     "provider_probs": [
+      0.5197688944953964,
+      0.4802311055046036
+     ],
+     "max_abs_dp": 3.142197718430939e-05,
+     "argmax_key": "true",
+     "provider_argmax_key": "true"
+    },
+    {
+     "name": "two_pictures",
+     "record": "tv4s_00",
+     "question": "decision",
+     "tokens": 621,
+     "L": 1024,
+     "tiles": 2,
+     "picture_tokens": 496,
+     "keys": [
+      "0",
+      "1",
+      "2"
+     ],
+     "probs": [
+      0.25144711253432134,
+      0.7442398566298063,
+      0.004313030835872408
+     ],
+     "provider_probs": [
+      0.2514284210021714,
+      0.7442583464021263,
+      0.004313232595702344
+     ],
+     "max_abs_dp": 1.869153214995034e-05,
+     "argmax_key": "1",
+     "provider_argmax_key": "1"
+    }
+   ],
+   "record": {
+    "file": "results/real_vision_e2e_r10_ship_gpu.json",
+    "sha256": "444a8d5de2985888e9d847da7451aeb70361d1cd62808a14740a840b86496b75"
+   }
+  },
+  "gpu_default": {
+   "summary": {
+    "requests": 3,
+    "exact_checks_pass": true,
+    "max_abs_dp": 0.5152501875717401,
+    "mean_abs_dp_all_options": 0.22359697469180956,
+    "argmax_equal_non_near_tie": "2/3",
+    "nonfinite": 0,
+    "pass": null
+   },
+   "requests": [
+    {
+     "name": "one_tile",
+     "record": "card_cats_001",
+     "question": "cats",
+     "tokens": 271,
+     "L": 512,
+     "tiles": 1,
+     "picture_tokens": 234,
+     "keys": [
+      "one",
+      "two",
+      "more"
+     ],
+     "probs": [
+      0.18282010751469618,
+      0.7146490118936893,
+      0.10253088059161439
+     ],
+     "provider_probs": [
+      0.00613035890381215,
+      0.9853197075651394,
+      0.008549933531048414
+     ],
+     "max_abs_dp": 0.2706706956714501,
+     "argmax_key": "two",
+     "provider_argmax_key": "two"
+    },
+    {
+     "name": "split_thumbnail",
+     "record": "tv4x_qnli_07",
+     "question": "answers",
+     "tokens": 1856,
+     "L": 2048,
+     "tiles": 7,
+     "picture_tokens": 1783,
+     "keys": [
+      "true",
+      "false"
+     ],
+     "probs": [
+      0.004518706923656278,
+      0.9954812930763437
+     ],
+     "provider_probs": [
+      0.5197688944953964,
+      0.4802311055046036
+     ],
+     "max_abs_dp": 0.5152501875717401,
+     "argmax_key": "false",
+     "provider_argmax_key": "true"
+    },
+    {
+     "name": "two_pictures",
+     "record": "tv4s_00",
+     "question": "decision",
+     "tokens": 621,
+     "L": 1024,
+     "tiles": 2,
+     "picture_tokens": 496,
+     "keys": [
+      "0",
+      "1",
+      "2"
+     ],
+     "probs": [
+      0.1484301801477091,
+      0.7387895717325406,
+      0.11278024811975033
+     ],
+     "provider_probs": [
+      0.2514284210021714,
+      0.7442583464021263,
+      0.004313232595702344
+     ],
+     "max_abs_dp": 0.10846701552404799,
+     "argmax_key": "1",
+     "provider_argmax_key": "1"
+    }
+   ],
+   "record": {
+    "file": "results/real_vision_e2e_ship_gpu_default.json",
+    "sha256": "e46ac2384d73cc96fd25680cea96a3804a05af0203e5c8e03ff9b1d18f14020c"
+   }
+  }
+ }
+}

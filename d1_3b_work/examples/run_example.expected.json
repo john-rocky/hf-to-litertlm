@@ -1,0 +1,86 @@
+{
+ "what": "the answers examples/run_example.py --check compares with: the provider's code (LiquidAI/d1-3B at revision da1fe36a) in float32 on the CPU, one row per question (the reference of every check of this conversion), and the host's refusal of a row longer than its largest graph",
+ "tolerance_abs_dp": 1e-05,
+ "requests": {
+  "text": {
+   "record": "card_text_001",
+   "input_tokens": 116,
+   "route": {
+    "route": "pair",
+    "Ls": 64,
+    "Lq": 64
+   },
+   "questions": {
+    "refund": {
+     "type": "noul",
+     "keys": [
+      "true",
+      "false"
+     ],
+     "probabilities": [
+      0.9896227782182223,
+      0.010377221781777617
+     ],
+     "argmax_key": "true"
+    },
+    "team": {
+     "type": "choice",
+     "keys": [
+      "billing",
+      "technical",
+      "fraud"
+     ],
+     "probabilities": [
+      0.9835052519734202,
+      0.010646890881320634,
+      0.00584785714525919
+     ],
+     "argmax_key": "billing"
+    },
+    "urgency": {
+     "type": "score",
+     "keys": [
+      "0",
+      "1",
+      "2"
+     ],
+     "probabilities": [
+      0.33857654895935546,
+      0.5674439412957162,
+      0.09397950974492834
+     ],
+     "argmax_key": "1"
+    }
+   }
+  },
+  "picture": {
+   "record": "card_cats_001",
+   "input_tokens": 271,
+   "route": {
+    "route": "row",
+    "L": 512
+   },
+   "questions": {
+    "cats": {
+     "type": "choice",
+     "keys": [
+      "one",
+      "two",
+      "more"
+     ],
+     "probabilities": [
+      0.00613035890381215,
+      0.9853197075651394,
+      0.008549933531048414
+     ],
+     "argmax_key": "two"
+    }
+   }
+  },
+  "refused": {
+   "error": "RowTooLong",
+   "message": "a row of 18958 tokens is longer than the largest graph (4096)",
+   "row_tokens": 18958
+  }
+ }
+}

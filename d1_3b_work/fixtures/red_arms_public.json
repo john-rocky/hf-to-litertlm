@@ -1,0 +1,185 @@
+{
+ "what": "The four control arms. The two SemIf arms carry their requests; the two made from transfer-v4 records are listed by rule only (`provenance.derive`): `rebuild_requests.py --red-arms red_arms.json` restores them from the rebuilt requests and writes the four arms in the form the conversion scripts read (fixtures/red_arms.json), SHA-256 asserted.",
+ "rebuild_target_sha256": "c0760805a0a9fe7eb4a9c3fbbc1f82e24330f2a8adb487cde988c0579724e19f",
+ "rebuild_target_bytes": 8867,
+ "record_counts": {
+  "with_request": 2,
+  "by_rule": 2
+ },
+ "header": {
+  "version": 1,
+  "created_by": "fixtures/rebuild_requests.py --red-arms (from fixtures/red_arms_public.json)",
+  "what": "the control arms the reference and the gates run beside the test requests: requests that change the state or the instructions of a test request (`base_id`, in requests.json) and move d1-3B's float32 answer by far more than 0.02 against it",
+  "rule": "an arm is red when its probabilities move by more than 0.02 on some option against its base record's (the same question names) — on the oracle and on the graph; a graph that ignored the changed input would not move",
+  "selection": "five candidate arms (seven requests) of another conversion's control file were measured on the provider's float32 CPU path, and these four requests were kept. red_not_paws_00 and tv4_000_with_state_of_tv4_001 sit near the line; red_word_tv4_000 (= requests.json red_arm_000, 'correctly' -> 'incorrectly') moves d1-3B by 0.0069 only, so it stays in requests.json as a record and is not a control here",
+  "measured_before_adoption": {
+   "max_abs_dp": {
+    "red_word_tv4_000": 0.00690125066327929,
+    "red_not_qnli_00": 0.9579307881422335,
+    "red_not_paws_00": 0.03511223298886201,
+    "tv4_000_with_state_of_tv4_001": 0.025483154498032512,
+    "tv4_001_with_state_of_tv4_000": 0.8397601073188097,
+    "semif_a3f18f3a63d45345942b_with_state_of_semif_0b43ea8e24e74d621f1b": 0.9509599734989722,
+    "semif_0b43ea8e24e74d621f1b_with_state_of_semif_a3f18f3a63d45345942b": 0.9448830024802205
+   }
+  },
+  "request_sha256": "sha256 of json.dumps(request, sort_keys=True, ensure_ascii=False, separators=(',', ':')) in UTF-8",
+  "record_format": "requests.json's {id, source, request, gold, note, provenance} plus base_id and question (the question compared against the base record's same question); gold is null (an arm has no intended answer: the checks read |dp| against the base); provenance.derive = how the request is made from its base record"
+ },
+ "records": [
+  {
+   "id": "red_not_qnli_00",
+   "source": "red_arm",
+   "base_id": "tv4x_qnli_00",
+   "question": "answers",
+   "gold": {
+    "answers": null
+   },
+   "note": "a grammatical 'not' in the question",
+   "provenance": {
+    "file": "another conversion's control file (red_arms.json, sha256 54fb9ad6063464e1f30f4d7b45da5e782b82e73b1c8ba8854fb7c055c4353655)",
+    "arm": "red_not_qnli_00",
+    "kind": "not",
+    "request_name": "red_not_qnli_00",
+    "derive": {
+     "kind": "edit",
+     "field": "questions.answers.instructions",
+     "from": "contain",
+     "to": "not contain"
+    },
+    "base_from": {
+     "file": "another conversion's fixture file (records.json, sha256 2284bb22e8cdc02a4d1c4a787e34981d2cee4044b32c3b4452abcd61136ef4dd)",
+     "record": "tv4x_qnli_00"
+    },
+    "request_sha256": "2844d1be6a4f1fe332c2b8bc1682117ad8d160f70a7a786a59c127f0671b9b98",
+    "base_request_sha256": "1228be811c7eade024a0278a9112efccefbc4518bc4814bc1356ae766d181102",
+    "measured_before_adoption": {
+     "max_abs_dp": 0.9579307881422335,
+     "argmax_base": "true",
+     "argmax_arm": "false"
+    }
+   }
+  },
+  {
+   "id": "tv4_001_with_state_of_tv4_000",
+   "source": "red_arm",
+   "base_id": "tv4_001",
+   "question": "answer",
+   "gold": {
+    "answer": null
+   },
+   "note": "MMLU: each question's options over the other record's question",
+   "provenance": {
+    "file": "another conversion's control file (red_arms.json, sha256 54fb9ad6063464e1f30f4d7b45da5e782b82e73b1c8ba8854fb7c055c4353655)",
+    "arm": "state_swap_tv4_000__tv4_001",
+    "kind": "state_swap",
+    "request_name": "tv4_001_with_state_of_tv4_000",
+    "derive": {
+     "kind": "state_swap",
+     "state_of": "tv4_000"
+    },
+    "base_from": {
+     "file": "another conversion's fixture file (records.json, sha256 2284bb22e8cdc02a4d1c4a787e34981d2cee4044b32c3b4452abcd61136ef4dd)",
+     "record": "tv4_001"
+    },
+    "request_sha256": "9ed236e4fb4b6d489eb19c760c6389a80083c92967045fe6f3cb48edf37f3057",
+    "base_request_sha256": "2b30d80e806bb0f64e0cbd5033d7c635ca38047fa25379685f8c040e6184c741",
+    "measured_before_adoption": {
+     "max_abs_dp": 0.8397601073188097,
+     "argmax_base": "c",
+     "argmax_arm": "a"
+    }
+   }
+  },
+  {
+   "id": "semif_a3f18f3a63d45345942b_with_state_of_semif_0b43ea8e24e74d621f1b",
+   "source": "red_arm",
+   "base_id": "semif_a3f18f3a63d45345942b",
+   "question": "answer",
+   "request": {
+    "state": "The workshop confirms it fitted the replacement lenses to the customer's glasses.",
+    "questions": {
+     "answer": {
+      "type": "choice",
+      "instructions": "Assess the claim: the replacement lenses have been fitted.",
+      "criteria": {
+       "supported": "The evidence establishes the claim",
+       "insufficient": "The evidence does not establish either",
+       "contradicted": "The evidence establishes the opposite"
+      }
+     }
+    }
+   },
+   "gold": {
+    "answer": null
+   },
+   "note": "SemIf: the same claim over evidence that establishes it / says it is not done",
+   "provenance": {
+    "file": "another conversion's control file (red_arms.json, sha256 54fb9ad6063464e1f30f4d7b45da5e782b82e73b1c8ba8854fb7c055c4353655)",
+    "arm": "state_swap_semif_a3f18f3a63d45345942b__semif_0b43ea8e24e74d621f1b",
+    "kind": "state_swap",
+    "request_name": "semif_a3f18f3a63d45345942b_with_state_of_semif_0b43ea8e24e74d621f1b",
+    "derive": {
+     "kind": "state_swap",
+     "state_of": "semif_0b43ea8e24e74d621f1b"
+    },
+    "base_from": {
+     "file": "another conversion's fixture file (records.json, sha256 2284bb22e8cdc02a4d1c4a787e34981d2cee4044b32c3b4452abcd61136ef4dd)",
+     "record": "semif_a3f18f3a63d45345942b"
+    },
+    "request_sha256": "a348509b8b9c018371245d5c5d213d40e845c17509461165a0ded0e01f217659",
+    "base_request_sha256": "267ce375344813913531ed75e59e524611b4166312a9e580dbd4a89e0bbfe10d",
+    "measured_before_adoption": {
+     "max_abs_dp": 0.9509599734989722,
+     "argmax_base": "contradicted",
+     "argmax_arm": "supported"
+    }
+   }
+  },
+  {
+   "id": "semif_0b43ea8e24e74d621f1b_with_state_of_semif_a3f18f3a63d45345942b",
+   "source": "red_arm",
+   "base_id": "semif_0b43ea8e24e74d621f1b",
+   "question": "answer",
+   "request": {
+    "state": "The optician ordered replacement lenses. The workshop confirms they have not yet been fitted to the customer's glasses.",
+    "questions": {
+     "answer": {
+      "type": "choice",
+      "instructions": "Assess the claim: the replacement lenses have been fitted.",
+      "criteria": {
+       "insufficient": "The evidence does not establish either",
+       "supported": "The evidence establishes the claim",
+       "contradicted": "The evidence establishes the opposite"
+      }
+     }
+    }
+   },
+   "gold": {
+    "answer": null
+   },
+   "note": "SemIf: the same claim over evidence that establishes it / says it is not done",
+   "provenance": {
+    "file": "another conversion's control file (red_arms.json, sha256 54fb9ad6063464e1f30f4d7b45da5e782b82e73b1c8ba8854fb7c055c4353655)",
+    "arm": "state_swap_semif_a3f18f3a63d45345942b__semif_0b43ea8e24e74d621f1b",
+    "kind": "state_swap",
+    "request_name": "semif_0b43ea8e24e74d621f1b_with_state_of_semif_a3f18f3a63d45345942b",
+    "derive": {
+     "kind": "state_swap",
+     "state_of": "semif_a3f18f3a63d45345942b"
+    },
+    "base_from": {
+     "file": "another conversion's fixture file (records.json, sha256 2284bb22e8cdc02a4d1c4a787e34981d2cee4044b32c3b4452abcd61136ef4dd)",
+     "record": "semif_0b43ea8e24e74d621f1b"
+    },
+    "request_sha256": "267ce375344813913531ed75e59e524611b4166312a9e580dbd4a89e0bbfe10d",
+    "base_request_sha256": "a348509b8b9c018371245d5c5d213d40e845c17509461165a0ded0e01f217659",
+    "measured_before_adoption": {
+     "max_abs_dp": 0.9448830024802205,
+     "argmax_base": "supported",
+     "argmax_arm": "contradicted"
+    }
+   }
+  }
+ ]
+}

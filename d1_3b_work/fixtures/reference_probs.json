@@ -1,0 +1,6041 @@
+{
+ "what": "The provider's float32 reference for every test question it answers, without text or token ids: LiquidAI/d1-3B's own code (AutoModel.from_pretrained(trust_remote_code=True, dtype=float32) on the CPU, the engine's defaults), one row per question. For each question: the option keys, the probabilities (the softmax over the options' read-out logits, float64), argmax = the most likely key, and near_tie = the two most likely options are 0.02 or less apart. `text`: the 415 text questions by record/qid. `pictures`: the three requests with pictures (the source card's photo; one test request with a picture split into tiles; one with two pictures), by name.",
+ "source": {
+  "repo": "LiquidAI/d1-3B",
+  "revision": "da1fe36a861f24690f27f622dca1d8688503d113",
+  "weights_sha256": "50e03317847caf6df9a9aee27ed40f20554a86a21e60d1d47ba41a422b546c0c"
+ },
+ "env": {
+  "text": {
+   "python": "3.12.11",
+   "torch": "2.14.1",
+   "transformers": "5.14.1"
+  },
+  "pictures": {
+   "python": "3.12.11",
+   "torch": "2.14.1",
+   "transformers": "5.14.1"
+  }
+ },
+ "near_tie_threshold": 0.02,
+ "requests": "text: the records of fixtures/requests_public.json (the reference read the same requests: their request_sha256 are in work_request_sha256 there); pictures: card_cats_001 with the source card's photo, and the state and question of tv4x_qnli_07 and tv4s_00 with synthetic pictures at the head of the user turn",
+ "counts": {
+  "text": 415,
+  "pictures": 3,
+  "total": 418,
+  "refused": 1
+ },
+ "refused": [
+  {
+   "question": "own_email_03/next_step",
+   "why": "the provider's parser (prompt.as_question) raises KeyError: 'instructions'; the question has no instructions"
+  }
+ ],
+ "text": {
+  "tv4_000/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.012302029808032857,
+    0.030425842889915955,
+    0.94793215695962,
+    0.009339970342431201
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_001/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0011603837316992445,
+    0.0030698837675122337,
+    0.9919266021804232,
+    0.003843130320365319
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_002/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9731358875777991,
+    0.0052661862580217255,
+    0.01420519038109623,
+    0.007392735783082994
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_003/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9199269555330721,
+    0.040839869716751624,
+    0.029818113153862066,
+    0.00941506159631418
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_004/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.002898947049051073,
+    0.0047519314289968355,
+    0.9856133465235782,
+    0.006735774998373888
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_005/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9588724171293949,
+    0.028685205520048482,
+    0.00820526867165532,
+    0.004237108678901286
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_006/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0430948023316475,
+    0.7214231110315077,
+    0.028872888782519826,
+    0.20660919785432488
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_007/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.023410068031753734,
+    0.08497908074728679,
+    0.8841985933575098,
+    0.007412257863449664
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_008/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0467308071641461,
+    0.9407354192439676,
+    0.004599277822216943,
+    0.007934495769669177
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_009/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0021417732143220658,
+    0.00396062232358089,
+    0.9894595060031378,
+    0.0044380984589592
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_010/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.3950155356412751,
+    0.21403034863115605,
+    0.17176939318443696,
+    0.2191847225431318
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_011/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.01720678530338351,
+    0.04267176426124334,
+    0.43426602223363386,
+    0.5058554282017392
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_012/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.024707647859210653,
+    0.004971061706139318,
+    0.021434954597204767,
+    0.9488863358374452
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_013/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.008901234287639172,
+    0.010404265202130673,
+    0.4850865968409477,
+    0.49560790366928253
+   ],
+   "argmax": "d",
+   "near_tie": true
+  },
+  "tv4_014/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.036443926532230914,
+    0.020649046051965627,
+    0.9346721491605087,
+    0.008234878255294929
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_015/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.8597244670810201,
+    0.02829364408629464,
+    0.10236129826881178,
+    0.009620590563873524
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_016/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.010458915461651553,
+    0.0110227909117789,
+    0.049160892051090636,
+    0.9293574015754789
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_017/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.004075322788276917,
+    0.01463212893885676,
+    0.9704850388705597,
+    0.010807509402306565
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_018/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0013989610897775246,
+    0.00479536643058251,
+    0.9897870620394081,
+    0.004018610440231756
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_019/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.12787735172985495,
+    0.6458929409725497,
+    0.13893298428375456,
+    0.08729672301384071
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_020/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.015942892891839307,
+    0.07441076099732885,
+    0.6701006383604982,
+    0.23954570775033365
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_021/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.21872685236470676,
+    0.12115539299284747,
+    0.486290568160387,
+    0.17382718648205886
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_022/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.26889986565203955,
+    0.3860907711498164,
+    0.2835169197123493,
+    0.06149244348579469
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_023/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.5976529368344132,
+    0.16817495581654898,
+    0.10709932471409048,
+    0.12707278263494734
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_024/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.09492787773479895,
+    0.10249097201164885,
+    0.036439842133113624,
+    0.7661413081204385
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_025/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.2849719983995686,
+    0.3410681255186196,
+    0.29378814468435394,
+    0.0801717313974578
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_026/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0018314394853680997,
+    0.004111937694517716,
+    0.9897393113849581,
+    0.0043173114351560266
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_027/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.005830625464618111,
+    0.411555941882932,
+    0.1987222411552487,
+    0.38389119149720125
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_028/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.1819314566214612,
+    0.33190228335440286,
+    0.4132998230405125,
+    0.07286643698362352
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_029/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.8448315011749745,
+    0.040042329921273656,
+    0.046859697752592765,
+    0.06826647115115896
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_030/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.008615298731047598,
+    0.02529473900976002,
+    0.9498871203223699,
+    0.016202841936822514
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_031/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.5571124829849782,
+    0.4320380989657805,
+    0.006887829893241746,
+    0.003961588155999587
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_032/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.003418953222169197,
+    0.008564718543171973,
+    0.02770486808776746,
+    0.9603114601468914
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_033/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.003547173915802761,
+    0.00564478292388579,
+    0.014645977622687722,
+    0.9761620655376236
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_034/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0833968910597863,
+    0.1252341619505708,
+    0.2690241878049714,
+    0.5223447591846715
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_035/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.36344498980453754,
+    0.02934182552564175,
+    0.5971987880671367,
+    0.010014396602684038
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_036/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.15922154023982668,
+    0.4434151850631028,
+    0.3221201324129145,
+    0.07524314228415609
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_037/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.015269142342964772,
+    0.0730975489137805,
+    0.7913772467641532,
+    0.1202560619791015
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_038/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0026068926641326148,
+    0.02827145552658545,
+    0.9502274396522641,
+    0.018894212157017896
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_039/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.7898155426221548,
+    0.20084872069351808,
+    0.005699471091484017,
+    0.003636265592843121
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_040/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.05360532467095707,
+    0.3146107173406595,
+    0.05081827295476725,
+    0.5809656850336162
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_041/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.07698989124828573,
+    0.17325154797405812,
+    0.6159693570783018,
+    0.13378920369935435
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_042/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9147500230304177,
+    0.056211695675788764,
+    0.01403980951605832,
+    0.014998471777735105
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_043/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.03249703349058471,
+    0.700952925536797,
+    0.07017270968563111,
+    0.1963773312869871
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_044/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0015651910844393724,
+    0.0045979926988359305,
+    0.005304343575186935,
+    0.9885324726415377
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_045/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.015724805777601474,
+    0.20268848990935098,
+    0.5849680324462689,
+    0.19661867186677856
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_046/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9511276887417941,
+    0.006907073887378468,
+    0.03916566128363209,
+    0.00279957608719543
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_047/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.023075269040721248,
+    0.125994926648326,
+    0.8218165979579594,
+    0.029113206352993377
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_048/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.009452269184656886,
+    0.9604592260431173,
+    0.023559466063963714,
+    0.006529038708262054
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_049/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0022291721879508374,
+    0.059543344980297015,
+    0.013775579572456903,
+    0.9244519032592953
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_050/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.27875787705312816,
+    0.6865992733436742,
+    0.01325633645235979,
+    0.02138651315083773
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_051/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.007419867341181538,
+    0.028596141090164402,
+    0.16981144506414805,
+    0.794172546504506
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_052/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9190407142502837,
+    0.06406054710461684,
+    0.007022967643950139,
+    0.009875771001149435
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4_053/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.024923800651449744,
+    0.8417990826260732,
+    0.018572843750934216,
+    0.11470427297154287
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_054/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.1284566634659899,
+    0.3321848341044029,
+    0.25741081458327336,
+    0.2819476878463337
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_055/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.25568576092315076,
+    0.34532115199314534,
+    0.3108386887304166,
+    0.08815439835328732
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4_056/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.003662285459683833,
+    0.017686338739922015,
+    0.024756890623592185,
+    0.9538944851768019
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_057/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.01579978804119037,
+    0.04564166105515203,
+    0.23907405862782038,
+    0.6994844922758372
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4_058/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.07234606764039518,
+    0.26625230751309675,
+    0.6530935026512568,
+    0.00830812219525132
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4_059/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.973006678992324,
+    0.007083102366178336,
+    0.0044489027245464465,
+    0.015461315916951381
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_emotion_00/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.1391578167083185,
+    0.2197960327772538,
+    0.5789302535254282,
+    0.025747672087183166,
+    0.018833716895448795,
+    0.017534508006367598
+   ],
+   "argmax": "love",
+   "near_tie": false
+  },
+  "tv4x_emotion_01/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.2600845109889474,
+    0.3286895334753704,
+    0.037047109074813976,
+    0.17281007237932647,
+    0.07798376781179515,
+    0.12338500626974666
+   ],
+   "argmax": "joy",
+   "near_tie": false
+  },
+  "tv4x_emotion_02/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.9238132314163249,
+    0.008894499251599727,
+    0.006032932541598919,
+    0.02728234304605476,
+    0.030089588332560712,
+    0.003887405411860906
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_03/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.8162294517932199,
+    0.09563720696642052,
+    0.07853177036024281,
+    0.0035757790842813335,
+    0.0037220109576830756,
+    0.0023037808381524264
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_04/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.00978902082389919,
+    0.9629824246123717,
+    0.019364876039903115,
+    0.003229834771485003,
+    0.0018550405578588493,
+    0.0027788031944822383
+   ],
+   "argmax": "joy",
+   "near_tie": false
+  },
+  "tv4x_emotion_05/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.1288105803944719,
+    0.1576460227416761,
+    0.015030162234941071,
+    0.6844311989423947,
+    0.008037290083018685,
+    0.006044745603497526
+   ],
+   "argmax": "anger",
+   "near_tie": false
+  },
+  "tv4x_emotion_06/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.012584351760125683,
+    0.25907165717466757,
+    0.7122103532845397,
+    0.006715277767731272,
+    0.004774818807817569,
+    0.004643541205118239
+   ],
+   "argmax": "love",
+   "near_tie": false
+  },
+  "tv4x_emotion_07/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.8829135297385349,
+    0.015149063642831351,
+    0.007607924219891837,
+    0.08087691447850878,
+    0.009007971683464646,
+    0.004444596236768408
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_08/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.22252382114337982,
+    0.6695847153325557,
+    0.09851690646587076,
+    0.003967350850128892,
+    0.0025132208753495056,
+    0.0028939853327153956
+   ],
+   "argmax": "joy",
+   "near_tie": false
+  },
+  "tv4x_emotion_09/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.792858094993546,
+    0.03846417179760136,
+    0.0858694218055461,
+    0.06212976085120796,
+    0.0076662707613524275,
+    0.01301227979074617
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_10/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.6883301595175254,
+    0.03321318980376355,
+    0.01740383585626079,
+    0.23635640132252397,
+    0.013974589384818761,
+    0.010721824115107631
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_11/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.01522552909004335,
+    0.9578959485554775,
+    0.015936736367767126,
+    0.0035559224522150232,
+    0.002702928646563721,
+    0.004682934887933137
+   ],
+   "argmax": "joy",
+   "near_tie": false
+  },
+  "tv4x_emotion_12/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.03348119030284405,
+    0.18686957365161513,
+    0.7515827146932337,
+    0.01595898141930575,
+    0.006522326384427494,
+    0.0055852135485738984
+   ],
+   "argmax": "love",
+   "near_tie": false
+  },
+  "tv4x_emotion_13/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.34997863664976064,
+    0.013720209429112519,
+    0.010680888169799094,
+    0.0037842324424107497,
+    0.6021744171242107,
+    0.01966161618470629
+   ],
+   "argmax": "fear",
+   "near_tie": false
+  },
+  "tv4x_emotion_14/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.07814727464121608,
+    0.11833085044813979,
+    0.7889464551208255,
+    0.00612836218820467,
+    0.004590115048689601,
+    0.0038569425529242987
+   ],
+   "argmax": "love",
+   "near_tie": false
+  },
+  "tv4x_emotion_15/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.00832505207393268,
+    0.8102708234866071,
+    0.17250345199253916,
+    0.0033914679517007933,
+    0.0022809989685457633,
+    0.0032282055266744858
+   ],
+   "argmax": "joy",
+   "near_tie": false
+  },
+  "tv4x_emotion_16/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.9464720085384956,
+    0.01103665917517822,
+    0.01691476897148406,
+    0.016213140732856006,
+    0.0054826826060224605,
+    0.0038807399759638087
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_17/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.6749183391475843,
+    0.031336205725277004,
+    0.10999744153344239,
+    0.05060753152842788,
+    0.11640559086118504,
+    0.016734891204083502
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_18/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.9296341114142557,
+    0.010492394737704922,
+    0.006037527116551734,
+    0.01921556827565536,
+    0.027663927029816883,
+    0.0069564714260154405
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_emotion_19/emotion": {
+   "keys": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+   ],
+   "probs": [
+    0.9304532012558262,
+    0.020799514212662424,
+    0.010175975657934459,
+    0.018667355218150796,
+    0.01578107366595351,
+    0.0041228799894726924
+   ],
+   "argmax": "sadness",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_00/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9108581060645811,
+    0.08914189393541887
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_01/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.18202305366990726,
+    0.8179769463300927
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_02/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.019811069025576562,
+    0.9801889309744235
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_03/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.03918550930396782,
+    0.9608144906960322
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_04/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.10824601671574816,
+    0.8917539832842518
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_05/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.036876959368430766,
+    0.9631230406315692
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_06/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.2889874741675765,
+    0.7110125258324235
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_07/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8815390364479653,
+    0.11846096355203463
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_08/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9323756617687907,
+    0.06762433823120918
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_09/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9211291440099946,
+    0.0788708559900055
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_10/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.14706308495748405,
+    0.852936915042516
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_11/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.018619753934718167,
+    0.9813802460652818
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_12/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.453377182158468,
+    0.546622817841532
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_13/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.4000835404740297,
+    0.5999164595259703
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_14/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.7017681687169814,
+    0.2982318312830186
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_15/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.10014866748422,
+    0.89985133251578
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_16/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.7448394450855168,
+    0.25516055491448325
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_17/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8748849361007173,
+    0.12511506389928279
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_18/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.20879395092967587,
+    0.791206049070324
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_tweet_offensive_19/offensive": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.054316177248995116,
+    0.9456838227510049
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_00/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9838380389015631,
+    0.016161961098437056
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_01/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.09344183977287264,
+    0.9065581602271273
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_02/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9056583808164892,
+    0.09434161918351072
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_03/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.05663999060678816,
+    0.9433600093932119
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_04/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8799471734075068,
+    0.12005282659249321
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_05/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.6302183228739469,
+    0.3697816771260531
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_06/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.867479306209247,
+    0.132520693790753
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_07/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.5300055964567751,
+    0.46999440354322497
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_08/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.10114570294340577,
+    0.8988542970565941
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_09/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.02558803111439084,
+    0.9744119688856091
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_10/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.016537092823183795,
+    0.9834629071768163
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_11/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9541279034652822,
+    0.04587209653471774
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_12/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.6897408932927008,
+    0.3102591067072992
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_13/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8879677320464119,
+    0.11203226795358816
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_14/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8652027289696156,
+    0.13479727103038447
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_15/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9668905214110057,
+    0.03310947858899428
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_16/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.7190196210354882,
+    0.28098037896451183
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_17/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9605539927514578,
+    0.039446007248542136
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_qnli_18/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.07380193594529659,
+    0.9261980640547033
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_qnli_19/answers": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.8517185720929391,
+    0.14828142790706092
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_00/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.0896281335788591,
+    0.910371866421141
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_01/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.536982582942302,
+    0.4630174170576981
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_02/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.0291768602448474,
+    0.9708231397551526
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_03/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9765076620475509,
+    0.023492337952448983
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_04/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9597293397718862,
+    0.04027066022811385
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_05/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.6726144260218171,
+    0.3273855739781829
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_06/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.4207329980552411,
+    0.579267001944759
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_07/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9788977116949092,
+    0.021102288305090686
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_08/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9740492005397561,
+    0.025950799460243843
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_09/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9347015326928472,
+    0.06529846730715289
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_10/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.07138318978027579,
+    0.9286168102197242
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_11/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9597715583914812,
+    0.04022844160851882
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_12/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9728777644745934,
+    0.027122235525406668
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_13/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.7806340802057544,
+    0.21936591979424563
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_14/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.04198365524706929,
+    0.9580163447529307
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_15/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9604625426352102,
+    0.039537457364789856
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_16/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9743828482060585,
+    0.025617151793941598
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_17/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.5983268636557748,
+    0.4016731363442251
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_paws_18/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.016670479213401253,
+    0.9833295207865987
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_paws_19/paraphrase": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9788307460393371,
+    0.02116925396066302
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_sciq_00/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.001430972755229255,
+    0.9877404565140082,
+    0.004034606591531285,
+    0.006793964139231324
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4x_sciq_01/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.011318817263014725,
+    0.12255851936810505,
+    0.042588881995856365,
+    0.8235337813730239
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_02/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9862972889439602,
+    0.00858774333474622,
+    0.0022607948861395515,
+    0.002854172835153975
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_03/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0014946809360995676,
+    0.0038563716375158747,
+    0.005023492083155281,
+    0.9896254553432293
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_04/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0016795166451281105,
+    0.9883860220772394,
+    0.006382625364514935,
+    0.003551835913117603
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4x_sciq_05/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9685974403234786,
+    0.011460780651488952,
+    0.011046917446807289,
+    0.008894861578225225
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_06/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0012134525057576114,
+    0.9935011171120234,
+    0.0029839842893634614,
+    0.0023014460928555782
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4x_sciq_07/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.001129042834201097,
+    0.9931774337969116,
+    0.0034033587968295156,
+    0.0022901645720578103
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4x_sciq_08/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9897267798553505,
+    0.005169805546476745,
+    0.0026607285090032525,
+    0.0024426860891695527
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_09/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.003627476304916036,
+    0.005303983452998874,
+    0.006223942952680128,
+    0.9848445972894051
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_10/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0032679671090022765,
+    0.004977103814272432,
+    0.004184603656023403,
+    0.9875703254207019
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_11/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.01678358854581514,
+    0.007191246309306231,
+    0.9728856328714994,
+    0.0031395322733791388
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4x_sciq_12/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0006940856670020766,
+    0.004086548149287766,
+    0.9901456423208815,
+    0.005073723862828564
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "tv4x_sciq_13/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9851314656143614,
+    0.0070291792226811175,
+    0.0029692936941806856,
+    0.004870061468776884
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_14/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0032827168447797845,
+    0.00521381664088422,
+    0.006462428769603005,
+    0.985041037744733
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_15/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0011624216836741252,
+    0.9924611952182811,
+    0.002911023550499077,
+    0.003465359547545727
+   ],
+   "argmax": "b",
+   "near_tie": false
+  },
+  "tv4x_sciq_16/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.0406001992079742,
+    0.11981880615406626,
+    0.08232159899653961,
+    0.75725939564142
+   ],
+   "argmax": "d",
+   "near_tie": false
+  },
+  "tv4x_sciq_17/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.985994983337522,
+    0.008474820932570007,
+    0.0038142441308049446,
+    0.0017159515991029546
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_18/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9757712643870211,
+    0.010082588101584739,
+    0.00731929968489737,
+    0.00682684782649672
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_sciq_19/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.9942957858175681,
+    0.0026032194694948795,
+    0.0017952803313869014,
+    0.0013057143815500623
+   ],
+   "argmax": "a",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_00/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9817914866695548,
+    0.018208513330445077
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_01/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.010194147463275025,
+    0.9898058525367248
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_02/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9782113091099353,
+    0.021788690890064664
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_03/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.015060712150403768,
+    0.9849392878495962
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_04/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9819042104467663,
+    0.018095789553233647
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_05/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.010050622589778119,
+    0.9899493774102218
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_06/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9654425581180575,
+    0.034557441881942444
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_07/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.009533825892548546,
+    0.9904661741074515
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_08/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9859962288223714,
+    0.014003771177628702
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_09/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.011212330739768883,
+    0.9887876692602312
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_10/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9839642029102131,
+    0.016035797089786943
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_11/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.015715697686393245,
+    0.9842843023136068
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_12/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9833059608712175,
+    0.016694039128782524
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_13/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.013285934102337275,
+    0.9867140658976629
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_14/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9695781072994005,
+    0.03042189270059937
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_15/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.009665806152949898,
+    0.9903341938470501
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_16/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9883694240657707,
+    0.011630575934229316
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_17/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.013101033808430319,
+    0.9868989661915697
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_18/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9751142810905168,
+    0.024885718909483174
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "tv4x_legacy_holdout_19/decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.009671157172907981,
+    0.9903288428270921
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_00/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.6541805194644853,
+    0.3458194805355147
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_01/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.9617493444946698,
+    0.038250655505330175
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_02/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.6541805194644853,
+    0.3458194805355147
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_03/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.5906915893850577,
+    0.4093084106149422
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_04/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.04570829458701191,
+    0.954291705412988
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_05/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.9808758201340538,
+    0.019124179865946198
+   ],
+   "argmax": "accept",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_06/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.04570829458701191,
+    0.954291705412988
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_07/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.04572406295606328,
+    0.9542759370439368
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_08/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.8034992393991544,
+    0.19650076060084568
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_09/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.9712997550124005,
+    0.028700244987599537
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_10/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.8034992393991544,
+    0.19650076060084568
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_11/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.8002658286788736,
+    0.19973417132112636
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_12/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.22782481659249387,
+    0.772175183407506
+   ],
+   "argmax": "accept",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_13/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.021964801247339946,
+    0.97803519875266
+   ],
+   "argmax": "accept",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_14/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.22782481659249387,
+    0.772175183407506
+   ],
+   "argmax": "accept",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_15/decision": {
+   "keys": [
+    "reject",
+    "accept"
+   ],
+   "probs": [
+    0.20761826794558202,
+    0.792381732054418
+   ],
+   "argmax": "accept",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_16/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.1129439910893109,
+    0.8870560089106891
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_17/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.15738634892278694,
+    0.8426136510772131
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_18/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.1129439910893109,
+    0.8870560089106891
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4x_composition_holdout_19/decision": {
+   "keys": [
+    "accept",
+    "reject"
+   ],
+   "probs": [
+    0.11274836456889747,
+    0.8872516354311025
+   ],
+   "argmax": "reject",
+   "near_tie": false
+  },
+  "tv4s_00/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.42321505237801904,
+    0.571076405552553,
+    0.005708542069427912
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_01/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.016598705348395228,
+    0.9769366272534973,
+    0.00646466739810759
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_02/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.3326364518502517,
+    0.6625140094973078,
+    0.004849538652440611
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_03/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.0034655319130897314,
+    0.9094214294503887,
+    0.08711303863652142
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_04/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.25474726812069826,
+    0.7363346917274476,
+    0.008918040151854132
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_05/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.005783553517466643,
+    0.9824064929319494,
+    0.011809953550583995
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_06/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.439543699721412,
+    0.5523533221458297,
+    0.0081029781327583
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_07/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.042765087283094284,
+    0.86943140271601,
+    0.0878035100008956
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_08/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.10353097506949195,
+    0.8876717960710019,
+    0.008797228859506179
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_09/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.00570195887237462,
+    0.9875657018190436,
+    0.0067323393085817265
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_10/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.2863011164944452,
+    0.7010415677894043,
+    0.012657315716150523
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_11/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.015542488543417566,
+    0.7786471214260426,
+    0.2058103900305398
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_12/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.8008944509495397,
+    0.1962799799932439,
+    0.0028255690572163475
+   ],
+   "argmax": "0",
+   "near_tie": false
+  },
+  "tv4s_13/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.005144231847917816,
+    0.9119199921406037,
+    0.08293577601147857
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_14/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.012370449289701182,
+    0.9765759214099284,
+    0.011053629300370495
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_15/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.016424844736422514,
+    0.9670524021134441,
+    0.016522753150133285
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_16/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.4302137814833975,
+    0.5660611073705676,
+    0.0037251111460348597
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_17/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.0068690767206816645,
+    0.955206098437543,
+    0.037924824841775374
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "tv4s_18/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.9601090217341395,
+    0.03740319341094504,
+    0.0024877848549155353
+   ],
+   "argmax": "0",
+   "near_tie": false
+  },
+  "tv4s_19/decision": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.006584881919532941,
+    0.9884862363401324,
+    0.004928881740334644
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "semif_a3f18f3a63d45345942b/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.012133971917974672,
+    0.026071917519727747,
+    0.9617941105622975
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_f40beba9088c8db8bbd6/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.96072022118069,
+    0.02789632189918989,
+    0.01138345692012019
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_0b43ea8e24e74d621f1b/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.03331405262671199,
+    0.9549798989579391,
+    0.011706048415348929
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_942ec65dac0bfb9874f9/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.8440116548222735,
+    0.024290304431219507,
+    0.1316980407465071
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_e0c140e9222d1bce5647/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.9532477056241606,
+    0.013832632008661123,
+    0.03291966236717839
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_8e8c3804a3c15ebb31e3/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.5998813247549724,
+    0.040139250425896736,
+    0.3599794248191308
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_56c419b12cd37cbe790c/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.9339474409293465,
+    0.030994893861804866,
+    0.035057665208848794
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_75b470586834df8c568d/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.01878356895308878,
+    0.15378784310436652,
+    0.8274285879425447
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_834f3b3e10cc61b33d25/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.01021822125992043,
+    0.014663891567506521,
+    0.9751178871725732
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_76c7a79b1ff2363a60c5/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.9773743271232487,
+    0.013766555226901338,
+    0.008859117649849993
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_36c71bb649b7d5eccb1f/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.9781058366849669,
+    0.013105500806465605,
+    0.008788662508567538
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_eac5121a4a1bf391a08c/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.04805504546786196,
+    0.912830773434711,
+    0.03911418109742707
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_44574c44e243ee1b2f52/answer": {
+   "keys": [
+    "insufficient",
+    "contradicted",
+    "supported"
+   ],
+   "probs": [
+    0.010335668628564701,
+    0.011846331901822316,
+    0.9778179994696129
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_2608370d01783735c3ea/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.020650374769463218,
+    0.028880054911259022,
+    0.9504695703192778
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_ec94ef909f7918695ab3/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.023663147611907936,
+    0.020848945273675187,
+    0.9554879071144169
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_03d919fd0e9b3a7cd1e6/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.9245918316750251,
+    0.02418394469667197,
+    0.05122422362830294
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_86a15618ba4cb90a307e/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.9581443644863524,
+    0.02330255538658458,
+    0.018553080127063113
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_3dd9c3ac98f8ddf7bdd3/answer": {
+   "keys": [
+    "contradicted",
+    "supported",
+    "insufficient"
+   ],
+   "probs": [
+    0.018872338448223423,
+    0.9645953964983849,
+    0.016532265053391695
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_36273dd4777876a26338/answer": {
+   "keys": [
+    "contradicted",
+    "supported",
+    "insufficient"
+   ],
+   "probs": [
+    0.010771831463978115,
+    0.9669141828465382,
+    0.022313985689483715
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_07ee70cfe4b01330ce89/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.026919397442341203,
+    0.21218136199258478,
+    0.7608992405650741
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_51ceab3ce622c7c759f1/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.016138553239397918,
+    0.021602300289082367,
+    0.9622591464715198
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_b8091be929b1e489fcc4/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.013933004102381512,
+    0.9510123255960753,
+    0.03505467030154319
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_c89b86e3f55123bfa506/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.024762121185995484,
+    0.9472672331528511,
+    0.02797064566115342
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_3b0958cabc339005cf66/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.9118150238798545,
+    0.048688021022597665,
+    0.03949695509754796
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_f2b4ec4930322fe45118/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.039258235246295306,
+    0.9433215268687642,
+    0.01742023788494039
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_61ac20b07a5189231e15/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.015243918198302222,
+    0.956553727647727,
+    0.028202354153970943
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_4b3d794c004566610181/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.03608548795371065,
+    0.061292754582355086,
+    0.9026217574639342
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_b7c4e62d07986286fce0/answer": {
+   "keys": [
+    "insufficient",
+    "permitted",
+    "prohibited"
+   ],
+   "probs": [
+    0.673163799272224,
+    0.1337753740110068,
+    0.19306082671676913
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_9473603b44af63beab79/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.8882309944050814,
+    0.0938584395717724,
+    0.017910566023146234
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_d41072dc35d8cd14c056/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.03149319034339506,
+    0.9059086216819613,
+    0.06259818797464357
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_33d6e5da58f0fee2490d/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.5480341876750001,
+    0.2929216749958123,
+    0.15904413732918765
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_823bf736b92e9d8fa66d/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.07854317523588758,
+    0.40284635872488145,
+    0.518610466039231
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_8a4c3de28be95c105ca1/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.014341050456085299,
+    0.04876828903569561,
+    0.9368906605082191
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_ea7ec66a5e8eac886548/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.8356206713715325,
+    0.11859897657772742,
+    0.04578035205074001
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_25172cd6ddc49ab0ca70/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.05552018789135256,
+    0.08596297919444636,
+    0.8585168329142011
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_fb73a85d386cf59b0c51/answer": {
+   "keys": [
+    "insufficient",
+    "permitted",
+    "prohibited"
+   ],
+   "probs": [
+    0.27938125650654994,
+    0.022714563538207146,
+    0.6979041799552429
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_a02fd582d2881cc462b2/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.014364221263419146,
+    0.02542291503545513,
+    0.9602128637011257
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_19f37d5a97034bd7d04f/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.03759554679933232,
+    0.9445955422644421,
+    0.01780891093622566
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_fda0ca94652c6d739ecf/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.9378668304039409,
+    0.020879700435004946,
+    0.04125346916105418
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_d0e36c4cb10a29b3191c/answer": {
+   "keys": [
+    "insufficient",
+    "permitted",
+    "prohibited"
+   ],
+   "probs": [
+    0.4053247314472097,
+    0.038016121279561645,
+    0.5566591472732286
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_a0a39ace7e5337d038a7/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.9766490643821671,
+    0.009471000228040281,
+    0.013879935389792451
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_eeae283841ce75dd25bf/answer": {
+   "keys": [
+    "insufficient",
+    "permitted",
+    "prohibited"
+   ],
+   "probs": [
+    0.013624916862029837,
+    0.9757917491839924,
+    0.010583333953977722
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_00bb4cc043f7d2b288d4/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.012905986907737293,
+    0.0088276647204948,
+    0.978266348371768
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_1a81ead69e93e5d0c86a/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.08906281128822938,
+    0.31081173350895247,
+    0.6001254552028181
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_4444dad25e438f128673/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.35778207602948836,
+    0.1276530322346927,
+    0.514564891735819
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_3226202ba1ada2570e9f/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.5362548438203668,
+    0.1617146330998565,
+    0.3020305230797768
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_3f783eec5c90812479bc/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.04918723959840916,
+    0.757599698779704,
+    0.1932130616218868
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_ffee861474a9665a093a/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.48551753848945917,
+    0.09201820363035118,
+    0.4224642578801897
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_8c992e17e4fb54b044f5/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.01237401823705567,
+    0.9691826813751863,
+    0.018443300387757974
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_695dd61195ca025c4f4c/answer": {
+   "keys": [
+    "B",
+    "insufficient",
+    "A"
+   ],
+   "probs": [
+    0.9461416918771229,
+    0.04475456176832151,
+    0.009103746354555499
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_e6155431ab7b0f8170d4/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.2567778078924639,
+    0.5624107910322443,
+    0.18081140107529176
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_b49ecda75086d8c68d2a/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.07035431927527921,
+    0.22836228188155233,
+    0.7012833988431685
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_587ced261c6092cd1325/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.13157809539267715,
+    0.8327260980103354,
+    0.03569580659698747
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_533d4423d311de82b27d/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.023726507409806044,
+    0.9675624615062959,
+    0.008711031083898185
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_2bf540d515a51755b25c/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.1831213112176737,
+    0.06652015749530467,
+    0.7503585312870216
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_fdb9fc214aea2710763a/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.1050223059742578,
+    0.25812519791933775,
+    0.6368524961064045
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_f6d68126b43f8c9ed183/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.026879349499886143,
+    0.9608022463745506,
+    0.012318404125563317
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_44bae0c8a1615a096c43/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.8952693957429451,
+    0.028118547362461194,
+    0.07661205689459379
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_2175379f4c69e6207626/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.5959232042409269,
+    0.28709380129728024,
+    0.11698299446179286
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_def9fe59d262357a673a/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.42110981063884256,
+    0.447924625247189,
+    0.13096556411396842
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_712f6ffb763eef7c9a12/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.19447389368512086,
+    0.15432790520450845,
+    0.6511982011103706
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_e1d610bd14e3d16c09b9/answer": {
+   "keys": [
+    "A",
+    "insufficient",
+    "B"
+   ],
+   "probs": [
+    0.858030221070325,
+    0.11630063876582791,
+    0.02566914016384706
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_22ec57822db50ec121cf/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.022524910128082876,
+    0.9676218765714757,
+    0.009853213300441446
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_3e75f2b84e8e08e3d3f2/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.09711726726689988,
+    0.06762262157027858,
+    0.8352601111628215
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_ebd74aa05324a1556288/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.031614859220617755,
+    0.9575688790674897,
+    0.010816261711892601
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_d7e84e4245a29817da1f/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.04042060493801459,
+    0.011343240970315265,
+    0.9482361540916703
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_f41ae66b3c09630c7a42/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.059997640462617845,
+    0.03125230373175589,
+    0.9087500558056263
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_82c2cd97c160ad27951b/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.6800413646181688,
+    0.14839005643854067,
+    0.17156857894329056
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_7ada97b6f99f4788e5c7/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.8086379543700278,
+    0.049413582370608555,
+    0.1419484632593636
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_4d7a003342db5b0a17e3/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.017279843975291972,
+    0.9721044130057694,
+    0.010615743018938624
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_19d3d8d0bf773e88be7b/answer": {
+   "keys": [
+    "A",
+    "B",
+    "insufficient"
+   ],
+   "probs": [
+    0.9746530403279755,
+    0.009726278420339797,
+    0.015620681251684693
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_d6de731cca52359b1c87/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.4572129238202037,
+    0.3091557461399179,
+    0.2336313300398783
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_b45c63fb92729af27f05/answer": {
+   "keys": [
+    "contradicted",
+    "supported",
+    "insufficient"
+   ],
+   "probs": [
+    0.9634553526873239,
+    0.021418919542645267,
+    0.015125727770030852
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_46b7029b9a704138b77a/answer": {
+   "keys": [
+    "insufficient",
+    "contradicted",
+    "supported"
+   ],
+   "probs": [
+    0.02531763236210734,
+    0.016711733368776863,
+    0.9579706342691157
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_caf773b23934fa7362a1/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.966816944125963,
+    0.01784132601451614,
+    0.015341729859520828
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_f46f392ef9e9e9df564b/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.016253647731984348,
+    0.25296314648144996,
+    0.7307832057865656
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_005dcf6d2c0f21d64796/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.10163401519869346,
+    0.6402606065991902,
+    0.2581053782021164
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_edb708bd0fe5fd67d6ee/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.13635614655635533,
+    0.6555746082914417,
+    0.20806924515220293
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_97a35499bd8717f3e786/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.02770373148222898,
+    0.09146657674457025,
+    0.8808296917732008
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_31eb4533d2c89959ec46/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.816631538895382,
+    0.1143245726182486,
+    0.06904388848636941
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_0aa24a6701ac9c56c4a0/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.4406325844354674,
+    0.4885132145664114,
+    0.07085420099812119
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_796d5c0da6eaadae6a3f/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.012820552265363218,
+    0.9715532272891882,
+    0.015626220445448678
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_599b3092b6fd18312d23/answer": {
+   "keys": [
+    "B",
+    "insufficient",
+    "A"
+   ],
+   "probs": [
+    0.01313065287034361,
+    0.02253673812245112,
+    0.9643326090072054
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_960a4bcd27363e6db4b9/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.14096803440821973,
+    0.10385344013232442,
+    0.7551785254594559
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_c6a411e7f2bbdf377173/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.9122625561574406,
+    0.05817700930752831,
+    0.02956043453503108
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_e332aa927d0c2ed044aa/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.1402269759994462,
+    0.06478741513274609,
+    0.7949856088678078
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_a0128e551d095f3449f8/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.9571298480601325,
+    0.030054948226334706,
+    0.012815203713532747
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_46d6a0731bd288c370f0/answer": {
+   "keys": [
+    "insufficient",
+    "contradicted",
+    "supported"
+   ],
+   "probs": [
+    0.5965085935495075,
+    0.37704008434997455,
+    0.02645132210051802
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_21ca7a8b970e36b8e20f/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.906781729397475,
+    0.06423165422218749,
+    0.02898661638033744
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_4aa83af95bb69e90bc2d/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.21019257379777245,
+    0.2587289852232074,
+    0.5310784409790201
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_cdfa9eed51fafcf09b72/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.2685022743262668,
+    0.6261503827687294,
+    0.10534734290500392
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_d51b05bfb9d6d7f09331/answer": {
+   "keys": [
+    "prohibited",
+    "insufficient",
+    "permitted"
+   ],
+   "probs": [
+    0.5489741808259931,
+    0.4099864347995614,
+    0.04103938437444551
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_fdd902cc6e65fad7cb4f/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.037889537015922604,
+    0.9101201995050963,
+    0.05199026347898109
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_42384af9ae56beb37ff5/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.11450500729278774,
+    0.06458239789296291,
+    0.8209125948142493
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_cdf7f428857e1b841cb3/answer": {
+   "keys": [
+    "A",
+    "insufficient",
+    "B"
+   ],
+   "probs": [
+    0.1370023814317207,
+    0.2592890554415897,
+    0.6037085631266896
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_774f7f9245f83c796d44/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.025427245990814046,
+    0.01823783352555833,
+    0.9563349204836277
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_92ec2ffa3dd46ada1335/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.7766071286291962,
+    0.07898459804371065,
+    0.14440827332709313
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_6149a17bc154f9c5b4a0/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.9490567321725011,
+    0.02702543627338183,
+    0.023917831554117034
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_be866e1dbec5d42d9423/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.028711913136549957,
+    0.01696445744834144,
+    0.9543236294151087
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_97d2ed2591fc7638806c/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.22356261164330932,
+    0.6992694422669379,
+    0.07716794608975286
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_4533dd91267b4d815690/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.04435162021969732,
+    0.042946948299485144,
+    0.9127014314808176
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_d880e65fef5e2993fdd0/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.4957209515625316,
+    0.2665760242141964,
+    0.23770302422327194
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_90494c76078ffc3c717a/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.23341647048610054,
+    0.5709785939794285,
+    0.19560493553447098
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_9ac5cc82c4126c91174a/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.07222259568026196,
+    0.8247045271660737,
+    0.10307287715366431
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_386e10b1c1ce906473a4/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.014835253793951526,
+    0.9674506757172102,
+    0.017714070488838145
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_4da6aedc1139224eeff2/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.009220347741901775,
+    0.9831675856049681,
+    0.007612066653130183
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_a22dab8ba073ff6cdb8d/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.055497819514594204,
+    0.8813784712020383,
+    0.06312370928336752
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_42c54fa2ad45743e24d8/answer": {
+   "keys": [
+    "A",
+    "insufficient",
+    "B"
+   ],
+   "probs": [
+    0.03314974109721661,
+    0.9345642997969279,
+    0.03228595910585554
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_f3d13cf184f916677def/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.9496976201719449,
+    0.016172410962881842,
+    0.03412996886517326
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_1105577da4c8dad4609d/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.01140740712691405,
+    0.009986659184590766,
+    0.9786059336884952
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_0ebd299739302d8b057b/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.43736522090868835,
+    0.2332162867588656,
+    0.32941849233244613
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_eafc22c8c40df3932a8e/answer": {
+   "keys": [
+    "supported",
+    "contradicted",
+    "insufficient"
+   ],
+   "probs": [
+    0.04691402949731224,
+    0.05363107823189918,
+    0.8994548922707887
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_0aa1447680e4f25862bb/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.3410169814915729,
+    0.42939047061147423,
+    0.22959254789695285
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_980e76145c925747220c/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.38330999066842003,
+    0.35304359026697657,
+    0.26364641906460345
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_4aee37a6a155747766aa/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.34901966823011876,
+    0.44746340967116904,
+    0.20351692209871222
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_6db17cc22bd656d78558/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.08495227558386172,
+    0.05650682571105746,
+    0.8585408987050809
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_ef3e0f8e657bf59f8a29/answer": {
+   "keys": [
+    "A",
+    "insufficient",
+    "B"
+   ],
+   "probs": [
+    0.5931393852395013,
+    0.28623378105600916,
+    0.12062683370448961
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_f756e1cb04e11766341e/answer": {
+   "keys": [
+    "insufficient",
+    "A",
+    "B"
+   ],
+   "probs": [
+    0.09975165485639056,
+    0.14437631336600365,
+    0.7558720317776058
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_d167e51bb1f499099645/answer": {
+   "keys": [
+    "A",
+    "B",
+    "insufficient"
+   ],
+   "probs": [
+    0.26622444080404145,
+    0.23754465039418207,
+    0.49623090880177645
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_674ca4e9346216255466/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.8648209416927329,
+    0.07232919488919727,
+    0.06284986341806978
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_1df851a202994a07f123/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.964610325850625,
+    0.022496538260792388,
+    0.012893135888582537
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_b5e6788d95b8395d2888/answer": {
+   "keys": [
+    "insufficient",
+    "contradicted",
+    "supported"
+   ],
+   "probs": [
+    0.011370560034211816,
+    0.014814810088641443,
+    0.9738146298771467
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_32f36cd0fbbfb3604586/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.9022868687036982,
+    0.06778622816787244,
+    0.029926903128429255
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_843185706adff0c60f8b/answer": {
+   "keys": [
+    "contradicted",
+    "supported",
+    "insufficient"
+   ],
+   "probs": [
+    0.7671242637003736,
+    0.016516147838164318,
+    0.21635958846146203
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_b531dd603bf080dab820/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.8388158229823196,
+    0.023860500506995612,
+    0.13732367651068472
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_be2dd67bc733c1213bef/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.13054048178036443,
+    0.6439739700128407,
+    0.2254855482067949
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_b8e2750307df9761e716/answer": {
+   "keys": [
+    "permitted",
+    "prohibited",
+    "insufficient"
+   ],
+   "probs": [
+    0.8004088665691982,
+    0.0690843944173237,
+    0.13050673901347823
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_5d31b4bf2d0fc193f53b/answer": {
+   "keys": [
+    "permitted",
+    "insufficient",
+    "prohibited"
+   ],
+   "probs": [
+    0.08468288477539943,
+    0.31309327084438376,
+    0.6022238443802168
+   ],
+   "argmax": "prohibited",
+   "near_tie": false
+  },
+  "semif_a9230edfc6ec9e524af0/answer": {
+   "keys": [
+    "B",
+    "insufficient",
+    "A"
+   ],
+   "probs": [
+    0.01746922313733702,
+    0.01997490466492863,
+    0.9625558721977344
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_c100e84585149a04be49/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.9634784503582445,
+    0.01778619692960309,
+    0.01873535271215245
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_579beed184ffc1104aa9/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.8865834389188219,
+    0.05973983146248231,
+    0.05367672961869582
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_c4e9bd463b6fde5be743/answer": {
+   "keys": [
+    "B",
+    "insufficient",
+    "A"
+   ],
+   "probs": [
+    0.02428343059441842,
+    0.9530891965658425,
+    0.022627372839739042
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_b863998d4be2721a5dfd/answer": {
+   "keys": [
+    "supported",
+    "insufficient",
+    "contradicted"
+   ],
+   "probs": [
+    0.02035452267559499,
+    0.2518094238844839,
+    0.7278360534399212
+   ],
+   "argmax": "contradicted",
+   "near_tie": false
+  },
+  "semif_37cebc3792e98049439f/answer": {
+   "keys": [
+    "insufficient",
+    "supported",
+    "contradicted"
+   ],
+   "probs": [
+    0.3505624907596576,
+    0.5845341621680158,
+    0.06490334707232664
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_64d63f86e328aff1481c/answer": {
+   "keys": [
+    "contradicted",
+    "insufficient",
+    "supported"
+   ],
+   "probs": [
+    0.01544429598349359,
+    0.013674369535934656,
+    0.9708813344805718
+   ],
+   "argmax": "supported",
+   "near_tie": false
+  },
+  "semif_6d64a8459f64eac7f4cc/answer": {
+   "keys": [
+    "insufficient",
+    "contradicted",
+    "supported"
+   ],
+   "probs": [
+    0.9318484593422108,
+    0.044183845918807176,
+    0.023967694738982016
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_2708193212d8a4a523c7/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.0332557854288286,
+    0.8717645835776856,
+    0.09497963099348573
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_5a37d1dfcad20810a76a/answer": {
+   "keys": [
+    "prohibited",
+    "permitted",
+    "insufficient"
+   ],
+   "probs": [
+    0.01915637084119822,
+    0.8882665657290975,
+    0.09257706342970443
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_acacd8b46acd25cb954b/answer": {
+   "keys": [
+    "insufficient",
+    "permitted",
+    "prohibited"
+   ],
+   "probs": [
+    0.09969951362480972,
+    0.8738815106715171,
+    0.02641897570367315
+   ],
+   "argmax": "permitted",
+   "near_tie": false
+  },
+  "semif_4089c199b8b796ec3ed8/answer": {
+   "keys": [
+    "insufficient",
+    "prohibited",
+    "permitted"
+   ],
+   "probs": [
+    0.6073515034247945,
+    0.10518575524830487,
+    0.28746274132690064
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "semif_02f2b95a5c5a4777a45c/answer": {
+   "keys": [
+    "B",
+    "A",
+    "insufficient"
+   ],
+   "probs": [
+    0.01612597607866571,
+    0.9645151556416485,
+    0.019358868279685873
+   ],
+   "argmax": "A",
+   "near_tie": false
+  },
+  "semif_ebea4681e3dcc7d92ca2/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.06296011085658876,
+    0.7790081131779703,
+    0.15803177596544105
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_b8c5b9b285cbdddc9f8d/answer": {
+   "keys": [
+    "A",
+    "insufficient",
+    "B"
+   ],
+   "probs": [
+    0.01756067939967926,
+    0.17623384190804897,
+    0.8062054786922718
+   ],
+   "argmax": "B",
+   "near_tie": false
+  },
+  "semif_7ed75d854d99b3a81916/answer": {
+   "keys": [
+    "insufficient",
+    "B",
+    "A"
+   ],
+   "probs": [
+    0.9315813022684922,
+    0.031438380029576704,
+    0.03698031770193105
+   ],
+   "argmax": "insufficient",
+   "near_tie": false
+  },
+  "own_ticket_01/team": {
+   "keys": [
+    "billing",
+    "shipping",
+    "returns",
+    "technical"
+   ],
+   "probs": [
+    0.9848151424218585,
+    0.004384747543755964,
+    0.0060907781603844555,
+    0.0047093318740011
+   ],
+   "argmax": "billing",
+   "near_tie": false
+  },
+  "own_ticket_01/deadline": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9927062974669046,
+    0.007293702533095306
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_ticket_01/mood": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.98963167525104,
+    0.007803413752681808,
+    0.002564910996278029
+   ],
+   "argmax": "0",
+   "near_tie": false
+  },
+  "own_incident_02/severity": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "probs": [
+    0.0071498608728260095,
+    0.013766085924307295,
+    0.9535917056755431,
+    0.020929048606343783,
+    0.004563298920979873
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_incident_02/cause": {
+   "keys": [
+    "power",
+    "mechanical",
+    "human",
+    "weather",
+    "unknown"
+   ],
+   "probs": [
+    0.9515414598137019,
+    0.009457432215868007,
+    0.006313275987792824,
+    0.004186568558101549,
+    0.028501263424535687
+   ],
+   "argmax": "power",
+   "near_tie": false
+  },
+  "own_incident_02/repeat": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9847892525595364,
+    0.015210747440463638
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_email_03/slot": {
+   "keys": [
+    "thu",
+    "fri",
+    "mon"
+   ],
+   "probs": [
+    0.03908135659130189,
+    0.9356163755819338,
+    0.025302267826764358
+   ],
+   "argmax": "fri",
+   "near_tie": false
+  },
+  "own_email_03/rules_out_thursday": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9821750858844887,
+    0.017824914115511424
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_meeting_04/script_owner": {
+   "keys": [
+    "priya",
+    "sam",
+    "lotte"
+   ],
+   "probs": [
+    0.006593516896094021,
+    0.9876043929415335,
+    0.005802090162372568
+   ],
+   "argmax": "sam",
+   "near_tie": false
+  },
+  "own_meeting_04/tablet_decision": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9830287924960148,
+    0.0169712075039852
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_meeting_04/rota": {
+   "keys": [
+    "agreed",
+    "postponed",
+    "dropped"
+   ],
+   "probs": [
+    0.006937983368531966,
+    0.9791247445891158,
+    0.013937272042352268
+   ],
+   "argmax": "postponed",
+   "near_tie": false
+  },
+  "own_review_05/stars": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "probs": [
+    0.2777518143068374,
+    0.6119955807480361,
+    0.09705031424406853,
+    0.01079865011456011,
+    0.0024036405864980236
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "own_review_05/main_issue": {
+   "keys": [
+    "price",
+    "durability",
+    "noise",
+    "speed",
+    "size",
+    "design",
+    "delivery",
+    "manual",
+    "support",
+    "taste"
+   ],
+   "probs": [
+    0.004333057457729162,
+    0.9731331483940963,
+    0.003021668937624705,
+    0.001829743261945794,
+    0.0028148966761652595,
+    0.0031877100515932013,
+    0.0016636932396140597,
+    0.0015087948882933425,
+    0.006944058025040092,
+    0.0015632290678980777
+   ],
+   "argmax": "durability",
+   "near_tie": false
+  },
+  "own_review_05/would_rebuy": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.011461311942676959,
+    0.9885386880573231
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "own_order_06/free_shipping": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.028909274708421393,
+    0.9710907252915786
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "own_order_06/method": {
+   "keys": [
+    "standard",
+    "express",
+    "pickup"
+   ],
+   "probs": [
+    0.9919505279954871,
+    0.004470465595986298,
+    0.0035790064085265676
+   ],
+   "argmax": "standard",
+   "near_tie": false
+  },
+  "own_invoice_07/status": {
+   "keys": [
+    "paid",
+    "partial",
+    "unpaid",
+    "disputed"
+   ],
+   "probs": [
+    0.009615435245938065,
+    0.9697701338596342,
+    0.01628689075231654,
+    0.004327540142111266
+   ],
+   "argmax": "partial",
+   "near_tie": false
+  },
+  "own_invoice_07/overdue": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9369923530313952,
+    0.06300764696860481
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_invoice_07/days_late": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "probs": [
+    0.014263639694129858,
+    0.02103163783501761,
+    0.17734542113108467,
+    0.7873593013397678
+   ],
+   "argmax": "3",
+   "near_tie": false
+  },
+  "own_sensor_08/out_of_range": {
+   "keys": [
+    "temperature",
+    "humidity",
+    "co2",
+    "soil"
+   ],
+   "probs": [
+    0.15266593030097647,
+    0.6299311139784715,
+    0.11654609969418198,
+    0.10085685602637008
+   ],
+   "argmax": "humidity",
+   "near_tie": false
+  },
+  "own_sensor_08/alert": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.8881547365752167,
+    0.05568522584044609,
+    0.05616003758433709
+   ],
+   "argmax": "0",
+   "near_tie": false
+  },
+  "own_sensor_08/all_ok": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9387653688370792,
+    0.06123463116292081
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_fiveq_09/signed": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.02065800534351217,
+    0.9793419946564879
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "own_fiveq_09/where": {
+   "keys": [
+    "front",
+    "side",
+    "neighbour",
+    "depot"
+   ],
+   "probs": [
+    0.005830149614837592,
+    0.9848634456792372,
+    0.004419978103500229,
+    0.004886426602424989
+   ],
+   "argmax": "side",
+   "near_tie": false
+  },
+  "own_fiveq_09/damaged": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.974321503807669,
+    0.025678496192330983
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_fiveq_09/request_followed": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.2644424941926193,
+    0.2065219363496993,
+    0.5290355694576814
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_fiveq_09/photo": {
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "probs": [
+    0.986259308033961,
+    0.013740691966039059
+   ],
+   "argmax": "yes",
+   "near_tie": false
+  },
+  "own_long_log_10/first_failure": {
+   "keys": [
+    "edge_lb",
+    "auth_gateway",
+    "billing_api",
+    "queue_relay",
+    "db_replica_2",
+    "db_primary"
+   ],
+   "probs": [
+    0.008947255268733472,
+    0.01655982899032242,
+    0.0539706404202438,
+    0.02681304761771026,
+    0.8776250580788156,
+    0.016084169624174454
+   ],
+   "argmax": "db_replica_2",
+   "near_tie": false
+  },
+  "own_long_log_10/impact": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "probs": [
+    0.09335128635161297,
+    0.05943504383262273,
+    0.8069082540790743,
+    0.04030541573669003
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_long_log_10/resolved": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9015149941542473,
+    0.09848500584575276
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_long_contract_11/convenience_notice": {
+   "keys": [
+    "d30",
+    "d60",
+    "d90",
+    "none"
+   ],
+   "probs": [
+    0.007670983906709779,
+    0.007300212181181888,
+    0.9773208825794348,
+    0.007707921332673354
+   ],
+   "argmax": "d90",
+   "near_tie": false
+  },
+  "own_long_contract_11/liability_cap": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9843622680842484,
+    0.015637731915751556
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_long_contract_11/initial_term": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "probs": [
+    0.012842366458158496,
+    0.05740912566788978,
+    0.8143021542998605,
+    0.1154463535740912
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_long_minutes_12/irrigation": {
+   "keys": [
+    "approved",
+    "rejected",
+    "deferred"
+   ],
+   "probs": [
+    0.007332329614062356,
+    0.010544205231481895,
+    0.9821234651544558
+   ],
+   "argmax": "deferred",
+   "near_tie": false
+  },
+  "own_long_minutes_12/chair": {
+   "keys": [
+    "thorley",
+    "pennock",
+    "agbaje",
+    "vessey"
+   ],
+   "probs": [
+    0.9861949492310731,
+    0.0038485564224038,
+    0.004915721846863188,
+    0.005040772499659853
+   ],
+   "argmax": "thorley",
+   "near_tie": false
+  },
+  "own_long_minutes_12/lease_unanimous": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.0660199576052661,
+    0.933980042394734
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "red_arm_000/answer": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "probs": [
+    0.012652934739985631,
+    0.03714583510056956,
+    0.9410309062963407,
+    0.009170323863104124
+   ],
+   "argmax": "c",
+   "near_tie": false
+  },
+  "card_text_001/refund": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9896227782182223,
+    0.010377221781777617
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "card_text_001/team": {
+   "keys": [
+    "billing",
+    "technical",
+    "fraud"
+   ],
+   "probs": [
+    0.9835052519734202,
+    0.010646890881320634,
+    0.00584785714525919
+   ],
+   "argmax": "billing",
+   "near_tie": false
+  },
+  "card_text_001/urgency": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.33857654895935546,
+    0.5674439412957162,
+    0.09397950974492834
+   ],
+   "argmax": "1",
+   "near_tie": false
+  },
+  "own_long_15k_001/temp_excursion": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9389958722059105,
+    0.06100412779408944
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_long_15k_001/first_unit": {
+   "keys": [
+    "u03",
+    "u05",
+    "u07",
+    "none"
+   ],
+   "probs": [
+    0.004976962260685403,
+    0.0041906906870864185,
+    0.9686483455565602,
+    0.022184001495668012
+   ],
+   "argmax": "u07",
+   "near_tie": false
+  },
+  "own_long_15k_001/severity": {
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.11093547669001243,
+    0.3764972399164446,
+    0.512567283393543
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_long_15k_001/door_open": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9227568634146713,
+    0.0772431365853286
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_long_34k_001/refunded_twice": {
+   "keys": [
+    "o00402",
+    "o00406",
+    "o00409",
+    "o00411"
+   ],
+   "probs": [
+    0.0066202725983097455,
+    0.028214659152833537,
+    0.9454612981354515,
+    0.01970377011340504
+   ],
+   "argmax": "o00409",
+   "near_tie": false
+  },
+  "own_long_34k_001/big_refunds_approved": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.3646591211398083,
+    0.6353408788601916
+   ],
+   "argmax": "false",
+   "near_tie": false
+  },
+  "own_long_34k_001/cancellations": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "probs": [
+    0.020301332684917624,
+    0.13139760072585377,
+    0.827358036884525,
+    0.02094302970470349
+   ],
+   "argmax": "2",
+   "near_tie": false
+  },
+  "own_long_34k_001/shipped_unpaid": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.5187180741107718,
+    0.48128192588922825
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_mid_08k_001/discarded": {
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.9761039083041273,
+    0.023896091695872645
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "own_mid_08k_001/first_fault": {
+   "keys": [
+    "oven_1",
+    "oven_2",
+    "oven_3",
+    "none"
+   ],
+   "probs": [
+    0.015486564236489635,
+    0.1406919873143229,
+    0.8009071282460273,
+    0.04291432020316016
+   ],
+   "argmax": "oven_3",
+   "near_tie": false
+  },
+  "own_mid_08k_001/second_checks": {
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "probs": [
+    0.004559632603166563,
+    0.018726325340723885,
+    0.9584770073637826,
+    0.018237034692326896
+   ],
+   "argmax": "2",
+   "near_tie": false
+  }
+ },
+ "pictures": {
+  "one_tile": {
+   "record": "card_cats_001",
+   "qid": "cats",
+   "pictures": [
+    {
+     "url": "http://images.cocodataset.org/val2017/000000039769.jpg",
+     "bytes": 173131,
+     "sha256": "dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e",
+     "wh": [
+      640,
+      480
+     ]
+    }
+   ],
+   "keys": [
+    "one",
+    "two",
+    "more"
+   ],
+   "probs": [
+    0.00613035890381215,
+    0.9853197075651394,
+    0.008549933531048414
+   ],
+   "argmax": "two",
+   "near_tie": false
+  },
+  "split_thumbnail": {
+   "record": "tv4x_qnli_07",
+   "qid": "answers",
+   "pictures": [
+    {
+     "name": "img_s1280x853.png",
+     "bytes": 515474,
+     "sha256": "80ace5108539f5a394f1c188260c76499ae946f2f4c53557b6c96a1b737cce94",
+     "wh": [
+      1280,
+      853
+     ],
+     "made_by": "conversion/d1_vision_host_check.py (a seed-fixed synthetic picture)"
+    }
+   ],
+   "keys": [
+    "true",
+    "false"
+   ],
+   "probs": [
+    0.5197688944953964,
+    0.4802311055046036
+   ],
+   "argmax": "true",
+   "near_tie": false
+  },
+  "two_pictures": {
+   "record": "tv4s_00",
+   "qid": "decision",
+   "pictures": [
+    {
+     "name": "img_s512x512.png",
+     "bytes": 127507,
+     "sha256": "4488b510ac59905df6fee9883fb29c0f376dfdb77f90f2eb62783d0507cd86d6",
+     "wh": [
+      512,
+      512
+     ],
+     "made_by": "conversion/d1_vision_host_check.py (a seed-fixed synthetic picture)"
+    },
+    {
+     "name": "img_s333x777.png",
+     "bytes": 131071,
+     "sha256": "ca07c02d1308307c5577ea7b8dd370f34339f361bbd70216adb5a2901bde95d4",
+     "wh": [
+      333,
+      777
+     ],
+     "made_by": "conversion/d1_vision_host_check.py (a seed-fixed synthetic picture)"
+    }
+   ],
+   "keys": [
+    "0",
+    "1",
+    "2"
+   ],
+   "probs": [
+    0.2514284210021714,
+    0.7442583464021263,
+    0.004313232595702344
+   ],
+   "argmax": "1",
+   "near_tie": false
+  }
+ }
+}

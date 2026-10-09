@@ -1,0 +1,1253 @@
+{
+ "what": "token ids of the option forms and special tokens under the d1-3B tokenizer, and the provider's verbalizer checked against them on every question of fixtures/requests.json",
+ "tokenizer": {
+  "loader": "transformers AutoTokenizer.from_pretrained(hf_small) (what D1Model.engine loads)",
+  "class": "TokenizersBackend",
+  "len": 125017,
+  "vocab_size": 124893,
+  "added_tokens": 124,
+  "bos": [
+   "<|startoftext|>",
+   124894
+  ],
+  "eos": [
+   "<|im_end|>",
+   124900
+  ],
+  "pad": [
+   "<|pad|>",
+   124893
+  ],
+  "add_special_tokens_adds_nothing": true,
+  "embedding_rows": 128000,
+  "transformers": "5.14.1",
+  "tokenizers": "0.22.2",
+  "tokenizer_json_sha256": "8096ecb9f54599d756c8de728a598a340bc1e43c0deb77ddd62456c38349fcee",
+  "repo": "LiquidAI/d1-3B",
+  "revision": "da1fe36a861f24690f27f622dca1d8688503d113"
+ },
+ "ids": "tokenizer.encode(text, add_special_tokens=False)",
+ "probes": [
+  {
+   "group": "A..Z",
+   "text": "A",
+   "ids": [
+    41
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "B",
+   "ids": [
+    42
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "C",
+   "ids": [
+    43
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "D",
+   "ids": [
+    44
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "E",
+   "ids": [
+    45
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "F",
+   "ids": [
+    46
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "G",
+   "ids": [
+    47
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "H",
+   "ids": [
+    48
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "I",
+   "ids": [
+    49
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "J",
+   "ids": [
+    50
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "K",
+   "ids": [
+    51
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "L",
+   "ids": [
+    52
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "M",
+   "ids": [
+    53
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "N",
+   "ids": [
+    54
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "O",
+   "ids": [
+    55
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "P",
+   "ids": [
+    56
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "Q",
+   "ids": [
+    57
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "R",
+   "ids": [
+    58
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "S",
+   "ids": [
+    59
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "T",
+   "ids": [
+    60
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "U",
+   "ids": [
+    61
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "V",
+   "ids": [
+    62
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "W",
+   "ids": [
+    63
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "X",
+   "ids": [
+    64
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "Y",
+   "ids": [
+    65
+   ],
+   "single": true
+  },
+  {
+   "group": "A..Z",
+   "text": "Z",
+   "ids": [
+    66
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " A",
+   "ids": [
+    334
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " B",
+   "ids": [
+    378
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " C",
+   "ids": [
+    340
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " D",
+   "ids": [
+    388
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " E",
+   "ids": [
+    407
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " F",
+   "ids": [
+    410
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " G",
+   "ids": [
+    417
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " H",
+   "ids": [
+    403
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " I",
+   "ids": [
+    358
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " J",
+   "ids": [
+    461
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " K",
+   "ids": [
+    483
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " L",
+   "ids": [
+    402
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " M",
+   "ids": [
+    356
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " N",
+   "ids": [
+    427
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " O",
+   "ids": [
+    480
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " P",
+   "ids": [
+    372
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " Q",
+   "ids": [
+    1392
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " R",
+   "ids": [
+    408
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " S",
+   "ids": [
+    325
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " T",
+   "ids": [
+    336
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " U",
+   "ids": [
+    502
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " V",
+   "ids": [
+    518
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " W",
+   "ids": [
+    422
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " X",
+   "ids": [
+    1549
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " Y",
+   "ids": [
+    766
+   ],
+   "single": true
+  },
+  {
+   "group": "\" A\"..\" Z\"",
+   "text": " Z",
+   "ids": [
+    895
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "0",
+   "ids": [
+    24
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "1",
+   "ids": [
+    25
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "2",
+   "ids": [
+    26
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "3",
+   "ids": [
+    27
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "4",
+   "ids": [
+    28
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "5",
+   "ids": [
+    29
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "6",
+   "ids": [
+    30
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "7",
+   "ids": [
+    31
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "8",
+   "ids": [
+    32
+   ],
+   "single": true
+  },
+  {
+   "group": "0..9",
+   "text": "9",
+   "ids": [
+    33
+   ],
+   "single": true
+  },
+  {
+   "group": "yes forms",
+   "text": "yes",
+   "ids": [
+    11683
+   ],
+   "single": true
+  },
+  {
+   "group": "yes forms",
+   "text": "Yes",
+   "ids": [
+    12447
+   ],
+   "single": true
+  },
+  {
+   "group": "yes forms",
+   "text": "YES",
+   "ids": [
+    65,
+    2020
+   ],
+   "single": false
+  },
+  {
+   "group": "no forms",
+   "text": "no",
+   "ids": [
+    2243
+   ],
+   "single": true
+  },
+  {
+   "group": "no forms",
+   "text": "No",
+   "ids": [
+    4547
+   ],
+   "single": true
+  },
+  {
+   "group": "no forms",
+   "text": "NO",
+   "ids": [
+    19598
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|startoftext|>",
+   "ids": [
+    124894
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|im_start|>",
+   "ids": [
+    124899
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|im_end|>",
+   "ids": [
+    124900
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<image>",
+   "ids": [
+    124907
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|image_start|>",
+   "ids": [
+    125009
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|image_end|>",
+   "ids": [
+    125010
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|img_thumbnail|>",
+   "ids": [
+    125008
+   ],
+   "single": true
+  },
+  {
+   "group": "special",
+   "text": "<|img_row_1_col_1|>",
+   "ids": [
+    124908
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "a",
+   "ids": [
+    73
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "b",
+   "ids": [
+    74
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "c",
+   "ids": [
+    75
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "d",
+   "ids": [
+    76
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "e",
+   "ids": [
+    77
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "f",
+   "ids": [
+    78
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "g",
+   "ids": [
+    79
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "h",
+   "ids": [
+    80
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "i",
+   "ids": [
+    81
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "j",
+   "ids": [
+    82
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "k",
+   "ids": [
+    83
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "l",
+   "ids": [
+    84
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "m",
+   "ids": [
+    85
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "n",
+   "ids": [
+    86
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "o",
+   "ids": [
+    87
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "p",
+   "ids": [
+    88
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "q",
+   "ids": [
+    89
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "r",
+   "ids": [
+    90
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "s",
+   "ids": [
+    91
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "t",
+   "ids": [
+    92
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "u",
+   "ids": [
+    93
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "v",
+   "ids": [
+    94
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "w",
+   "ids": [
+    95
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "x",
+   "ids": [
+    96
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "y",
+   "ids": [
+    97
+   ],
+   "single": true
+  },
+  {
+   "group": "a..z (native labels)",
+   "text": "z",
+   "ids": [
+    98
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " a",
+   "ids": [
+    267
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " b",
+   "ids": [
+    293
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " c",
+   "ids": [
+    280
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " d",
+   "ids": [
+    277
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " e",
+   "ids": [
+    320
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " f",
+   "ids": [
+    291
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " g",
+   "ids": [
+    335
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " h",
+   "ids": [
+    311
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " i",
+   "ids": [
+    723
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " j",
+   "ids": [
+    495
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " k",
+   "ids": [
+    442
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " l",
+   "ids": [
+    308
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " m",
+   "ids": [
+    295
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " n",
+   "ids": [
+    316
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " o",
+   "ids": [
+    286
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " p",
+   "ids": [
+    283
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " q",
+   "ids": [
+    8616
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " r",
+   "ids": [
+    376
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " s",
+   "ids": [
+    274
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " t",
+   "ids": [
+    265
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " u",
+   "ids": [
+    331
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " v",
+   "ids": [
+    346
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " w",
+   "ids": [
+    288
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " x",
+   "ids": [
+    2552
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " y",
+   "ids": [
+    382
+   ],
+   "single": true
+  },
+  {
+   "group": "\" a\"..\" z\" (native labels)",
+   "text": " z",
+   "ids": [
+    556
+   ],
+   "single": true
+  }
+ ],
+ "summary": {
+  "A..Z": {
+   "probes": 26,
+   "single": 26
+  },
+  "\" A\"..\" Z\"": {
+   "probes": 26,
+   "single": 26
+  },
+  "0..9": {
+   "probes": 10,
+   "single": 10
+  },
+  "yes forms": {
+   "probes": 3,
+   "single": 2
+  },
+  "no forms": {
+   "probes": 3,
+   "single": 3
+  },
+  "special": {
+   "probes": 8,
+   "single": 8
+  },
+  "a..z (native labels)": {
+   "probes": 26,
+   "single": 26
+  },
+  "\" a\"..\" z\" (native labels)": {
+   "probes": 26,
+   "single": 26
+  }
+ },
+ "fallback_pool": {
+  "source": "prompt._FALLBACK_POOL",
+  "families": {
+   "A..Z": {
+    "entries": 26,
+    "single": 26
+   },
+   "00..99": {
+    "entries": 100,
+    "single": 100
+   },
+   "a..z": {
+    "entries": 26,
+    "single": 26
+   },
+   "#0..#199": {
+    "entries": 200,
+    "single": 0
+   },
+   "AA..ZZ": {
+    "entries": 676,
+    "single": 587
+   }
+  },
+  "not_single": [
+   "#0",
+   "#1",
+   "#2",
+   "#3",
+   "#4",
+   "#5",
+   "#6",
+   "#7",
+   "#8",
+   "#9",
+   "#10",
+   "#11",
+   "#12",
+   "#13",
+   "#14",
+   "#15",
+   "#16",
+   "#17",
+   "#18",
+   "#19",
+   "#20",
+   "#21",
+   "#22",
+   "#23",
+   "#24",
+   "#25",
+   "#26",
+   "#27",
+   "#28",
+   "#29",
+   "#30",
+   "#31",
+   "#32",
+   "#33",
+   "#34",
+   "#35",
+   "#36",
+   "#37",
+   "#38",
+   "#39",
+   "#40",
+   "#41",
+   "#42",
+   "#43",
+   "#44",
+   "#45",
+   "#46",
+   "#47",
+   "#48",
+   "#49"
+  ]
+ },
+ "verbalizer_check": {
+  "fixtures_sha256": "5fb9b7478706148f87e791ea65162a2cee194e148b183e269347e6e28311650c",
+  "choice_code_sets": {
+   "A B C": 151,
+   "a b c d": 81,
+   "A B C D E F": 21,
+   "A B": 21,
+   "A B C D": 9,
+   "A B C D E": 1,
+   "A B C D E F G H I J": 1
+  },
+  "code_table": {
+   "a": {
+    "id": 73,
+    "space_id": 267
+   },
+   "b": {
+    "id": 74,
+    "space_id": 293
+   },
+   "c": {
+    "id": 75,
+    "space_id": 280
+   },
+   "d": {
+    "id": 76,
+    "space_id": 277
+   },
+   "A": {
+    "id": 41,
+    "space_id": 334
+   },
+   "B": {
+    "id": 42,
+    "space_id": 378
+   },
+   "C": {
+    "id": 43,
+    "space_id": 340
+   },
+   "D": {
+    "id": 44,
+    "space_id": 388
+   },
+   "E": {
+    "id": 45,
+    "space_id": 407
+   },
+   "F": {
+    "id": 46,
+    "space_id": 410
+   },
+   "G": {
+    "id": 47,
+    "space_id": 417
+   },
+   "H": {
+    "id": 48,
+    "space_id": 403
+   },
+   "I": {
+    "id": 49,
+    "space_id": 358
+   },
+   "J": {
+    "id": 50,
+    "space_id": 461
+   }
+  },
+  "fallbacks": [],
+  "group_mismatches": [],
+  "noul_questions": 99,
+  "noul_groups": [
+   [
+    11683,
+    12447
+   ],
+   [
+    2243,
+    4547,
+    19598
+   ]
+  ],
+  "score_questions": 32
+ }
+}

@@ -1,0 +1,2130 @@
+{
+ "what": "Galaxy S26 (SM-S942Q, Android 16), LiteRT 2.2.0 Kotlin CompiledModel in a gate app, 2026-10-09: the earlier 256-token row graphs (v2 = fp16 FULLY_CONNECTED + an int8 table inside the graph, 5.14 GB; v1 = dynamic int8 FULLY_CONNECTED, 2.71 GB) on the GPU (OpenCL, FP16_WITH_FP32_ACCUM) and the CPU (XNNPACK, 4 threads); /proc values in kB (kB x 1024 / 1e9 = GB); a memory guard force-stops the app when MemAvailable falls below 1,500,000 kB",
+ "legs": {
+  "P_gpu_fp16acc32_L256_sub": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L256_sub.json",
+   "mode": "gate",
+   "status": "MEMGUARD_STOPPED",
+   "memory_line": "VmHWM_max_kB 5434068 VmSwap_max_kB 3729108 MemAvailable_min_kB 803784 kgsl_page_alloc_max_B 301273088",
+   "memguard": "2026-10-09 01:32:30 MemAvailable 803784 kB < 1500000 kB -> force-stop",
+   "delegate_lines": [
+    "Replacing 1694 out of 1694 node(s) with delegate (LITERT_CL) node, yielding 1 partitions for subgraph 0 (main)."
+   ],
+   "samples": [
+    {
+     "t": "01:32:21",
+     "n": 0,
+     "fg": "pending",
+     "kgsl_clock_max_lvl_temp": [
+      191,
+      1300,
+      0,
+      44600
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3187200,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 6372796,
+     "kgsl_page_alloc_B": 240640000,
+     "Thermal": 0
+    },
+    {
+     "t": "01:32:23",
+     "n": 1,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      56200
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3628800,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4742400,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 4628484,
+     "VmHWM_kB": 3048960,
+     "VmRSS_kB": 2971544,
+     "VmSwap_kB": 26452,
+     "kgsl_page_alloc_B": 301273088
+    },
+    {
+     "t": "01:32:25",
+     "n": 2,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      62400
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3628800,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4396800,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 3440716,
+     "VmHWM_kB": 5434068,
+     "VmRSS_kB": 5333224,
+     "VmSwap_kB": 1293012,
+     "kgsl_page_alloc_B": 301273088
+    },
+    {
+     "t": "01:32:28",
+     "n": 3,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      62000
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3513600,
+       3513600,
+       3628800
+      ],
+      "policy6": [
+       4262400,
+       4262400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 2552092,
+     "VmHWM_kB": 5434068,
+     "VmRSS_kB": 4880812,
+     "VmSwap_kB": 3363540,
+     "kgsl_page_alloc_B": 301273088
+    },
+    {
+     "t": "01:32:30",
+     "n": 4,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      55800
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2899200,
+       2899200,
+       3628800
+      ],
+      "policy6": [
+       2880000,
+       2880000,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 803784,
+     "VmHWM_kB": 5434068,
+     "VmRSS_kB": 5033668,
+     "VmSwap_kB": 3729108,
+     "kgsl_page_alloc_B": 265465856
+    },
+    {
+     "t": "01:32:32",
+     "n": 5,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      50400
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2611200,
+       2745600,
+       3628800
+      ],
+      "policy6": [
+       2112000,
+       2668800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7942800,
+     "kgsl_page_alloc_B": 265469952
+    },
+    {
+     "t": "01:32:34",
+     "n": 6,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      48400
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2745600,
+       2745600,
+       3628800
+      ],
+      "policy6": [
+       2668800,
+       2668800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7778648,
+     "kgsl_page_alloc_B": 271785984
+    },
+    {
+     "t": "01:32:36",
+     "n": 7,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      46900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2745600,
+       2745600,
+       3628800
+      ],
+      "policy6": [
+       2227200,
+       2668800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7787748,
+     "kgsl_page_alloc_B": 265469952,
+     "Thermal": 0
+    }
+   ]
+  },
+  "T_gpu_fp16acc32_L256": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite",
+   "rows": "timing_rows.json",
+   "mode": "timing",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_gpu_fp16acc32_L256": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L256.json",
+   "mode": "gate",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_gpu_fp16acc32_L512": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L512_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L512.json",
+   "mode": "gate",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_gpu_fp16acc32_L1024": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L1024_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L1024.json",
+   "mode": "gate",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_gpu_fp16acc32_L2048": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L2048_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L2048.json",
+   "mode": "gate",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_gpu_fp16acc32_L4096": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L4096_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L4096.json",
+   "mode": "gate",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "T_gpu_fp16acc32_L4096": {
+   "accel": "gpu",
+   "precision": "fp16acc32",
+   "graph": "real_rowprefill_L4096_v2_fp16fc_i8emb.tflite",
+   "rows": "timing_rows.json",
+   "mode": "timing",
+   "status": null,
+   "memory_line": null,
+   "memguard": null,
+   "delegate_lines": null,
+   "samples": null
+  },
+  "G_cpu4_v1_L256_sub": {
+   "accel": "cpu",
+   "precision": "-",
+   "graph": "real_rowprefill_L256_v1_wi8fc.tflite",
+   "rows": "rows_L256_sub.json",
+   "mode": "gate",
+   "status": "DONE",
+   "memory_line": "VmHWM_max_kB 5064684 VmSwap_max_kB 26520 MemAvailable_min_kB 7041108 kgsl_page_alloc_max_B 258457600",
+   "memguard": null,
+   "delegate_lines": [
+    "Replacing 1526 out of 1528 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 0 (main)."
+   ],
+   "samples": [
+    {
+     "t": "01:34:42",
+     "n": 0,
+     "fg": "pending",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      42200
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2611200,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7518108,
+     "kgsl_page_alloc_B": 228786176,
+     "Thermal": 0
+    },
+    {
+     "t": "01:34:44",
+     "n": 1,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      52700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2611200,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4742400,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7095480,
+     "VmHWM_kB": 1453092,
+     "VmRSS_kB": 1453092,
+     "VmSwap_kB": 26520,
+     "kgsl_page_alloc_B": 258428928
+    },
+    {
+     "t": "01:34:46",
+     "n": 2,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      64300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3628800,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4185600,
+       4262400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7041108,
+     "VmHWM_kB": 5004324,
+     "VmRSS_kB": 5004324,
+     "VmSwap_kB": 26520,
+     "kgsl_page_alloc_B": 258457600
+    },
+    {
+     "t": "01:34:49",
+     "n": 3,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      71300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3398400,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4070400,
+       3974400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7307112,
+     "VmHWM_kB": 5021888,
+     "VmRSS_kB": 5021888,
+     "VmSwap_kB": 26520,
+     "kgsl_page_alloc_B": 258457600
+    },
+    {
+     "t": "01:34:51",
+     "n": 4,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      67400
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2745600,
+       2745600,
+       3628800
+      ],
+      "policy6": [
+       2668800,
+       2668800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7289436,
+     "VmHWM_kB": 5036224,
+     "VmRSS_kB": 5036224,
+     "VmSwap_kB": 26520,
+     "kgsl_page_alloc_B": 258457600
+    },
+    {
+     "t": "01:34:53",
+     "n": 5,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      63600
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2227200,
+       2227200,
+       3628800
+      ],
+      "policy6": [
+       2227200,
+       2227200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7321552,
+     "VmHWM_kB": 5047488,
+     "VmRSS_kB": 5047488,
+     "VmSwap_kB": 26520,
+     "kgsl_page_alloc_B": 258457600
+    },
+    {
+     "t": "01:34:55",
+     "n": 6,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      61600
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1996800,
+       1996800,
+       3628800
+      ],
+      "policy6": [
+       1977600,
+       1977600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7377504,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5021912,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227127296
+    },
+    {
+     "t": "01:34:57",
+     "n": 7,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60800
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1996800,
+       1996800,
+       3628800
+      ],
+      "policy6": [
+       1977600,
+       1977600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7349088,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5032408,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227569664,
+     "Thermal": 0
+    },
+    {
+     "t": "01:35:00",
+     "n": 8,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7364684,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5040216,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:02",
+     "n": 9,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7372604,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5027336,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:04",
+     "n": 10,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7365360,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5034632,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:06",
+     "n": 11,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7355540,
+     "VmHWM_kB": 5050436,
+     "VmRSS_kB": 5044872,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:08",
+     "n": 12,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7377544,
+     "VmHWM_kB": 5052296,
+     "VmRSS_kB": 5027548,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:11",
+     "n": 13,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7368316,
+     "VmHWM_kB": 5052296,
+     "VmRSS_kB": 5034716,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:13",
+     "n": 14,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7362680,
+     "VmHWM_kB": 5052296,
+     "VmRSS_kB": 5044188,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952,
+     "Thermal": 1
+    },
+    {
+     "t": "01:35:15",
+     "n": 15,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7340448,
+     "VmHWM_kB": 5052296,
+     "VmRSS_kB": 5051612,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227581952
+    },
+    {
+     "t": "01:35:17",
+     "n": 16,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7350396,
+     "VmHWM_kB": 5056348,
+     "VmRSS_kB": 5036356,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664
+    },
+    {
+     "t": "01:35:20",
+     "n": 17,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7339256,
+     "VmHWM_kB": 5056348,
+     "VmRSS_kB": 5045188,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664
+    },
+    {
+     "t": "01:35:22",
+     "n": 18,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7326992,
+     "VmHWM_kB": 5056348,
+     "VmRSS_kB": 5051716,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664
+    },
+    {
+     "t": "01:35:24",
+     "n": 19,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7330532,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5033096,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664
+    },
+    {
+     "t": "01:35:26",
+     "n": 20,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7322644,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5041544,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664
+    },
+    {
+     "t": "01:35:29",
+     "n": 21,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7269408,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5047136,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 227057664,
+     "Thermal": 1
+    },
+    {
+     "t": "01:35:31",
+     "n": 22,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7234376,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5055840,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:33",
+     "n": 23,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7239212,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5040408,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:35",
+     "n": 24,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7221204,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5047192,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:37",
+     "n": 25,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7218208,
+     "VmHWM_kB": 5058116,
+     "VmRSS_kB": 5056536,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:40",
+     "n": 26,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7243532,
+     "VmHWM_kB": 5061144,
+     "VmRSS_kB": 5038572,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:42",
+     "n": 27,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7224832,
+     "VmHWM_kB": 5061144,
+     "VmRSS_kB": 5045356,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:44",
+     "n": 28,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      59700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7226348,
+     "VmHWM_kB": 5061144,
+     "VmRSS_kB": 5054572,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376,
+     "Thermal": 2
+    },
+    {
+     "t": "01:35:46",
+     "n": 29,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      500,
+      10,
+      59300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1670400,
+       1670400,
+       3628800
+      ],
+      "policy6": [
+       1632000,
+       1632000,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7236920,
+     "VmHWM_kB": 5062636,
+     "VmRSS_kB": 5062636,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:49",
+     "n": 30,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      461,
+      11,
+      58900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1555200,
+       1555200,
+       3628800
+      ],
+      "policy6": [
+       1497600,
+       1497600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7255784,
+     "VmHWM_kB": 5064684,
+     "VmRSS_kB": 5046540,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:51",
+     "n": 31,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      461,
+      11,
+      58500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1555200,
+       1555200,
+       3628800
+      ],
+      "policy6": [
+       1497600,
+       1497600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7227556,
+     "VmHWM_kB": 5064684,
+     "VmRSS_kB": 5052940,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:53",
+     "n": 32,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      461,
+      11,
+      53500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1555200,
+       1555200,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       1497600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7289868,
+     "VmHWM_kB": 5064684,
+     "VmRSS_kB": 181172,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    },
+    {
+     "t": "01:35:55",
+     "n": 33,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      500,
+      10,
+      51200
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1555200,
+       1555200,
+       3628800
+      ],
+      "policy6": [
+       1497600,
+       1497600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7278684,
+     "VmHWM_kB": 5064684,
+     "VmRSS_kB": 181172,
+     "VmSwap_kB": 25608,
+     "kgsl_page_alloc_B": 226533376
+    }
+   ],
+   "report": {
+    "status": "DONE",
+    "compile_ms": 2459.650259,
+    "L": 256,
+    "threads": 4,
+    "litert": "2.2.0",
+    "device": "SM-S942Q",
+    "android": 36,
+    "memory_after_compile": {
+     "VmHWM_kb": 2579492,
+     "VmRSS_kb": 2574568,
+     "VmSwap_kb": 26520
+    },
+    "memory_at_end": {
+     "VmHWM_kb": 5064684,
+     "VmRSS_kb": 5057292,
+     "VmSwap_kb": 25608
+    },
+    "summary": {
+     "count": 105,
+     "finite_rows": 105,
+     "nonfinite_rows": 0,
+     "first_call_write_run_read_ms": 418.472135,
+     "first_call_run_ms": 418.088125,
+     "warm_rows": 100,
+     "warm_median_write_run_read_ms": 637.21763,
+     "warm_median_run_ms": 636.48974,
+     "warm_min_write_run_read_ms": 406.764583,
+     "warm_max_write_run_read_ms": 751.305521
+    },
+    "timing": null
+   }
+  },
+  "T_cpu4_v1_L256": {
+   "accel": "cpu",
+   "precision": "-",
+   "graph": "real_rowprefill_L256_v1_wi8fc.tflite",
+   "rows": "timing_rows.json",
+   "mode": "timing",
+   "status": "DONE",
+   "memory_line": "VmHWM_max_kB 2648744 VmSwap_max_kB 26712 MemAvailable_min_kB 7047640 kgsl_page_alloc_max_B 246030336",
+   "memguard": null,
+   "delegate_lines": [
+    "Replacing 1526 out of 1528 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 0 (main)."
+   ],
+   "samples": [
+    {
+     "t": "01:40:49",
+     "n": 0,
+     "fg": "pending",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      41500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2496000,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7399172,
+     "kgsl_page_alloc_B": 227508224,
+     "Thermal": 0
+    },
+    {
+     "t": "01:40:51",
+     "n": 1,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      62800
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3628800,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4512000,
+       4396800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7072236,
+     "VmHWM_kB": 2606228,
+     "VmRSS_kB": 2606228,
+     "VmSwap_kB": 26712,
+     "kgsl_page_alloc_B": 246018048
+    },
+    {
+     "t": "01:40:53",
+     "n": 2,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      70500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3628800,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       3763200,
+       3648000,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7047640,
+     "VmHWM_kB": 2618644,
+     "VmRSS_kB": 2618644,
+     "VmSwap_kB": 26712,
+     "kgsl_page_alloc_B": 246018048
+    },
+    {
+     "t": "01:40:56",
+     "n": 3,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      73300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3513600,
+       3513600,
+       3628800
+      ],
+      "policy6": [
+       3763200,
+       3974400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7303304,
+     "VmHWM_kB": 2630780,
+     "VmRSS_kB": 2630780,
+     "VmSwap_kB": 26712,
+     "kgsl_page_alloc_B": 246030336
+    },
+    {
+     "t": "01:40:58",
+     "n": 4,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      66300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2227200,
+       2227200,
+       3628800
+      ],
+      "policy6": [
+       2227200,
+       2227200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7273688,
+     "VmHWM_kB": 2639484,
+     "VmRSS_kB": 2639484,
+     "VmSwap_kB": 26712,
+     "kgsl_page_alloc_B": 246030336
+    },
+    {
+     "t": "01:41:00",
+     "n": 5,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      62800
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1996800,
+       1996800,
+       3628800
+      ],
+      "policy6": [
+       1977600,
+       1977600,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7305832,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2606816,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 246030336
+    },
+    {
+     "t": "01:41:02",
+     "n": 6,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      61600
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7296288,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2612960,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 246030336
+    },
+    {
+     "t": "01:41:05",
+     "n": 7,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7286040,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2621152,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 246030336,
+     "Thermal": 1
+    },
+    {
+     "t": "01:41:07",
+     "n": 8,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60500
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7291308,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2629056,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    },
+    {
+     "t": "01:41:09",
+     "n": 9,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7282448,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2612780,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    },
+    {
+     "t": "01:41:11",
+     "n": 10,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7259548,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2620972,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    },
+    {
+     "t": "01:41:13",
+     "n": 11,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      60100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       1747200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7244864,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 2627116,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    },
+    {
+     "t": "01:41:16",
+     "n": 12,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      53900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1324800,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7289144,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 164076,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    },
+    {
+     "t": "01:41:18",
+     "n": 13,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      50800
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       1785600,
+       1785600,
+       3628800
+      ],
+      "policy6": [
+       883200,
+       1747200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7291076,
+     "VmHWM_kB": 2648744,
+     "VmRSS_kB": 164076,
+     "VmSwap_kB": 25840,
+     "kgsl_page_alloc_B": 223666176
+    }
+   ],
+   "report": {
+    "status": "DONE",
+    "compile_ms": 36.252657,
+    "L": 256,
+    "threads": 4,
+    "litert": "2.2.0",
+    "device": "SM-S942Q",
+    "android": 36,
+    "memory_after_compile": {
+     "VmHWM_kb": 174644,
+     "VmRSS_kb": 174644,
+     "VmSwap_kb": 26968
+    },
+    "memory_at_end": {
+     "VmHWM_kb": 2648744,
+     "VmRSS_kb": 2631212,
+     "VmSwap_kb": 25840
+    },
+    "summary": null,
+    "timing": {
+     "one_question": {
+      "rows": 1,
+      "tokens": [
+       39
+      ],
+      "per_call_ms_write_run_read": {
+       "median": 415.073984,
+       "min": 386.701249,
+       "max": 427.500365,
+       "n": 10
+      },
+      "per_call_ms_run_only": {
+       "median": 414.60929699999997,
+       "min": 386.137031,
+       "max": 427.008437,
+       "n": 10
+      },
+      "request_ms_write_run_read": null,
+      "warmup_ms_write_run_read": [
+       506.270208,
+       411.542292
+      ],
+      "finite_position0": true,
+      "cool": {
+       "cool_ms": 0,
+       "mode": "none"
+      }
+     },
+     "three_questions": {
+      "rows": 3,
+      "tokens": [
+       39,
+       61,
+       54
+      ],
+      "per_call_ms_write_run_read": {
+       "median": 621.6196355,
+       "min": 452.897135,
+       "max": 641.320886,
+       "n": 30
+      },
+      "per_call_ms_run_only": {
+       "median": 620.751432,
+       "min": 452.173541,
+       "max": 640.496719,
+       "n": 30
+      },
+      "request_ms_write_run_read": {
+       "median": 1873.546328,
+       "min": 1571.9252070000002,
+       "max": 1902.941769,
+       "n": 10
+      },
+      "warmup_ms_write_run_read": [
+       428.366354,
+       410.767135
+      ],
+      "finite_position0": true,
+      "cool": {
+       "cool_ms": 0,
+       "mode": "none"
+      }
+     }
+    }
+   }
+  },
+  "P_cpu4_v2_L256_sub": {
+   "accel": "cpu",
+   "precision": "-",
+   "graph": "real_rowprefill_L256_v2_fp16fc_i8emb.tflite",
+   "rows": "rows_L256_sub.json",
+   "mode": "gate",
+   "status": "MEMGUARD_STOPPED",
+   "memory_line": "VmHWM_max_kB 6653616 VmSwap_max_kB 4476052 MemAvailable_min_kB 795872 kgsl_page_alloc_max_B 265674752",
+   "memguard": "2026-10-09 01:46:14 MemAvailable 795872 kB < 1500000 kB -> force-stop",
+   "delegate_lines": [
+    "Replacing 1692 out of 1694 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 0 (main)."
+   ],
+   "samples": [
+    {
+     "t": "01:46:05",
+     "n": 0,
+     "fg": "pending",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      51900
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2745600,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       2112000,
+       4646400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7145916,
+     "kgsl_page_alloc_B": 228556800,
+     "Thermal": 1
+    },
+    {
+     "t": "01:46:07",
+     "n": 1,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      58100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2611200,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4742400,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 4199276,
+     "VmHWM_kB": 4057940,
+     "VmRSS_kB": 4019264,
+     "VmSwap_kB": 26776,
+     "kgsl_page_alloc_B": 256311296
+    },
+    {
+     "t": "01:46:09",
+     "n": 2,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      63200
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       3513600,
+       3628800,
+       3628800
+      ],
+      "policy6": [
+       4742400,
+       4742400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 2935816,
+     "VmHWM_kB": 6649200,
+     "VmRSS_kB": 6612656,
+     "VmSwap_kB": 834836,
+     "kgsl_page_alloc_B": 256311296
+    },
+    {
+     "t": "01:46:11",
+     "n": 3,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      64300
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2611200,
+       3398400,
+       3628800
+      ],
+      "policy6": [
+       3859200,
+       3859200,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 2134572,
+     "VmHWM_kB": 6653616,
+     "VmRSS_kB": 4994284,
+     "VmSwap_kB": 3651860,
+     "kgsl_page_alloc_B": 256311296
+    },
+    {
+     "t": "01:46:14",
+     "n": 4,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      222,
+      1300,
+      0,
+      58100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2745600,
+       2745600,
+       3628800
+      ],
+      "policy6": [
+       2668800,
+       2668800,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 795872,
+     "VmHWM_kB": 6653616,
+     "VmRSS_kB": 4581900,
+     "VmSwap_kB": 4476052,
+     "kgsl_page_alloc_B": 233127936
+    },
+    {
+     "t": "01:46:16",
+     "n": 5,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      53100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2112000,
+       2496000,
+       3628800
+      ],
+      "policy6": [
+       2112000,
+       2438400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7999536,
+     "kgsl_page_alloc_B": 263139328
+    },
+    {
+     "t": "01:46:18",
+     "n": 6,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      52700
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2496000,
+       2496000,
+       3628800
+      ],
+      "policy6": [
+       2438400,
+       2438400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7771648,
+     "kgsl_page_alloc_B": 263139328
+    },
+    {
+     "t": "01:46:20",
+     "n": 7,
+     "fg": "ok",
+     "kgsl_clock_max_lvl_temp": [
+      422,
+      1300,
+      0,
+      53100
+     ],
+     "cpu_cur_max_info": {
+      "policy0": [
+       2496000,
+       2496000,
+       3628800
+      ],
+      "policy6": [
+       2227200,
+       2438400,
+       4742400
+      ]
+     },
+     "MemAvailable_kB": 7280656,
+     "kgsl_page_alloc_B": 265674752,
+     "Thermal": 1
+    }
+   ]
+  }
+ },
+ "v1_parity": {
+  "summary": {
+   "overall": {
+    "questions": 100,
+    "questions_finite": 100,
+    "argmax_equal": 100,
+    "max_abs_dp": 0.15681066460781623,
+    "mean_abs_dp_all_options": 0.007399862270178129,
+    "p95_abs_dp_all_options": 0.03285565684160566,
+    "options": 392,
+    "h_sel_max_abs_diff": 0.3115094006061554
+   },
+   "non_near_tie_argmax": "99/99",
+   "near_tie_argmax": "1/1",
+   "near_tie_flips": [],
+   "non_near_tie_flips": [],
+   "control": {
+    "key": "red_arm_000/answer",
+    "vs_reference_of": "tv4_000/answer",
+    "probs": [
+     0.01376212717692905,
+     0.03987318558637384,
+     0.9364777087805864,
+     0.009886978456110562
+    ],
+    "reference_probs": [
+     0.012302029808032857,
+     0.030425842889915955,
+     0.94793215695962,
+     0.009339970342431201
+    ],
+    "max_abs_dp": 0.011454448179033516,
+    "exceeds": false
+   },
+   "nonfinite": [],
+   "bar": {
+    "max_abs_dp": 0.02,
+    "mean_abs_dp": 0.002,
+    "control_min": 0.02
+   },
+   "bar_strict": false,
+   "bar_near_tie_apart": false,
+   "control_exceeds": false,
+   "red_arms": {
+    "in_reference": 4,
+    "in_rows": 4,
+    "red": 4,
+    "all_red": true,
+    "min_max_abs_dp_vs_base": 0.8235872890876796,
+    "max_abs_dp_vs_arm_reference": 0.016172818231130093,
+    "red_arm_min": 0.02
+   },
+   "bar_near_tie_apart_and_red_arms": false
+  },
+  "same_file_mac_cpu": {
+   "mac_cpu": {
+    "report": "device/r7/mac/mac_real_rowprefill_L256_v1_wi8fc__rows_L256_sub.json",
+    "hsel": "device/r7/mac/hsel_mac_real_rowprefill_L256_v1_wi8fc__rows_L256_sub.f32",
+    "graph": "real_rowprefill_L256_v1_wi8fc.tflite",
+    "accel": "cpu",
+    "precision": "fp32",
+    "threads": 8,
+    "rows_compared": 105,
+    "argmax_agree": 105,
+    "max_abs_dp": 0.0,
+    "h_sel_max_abs_diff": 0.0,
+    "h_sel_bit_equal_rows": 105
+   }
+  },
+  "timing_ms": {
+   "count": 105,
+   "finite_rows": 105,
+   "nonfinite_rows": 0,
+   "first_call_write_run_read_ms": 418.472135,
+   "first_call_run_ms": 418.088125,
+   "warm_rows": 100,
+   "warm_median_write_run_read_ms": 637.21763,
+   "warm_median_run_ms": 636.48974,
+   "warm_min_write_run_read_ms": 406.764583,
+   "warm_max_write_run_read_ms": 751.305521,
+   "median_all_rows_write_run_read": 636.497656
+  },
+  "record": {
+   "file": "device/r7/device_parity_G_cpu4_v1_L256_sub.json",
+   "sha256": "395031d1811a045403d775ef17a58dbd6d14ca94afdd097e70da10f14a03a92c"
+  }
+ },
+ "record": {
+  "file": "results/device_r7_s26.json",
+  "sha256": "8e328e2cb00aabbf31de9be3077b31e8b77f501d97c16fbf6fad72463b8de709"
+ }
+}

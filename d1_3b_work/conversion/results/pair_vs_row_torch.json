@@ -1,0 +1,151 @@
+{
+ "what": "the shared-state pairs (state once + one step per question) against the row form (state + question as one row) in PyTorch float32 on the CPU, every fixture question, before export",
+ "all": {
+  "runs": 906,
+  "questions": 415,
+  "requests": 381,
+  "hidden_question_max_abs_vs_row": 0.00014352798461914062,
+  "h_sel_max_abs_vs_row": 1.4781951904296875e-05,
+  "max_abs_dp_vs_row": 3.7800578915891947e-06,
+  "argmax_equal_row": "906/906",
+  "max_abs_dp_vs_reference": 5.328442508278908e-06,
+  "row_form_max_abs_dp_vs_reference": 5.529394241199359e-06,
+  "argmax_equal_reference_non_near_tie": "905/905",
+  "nonfinite_runs": 0,
+  "runs_hidden_question_over_bar": 8,
+  "runs_h_sel_over_bar": 0,
+  "runs_dp_over_bar": 0,
+  "hidden_question_p50_p99": [
+   3.680586814880371e-05,
+   9.07428562641144e-05
+  ],
+  "max_abs_hidden_question": 23.84699249267578,
+  "worst_hidden_key": "tv4_033/answer",
+  "seconds_question_median": 1.658
+ },
+ "by_config": {
+  "Ls256_Lq128": {
+   "runs": 390,
+   "questions": 390,
+   "requests": 370,
+   "hidden_question_max_abs_vs_row": 0.00014352798461914062,
+   "h_sel_max_abs_vs_row": 1.4781951904296875e-05,
+   "max_abs_dp_vs_row": 3.7800578915891947e-06,
+   "argmax_equal_row": "390/390",
+   "max_abs_dp_vs_reference": 5.328442508278908e-06,
+   "row_form_max_abs_dp_vs_reference": 5.529394241199359e-06,
+   "argmax_equal_reference_non_near_tie": "390/390",
+   "nonfinite_runs": 0,
+   "runs_hidden_question_over_bar": 4,
+   "runs_h_sel_over_bar": 0,
+   "runs_dp_over_bar": 0,
+   "hidden_question_p50_p99": [
+    3.719329833984375e-05,
+    9.694457054138199e-05
+   ],
+   "max_abs_hidden_question": 23.84699249267578,
+   "worst_hidden_key": "tv4_033/answer",
+   "seconds_question_median": 1.712
+  },
+  "Ls128_Lq64": {
+   "runs": 290,
+   "questions": 290,
+   "requests": 279,
+   "hidden_question_max_abs_vs_row": 0.00011074542999267578,
+   "h_sel_max_abs_vs_row": 1.2636184692382812e-05,
+   "max_abs_dp_vs_row": 3.2434730615760188e-06,
+   "argmax_equal_row": "290/290",
+   "max_abs_dp_vs_reference": 5.328442508278908e-06,
+   "row_form_max_abs_dp_vs_reference": 5.529394241199359e-06,
+   "argmax_equal_reference_non_near_tie": "290/290",
+   "nonfinite_runs": 0,
+   "runs_hidden_question_over_bar": 3,
+   "runs_h_sel_over_bar": 0,
+   "runs_dp_over_bar": 0,
+   "hidden_question_p50_p99": [
+    3.618001937866211e-05,
+    9.217023849487327e-05
+   ],
+   "max_abs_hidden_question": 16.14434051513672,
+   "worst_hidden_key": "own_meeting_04/script_owner",
+   "seconds_question_median": 1.624
+  },
+  "Ls64_Lq64": {
+   "runs": 201,
+   "questions": 201,
+   "requests": 199,
+   "hidden_question_max_abs_vs_row": 0.0001068115234375,
+   "h_sel_max_abs_vs_row": 1.2636184692382812e-05,
+   "max_abs_dp_vs_row": 2.437392838672281e-06,
+   "argmax_equal_row": "201/201",
+   "max_abs_dp_vs_reference": 5.328442508278908e-06,
+   "row_form_max_abs_dp_vs_reference": 5.529394241199359e-06,
+   "argmax_equal_reference_non_near_tie": "201/201",
+   "nonfinite_runs": 0,
+   "runs_hidden_question_over_bar": 1,
+   "runs_h_sel_over_bar": 0,
+   "runs_dp_over_bar": 0,
+   "hidden_question_p50_p99": [
+    3.719329833984375e-05,
+    7.19795934855938e-05
+   ],
+   "max_abs_hidden_question": 16.14434051513672,
+   "worst_hidden_key": "tv4_000/answer",
+   "seconds_question_median": 1.624
+  },
+  "bucket": {
+   "runs": 25,
+   "questions": 25,
+   "requests": 11,
+   "hidden_question_max_abs_vs_row": 7.505528628826141e-05,
+   "h_sel_max_abs_vs_row": 1.1295080184936523e-05,
+   "max_abs_dp_vs_row": 2.8199999241584894e-06,
+   "argmax_equal_row": "25/25",
+   "max_abs_dp_vs_reference": 4.071829443286212e-06,
+   "row_form_max_abs_dp_vs_reference": 1.9391337922058938e-06,
+   "argmax_equal_reference_non_near_tie": "24/24",
+   "nonfinite_runs": 0,
+   "runs_hidden_question_over_bar": 0,
+   "runs_h_sel_over_bar": 0,
+   "runs_dp_over_bar": 0,
+   "hidden_question_p50_p99": [
+    3.415346145629883e-05,
+    7.011689245700832e-05
+   ],
+   "max_abs_hidden_question": 12.990272521972656,
+   "worst_hidden_key": "tv4x_sciq_11/answer",
+   "seconds_question_median": 2.119
+  }
+ },
+ "vs_ids_round9": {
+  "round9": "results/real_sharedstate_torch_check.json",
+  "round9_rows_sha256": "9ea387006a3c0d789a9e9bf979953aba445cd601c42cb1fa908ee45f2404c395",
+  "same_shape": {
+   "runs": 705,
+   "max_abs_dp_pair": 0.0,
+   "max_abs_h_sel_pair": 0.0,
+   "bit_equal_runs": 705,
+   "worst": "tv4_000/answer"
+  },
+  "Ls64_Lq64_vs_round9_Ls128_Lq64": {
+   "runs": 201,
+   "max_abs_dp_pair": 0.0,
+   "max_abs_h_sel_pair": 0.0,
+   "bit_equal_runs": 201,
+   "worst": "tv4_000/answer"
+  },
+  "row_form": {
+   "questions": 415,
+   "max_abs_h_sel": 0.0,
+   "bit_equal": 415,
+   "max_abs_dp": 0.0
+  },
+  "bar_max_abs_dp": 1e-05,
+  "pass": true
+ },
+ "pass": true,
+ "record": {
+  "file": "results/real_sharedstate_embeds_torch_check.json",
+  "sha256": "d2fed94b0d56e8eab6d9b33e94c14bd1c5f60b796b311a8fc6fe54e039c7233f"
+ }
+}

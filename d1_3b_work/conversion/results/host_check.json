@@ -1,0 +1,98 @@
+{
+ "what": "the host's pair route against its row route on the shipped files (CPU, 8 threads): the 16 fixture requests of several questions and the single questions a pair holds",
+ "summary": {
+  "multi_question": {
+   "requests": 16,
+   "questions": 48,
+   "routes": {
+    "pair": 9,
+    "row": 6,
+    "refused": 1
+   },
+   "refused_alike": [
+    "own_email_03"
+   ],
+   "routes_by_pair": {
+    "Ls64+Lq64": 1,
+    "Ls128+Lq64": 3,
+    "Ls256+Lq128": 5
+   },
+   "max_abs_dp_shared_vs_row_host": 2.074992175638002e-06,
+   "max_abs_dp_via_pair": 2.074992175638002e-06,
+   "argmax_equal": "48/48",
+   "answers_identical": 28,
+   "input_tokens_equal": "16/16",
+   "max_abs_dp_shared_vs_reference_tree": 7.142529997450353e-06,
+   "pass": true
+  },
+  "bar": {
+   "max_abs_dp_shared_vs_row_host": 1e-05,
+   "argmax": "equal",
+   "input_tokens": "equal"
+  },
+  "single_question": {
+   "requests": 360,
+   "questions": 360,
+   "routes": {
+    "pair": 360,
+    "row": 0,
+    "refused": 0
+   },
+   "refused_alike": [],
+   "routes_by_pair": {
+    "Ls64+Lq64": 198,
+    "Ls128+Lq64": 76,
+    "Ls256+Lq128": 86
+   },
+   "max_abs_dp_shared_vs_row_host": 4.190240419255087e-06,
+   "max_abs_dp_via_pair": 4.190240419255087e-06,
+   "argmax_equal": "360/360",
+   "answers_identical": 121,
+   "input_tokens_equal": "360/360",
+   "max_abs_dp_shared_vs_reference_tree": null,
+   "pass": true
+  },
+  "shipped_rule": {
+   "min_questions": null,
+   "call_ms": {
+    "row": {
+     "128": 61.84,
+     "256": 108.71,
+     "512": 207.54,
+     "1024": 420.37,
+     "2048": 889.29,
+     "4096": 2049.99
+    },
+    "pair": {
+     "Ls64+Lq64": [
+      37.8,
+      38.72
+     ],
+     "Ls128+Lq64": [
+      60.44,
+      38.91
+     ],
+     "Ls256+Lq128": [
+      106.04,
+      62.93
+     ]
+    }
+   },
+   "routes": {
+    "pair": 35,
+    "row": 340,
+    "refused": 1
+   },
+   "routes_by_pair": {
+    "Ls64+Lq64": 1,
+    "Ls128+Lq64": 27,
+    "Ls256+Lq128": 7
+   }
+  },
+  "pass": true
+ },
+ "record": {
+  "file": "results/real_sharedstate_embeds_host_check.json",
+  "sha256": "f59688cd4dccce5c2a1f96c3105cfcfa5f65c331737b5a575c6223f97f63c14b"
+ }
+}
