@@ -70,9 +70,13 @@ def main():
     (out / "conversion").mkdir()
     for f in CONVERSION:
         shutil.copyfile(W / "scripts" / f, out / "conversion" / f)
-    for f in ("REPRODUCE.md",):
-        if (W / "publish_src" / f).exists():
-            shutil.copyfile(W / "publish_src" / f, out / "conversion" / f)
+    shutil.copyfile(W / "publish_src" / "REPRODUCE.md", out / "REPRODUCE.md")
+    (out / "host").mkdir()
+    for f in ("phocinae_litert.py", "requirements-host.txt"):
+        shutil.copyfile(W / "host" / f, out / "host" / f)
+    (out / "examples").mkdir()
+    for f in ("request.json", "run_example.py", "run_example.expected.json"):
+        shutil.copyfile(W / "examples" / f, out / "examples" / f)
     if (W / "card" / "README.md").exists():
         shutil.copyfile(W / "card" / "README.md", out / "README.md")
 
@@ -96,7 +100,12 @@ def main():
             src_stem = f"L{L}_ids_v2_fp16fc_i8emb_shift" if form == "int8emb" else f"L{L}_embeds_wfp16_shift_hostlookup"
             # the embeds (host-lookup) form runs whole on the HTP and is the fastest at L384 / L512: npu first; the int8-table
             # form leaves its EMBEDDING_LOOKUP on the CPU (2 partitions): gpu first. GPU precision = fp16 (the fastest that passes the bar).
-            order = (("npu", 100, ["gpu", "cpu"]), ("gpu", 90, ["cpu"]), ("cpu", 50, [])) if form == "embeds" else (("gpu", 100, ["cpu"]), ("npu", 80, ["gpu", "cpu"]), ("cpu", 50, []))
+            if form == "embeds":
+                order = (("npu", 100, ["gpu", "cpu"]), ("gpu", 90, ["cpu"]), ("cpu", 50, []))
+            elif L == 256:      # the int8-table form ran on the HTP at L256 only (the lookup on the CPU, 2 partitions)
+                order = (("gpu", 100, ["cpu"]), ("npu", 80, ["gpu", "cpu"]), ("cpu", 50, []))
+            else:
+                order = (("gpu", 100, ["cpu"]), ("cpu", 50, []))
             for backend, prio, fallback in order:
                 note = device_note(f"phocinae_s26_{backend}_{'fp16' if backend == 'gpu' else 'fp32'}_{src_stem}")
                 prof = dict(id=backend, priority=prio, files=file_ids, enabled_inputs=["text"], components=dict(inference=backend),
