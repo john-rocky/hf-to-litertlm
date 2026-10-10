@@ -1,0 +1,52 @@
+{
+  "model": "Phocinae-Largha-150M-v1",
+  "answers": {
+    "next_step": {
+      "type": "choice",
+      "choice": "hold",
+      "confidence": 0.44,
+      "probabilities": {
+        "continue": 0.3698,
+        "hold": 0.44,
+        "rollback": 0.1902
+      },
+      "action": {
+        "act_probability": 0.1648
+      }
+    },
+    "wake_oncall": {
+      "type": "noul",
+      "noul": false,
+      "probability_true": 0.3961,
+      "confidence": 0.6039,
+      "action": {
+        "act_probability": 0.1649
+      }
+    },
+    "risk": {
+      "type": "score",
+      "level": 1,
+      "legend": {
+        "0": "Routine: nothing unusual.",
+        "1": "Watch: a warning sign, no impact yet.",
+        "2": "Degraded: users are affected.",
+        "3": "Critical: outage or data at risk."
+      },
+      "confidence": 0.5894,
+      "probabilities": {
+        "0": 0.1343,
+        "1": 0.5894,
+        "2": 0.1864,
+        "3": 0.0899
+      },
+      "action": {
+        "act_probability": 0.2507
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 437,
+    "output_tokens": 0,
+    "state_truncated": false
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "state": "Deploy run #4471 for the payments service: the agent pulled the latest tag, ran the migration on the staging database, then restarted the API pods. Health check: 200 OK after 11 s. One warning in the logs: \"connection pool near limit (94/100)\". No customer-facing errors in the last 30 minutes. The on-call engineer is asleep (02:40 local).",
+  "questions": {
+    "next_step": {"type": "choice", "instructions": "What should the release system do now?",
+                  "criteria": {"continue": "Let the deployment proceed to production.",
+                               "hold": "Keep it on staging and wait for a human.",
+                               "rollback": "Revert to the previous tag now."}},
+    "wake_oncall": {"type": "noul", "instructions": "The on-call engineer should be paged now.",
+                    "criteria": {"true": "Something needs a human within minutes.", "false": "It can wait until the morning."}},
+    "risk": {"type": "score", "instructions": "How risky is the current state of the service?",
+             "criteria": ["Routine: nothing unusual.", "Watch: a warning sign, no impact yet.", "Degraded: users are affected.", "Critical: outage or data at risk."]}
+  }
+}
