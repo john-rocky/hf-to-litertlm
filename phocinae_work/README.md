@@ -1,6 +1,6 @@
 # Phocinae-Largha-150M-v1 (Phocinae) → LiteRT: a typed-decision model in the laya contract, with its Galaxy S26 GPU and NPU numbers
 
-Published: [litert-community/Phocinae-Largha-150M-LiteRT](https://huggingface.co/litert-community/Phocinae-Largha-150M-LiteRT) (pending the upload).
+Published: [litert-community/Phocinae-Largha-150M-LiteRT](https://huggingface.co/litert-community/Phocinae-Largha-150M-LiteRT).
 
 ## What the model is
 
