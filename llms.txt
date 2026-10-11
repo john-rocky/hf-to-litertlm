@@ -14,6 +14,7 @@ litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on
 
 - [README](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/README.md): the model table (device, backend and tok/s per row), the finetune converter, setup, reproduction, new architectures, int4 recipes, deployment manifests.
 - [AGENTS.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/AGENTS.md): for coding agents. Task → command → file, and the rules: the exit gate decides, a refusal is an answer, numbers carry a device and a date.
+- [skills/android-device-gate/SKILL.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/skills/android-device-gate/SKILL.md): an agent skill. Check a converted LiteRT graph on a shared Android phone with tools/devicebench, from a fake-phone dry run on the Mac to the record of every leg.
 - [REPRODUCE.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/REPRODUCE.md): the full measurement record behind every published bundle, one command per model.
 - [CONTRIBUTING.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/CONTRIBUTING.md): request a model by pasting its Hugging Face link; report a misbehaving bundle.
 

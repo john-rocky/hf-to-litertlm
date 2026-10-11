@@ -167,6 +167,8 @@ the 11 non-chat conversions (encoders, embeddings, TTS, image generation) are in
    [REPRODUCE.md](REPRODUCE.md).
 3. **A deployment manifest**, `litertlm_manifest.json`, that every published repo ships, with
    reference readers and a Google Play packer ([below](#deployment-manifests)).
+4. **An on-device check for converted graphs.** `tools/devicebench/` runs a graph on a shared Android
+   phone and keeps the record of every leg; [the agent skill](skills/android-device-gate/SKILL.md) walks through it.
 
 ## Setup
 

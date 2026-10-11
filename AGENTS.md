@@ -25,7 +25,7 @@ converter, not affiliated with Google.
 | A new VLM | Copy the closest `scripts/ship_*.sh` with its `convert_*_vision.py` / `prep_*_decoder.py` | README "Convert a new architecture" |
 | Which file fits which device, backend and RAM budget, at what speed | `litertlm_manifest.json` in every published repo; schema, generator and readers in this repo | README "Deployment manifests", [manifest/SCHEMA.md](manifest/SCHEMA.md), [readers/](readers/) |
 | GPU or NPU on Android for these bundles | Measured notes | [docs/android-gpu.md](docs/android-gpu.md), [docs/android-npu.md](docs/android-npu.md) |
-| Check a converted graph on an Android phone (parity rows, ms, memory) and keep the record | Run `bash tools/devicebench/dryrun.sh <lane.env>` on a fake phone first, then `bash tools/devicebench/chain.sh check\|run <round> <lane.env>` | [tools/devicebench/README.md](tools/devicebench/README.md) |
+| Check a converted graph on an Android phone (parity rows, ms, memory) and keep the record | Run `bash tools/devicebench/dryrun.sh <lane.env>` on a fake phone first, then `bash tools/devicebench/chain.sh check\|run <round> <lane.env>` | [skills/android-device-gate/SKILL.md](skills/android-device-gate/SKILL.md) (the steps, on a public example), [tools/devicebench/README.md](tools/devicebench/README.md) |
 | Ask for a model to be converted | Open a model request with the Hugging Face link; that is the whole ask | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Rules
