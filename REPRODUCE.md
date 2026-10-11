@@ -2538,3 +2538,23 @@ Published: [litert-community/Phocinae-Largha-150M-LiteRT](https://huggingface.co
 - **On the Mac (M4 Max, ai-edge-litert 2.2.0)**: Metal fp32 7.43 / 9.44 / 11.85 ms, Metal default 7.66 / 9.49 / 10.80 ms, CPU 8 threads 31.1 / 38.2 / 48.1 ms per question at the three windows.
 
 Scripts, the Python host, the example and the gate activity: [`phocinae_work/`](phocinae_work/) (`README.md`, `REPRODUCE.md`, `conversion/`, `host/`, `examples/`, `android/gate/`).
+
+## EMA Lightning (Turkish TTS, 8.6M: 4-step flow-matching DiT + HiFi-GAN, 48 kHz) — four static-shape graphs with the bookkeeping on the host — 2026-10-11
+
+`ema_tts_work/` converts [canberkkkkkk/ema-lightning](https://huggingface.co/canberkkkkkk/ema-lightning) (Apache-2.0) into `text` / `align` / `step` (×4, Euler on the host) / `decoder` graphs, one multi-signature `.tflite` per kind (every length bucket a signature, weights shared; 27.3 MB in all), plus a torch-free host loop. Published: [litert-community/EMA-Lightning-LiteRT](https://huggingface.co/litert-community/EMA-Lightning-LiteRT). Details and the measured tables: [`ema_tts_work/README.md`](ema_tts_work/README.md).
+
+```bash
+cd ema_tts_work
+python3.12 -m venv .venv && .venv/bin/pip install ema-lightning==1.1.2 litert-torch==0.9.4 ai-edge-quantizer soundfile scipy
+mkdir -p precheck/weights && (cd precheck/weights && curl -sLO https://huggingface.co/canberkkkkkk/ema-lightning/resolve/main/ema.pt && curl -sLO https://huggingface.co/canberkkkkkk/ema-lightning/resolve/main/decoder.pt)
+python oracle_ref.py 4                                     # the pip package on CPU (seed 0): six sentences -> fixtures/
+python export_graphs.py --out out/fp32 --text 32,64,128,256 --align 32x48,64x96,128x192,256x384,256x512 --step 48,96,192,384,512 --decoder 48,120 --multisig
+python verify_tflite.py --split --multi --forms text=fp32,sound=fp32,decoder=fp32     # min SNR 66 dB, frames identical
+python quantize.py --mode fp16 --only decoder --match multi                           # decoder fp16 weights (lossless-grade)
+python verify_tflite.py --split --multi --forms text=fp32,sound=fp32,decoder=fp16     # the ship set: min SNR 56 dB
+python assemble_ship.py --out out/ship/EMA-Lightning-LiteRT --forms text=fp32,sound=fp32,decoder=fp16 --split --multi
+python out/ship/EMA-Lightning-LiteRT/ema_host.py "Merhaba, bu ses telefonunuzun üzerinde üretiliyor." --out merhaba.wav
+```
+
+- Converter rewrites: the decoder's `ConvTranspose1d(k 10, s 5, p 2)` (neither SAME nor VALID) exported as VALID + crop; the aligner's `expand` (BROADCAST_TO, refused by the GPU delegate) replaced by a broadcast through the RoPE multiply; the ConvNeXt layer scale folded into the following linear (its rank-2 × rank-3-constant MUL is miscomputed by the ML Drift GPU backend, LiteRT #10445); one DiT step per graph (an unrolled 4-step graph duplicates every FC weight per step in the file).
+- Measured on a Galaxy S26 (LiteRT 2.2.0): one 3.5 s sentence in 52.5 ms (text + align CPU, 4 steps on the HTP at 1.56 ms each, decoder on the GPU at fp16; RTF 0.015, first audio 21.7 ms), 56.5 ms without the NPU libraries, 149 ms all on the CPU. Dynamic int8 fails the 30 dB bar everywhere (the distilled DiT amplifies weight noise); fp16 activations fail on the text graph and on four unrolled steps.
