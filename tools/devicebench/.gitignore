@@ -1,0 +1,4 @@
+# dry runs, plan checks and other scratch output (rewritten by every run)
+cache/
+# hold files and their waiting lines, when the hold tools (hold/) keep them in this folder
+.device_hold*
