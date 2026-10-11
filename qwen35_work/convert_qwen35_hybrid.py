@@ -31,6 +31,11 @@ violates the engine's incremental-render prefix contract and kills turn 2.
 
 Quantization is post-hoc dynamic int8 over linears + embedding ONLY (convs and
 the delta-rule stay float), the same house rule as LFM2.5 / Granite-4-h convs.
+QWEN35_FLOAT_FC_REGEX (optional, ';;'-separated regexes) keeps the matching
+FULLY_CONNECTED ops float on top of that: the 2B ships with
+'Linear_in_proj_(a|b);' — its GatedDeltaNet decay/gate heads could not take the
+CPU path's run-time int8 activation quantization and looped on multi-step
+arithmetic (2026-10-11; the 0.8B / 4B recipes are unchanged until measured).
 """
 import os
 import re
@@ -73,9 +78,15 @@ tmpl = os.path.join(outdir, "model_wi8fc_tmpl.litertlm")
 final = os.path.join(outdir, os.path.basename(model).replace("/", "_") + "_int8.litertlm")
 
 # 2. Post-hoc int8 (linears + embedding only; convs/delta-rule float).
-subprocess.run([sys.executable,
-                os.path.join(here, "..", "minicpm5_work", "quantize_minicpm5.py"),
-                "apply", fp, wi8fc, "--recipe", "wi8fc"], check=True)
+#    QWEN35_FLOAT_FC_REGEX keeps named FCs float on top (the 2B: the 36 GDN
+#    decay/gate projections, see the module docstring). The scope a regex is
+#    matched against is the output tensor name + ";" (anchor with ";", not "$").
+quant_cmd = [sys.executable,
+             os.path.join(here, "..", "minicpm5_work", "quantize_minicpm5.py"),
+             "apply", fp, wi8fc, "--recipe", "wi8fc"]
+for rx in filter(None, os.environ.get("QWEN35_FLOAT_FC_REGEX", "").split(";;")):
+    quant_cmd += ["--float-fc-regex", rx]
+subprocess.run(quant_cmd, check=True)
 
 # 3. Replace the bundled template with the simple ChatML template (see module
 #    docstring): unpack -> rewrite jinja_prompt_template in the pbtext -> pack.

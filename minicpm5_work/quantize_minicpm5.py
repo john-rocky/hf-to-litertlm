@@ -88,12 +88,24 @@ def inspect_tflite(tflite_path):
 LM_HEAD_REGEX = "(decode_logits_output|Linear_lm_head)"
 
 
-def build_recipe(kind, algo="minmax"):
+def build_recipe(kind, algo="minmax", float_fc_regexes=()):
     """Recipe list matching the official minicpm_wi4b32_wi8_afp32 layout.
 
     algo: minmax | octav — applied to the int4 blockwise linears. OCTAV clips
     outliers (smaller scales) and empirically recovers most of the min-max
     int4 GSM8K gap; int8 tensors stay min-max.
+
+    float_fc_regexes: FULLY_CONNECTED ops whose scope matches one of these stay
+    float (a NO_QUANTIZE override on top of the recipe). The scope string the
+    quantizer matches is the op's OUTPUT TENSOR NAME followed by ";" — anchor
+    with the ";" (e.g. "Linear_in_proj_(a|b);"), never with "$": a "$"-anchored
+    regex matches nothing and the build is silently the baseline again (check
+    `inspect` for the float FC count). Qwen3.5-2B (2026-10-11): the CPU path
+    quantizes every int8 FC's input row to int8 at run time, and the
+    GatedDeltaNet decay/gate heads in_proj_a / in_proj_b (16 outputs each)
+    could not take that noise — the file looped on multi-step arithmetic on
+    CPU while the GPU (float activations) answered; keeping those 36 FCs float
+    (+3.4 MB) fixed it.
     """
     from ai_edge_quantizer import recipe_manager
     from ai_edge_quantizer import qtyping
@@ -135,17 +147,22 @@ def build_recipe(kind, algo="minmax"):
         )
     else:
         raise ValueError(kind)
+    for rx in float_fc_regexes:
+        rm.add_quantization_config(
+            regex=rx, operation_name=OP.FULLY_CONNECTED,
+            algorithm_key=AlgorithmName.NO_QUANTIZE, op_config=None,
+        )
     return rm.get_quantization_recipe()
 
 
-def apply_quant(in_litertlm, out_litertlm, kind, algo="minmax"):
+def apply_quant(in_litertlm, out_litertlm, kind, algo="minmax", float_fc_regexes=()):
     from ai_edge_quantizer import quantizer
 
     tmp = tempfile.mkdtemp(prefix="mc5q_")
     parts = extract_sections(in_litertlm, tmp)
     print("sections:", {k: os.path.basename(v) for k, v in parts.items()})
 
-    qt = quantizer.Quantizer(parts["tflite"], build_recipe(kind, algo))
+    qt = quantizer.Quantizer(parts["tflite"], build_recipe(kind, algo, float_fc_regexes))
     if qt.need_calibration:
         raise SystemExit("recipe unexpectedly needs calibration")
     res = qt.quantize()
@@ -196,6 +213,9 @@ def main():
     pa.add_argument("--recipe", default="wi4b32_wi8",
                     choices=["wi4b32_wi8", "wi4b128_wi8", "wi8", "wi8fc"])
     pa.add_argument("--algo", default="minmax", choices=["minmax", "octav"])
+    pa.add_argument("--float-fc-regex", action="append", default=[], metavar="RE",
+                    help="FULLY_CONNECTED ops whose scope (output tensor name + ';') matches RE "
+                         "stay float; repeatable (see build_recipe)")
     args = ap.parse_args()
 
     if args.mode == "inspect":
@@ -205,7 +225,7 @@ def main():
             path = extract_sections(path, tmp)["tflite"]
         inspect_tflite(path)
     else:
-        apply_quant(args.infile, args.outfile, args.recipe, args.algo)
+        apply_quant(args.infile, args.outfile, args.recipe, args.algo, args.float_fc_regex)
 
 
 if __name__ == "__main__":
