@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "0.8B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 96529,
+ "max_output_tokens": 64,
+ "load_s": 30.8,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 10,
+     "q": "How many legs does a spider have?",
+     "text": "A spider has 8 legs.",
+     "channels": {},
+     "s": 0.43,
+     "key": "spider=8",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 31.4
+}

@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 97592,
+ "max_output_tokens": 64,
+ "load_s": 43.1,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 4,
+     "q": "How do you say \"thank you\" in French?",
+     "text": "In French, \"thank you\" is **merci**.\n\nYou can also use:\n*   **Merci beaucoup** (Thank you very much)\n*   **Je vous remercie** (I thank you - more formal)\n*   **Merci** (used in Canada and Quebec)",
+     "channels": {},
+     "s": 4.29,
+     "key": "thanks(fr)=merci",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 47.5
+}

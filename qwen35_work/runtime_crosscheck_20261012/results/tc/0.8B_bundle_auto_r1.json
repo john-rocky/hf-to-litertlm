@@ -1,0 +1,30 @@
+{
+ "label": "0.8B",
+ "arm": "bundle",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "automatic_tool_calling": true,
+ "thinking": "unset",
+ "prompt": "What is the weather in Paris right now?",
+ "run": 1,
+ "pid": 71158,
+ "template_override": null,
+ "sampler": "top_k=1",
+ "load_s": 19.1,
+ "gen_s": 1.3,
+ "message": {
+  "contents": [
+   {
+    "type": "text",
+    "text": "As of my last knowledge update, the weather in Paris is currently **cloudy and cool**. The temperature is around 15°C to 20°C (59°F to 68°F). The weather is generally pleasant, with occasional showers."
+   }
+  ],
+  "tool_calls": [],
+  "channels": {},
+  "text": "As of my last knowledge update, the weather in Paris is currently **cloudy and cool**. The temperature is around 15°C to 20°C (59°F to 68°F). The weather is generally pleasant, with occasional showers."
+ },
+ "tool_executed": false,
+ "tool_log": [],
+ "elapsed_s": 20.6
+}

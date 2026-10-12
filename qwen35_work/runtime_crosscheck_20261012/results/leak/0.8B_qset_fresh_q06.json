@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "0.8B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 90076,
+ "max_output_tokens": 64,
+ "load_s": 38.7,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 6,
+     "q": "Which is larger: 0.9 or 0.11?",
+     "text": "0.9",
+     "channels": {},
+     "s": 0.31,
+     "key": "0.9>0.11",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 39.1
+}

@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "0.8B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 25690,
+ "max_output_tokens": 64,
+ "load_s": 26.9,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 14,
+     "q": "What is 100 divided by 4?",
+     "text": "25",
+     "channels": {},
+     "s": 0.28,
+     "key": "100/4=25",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 27.3
+}

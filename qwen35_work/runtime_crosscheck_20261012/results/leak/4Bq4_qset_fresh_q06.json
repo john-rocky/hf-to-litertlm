@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 503,
+ "max_output_tokens": 64,
+ "load_s": 40.1,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 6,
+     "q": "Which is larger: 0.9 or 0.11?",
+     "text": "0.11 is larger.\n\nHere is the comparison:\n*   **0.9** is equal to **0.90**.\n*   Comparing the tenths place: 9 is greater than 1.\n\nTherefore, **0.9 > 0.11**.",
+     "channels": {},
+     "s": 4.55,
+     "key": "0.9>0.11",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 44.7
+}

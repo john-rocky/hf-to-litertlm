@@ -1,0 +1,60 @@
+{
+ "kind": "sysswitch",
+ "label": "0.8B",
+ "mode": "shared",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 2,
+ "pid": 91054,
+ "max_output_tokens": 64,
+ "load_s": 17.7,
+ "conv1": [
+  {
+   "q": "What is the capital of France?",
+   "text": "Alpha\n\nThe capital of France is Paris.",
+   "channels": {}
+  },
+  {
+   "q": "What is 17 times 23?",
+   "text": "Alpha\n\n17 times 23 is 391.",
+   "channels": {}
+  },
+  {
+   "q": "What is your name?",
+   "text": "Alpha",
+   "channels": {}
+  }
+ ],
+ "conv2": [
+  {
+   "q": "What is the capital of France?",
+   "text": "The capital of France is Paris.",
+   "channels": {},
+   "starts_beta": false,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  },
+  {
+   "q": "What is 17 times 23?",
+   "text": "17 times 23 is 391.",
+   "channels": {},
+   "starts_beta": false,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  },
+  {
+   "q": "What is your name?",
+   "text": "I am Qwen3.5.",
+   "channels": {},
+   "starts_beta": false,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  }
+ ],
+ "elapsed_s": 20.2
+}

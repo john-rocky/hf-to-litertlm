@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "2B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-2B_int8.litertlm",
+ "model_bytes": 2120039328,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 58140,
+ "max_output_tokens": 64,
+ "load_s": 36.3,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 13,
+     "q": "Which planet is known as the Red Planet?",
+     "text": "The planet known as the Red Planet is **Mars**.",
+     "channels": {},
+     "s": 0.71,
+     "key": "red planet=Mars",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 37.1
+}

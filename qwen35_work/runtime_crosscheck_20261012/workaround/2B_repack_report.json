@@ -1,0 +1,248 @@
+{
+  "tool": "repack_metadata.py",
+  "status": "PASS",
+  "source": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+  "source_realpath": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+  "output": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm",
+  "mode": "pbtext",
+  "new_pbtext": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_qwen3type.pbtext",
+  "expected_changed_fields": [
+    "llm_model_type",
+    "jinja_prompt_template",
+    "channels"
+  ],
+  "start_utc": "2026-10-12T00:47:38.403892+00:00",
+  "verifier": {
+    "python": "3.12.11",
+    "litert_lm_builder": "0.18.0",
+    "protobuf": "7.36.2"
+  },
+  "cli": "uvx --from litert-lm==0.18.0 litert-lm",
+  "scratch": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh",
+  "evidence": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence",
+  "timings_seconds": {
+    "input_hash_and_header": 0.74,
+    "unpack": 0.83,
+    "edit_and_parse": 0.0,
+    "pack": 0.83,
+    "verification_and_hashes": 3.06,
+    "scratch_cleanup": 0.03
+  },
+  "commands": [
+    {
+      "name": "unpack",
+      "argv": [
+        "uvx",
+        "--from",
+        "litert-lm==0.18.0",
+        "litert-lm",
+        "unpack",
+        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+        "--output-dir",
+        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked"
+      ],
+      "stdin": "/dev/null",
+      "exit_code": 0,
+      "log": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/unpack.log"
+    },
+    {
+      "name": "pack",
+      "argv": [
+        "uvx",
+        "--from",
+        "litert-lm==0.18.0",
+        "litert-lm",
+        "pack",
+        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked",
+        "--output",
+        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm"
+      ],
+      "stdin": "/dev/null",
+      "exit_code": 0,
+      "log": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/pack.log"
+    }
+  ],
+  "checks": {
+    "unpacked_pbtext_equals_input_metadata": true,
+    "input_metadata_unknown_fields": 0,
+    "changed_fields_equal_expected": true,
+    "unexpected_changes": [],
+    "expected_but_unchanged": [],
+    "model_toml_untouched_by_edit": true,
+    "section_list_unchanged": true,
+    "tflite_sections_byte_identical": true,
+    "system_metadata_unchanged_except_uuid_timestamp": true,
+    "input_unchanged": true
+  },
+  "original_size_bytes": 2120039328,
+  "original_sha256": "e7473f57fdb146fc8e44b743f6be0336b9c27b1f420c9e512bd1f35c2c8e046a",
+  "cli_version": [
+    "litert-lm, version 0.18.0"
+  ],
+  "pbtext": {
+    "original_sha256": "12966efaeb1e65eeac1886f100127cffebe79a1a8e4efa16e819e18b179dbdb9",
+    "new_sha256": "74bd132a8d7002c05dbe19ec7e67992034058fbc06211c4657381b10ee93cb1c",
+    "original_bytes": 928,
+    "new_bytes": 3678
+  },
+  "changed_fields": [
+    {
+      "field": "llm_model_type",
+      "number": 6,
+      "before": "generic_model { }",
+      "after": "qwen3 { }"
+    },
+    {
+      "field": "jinja_prompt_template",
+      "number": 7,
+      "before": {
+        "bytes": 701,
+        "sha256": "0aab71c0e593e3be9e4eaf731ffa56b40a6472cdd3f9b3865e7d3bae9a3fce09"
+      },
+      "after": {
+        "bytes": 3175,
+        "sha256": "4315c96833e8b2a21b878d70e8d2f6415416d5e23ed8ee0ae0a111a540d844f7"
+      }
+    },
+    {
+      "field": "channels",
+      "number": 8,
+      "before": {
+        "count": 0,
+        "items": []
+      },
+      "after": {
+        "count": 1,
+        "items": [
+          "channel_name: \"thought\" start: \"<think>\\n\" end: \"\\n</think>\""
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "index": 0,
+      "type": "LlmMetadataProto",
+      "original_bytes": 729,
+      "new_bytes": 3235,
+      "original_sha256": "edc4ab993144df3f8a5e9833c3db500ffe9ef8e2b57ae19db7ad8a9e03c6fdc4",
+      "new_sha256": "12b343f98729fcee4d65b4abe7433d97f0a03c27843f96bf12b40c665489d846",
+      "raw_bytes_identical": false,
+      "section_metadata": [],
+      "section_metadata_unchanged": true,
+      "comparison": "parsed: packed == requested pbtext; input vs packed differ only in the expected fields",
+      "packed_equals_requested": true,
+      "changed_fields_input_vs_packed": [
+        "llm_model_type",
+        "jinja_prompt_template",
+        "channels"
+      ],
+      "PASS": true
+    },
+    {
+      "index": 1,
+      "type": "ExecutorMetadataProto",
+      "original_bytes": 3201,
+      "new_bytes": 3201,
+      "original_sha256": "616a19e00ee4aa8286646823c406738c6670f3befe9d8d15fc7027522d097630",
+      "new_sha256": "616a19e00ee4aa8286646823c406738c6670f3befe9d8d15fc7027522d097630",
+      "raw_bytes_identical": true,
+      "section_metadata": [],
+      "section_metadata_unchanged": true,
+      "comparison": "parsed protobuf content",
+      "decoded_content_identical": true,
+      "PASS": true
+    },
+    {
+      "index": 2,
+      "type": "HF_Tokenizer_Zlib",
+      "original_bytes": 3913268,
+      "new_bytes": 3913268,
+      "original_sha256": "4b9bc2f069b49a2ec3019a51bc625b6b568d33a124a599f7f29de009227905a1",
+      "new_sha256": "4b9bc2f069b49a2ec3019a51bc625b6b568d33a124a599f7f29de009227905a1",
+      "raw_bytes_identical": true,
+      "section_metadata": [],
+      "section_metadata_unchanged": true,
+      "comparison": "uint64-LE size prefix + zlib-decoded bytes",
+      "decoded_content_identical": true,
+      "original_decoded_bytes": 19989325,
+      "new_decoded_bytes": 19989325,
+      "original_decoded_sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+      "new_decoded_sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+      "PASS": true
+    },
+    {
+      "index": 3,
+      "type": "TFLiteModel",
+      "original_bytes": 2116074400,
+      "new_bytes": 2116074400,
+      "original_sha256": "628b6e8e6eb5bd3f78241dd17f03ad3d0b7c015a4fee6073b64b16b77cd03675",
+      "new_sha256": "628b6e8e6eb5bd3f78241dd17f03ad3d0b7c015a4fee6073b64b16b77cd03675",
+      "raw_bytes_identical": true,
+      "section_metadata": [
+        {
+          "key": "model_type",
+          "value": "tf_lite_prefill_decode",
+          "value_type": "String"
+        },
+        {
+          "key": "prefer_activation_type",
+          "value": "fp32",
+          "value_type": "String"
+        }
+      ],
+      "section_metadata_unchanged": true,
+      "comparison": "raw bytes",
+      "PASS": true
+    }
+  ],
+  "system_metadata": {
+    "original": [
+      {
+        "key": "uuid",
+        "value": "e49bbdff-bd53-48d3-8327-e165e216fc29",
+        "value_type": "String"
+      },
+      {
+        "key": "creation_timestamp",
+        "value": "2026-10-11T02:06:38.698080+00:00",
+        "value_type": "String"
+      }
+    ],
+    "new": [
+      {
+        "key": "uuid",
+        "value": "55892020-8c39-497c-af77-437d98975517",
+        "value_type": "String"
+      },
+      {
+        "key": "creation_timestamp",
+        "value": "2026-10-12T00:47:40.254391+00:00",
+        "value_type": "String"
+      }
+    ]
+  },
+  "format_version": {
+    "original": [
+      1,
+      7,
+      0
+    ],
+    "new": [
+      1,
+      7,
+      0
+    ]
+  },
+  "header_bytes": {
+    "original": 608,
+    "new": 608
+  },
+  "new_size_bytes": 2120039328,
+  "new_sha256": "47e37affb59b45f56d3b3d1c48a52e543df25d7ca8805e2d1412665fc2bebea7",
+  "input_sha256_after": "e7473f57fdb146fc8e44b743f6be0336b9c27b1f420c9e512bd1f35c2c8e046a",
+  "failures": [],
+  "scratch_removed": true,
+  "wall_seconds": 5.64,
+  "end_utc": "2026-10-12T00:47:44.044982+00:00"
+}

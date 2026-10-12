@@ -1,0 +1,30 @@
+{
+ "label": "2B",
+ "arm": "bundle",
+ "model": "bundles/Qwen3.5-2B_int8.litertlm",
+ "model_bytes": 2120039328,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "automatic_tool_calling": true,
+ "thinking": "unset",
+ "prompt": "What is the weather in Paris right now?",
+ "run": 1,
+ "pid": 63161,
+ "template_override": null,
+ "sampler": "top_k=1",
+ "load_s": 18.5,
+ "gen_s": 3.3,
+ "message": {
+  "contents": [
+   {
+    "type": "text",
+    "text": "I don't have access to real-time data, so I can't tell you the current weather in Paris right now. However, you can check the most accurate and up-to-date information by:\n\n- Searching \"Paris weather\" on Google, Bing, or Apple Weather\n- Visiting a weather website like [AccuWeather](https://www.accuweather.com), [Weather.com](https://weather.com), or [The Weather Channel](https://www.theweatherchannel.com)\n- Checking local news or weather apps on your phone\n\nWould you like help finding a specific forecast for a particular date or time?"
+   }
+  ],
+  "tool_calls": [],
+  "channels": {},
+  "text": "I don't have access to real-time data, so I can't tell you the current weather in Paris right now. However, you can check the most accurate and up-to-date information by:\n\n- Searching \"Paris weather\" on Google, Bing, or Apple Weather\n- Visiting a weather website like [AccuWeather](https://www.accuweather.com), [Weather.com](https://weather.com), or [The Weather Channel](https://www.theweatherchannel.com)\n- Checking local news or weather apps on your phone\n\nWould you like help finding a specific forecast for a particular date or time?"
+ },
+ "tool_executed": false,
+ "tool_log": [],
+ "elapsed_s": 22.4
+}

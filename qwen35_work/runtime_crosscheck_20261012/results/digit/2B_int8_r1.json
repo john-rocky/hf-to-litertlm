@@ -1,0 +1,19 @@
+{
+ "label": "2B_int8",
+ "model": "bundles/Qwen3.5-2B_int8.litertlm",
+ "model_bytes": 2120039328,
+ "prompt": "What is 17 times 23?",
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "thinking": "unset (bundle default)",
+ "run": 1,
+ "pid": 52448,
+ "max_output_tokens": 400,
+ "load_s": 30.7,
+ "gen_s": 11.2,
+ "text": "To find the product of 17 and 23, we can use the standard multiplication algorithm:\n\n$$17 \\times 23 = ?$$\n\n**Step-by-step calculation:**\n\n1.  Multiply the ones digit of the first number (7) by the second number (3):\n    $$7 \\times 3 = 21$$\n    Write down **1** and carry over **2**.\n\n2.  Multiply the tens digit of the first number (1) by the second number (3), then add the carried over value:\n    $$1 \\times 3 = 3$$\n    Add the carried over 2:\n    $$3 + 2 = 5$$\n    Write down **5**.\n\n3.  Multiply the ones digit of the first number (7) by the tens digit of the second number (2):\n    $$7 \\times 2 = 14$$\n    Write down **14**.\n\n4.  Combine the results:\n    $$145 + 21 = 166$$\n\n**Verification:**\n$$17 \\times 23 = 17 \\times (20 + 3) = (17 \\times 20) + (17 \\times 3) = 340 + 51 = 391$$\n\nWait, let me re-calculate manually to ensure accuracy.\n\n**Correct Manual Calculation:**\n$$17 \\times 23$$\n\n*   $17 \\times 3 = 51$\n*   $17 \\times 20 = 340$\n*   $340 + 51 = 391$\n\nLet's re-verify the previous quick mental check.\n$17 \\times 23$:\n$10 \\times 23 = 23",
+ "channels": {},
+ "has_391": true,
+ "degenerate": true,
+ "elapsed_s": 42.0
+}

@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 13417,
+ "max_output_tokens": 64,
+ "load_s": 42.1,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 16,
+     "q": "How many minutes are in an hour?",
+     "text": "There are **60** minutes in an hour.",
+     "channels": {},
+     "s": 1.24,
+     "key": "min/hour=60",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 43.4
+}

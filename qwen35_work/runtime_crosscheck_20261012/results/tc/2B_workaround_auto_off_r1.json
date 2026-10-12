@@ -1,0 +1,38 @@
+{
+ "label": "2B_qwen3type",
+ "arm": "workaround",
+ "model": "workaround/Qwen3.5-2B_int8_qwen3type.litertlm",
+ "model_bytes": 2120039328,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "automatic_tool_calling": true,
+ "thinking": "off",
+ "prompt": "What is the weather in Paris right now?",
+ "run": 1,
+ "pid": 31505,
+ "template_override": null,
+ "sampler": "top_k=1",
+ "load_s": 49.1,
+ "gen_s": 2.4,
+ "message": {
+  "contents": [
+   {
+    "type": "text",
+    "text": "The weather in Paris right now is cloudy with a temperature of 18°C."
+   }
+  ],
+  "tool_calls": [],
+  "channels": {},
+  "text": "The weather in Paris right now is cloudy with a temperature of 18°C."
+ },
+ "tool_executed": true,
+ "tool_log": [
+  {
+   "name": "get_weather",
+   "args": {
+    "location": "Paris"
+   },
+   "t": 1791769759.219362
+  }
+ ],
+ "elapsed_s": 51.8
+}

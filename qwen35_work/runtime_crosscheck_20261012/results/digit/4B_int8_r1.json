@@ -1,0 +1,19 @@
+{
+ "label": "4B_int8",
+ "model": "bundles/Qwen3.5-4B_int8.litertlm",
+ "model_bytes": 4407428464,
+ "prompt": "What is 17 times 23?",
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "thinking": "unset (bundle default)",
+ "run": 1,
+ "pid": 17384,
+ "max_output_tokens": 400,
+ "load_s": 41.9,
+ "gen_s": 4.8,
+ "text": "To calculate $17 \\times 23$:\n\n1.  **Break down the multiplication**:\n   $17 \\times 23 = 391$\n\nLet's verify:\n$17 \\times 23 = 391$\n\n**Answer:** 17 times 23 is 391.",
+ "channels": {},
+ "has_391": true,
+ "degenerate": false,
+ "elapsed_s": 46.8
+}

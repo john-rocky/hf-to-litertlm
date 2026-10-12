@@ -1,0 +1,43 @@
+{
+ "kind": "sysswitch",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 3,
+ "pid": 91376,
+ "max_output_tokens": 64,
+ "load_s": 44.3,
+ "conv2": [
+  {
+   "q": "What is the capital of France?",
+   "text": "Beta: The capital of France is Paris.",
+   "channels": {},
+   "starts_beta": true,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  },
+  {
+   "q": "What is 17 times 23?",
+   "text": "Beta: 17 times 23 is 391.",
+   "channels": {},
+   "starts_beta": true,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  },
+  {
+   "q": "What is your name?",
+   "text": "Beta: My name is Beta.",
+   "channels": {},
+   "starts_beta": true,
+   "starts_alpha": false,
+   "mentions_alpha": false,
+   "degenerate": false
+  }
+ ],
+ "elapsed_s": 48.2
+}

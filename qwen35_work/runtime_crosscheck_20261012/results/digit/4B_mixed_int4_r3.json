@@ -1,0 +1,19 @@
+{
+ "label": "4B_mixed_int4",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "prompt": "What is 17 times 23?",
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "thinking": "unset (bundle default)",
+ "run": 3,
+ "pid": 51440,
+ "max_output_tokens": 400,
+ "load_s": 46.0,
+ "gen_s": 16.2,
+ "text": "To calculate $17 \\times 23$, we can use the standard multiplication algorithm or the distributive property.\n\n**Method 1: Standard Multiplication**\n\nSet up the multiplication:\n$$\n\\begin{array}{r}\n  17 \\\\\n\\times 23 \\\\\n\\hline\n\\end{array}\n$$\n\n1.  Multiply $17$ by the ones digit of $23$ (which is $3$):\n    $$17 \\times 3 = 51$$\n\n2.  Multiply $17$ by the tens digit of $23$ (which is $2$):\n    $$17 \\times 20 = 340$$\n\n3.  Add the two results together:\n    $$51 + 340 = 391$$\n\n**Method 2: Distributive Property**\n\nBreak down $23$ into $20 + 3$:\n$$17 \\times 23 = 17 \\times (20 + 3)$$\n$$= (17 \\times 20) + (17 \\times 3)$$\n$$= 340 + 51$$\n$$= 391$$\n\n**Final Answer:**\n17 times 23 is **391**.",
+ "channels": {},
+ "has_391": true,
+ "degenerate": false,
+ "elapsed_s": 62.2
+}

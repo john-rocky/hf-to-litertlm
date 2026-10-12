@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "0.8B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-0.8B_int8.litertlm",
+ "model_bytes": 963184864,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 26350,
+ "max_output_tokens": 64,
+ "load_s": 25.7,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 15,
+     "q": "What is the largest ocean on Earth?",
+     "text": "The Atlantic Ocean is the largest ocean on Earth.",
+     "channels": {},
+     "s": 0.42,
+     "key": "ocean=Pacific",
+     "correct": false,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 0,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 26.2
+}

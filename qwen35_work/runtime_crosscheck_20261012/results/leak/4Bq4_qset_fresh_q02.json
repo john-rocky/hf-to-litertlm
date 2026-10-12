@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 94776,
+ "max_output_tokens": 64,
+ "load_s": 41.7,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 2,
+     "q": "What is the opposite of \"hot\"?",
+     "text": "The opposite of \"hot\" is **cold**.",
+     "channels": {},
+     "s": 1.2,
+     "key": "opp(hot)=cold",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 43.0
+}

@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "4Bq4",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-4B_mixed_int4.litertlm",
+ "model_bytes": 2754365536,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 8230,
+ "max_output_tokens": 64,
+ "load_s": 41.3,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 11,
+     "q": "What color is the sky on a clear day?",
+     "text": "The sky on a clear day is typically **blue**.\n\nThis phenomenon, known as **Rayleigh scattering**, occurs because molecules in the Earth's atmosphere scatter shorter wavelengths of light (blue and violet) more effectively than longer wavelengths (red and yellow). Although the sun emits more violet light, our eyes are more sensitive to",
+     "channels": {},
+     "s": 3.97,
+     "key": "sky=blue",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 45.3
+}

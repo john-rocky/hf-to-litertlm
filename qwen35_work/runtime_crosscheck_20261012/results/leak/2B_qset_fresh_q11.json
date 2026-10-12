@@ -1,0 +1,36 @@
+{
+ "kind": "qset",
+ "label": "2B",
+ "mode": "fresh",
+ "model": "bundles/Qwen3.5-2B_int8.litertlm",
+ "model_bytes": 2120039328,
+ "runtime": "litert-lm 0.18.0 (python, cpu, fresh process)",
+ "sampler": "top_k=1",
+ "run": 1,
+ "pid": 54305,
+ "max_output_tokens": 64,
+ "load_s": 38.0,
+ "rounds": [
+  {
+   "round": 1,
+   "rows": [
+    {
+     "i": 11,
+     "q": "What color is the sky on a clear day?",
+     "text": "On a clear day, the sky is typically **blue**.\n\nThis happens because sunlight scatters off the molecules in the atmosphere. Blue light scatters in all directions more effectively than other colors, making the sky appear blue to our eyes.",
+     "channels": {},
+     "s": 1.69,
+     "key": "sky=blue",
+     "correct": true,
+     "degenerate": false,
+     "echo": false
+    }
+   ],
+   "right": 1,
+   "n": 1,
+   "degenerate": 0,
+   "echo": 0
+  }
+ ],
+ "elapsed_s": 39.7
+}
