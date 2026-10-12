@@ -51,8 +51,23 @@ def find_tflites(d):
 
 
 def quant_wi8fc(src, dst):
+  """wi8fc (int8 dynamic FULLY_CONNECTED + int8 EMBEDDING_LOOKUP). QWEN35_FLOAT_FC_REGEX (optional, ';;'-separated regexes) keeps the
+  matching FULLY_CONNECTED ops float on top of that - the same lever as qwen35_work/convert_qwen35_hybrid.py: the GatedDeltaNet decay/gate
+  heads could not take the CPU backend's run-time int8 activation quantization (2026-10-11 2B, 2026-10-12 0.8B); the shipped VL files carry
+  'Linear_in_proj_(a|b);'. The scope a regex is matched against is the op's output tensor name + ';' (anchor with ';', not '$')."""
   from ai_edge_quantizer import quantizer
-  q = quantizer.Quantizer(src, build_recipe("wi8fc"))
+  recipe = build_recipe("wi8fc")
+  float_fc = [rx for rx in os.environ.get("QWEN35_FLOAT_FC_REGEX", "").split(";;") if rx]
+  if float_fc:
+    from ai_edge_quantizer import qtyping, recipe_manager
+    from ai_edge_quantizer.algorithm_manager import AlgorithmName
+    rm = recipe_manager.RecipeManager()
+    rm.load_quantization_recipe(recipe)
+    for rx in float_fc:
+      rm.add_quantization_config(regex=rx, operation_name=qtyping.TFLOperationName.FULLY_CONNECTED,
+                                 algorithm_key=AlgorithmName.NO_QUANTIZE, op_config=None)
+    recipe = rm.get_quantization_recipe()
+  q = quantizer.Quantizer(src, recipe)
   q.quantize().export_model(dst)
   return round(os.path.getsize(dst) / 1e6, 1)
 

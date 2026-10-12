@@ -960,9 +960,29 @@ QWEN35_FLOAT_FC_REGEX='Linear_in_proj_(a|b);' PYTHONPATH=litert-torch-qwen35 \
 python ../scripts/set_activation_type.py out_qwen35_2b/Qwen3.5-2B_int8.litertlm Qwen3.5-2B_int8.litertlm --type fp32
 ```
 
-The command above reproduces the Hub file's TFLite section byte for byte. The Hub bundle's metadata carries two details added on 2026-09-21 that this driver does not write (a dual-form ChatML template that also renders content-part messages, and `<|im_end|>` declared as a stop token next to `<|endoftext|>`); they are a metadata re-pack of the same sections.
+The command above reproduces the Hub file's TFLite section byte for byte. The Hub bundle's metadata carries one detail added on 2026-09-21 that this driver does not write (a dual-form ChatML template that also renders content-part messages); it is a metadata re-pack of the same sections. (Corrected 2026-10-12: this paragraph first also listed `<|im_end|>` as a stop token the driver does not declare — the driver has declared it itself since 2026-08-07.)
 
 `quantize_minicpm5.py apply --float-fc-regex RE` (new, repeatable) adds a `NO_QUANTIZE` config for every FULLY_CONNECTED whose scope matches `RE`; the scope string ai-edge-quantizer matches against is the op's **output tensor name followed by `;`**, so anchor with the `;` and never with `$` (a `$`-anchored regex silently matches nothing and the build is the baseline again — check `inspect` for the float FC count before trusting a candidate). Rule of thumb for hybrid (GatedDeltaNet / Mamba) models: the tiny recurrence-parameter heads (decay / gate projections) are the sensitive int8 consumers on the CPU path; keeping them float costs megabytes. When a file misbehaves on CPU but not on GPU, test the GPU and the float export before touching the weights — the defect is in the activation path, and a one-group-float bisection finds the consumer in a handful of 40-second builds.
+
+### 2026-10-12 — Qwen3.5-0.8B int8 and VL int8 re-quantized the same way
+
+The shipped 0.8B files had the 2B's CPU defect, intermittently (litert-lm 0.18.0, Mac M4 Max CPU, one fresh process per run): with ThinkingConfig unset, `What is 17 times 23?` repeated `17 × 20 + 17 × 3 = ` to the cap in 1 of 3 runs of each file, and six multiplication questions were right in 7 of 18 runs (text) and 12 of 18 (VL). A Pixel 8a CPU got the prompt right in every run (text 3 of 3, VL 2 of 2), too few to say the phone differs. Both files now keep the 36 GatedDeltaNet decay/gate FCs float (why: *2026-10-11 — Qwen3.5-2B int8 re-quantized* above); the VL file only in its decoder section. Measured: Mac CPU 18 of 18 on both files, Galaxy S26 CPU and GPU 3 of 3 each, GSM8K (n = 100, text) 11 → 49 on CPU and 52 on GPU, bf16 51.
+
+```bash
+cd qwen35_work   # litert-torch-qwen35 at the pinned base + patch as above
+QWEN35_FLOAT_FC_REGEX='Linear_in_proj_(a|b);' PYTHONPATH=litert-torch-qwen35 \
+  python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
+python ../scripts/set_activation_type.py out_qwen35_08b/Qwen3.5-0.8B_int8.litertlm Qwen3.5-0.8B_int8.litertlm --type fp32
+```
+
+```bash
+cd qwen35vl_work   # vision and bundle steps: "The 0.8B rides the same script"
+QWEN35_FLOAT_FC_REGEX='Linear_in_proj_(a|b);' PREFILL=1024,256,64,16,4,1 CACHE=4096 \
+  PYTHONPATH=../qwen35_work/litert-torch-qwen35 \
+  python export_qwen35vl_decoder.py Qwen/Qwen3.5-0.8B out/qwen35vl08-decoder
+```
+
+The text command, run end to end on 2026-10-12 (the pinned worktree, ai-edge-quantizer 0.8.0 or 0.10.0 — both give the same bytes — and `litert-lm-builder` 0.18.0 on `PATH`), writes the Hub file's TFLite section byte for byte; the Hub bundle's chat template is the 2026-09-21 metadata re-pack that also accepts the 0.18 content-parts form. The VL command with `SKIP_EXPORT=1` on the 2026-08-28 fp32 decoder and embedder (ai-edge-quantizer 0.8.0) writes the Hub VL file's decoder and embedder sections byte for byte; a fresh float export on 2026-10-12 from the same worktree gives a decoder section with different bytes (sha256 `466c8560…`), so the published VL decoder is tied to its 2026-08-28 export.
 
 ## Qwen3.5-2B VISION build — the shipped text model was half of a VLM
 

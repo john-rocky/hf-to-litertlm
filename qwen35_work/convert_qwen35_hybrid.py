@@ -32,10 +32,10 @@ violates the engine's incremental-render prefix contract and kills turn 2.
 Quantization is post-hoc dynamic int8 over linears + embedding ONLY (convs and
 the delta-rule stay float), the same house rule as LFM2.5 / Granite-4-h convs.
 QWEN35_FLOAT_FC_REGEX (optional, ';;'-separated regexes) keeps the matching
-FULLY_CONNECTED ops float on top of that: the 2B ships with
-'Linear_in_proj_(a|b);' — its GatedDeltaNet decay/gate heads could not take the
-CPU path's run-time int8 activation quantization and looped on multi-step
-arithmetic (2026-10-11; the 0.8B / 4B recipes are unchanged until measured).
+FULLY_CONNECTED ops float on top of that: the 2B and the 0.8B ship with
+'Linear_in_proj_(a|b);' — their GatedDeltaNet decay/gate heads could not take the
+CPU backend's run-time int8 activation quantization and looped on multi-step
+arithmetic (2B 2026-10-11, 0.8B 2026-10-12; the 4B recipe is unchanged until measured).
 """
 import os
 import re
