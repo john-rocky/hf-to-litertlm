@@ -779,6 +779,40 @@ message carrying one `tool_response` block per call; the tool list can go in thr
 - **Reasoning budget**: GSM8K at 2048 output tokens left a third of the bf16 model's questions mid-think; the parity rows use 3584 (the largest budget under the bundle's 4096 KV). 1.7B: bf16 76/100, int8 76/100 (paired: both 71, 5/5 split).
 - **Measuring bf16 on MPS**: judge memory by `vmmap` physical footprint, not RSS; `generate` with the default DynamicCache re-allocates the KV cache every step and the caching allocator parks all of it (a 4B run peaked at 130 GB) — `gsm8k_bf16.py` uses a static cache, the MPS watermark cap and a per-question `empty_cache`.
 
+<!-- Draft of the REPRODUCE.md entry for hf-to-litertlm. (#N) after a number = row N of the facts table that came with this draft; strip the marks before pasting. Place: right after the "### LFM2-2.6B" entry (this entry reuses its files). Ships together with: lfm_work/{convert_lfm2_26b_exp.sh, export_lfm2_26b_exp.py}; it also needs the LFM2-2.6B staging's lfm_work/{fetch_pinned.py, repack_official_lfm2.py} and minicpm_work/fix_zero_scales_inplace.py.patch and the LFM2.5-350M staging's lfm_work/quantize_keep_sections.py, all unchanged. -->
+
+### LFM2-2.6B-Exp — LFM2-2.6B's recipe unchanged, for a checkpoint that reasons although its card does not say so
+
+`lfm_work/convert_lfm2_26b_exp.sh` converts [LiquidAI/LFM2-2.6B-Exp](https://huggingface.co/LiquidAI/LFM2-2.6B-Exp) at commit `2251c865` (#1) — "an experimental checkpoint built on LFM2-2.6B using pure reinforcement learning" (#2), with LFM2-2.6B's configuration: 30 layers (22 short-conv blocks + 8 grouped-query attention layers), hidden 2048, tied embeddings, 65,536 vocab (#5, #6, #12) — into the two files of [litert-community/LFM2-2.6B-Exp](https://huggingface.co/litert-community/LFM2-2.6B-Exp). The steps are the LFM2-2.6B entry's with the model, the commit and the file names changed. Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1 (5.15 breaks the lfm2 export), torch 2.13.0 (#159); litert-lm 0.18.0 for unpack / pack and for running the files (#31, #161).
+
+```bash
+EXPORT_PY=/path/to/python-with-litert-torch-0.9.4 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash lfm_work/convert_lfm2_26b_exp.sh out_lfm2_26b_exp
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `LFM2-2.6B-Exp_int8.litertlm` (2,723,809,744 B (#13)) | LlmMetadataProto | 3,862 | `b8771d3dcd862593a9eef0c933353dc8d7888bdee09cca7373a37c02d3237375` |
+|  | ExecutorMetadataProto | 2,465 | `b9672684fb34216314d1c7cb4045f7520d056325ccc48d17a50d0ed80a0cd40e` |
+|  | HF_Tokenizer_Zlib | 906,872 | `f7d531f34af15ec3a8ee935071d06f670a90018aa65c3e5ec9bcce41ad97d29b` |
+|  | TFLiteModel | 2,722,843,088 | `ec42f6d866b57c230280f01d84458c7fbdc5980c8fa57e9b0e304ef04b29f6b7` |
+| `LFM2-2.6B-Exp_int4.litertlm` (1,529,581,168 B (#14)) | LlmMetadataProto | 3,862 | `b8771d3dcd862593a9eef0c933353dc8d7888bdee09cca7373a37c02d3237375` |
+|  | ExecutorMetadataProto | 2,465 | `b9672684fb34216314d1c7cb4045f7520d056325ccc48d17a50d0ed80a0cd40e` |
+|  | HF_Tokenizer_Zlib | 906,872 | `f7d531f34af15ec3a8ee935071d06f670a90018aa65c3e5ec9bcce41ad97d29b` |
+|  | TFLiteModel | 1,528,614,512 | `902fc8210c90984188d83773f419c5166a0d94e885d81bc08d04f2e14baa6e4e` |
+
+The script printed these section hashes for both files when it was run from a copy of this repository's layout on 2026-10-13; every section equal to the published files' sections by raw bytes (#169). The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections (#167).
+
+- **The same steps as LFM2-2.6B.** The checkpoint is fetched at the pinned commit and every file is checked against the Hub's record (#164). The whole LlmMetadata is replaced with the LiteRT-LM `models/lfm2` configuration at commit [86a7e6d0](https://github.com/google-ai-edge/LiteRT-LM/blob/86a7e6d098c3a6578208fc8538228fa704ca2e8b/models/lfm2/chat_template.jinja), with one line changed (`max_num_tokens` 32768 → 4096) (#123, #125): Liquid AI's template for this checkpoint is the LFM2-2.6B file byte for byte and fails on litert-lm 0.18.0 the same way (`map has no method named get`) (#152). The metadata, executor and tokenizer sections come out byte-identical to the LFM2-2.6B files' (#168).
+- **The checkpoint reasons when it chooses.** Liquid AI's README for this checkpoint has no reasoning statement (#11). Measured: "What is the capital of France?" opens a trace, and so did 1 of 120 IFEval-lite prompts; none of 100 GSM8K questions did (#130). `supports_thinking` stays true and the configuration's `thought` channel takes the trace out of the reply (#127, #129); on litert-lm 0.18.0, `--thinking-budget 0` and `--thinking-budget 32` left this bundle's output unchanged (#132).
+- **OCTAV int4 block-32 writes 746,432 zero block scales on this checkpoint as well**, in the LFM2-2.6B layout: the short-conv input projection of 20 layers and the MLP w1 / w3 of layers 1, 2 and 5 (26 tensors, no subnormal scale) (#18, #19). `minicpm_work/fix_zero_scales_inplace.py --zero-payload --require-normal` fixes them as in the LFM2-2.6B entry (#169).
+- **KV budget 4096 with the 11-signature prefill ladder (1024 … 1)** (#23, #24). The int8 file's TFLite section is 2,722,843,088 bytes, over 2 GiB (#22); not run on iOS (#72).
+- **int8 = post-hoc dynamic int8 on the linears + embedding, convs float (#16); int4 = OCTAV int4 blockwise-32 on the linears, int8 lm_head + embedding (#17).** GSM8K (questions 0–99, greedy, at most 2048 output tokens, scored on the reply without the trace; litert-lm rows on the Mac GPU, one process per question): bf16 89, int8 87, int4 89 (#77, #78, #79). IFEval-lite (comparable only within the harness (#87)): bf16 102, int8 102, int4 101 of 120 prompts (#88, #89, #90).
+- **On CPU the int4 file does not always stop after its answer.** In 9 runs of one extraction prompt on the Mac (litert-lm 0.18.0 CLI) 3 kept repeating lines until prompt and reply filled the 4096-token KV budget, with the bundle's sampler and with greedy decoding; on the GPU the same prompt ended normally, and so did the int8 file on CPU (#112, #113). Long generation on CPU was not evaluated, and the cause is not established (#114, #115).
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0 on the Mac, prebuilt `litert_lm_advanced_main` 2026-09-18 on the phones (#47)): Mac M4 Max GPU (WebGPU) int8 2441 / 123.4 tok/s, int4 2476 / 161.8 (#39, #40); Galaxy S26 GPU int8 1141 / 20.4, int4 664 / 27.6 (#53, #54); Pixel 8a GPU int8 499 / 11.1, int4 172 / 15.9 (#57, #58) — the 2.7 GB int8 file runs on the Pixel 8a GPU with 501,160 kB of MemAvailable left at its lowest (#66); every GPU signature fully delegated on all three (#34, #61, #62).
+
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
 `granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).
@@ -2299,6 +2333,42 @@ coming from the start token, so a bare drop fixes the no-system path and breaks 
 one. Dropping the start token *and* rewriting that prefix to `<|im_start|>system\n` leaves
 the system path's prompt identical (prefill 24 before and after) while fixing the other.
 
+<!-- Draft of the REPRODUCE.md entry for hf-to-litertlm. (#N) after a number = row N of the facts table that came with this draft; strip the marks before pasting. Place: right after the "## granite-4.1-3b (dense)" section and its "### granite-4.1 finetune intake" entry (same family, dense). Ships together with: granite_work/{convert_granite40_micro.sh, fetch_pinned.py, to_dense_granite.py, dense_check.py, make_pbtext.py, scan_scales.py, repack_metadata.py}; it also uses scripts/export_simple_template.py, unchanged. -->
+
+### granite-4.0-micro — a granitemoehybrid checkpoint with no mamba layer, rewritten to the dense Granite layout first
+
+`granite_work/convert_granite40_micro.sh` converts [ibm-granite/granite-4.0-micro](https://huggingface.co/ibm-granite/granite-4.0-micro) at commit `56111ae1` (#1) — "a 3B parameter long-context instruct model" (#2) — into the two files of [litert-community/granite-4.0-micro](https://huggingface.co/litert-community/granite-4.0-micro). Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1, torch 2.13.0 (#126); litert-lm 0.18.0 for the metadata step and for running the files (#127, #30).
+
+```bash
+EXPORT_PY=/path/to/python-with-litert-torch-0.9.4 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash granite_work/convert_granite40_micro.sh out_granite40_micro
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `granite-4.0-micro_int8.litertlm` (3,768,357,216 B (#14)) | LlmMetadataProto | 6,441 | `783b0ea54f5a5e7627a76f1f561abe5f351abea01c45ed506ba3cd385904bd1d` |
+|  | ExecutorMetadataProto | 5,446 | `d6a12663c3b913d5dc4e21f17e8330ea0ef21a9e4e1f251144c52170d77fa346` |
+|  | HF_Tokenizer_Zlib | 1,404,724 | `7d73e13c3e3c6e082ca8e3bdae4c212936b191fc0f57e94b087e205399e38ee6` |
+|  | TFLiteModel | 3,501,542,592 | `e66176bfb26014665602e93c9ebec02e85d072e9f09fcf2913fc0a2a1698a916` |
+|  | TFLiteModel | 265,343,328 | `1331235f15723f89a20be5f2a9346da46cb494b789b459752b1d90f9192159d8` |
+| `granite-4.0-micro_int4.litertlm` (2,197,590,368 B (#15)) | LlmMetadataProto | 6,441 | `783b0ea54f5a5e7627a76f1f561abe5f351abea01c45ed506ba3cd385904bd1d` |
+|  | ExecutorMetadataProto | 5,446 | `d6a12663c3b913d5dc4e21f17e8330ea0ef21a9e4e1f251144c52170d77fa346` |
+|  | HF_Tokenizer_Zlib | 1,404,724 | `7d73e13c3e3c6e082ca8e3bdae4c212936b191fc0f57e94b087e205399e38ee6` |
+|  | TFLiteModel | 1,930,787,712 | `e7404f3470e9a2c506f2a9df5e77faebc399566de6a6938c1822da2687098835` |
+|  | TFLiteModel | 265,343,328 | `1331235f15723f89a20be5f2a9346da46cb494b789b459752b1d90f9192159d8` |
+
+The script wrote these section hashes (`repack_int8.json` / `repack_int4.json`, `sections[].new_sha256`) when it was run from a copy of this repository's layout on 2026-10-13; every section equal to the published files' sections by raw bytes (#132). The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections (#129).
+
+- **A dense model under a hybrid name.** The checkpoint's config.json says `granitemoehybrid`, but all 40 layers are attention layers and there are 0 experts (#9). `to_dense_granite.py` moves the weights byte for byte into the dense Granite layout that the export path already handles: `shared_mlp.input_linear` rows 0..8191 → `mlp.gate_proj`, rows 8192..16383 → `mlp.up_proj`, `shared_mlp.output_linear` → `mlp.down_proj`, every other tensor as it was, config = granite-4.1-3b's key set (#116, #117, #118).
+- **The rewrite is proven before anything is exported.** `dense_check.py` runs the original and the rewritten checkpoint in fp32 on the CPU over three prompts (37, 77 and 839 tokens): max |logit delta| 1.922e-04, 3.338e-04 and 9.127e-04, argmax equal at every position, 50 greedy tokens identical; in float64 the delta is 0.0 (#120, #121, #122). transformers 5.14.1 cannot run `generate()` on the original checkpoint (`has_previous_state` raises `ValueError` when no mamba layer exists), so the script wraps the recurrent-mask builder to return `None` when the config has no linear-attention layer (#119). Exporting the original checkpoint directly also works (one fused gate|up matmul followed by two slices; within 3 % of the rewrite's speed on a Mac) (#124, #125).
+- **IBM's template, no start token, one stop.** `USE_JINJA=1` embeds IBM's chat_template.jinja byte for byte, default system message included (#105); its renders on the engine's template renderer equal transformers' in 9 of 10 conversation shapes (#106). `bos == eos == <|end_of_text|>` with `add_bos_token: false` (#12), so `NO_START_TOKEN=1` (the granite-4.1-3b lesson above) and the prompt starts with `<|start_of_role|>` (#95). `make_pbtext.py` keeps only the stop id 100257 of the exporter's 15 entries and sets `supports_thinking` and `supports_function_calling` false (#25, #24).
+- **Tool calls come back as text; send tool results back as text.** The bundle's model type has no tool-call parser: the model's `<tool_call>{…}</tool_call>` JSON arrives in the reply text (#108). A tool result passed to the Python API as a tool-response content part renders empty with this template and the model invented a report; the same result as the tool message's text was used (#109, #110).
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), embedder externalised** (#128, #22, #20). The int8 file's main TFLite section is 3,501,542,592 bytes, over 2 GiB (#21); not run on iOS (#68).
+- **int8 = `dynamic_wi8_afp32` (channelwise int8 weights, float activations) (#17); int4 = `BOCTAV4` (blockwise-32 OCTAV int4 + int8 embedding), every scale normal (#18, #19).** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 1024 output tokens, one process per question (#74)): bf16 86, int8 83 on the CPU and 90 on the GPU, int4 84 on the GPU (#76, #77, #78, #79); the files keep the runtime's default fp16 GPU activations (#86).
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0 on the Mac (#30), prebuilt `litert_lm_advanced_main` 2026-09-18 on the phones (#48)): Mac M4 Max GPU (WebGPU) int8 1425 / 69.8 tok/s, int4 1455 / 87.3 (#38, #39); Galaxy S26 GPU 27.75–29.17 s for int8 and 21.25–22.17 s for int4 over 3 runs each (#27, #52, #55); Pixel 8a GPU int4 98.2 / 8.24 tok/s (#60) — the int8 file has no Pixel 8a GPU row: the harness stops the runtime below 400,000 kB of MemAvailable, and it stopped every process of that try (#66); every decoder signature fully delegated on all three GPUs (#34, #63, #64).
+
 ## granite-4.2-3b (dense, thinking) — the think prefill an extracted template silently drops
 
 `granite42_work/convert_granite42_3b.sh` converts IBM's compact reasoning model (3.66B dense, Aug 2026) on a pristine released stack (litert-torch 0.9.3 / litert-converter 0.4.0 / ai-edge-quantizer 0.9.0 / litert-lm-builder 0.16.1, transformers 5.14.1). Published: [litert-community/granite-4.2-3b](https://huggingface.co/litert-community/granite-4.2-3b). **Requires litert-lm ≥ 0.16 to run.**
@@ -2712,3 +2782,42 @@ python out/ship/EMA-Lightning-LiteRT/ema_host.py "Merhaba, bu ses telefonunuzun 
 
 - Converter rewrites: the decoder's `ConvTranspose1d(k 10, s 5, p 2)` (neither SAME nor VALID) exported as VALID + crop; the aligner's `expand` (BROADCAST_TO, refused by the GPU delegate) replaced by a broadcast through the RoPE multiply; the ConvNeXt layer scale folded into the following linear (its rank-2 × rank-3-constant MUL is miscomputed by the ML Drift GPU backend, LiteRT #10445); one DiT step per graph (an unrolled 4-step graph duplicates every FC weight per step in the file).
 - Measured on a Galaxy S26 (LiteRT 2.2.0): one 3.5 s sentence in 52.5 ms (text + align CPU, 4 steps on the HTP at 1.56 ms each, decoder on the GPU at fp16; RTF 0.015, first audio 21.7 ms), 56.5 ms without the NPU libraries, 149 ms all on the CPU. Dynamic int8 fails the 30 dB bar everywhere (the distilled DiT amplifies weight noise); fp16 activations fail on the text graph and on four unrolled steps.
+
+<!-- Draft of the REPRODUCE.md entry for hf-to-litertlm. (#N) after a number = row N of the facts table that came with this draft; strip the marks before pasting. Place: next to the granite-4.0-micro entry (both dense 3B models, converted the same week). Ships together with: g9v3_work/{convert_g9v3_3b.sh, fetch_pinned.py, gptq_quantize.py, patch_gptqmodel_mps.py, export_clamped.py, make_pbtext.py, scan_scales.py, repack_metadata.py, g9v3.jinja}; it also uses scripts/{export_simple_template.py, ingest_gptq_dequant.py, set_activation_type.py} and recipes/gptqrec_int4_block128.json, unchanged. -->
+
+## G9v3-3B — a dense 3B with a thinking switch: GPTQ-calibrated int4 on a Mac, and a GPU activation type declared per file
+
+`g9v3_work/convert_g9v3_3b.sh` converts [ai9stars/G9v3-3B](https://huggingface.co/ai9stars/G9v3-3B) at commit `d9553445` (#1) — "a dense 3B causal language model … built for local deployment and resource-constrained scenarios" (#2); 52 layers, hidden 2048, 16 attention heads / 2 KV heads, 130,560-token vocabulary, untied embeddings (#4) — into the two files of [litert-community/G9v3-3B](https://huggingface.co/litert-community/G9v3-3B). Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1 for the export; litert-lm 0.18.0 for the metadata step and for running the files; gptqmodel 7.3.5 on torch 2.14.1 under Python 3.12 for the int4 calibration (#104).
+
+```bash
+# once: a Python 3.12 environment with gptqmodel 7.3.5, datasets, requests and torchvision, patched for Apple silicon (MPS)
+/path/to/py312-gptq/bin/python g9v3_work/patch_gptqmodel_mps.py
+EPY=/path/to/python-with-litert-torch-0.9.4 \
+RPY=/path/to/python-with-litert-lm-0.18.0 \
+CLI=/path/to/litert-lm \
+GPY=/path/to/py312-gptq/bin/python \
+  bash g9v3_work/convert_g9v3_3b.sh out_g9v3
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `G9v3-3B_int8.litertlm` (3,102,493,024 B (#9)) | LlmMetadataProto | 5,201 | `4b6b001395b61a9ed65a4cca48fe42bffce09966212a2eab0468e1d0af679a28` |
+|  | ExecutorMetadataProto | 7,102 | `fe71235f270549a4d0143191ef4be8a37c7958725588ee0274d421ceb0c0bcc7` |
+|  | HF_Tokenizer_Zlib | 2,048,362 | `61a39298f9decdb79edb2ed38eead3cee1b30e6803d932f7e4db24b714339f9b` |
+|  | TFLiteModel | 2,822,005,664 | `f540fbb1e489b48159d0a38bd95be69d079755d71956bccc23db535fafc27bc7` |
+|  | TFLiteModel | 278,366,560 | `a71c9fa0791206e58c34fb6f7233351985a7bfa5444ba5972ad741c3dfe75081` |
+| `G9v3-3B_int4.litertlm` (1,834,436,960 B (#9)) | LlmMetadataProto | 5,201 | `4b6b001395b61a9ed65a4cca48fe42bffce09966212a2eab0468e1d0af679a28` |
+|  | ExecutorMetadataProto | 7,102 | `fe71235f270549a4d0143191ef4be8a37c7958725588ee0274d421ceb0c0bcc7` |
+|  | HF_Tokenizer_Zlib | 2,048,362 | `61a39298f9decdb79edb2ed38eead3cee1b30e6803d932f7e4db24b714339f9b` |
+|  | TFLiteModel | 1,553,951,792 | `8e151c6cab115b8ce4b1d7912209fdac3a6e999d36e698444f45d295c3b9e77b` |
+|  | TFLiteModel | 278,366,560 | `a71c9fa0791206e58c34fb6f7233351985a7bfa5444ba5972ad741c3dfe75081` |
+
+When the script was run from a copy of this repository's layout on 2026-10-13, building the calibration set from the datasets on the way, every section of both files came out byte-identical to the published files' sections listed here (#119, #120). The file sha256 differs from run to run: the builder writes a new `uuid` and `creation_timestamp` into the header, so compare sections (#109).
+
+- **GPTQ int4, calibrated on Apple silicon.** `gptq_quantize.py` runs gptqmodel 7.3.5 (4 bits, group 128, symmetric, desc_act off, damp 0.01, true-sequential) on 256 chat samples, each a user turn and an assistant turn rendered with the checkpoint's chat template with thinking off: 128 from HuggingFaceH4/ultrachat_200k, 64 from tatsu-lab/alpaca, 64 from the GSM8K training split (#12, #105). It reads the datasets at pinned revisions and checks that the built set hashes to `26e9cc95…` before quantizing; built that way, the set matched byte for byte the one the published file was calibrated on (#114, #115, #116). The set itself is not in this repository: tatsu-lab/alpaca is CC BY-NC 4.0 (#114). `patch_gptqmodel_mps.py` makes five edits to gptqmodel 7.3.5 for Apple silicon (MPS); every run here used them (#117, #118). On one M4 Max the GPTQ checkpoint came out bit-identical in four runs, the published file's and three re-runs (#106); other Apple silicon was not tried.
+- **The GPTQ grid written as blockwise-128 int4, with a 2^-14 minimum on the block scales.** `scripts/ingest_gptq_dequant.py … fp32clip` writes the dequantized checkpoint and `recipes/gptqrec_int4_block128.json` (`dequantized_weight_recovery`) writes it back as blockwise-128 int4 with an int8 lm_head and int8 embedding (#12). On this checkpoint that yields 781 block scales below 2^-14: 365 GPTQ group scales in layer 51 (down_proj 253, o_proj 112) and 416 all-zero blocks in layer 0 (gate_proj 208, up_proj 208). `export_clamped.py` raises them to 2^-14 before the payload is written, and `scan_scales.py` finds no zero or subnormal scale in the result (#13); an earlier data-free int4 export of this checkpoint without that minimum stopped on the Mac CPU with XNNPACK's `unsupported scale value (0.000000)` (#110).
+- **Accuracy picks each file's GPU activation type.** GSM8K (the first 100 test questions, thinking off, greedy, at most 1024 output tokens, one process per question (#57)): bf16 82 (#48); int8 85 on the CPU, 84 on the GPU with fp32 activations and 69 with the runtime's default fp16 (#49, #50, #51); int4 78 on the CPU, 81 on the GPU with fp16 activations and 78 with fp32 (#54, #52, #53). So the int8 file declares fp32 and the int4 file fp16 (`prefer_activation_type` on both TFLiteModel sections; the declaration changes no section's bytes) (#14). `scripts/set_activation_type.py` does not rewrite a declaration that is already there, so the recipe declares once, on the undeclared file (#111). The CPU path does not read the declaration (#25).
+- **Thinking is a switch, off by default.** The bundle embeds `g9v3.jinja`, built on LiteRT-LM's `models/qwen3` chat template with message content read as typed parts (#85); on jinja2 and on minijinja it renders the same characters as the vendor template through transformers for 10 of 11 prompt shapes — the exception is a prompt with the thinking switch unset, which this template treats as thinking off (#86). The generation prompt ends with `<think>\n\n</think>\n\n`; `--thinking true` on the CLI (or `enable_thinking` in the API) ends it with `<think>\n`, and the trace arrives on the `thought` channel (#87, #81). With thinking on, three single questions closed their trace and answered on both files (#88); in a three-turn conversation the int4 file's third trace ran past the 1536-token reply limit without closing, while the int8 file answered all three turns (#75). GSM8K was run with thinking off only (#91).
+- **Start token, stops, tool calls, sampling.** The runtime prefills the same token ids as transformers, with one `<s>` (id 0) at the start (#69); the stops are ids 1 and 130073 (#92). The bundle declares no function calling: given a tool, the model's XML call `<function name="get_weather"><param name="city">Paris</param></function>` comes back as reply text (#93). The bundle sets no sampler; on the 0.18.0 CLI, `--temperature` and `--top-p` take effect only together with `--top-k` (#100, #101).
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), embedder externalised (#47).** The int8 file's decoder section is 2,822,005,664 bytes, over 2 GiB (#45); not run on iOS (#103). Both files also load and answer on litert-lm 0.17.1 (#99).
+- Measured (prefill 1024 / decode 256 / context 2048 (#21), litert-lm 0.18.0 on the Mac (#16), prebuilt `litert_lm_advanced_main` 2026-09-18 on the phones (#17)): Mac M4 Max GPU (WebGPU) int8 1429.0 / 62.43 tok/s, int4 1506.9 / 61.49 (#22, #24); Galaxy S26 GPU int8 113.9 / 12.22, int4 402.9 / 18.46 (#27, #29); Pixel 8a int8 on the CPU 20.85 / 3.53, int4 on the GPU 125.1 / 8.96 (#32, #34). The harness stops a process when MemAvailable falls below 400,000 kB; on the Pixel 8a GPU it stopped every process of the fp32-declared int8 file (#39), while the int4 file's lowest MemAvailable was 2,179,860 kB (#38). Every decoder signature fully delegated on all three GPUs (#26, #37).

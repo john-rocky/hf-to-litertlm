@@ -350,5 +350,20 @@
     "task": "chat",
     "group": 1,
     "recipe": "REPRODUCE.md#lfm2-26b--a-model-that-reasons-when-it-chooses-a-thought-channel-kept-on-and-an-int4-zero-scale-fix-that-has-to-clear-the-blocks-too"
+  },
+  "LFM2-2.6B-Exp": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm2-26b-exp--lfm2-26bs-recipe-unchanged-for-a-checkpoint-that-reasons-although-its-card-does-not-say-so"
+  },
+  "granite-4.0-micro": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#granite-40-micro--a-granitemoehybrid-checkpoint-with-no-mamba-layer-rewritten-to-the-dense-granite-layout-first"
+  },
+  "G9v3-3B": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#g9v3-3b--a-dense-3b-with-a-thinking-switch-gptq-calibrated-int4-on-a-mac-and-a-gpu-activation-type-declared-per-file"
   }
 }

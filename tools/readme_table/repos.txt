@@ -70,3 +70,6 @@ litert-community/Qwen3-ASR-1.7B
 litert-community/LFM2.5-350M
 litert-community/LFM2-700M
 litert-community/LFM2-2.6B
+litert-community/LFM2-2.6B-Exp
+litert-community/granite-4.0-micro
+litert-community/G9v3-3B

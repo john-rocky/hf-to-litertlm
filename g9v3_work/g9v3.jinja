@@ -1,0 +1,103 @@
+{#- G9v3-3B chat template for LiteRT-LM 0.18+ (content arrives as typed parts).
+    Skeleton = LiteRT-LM models/qwen3/chat_template.jinja (parts-only format_content). A past
+    assistant turn renders the checkpoint's own no-reasoning form, '<think>\n\n</think>\n\n' +
+    content with leading newlines stripped (= the thinking-off generation prompt, so a history
+    re-render equals what was prefilled and generated). Tool text = the checkpoint's own
+    template (system-turn tool block, XML <function>/<param> calls with the CDATA rule,
+    tool results as <tool_response> inside a user turn). Generation prompt: thinking off
+    (enable_thinking false or unset) = '<think>\n\n</think>\n\n'; enable_thinking true =
+    '<think>\n' (the reasoning then streams into the thought channel). bos_token renders
+    empty on the runtime, which prepends the bundle's start token itself. -#}
+{%- macro format_content(content) -%}
+    {%- for item in content -%}
+        {%- if item['type'] == 'text' -%}
+            {{- item['text'] -}}
+        {%- elif item['type'] == 'tool_response' -%}
+            {%- if item['response'] is mapping or item['response'] is sequence -%}
+                {{- item['response'] | tojson -}}
+            {%- else -%}
+                {{- item['response'] | string -}}
+            {%- endif -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
+{%- macro tool_definitions(tools) -%}
+    {{- "# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>" -}}
+    {%- for tool in tools -%}
+        {{- '\n' + tool | tojson -}}
+    {%- endfor -%}
+    {{- '\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name="function-name"><param name="param-name">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name="param-name"><![CDATA[...multi-line value...]]></param>' -}}
+{%- endmacro -%}
+
+{%- macro format_tool_call(tool_call) -%}
+    {%- set function = tool_call['function'] if 'function' in tool_call else tool_call -%}
+    {{- '<function name="' ~ function['name'] ~ '">' -}}
+    {%- if function['arguments'] -%}
+        {%- for param_name, param_value in function['arguments'] | items -%}
+            {{- '<param name="' ~ param_name ~ '">' -}}
+            {%- if param_value is string and ('<' in param_value or '&' in param_value or '\n' in param_value) -%}
+                {{- '<![CDATA[' ~ param_value ~ ']]>' -}}
+            {%- else -%}
+                {{- param_value -}}
+            {%- endif -%}
+            {{- '</param>' -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {{- '</function>' -}}
+{%- endmacro -%}
+
+{{- bos_token -}}
+{%- set loop_messages = messages[1:] if messages[0]['role'] == 'system' else messages -%}
+{%- if tools -%}
+    {{- '<|im_start|>system\n' -}}
+    {%- if messages[0]['role'] == 'system' -%}
+        {%- set system_text = format_content(messages[0]['content']) -%}
+        {%- if '<tool_def_sep>' in system_text -%}
+            {{- system_text | replace('<tool_def_sep>', tool_definitions(tools)) -}}
+        {%- else -%}
+            {{- system_text + '\n\n' + tool_definitions(tools) -}}
+        {%- endif -%}
+    {%- else -%}
+        {{- tool_definitions(tools) -}}
+    {%- endif -%}
+    {{- '<|im_end|>\n' -}}
+{%- elif messages[0]['role'] == 'system' -%}
+    {{- '<|im_start|>system\n' + format_content(messages[0]['content']) + '<|im_end|>\n' -}}
+{%- endif -%}
+
+{%- for message in loop_messages -%}
+    {%- set content = format_content(message['content']) -%}
+    {%- if message['role'] == 'user' or message['role'] == 'system' -%}
+        {{- '<|im_start|>' + message['role'] + '\n' + content + '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'assistant' -%}
+        {%- set content = content | lstrip('\n') -%}
+        {{- '<|im_start|>assistant\n<think>\n\n</think>\n\n' + content -}}
+        {%- if message['tool_calls'] -%}
+            {%- for tool_call in message['tool_calls'] -%}
+                {%- if content or not loop.first -%}
+                    {{- '\n' -}}
+                {%- endif -%}
+                {{- format_tool_call(tool_call) -}}
+            {%- endfor -%}
+        {%- endif -%}
+        {{- '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'tool' -%}
+        {%- if loop.first or loop_messages[loop.index0 - 1]['role'] != 'tool' -%}
+            {{- '<|im_start|>user' -}}
+        {%- endif -%}
+        {{- '\n<tool_response>\n' + content + '\n</tool_response>' -}}
+        {%- if loop.last or loop_messages[loop.index0 + 1]['role'] != 'tool' -%}
+            {{- '<|im_end|>\n' -}}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- if add_generation_prompt -%}
+    {{- '<|im_start|>assistant\n' -}}
+    {%- if enable_thinking | default(false) -%}
+        {{- '<think>\n' -}}
+    {%- else -%}
+        {{- '<think>\n\n</think>\n\n' -}}
+    {%- endif -%}
+{%- endif -%}
