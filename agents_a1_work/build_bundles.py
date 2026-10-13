@@ -113,8 +113,14 @@ def main():
             work = Path(temporary)
             child_env = {'TMPDIR': str(work)}
             quant = work / 'quant.litertlm'
-            run([a.python, '-B', REPO / 'minicpm5_work/quantize_minicpm5.py', 'apply', float_bundle,
-                 quant, '--recipe', recipe, '--algo', 'minmax'], 'quantize_' + variant, child_env)
+            quant_cmd = [a.python, '-B', REPO / 'minicpm5_work/quantize_minicpm5.py', 'apply', float_bundle,
+                         quant, '--recipe', recipe, '--algo', 'minmax']
+            if variant == 'int8':
+                # 2026-10-13: the int8 file keeps the 48 GatedDeltaNet decay/gate FCs float (QWEN35_FLOAT_FC_REGEX='Linear_in_proj_(a|b);',
+                # ';;'-separated like qwen35_work/convert_qwen35_hybrid.py); the mixed_int4 recipe is unchanged.
+                for rx in filter(None, os.environ.get('QWEN35_FLOAT_FC_REGEX', '').split(';;')):
+                    quant_cmd += ['--float-fc-regex', rx]
+            run(quant_cmd, 'quantize_' + variant, child_env)
             run([a.python, '-B', REPO / 'minicpm5_work/quantize_minicpm5.py', 'inspect', quant],
                 'inspect_' + variant, child_env)
             unpacked = work / 'unpacked'
