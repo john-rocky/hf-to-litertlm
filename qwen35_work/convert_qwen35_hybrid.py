@@ -35,7 +35,8 @@ QWEN35_FLOAT_FC_REGEX (optional, ';;'-separated regexes) keeps the matching
 FULLY_CONNECTED ops float on top of that: the 2B and the 0.8B ship with
 'Linear_in_proj_(a|b);' — their GatedDeltaNet decay/gate heads could not take the
 CPU backend's run-time int8 activation quantization and looped on multi-step
-arithmetic (2B 2026-10-11, 0.8B 2026-10-12; the 4B recipe is unchanged until measured).
+arithmetic (2B 2026-10-11, 0.8B 2026-10-12; the 4B 2026-10-13, where the same regex keeps
+its 48 decay/gate projections float — 24 linear-attention layers).
 """
 import os
 import re
@@ -78,8 +79,8 @@ tmpl = os.path.join(outdir, "model_wi8fc_tmpl.litertlm")
 final = os.path.join(outdir, os.path.basename(model).replace("/", "_") + "_int8.litertlm")
 
 # 2. Post-hoc int8 (linears + embedding only; convs/delta-rule float).
-#    QWEN35_FLOAT_FC_REGEX keeps named FCs float on top (the 2B: the 36 GDN
-#    decay/gate projections, see the module docstring). The scope a regex is
+#    QWEN35_FLOAT_FC_REGEX keeps named FCs float on top (the 2B / 0.8B: 36 GDN
+#    decay/gate projections, the 4B: 48; see the module docstring). The scope a regex is
 #    matched against is the output tensor name + ";" (anchor with ";", not "$").
 quant_cmd = [sys.executable,
              os.path.join(here, "..", "minicpm5_work", "quantize_minicpm5.py"),
