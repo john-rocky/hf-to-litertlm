@@ -67,3 +67,6 @@ litert-community/Fun-ASR-Nano-2512
 litert-community/decider-2b-vision-LiteRT
 mlboydaisuke/Confucius4-R2T2-LiteRT
 litert-community/Qwen3-ASR-1.7B
+litert-community/LFM2.5-350M
+litert-community/LFM2-700M
+litert-community/LFM2-2.6B

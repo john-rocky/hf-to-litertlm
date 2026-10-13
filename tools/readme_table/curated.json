@@ -335,5 +335,20 @@
     "task": "decisions from an image with calibrated option probabilities (System One)",
     "group": 4,
     "recipe": "REPRODUCE.md#decider-2b-vision-mapika--a-vision-system-one-model-on-the-qwen35-2b-hybrid-rail-the-authors-m-rope-positions-are-derived-inside-the-graph-2026-09-29"
+  },
+  "LFM2.5-350M": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm25-350m--the-litert-lm-modelslfm2-configuration-replaces-the-vendor-template-and-the-4-section-export-needs-a-quantizer-that-keeps-every-section"
+  },
+  "LFM2-700M": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm2-700m--the-first-generation-lfm2-template-fails-at-render-and-on-this-checkpoint-the-int8-file-keeps-the-exporters-default-recipe-convolutions-quantized"
+  },
+  "LFM2-2.6B": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm2-26b--a-model-that-reasons-when-it-chooses-a-thought-channel-kept-on-and-an-int4-zero-scale-fix-that-has-to-clear-the-blocks-too"
   }
 }

@@ -9,6 +9,15 @@ tokenizer + quantized tflite) with litert-lm-builder.
 Modes:
   inspect <file.tflite|file.litertlm>   dump per-tensor quantization layout
   apply   <in.litertlm> <out.litertlm> [--recipe wi4b32_wi8|wi8]
+
+Bundles with an ExecutorMetadata section (litert-torch 0.9.4 writes one for the LFM2 / LFM2.5 hybrids: the
+state-buffer binding litert-lm 0.15+ needs) are rebuilt with that section kept. Before 2026-10-12 this tool took
+"the" metadata as the last *.pbtext of the peek dump in os.listdir order; on such a bundle the dump holds
+LlmMetadataProto.pbtext and ExecutorMetadataProto.pbtext, and on macOS (APFS order) the run failed with
+    ValueError: Failed to parse LlmMetadata from .../ExecutorMetadataProto.pbtext. Exception: 1:1 : Message type
+    "litert.lm.proto.LlmMetadata" has no field named "llm_executor_metadata".
+(in the other order it would have dropped the ExecutorMetadata section without a word). The metadata files are now
+taken by name, and the ExecutorMetadata section goes back in through `litert-lm-builder executor_metadata`.
 """
 import argparse
 import os
@@ -28,10 +37,13 @@ def extract_sections(litertlm_path, out_dir):
     with open(os.path.join(out_dir, "peek.txt"), "w") as f:
         peek_litertlm_file(litertlm_path, out_dir, f)
     found = {}
-    for name in os.listdir(out_dir):
+    pbtexts = []
+    for name in sorted(os.listdir(out_dir)):
         p = os.path.join(out_dir, name)
-        if name.endswith(".pbtext"):
-            found["metadata"] = p
+        if name == "ExecutorMetadataProto.pbtext":
+            found["executor_metadata"] = p
+        elif name.endswith(".pbtext"):
+            pbtexts.append(p)
         elif name.endswith(".zlib"):
             found["tokenizer_zlib"] = p
         elif name.endswith(".spiece"):
@@ -40,6 +52,14 @@ def extract_sections(litertlm_path, out_dir):
             found["tflite"] = p
         elif name == "model.toml":
             found["toml"] = p
+    # the LLM metadata by name; a single other .pbtext (older dumps) is accepted, anything else is refused
+    named = [p for p in pbtexts if os.path.basename(p) == "LlmMetadataProto.pbtext"]
+    if named:
+        found["metadata"] = named[0]
+    elif len(pbtexts) == 1:
+        found["metadata"] = pbtexts[0]
+    elif pbtexts:
+        raise SystemExit(f"cannot tell the LLM metadata among {sorted(os.path.basename(p) for p in pbtexts)}")
     return found
 
 
@@ -157,6 +177,7 @@ def apply_quant(in_litertlm, out_litertlm, kind, algo="minmax"):
     cmd = [
         "litert-lm-builder",
         "llm_metadata", "--path", parts["metadata"],
+        *(["executor_metadata", "--path", parts["executor_metadata"]] if "executor_metadata" in parts else []),
         *tok_args,
         "tflite_model", "--path", parts["tflite"], "--model_type", "prefill_decode",
         "output", "--path", out_abs,

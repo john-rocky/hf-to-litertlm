@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 69 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 72 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 ## Hugging Face model → `.litertlm` → phone
@@ -83,8 +83,10 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 |---|---:|---|---|---|---|
 | [LFM2.5-230M](https://huggingface.co/litert-community/LFM2.5-230M) | 0.23B | chat | iPhone 17 Pro GPU 161.7 | M4 Max GPU 561.2 | [recipe](REPRODUCE.md#lfm25-230m-the-smallest-decoder--a-template-the-runtime-cannot-parse-and-a-shape-that-kills-the-gpu-shader-compile) |
 | [granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) | 0.35B | chat | Galaxy S26 CPU 97.6 | — | [recipe](REPRODUCE.md#granite-40-h-350m-fp16--int8--and-the-start_token-lesson) |
+| [LFM2.5-350M](https://huggingface.co/litert-community/LFM2.5-350M) | 0.35B | chat | Galaxy S26 GPU 106.9 | M4 Max GPU 425.9 | [recipe](REPRODUCE.md#lfm25-350m--the-litert-lm-modelslfm2-configuration-replaces-the-vendor-template-and-the-4-section-export-needs-a-quantizer-that-keeps-every-section) |
 | [Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct) | 0.5B | chat | Galaxy S26 CPU 32.1–40.5 | M4 Max GPU 127.5 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [sarashina2.2-0.5b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-0.5b-instruct-v0.1) | 0.5B | chat, Japanese | Galaxy S26 GPU 36.2–36.5 | M4 Max GPU 197.8 | [recipe](REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw) |
+| [LFM2-700M](https://huggingface.co/litert-community/LFM2-700M) | 0.74B | chat | Galaxy S26 GPU 73.2 | M4 Max GPU 348.3 | [recipe](REPRODUCE.md#lfm2-700m--the-first-generation-lfm2-template-fails-at-render-and-on-this-checkpoint-the-int8-file-keeps-the-exporters-default-recipe-convolutions-quantized) |
 | [granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b) | 1B | chat | Galaxy S26 GPU 24.9 | M4 Max GPU 134.7 | [recipe](REPRODUCE.md#granite-40-h-mamba2--attention-hybrid--first-mamba2-hybrid-on-the-released-runtime) |
 | [OLMo-2-1B-Instruct](https://huggingface.co/litert-community/OLMo-2-1B-Instruct) | 1B | chat | Galaxy S26 GPU 23.1 | M4 Max GPU 150.1 | [card](cards/olmo2-1b-litert.md) |
 | [sarashina2.2-1b-instruct-v0.1](https://huggingface.co/litert-community/sarashina2.2-1b-instruct-v0.1) | 1B | chat, Japanese | Galaxy S26 GPU 27.4–27.5 | M4 Max GPU 159.4 | [recipe](REPRODUCE.md#sarashina22-05b--1b-instruct-sb-intuitions-japanese--a-sentencepiece-vocab-whose-chat-specials-are-control-pieces-and-a-bos-the-model-never-saw) |
@@ -94,6 +96,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct) | 1.5B | chat | Galaxy S26 CPU 11.3–12.0 | M4 Max GPU 51.7 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct) | 1.5B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 102.9 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct) | 1.54B | code | Galaxy S26 CPU 27.0–29.7 | M4 Max GPU 137.8 | [recipe](REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe) |
+| [LFM2-2.6B](https://huggingface.co/litert-community/LFM2-2.6B) | 2.57B | chat | Galaxy S26 GPU 27.8 | M4 Max GPU 163.8 | [recipe](REPRODUCE.md#lfm2-26b--a-model-that-reasons-when-it-chooses-a-thought-channel-kept-on-and-an-int4-zero-scale-fix-that-has-to-clear-the-blocks-too) |
 | [Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) | 3B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 65.3 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Ministral-3-3B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-3B-Instruct-2512) | 3B | chat | iPhone 18 Pro GPU 44.0 | M4 Max GPU 129.5 | [card](cards/ministral3-3b-litert.md) |
 | [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend) |
