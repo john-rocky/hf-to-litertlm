@@ -1,0 +1,33 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- set ns = namespace(nl=false) -%}
+{%- for message in messages -%}
+{%- if ns.nl -%}{{ '\n' }}{%- set ns.nl = false -%}{%- endif -%}
+{%- if message.role == 'assistant' -%}
+<|im_start|>assistant
+<think>
+
+</think>
+
+{{ format_content(message.content) }}<|im_end|>{%- set ns.nl = true -%}
+{% else -%}
+<|im_start|>{{ message.role }}
+{{ format_content(message.content) }}<|im_end|>
+{% endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}{%- if ns.nl -%}{{ '\n' }}{%- endif -%}
+<|im_start|>assistant
+<think>
+
+</think>
+
+{% endif -%}

@@ -18,6 +18,7 @@ case "${1:-}" in
   internvl3.5-4b)        bash scripts/ship_internvl3_5_4b.sh ;;   # InternViT + Qwen3-4B
   llava-onevision-0.5b)  bash scripts/ship_llavaov.sh ;;          # SigLIP + Qwen2-0.5B (730 tokens)
   mage-vl)               bash scripts/ship_magevl.sh ;;           # static-448 (no GATHER_ND) + Qwen3-4B int4-b128
+  minicpm-v-4.7-1b)      bash scripts/ship_minicpmv47_1b.sh ;;    # static-448 window-merger ViT + Qwen3.5-text hybrid int8 (3 files)
   north-micro-vision)    bash scripts/ship_northmv.sh ;;          # static-512 deepstack-fold + Cohere2-rehost int8 (fp32_fp16 hint)
   ovis2.5-2b)            bash scripts/ship_ovis_2b.sh ;;          # static-NaViT + Qwen3-1.7B (structural embed)
   paddleocr-vl-1.6)      bash scripts/ship_paddleocr_vl.sh ;;     # static-NaViT-560 + ERNIE-0.3B fp16 (OCR/doc)

@@ -1,0 +1,239 @@
+{
+ "rule": "S = 2^max(0, ceil(log2(absmax/8))), absmax over cats/kitchen1/kitchen2/noise 448, plain fp32 LN",
+ "n_ln": 58,
+ "n_S_gt_1": 58,
+ "scales": {
+  "layers.0.layer_norm1": {
+   "absmax": 38.7198,
+   "S": 8.0
+  },
+  "layers.0.layer_norm2": {
+   "absmax": 34.5138,
+   "S": 8.0
+  },
+  "layers.1.layer_norm1": {
+   "absmax": 20.6784,
+   "S": 4.0
+  },
+  "layers.1.layer_norm2": {
+   "absmax": 15.3675,
+   "S": 2.0
+  },
+  "layers.2.layer_norm1": {
+   "absmax": 17.0077,
+   "S": 4.0
+  },
+  "layers.2.layer_norm2": {
+   "absmax": 14.6778,
+   "S": 2.0
+  },
+  "layers.3.layer_norm1": {
+   "absmax": 17.6148,
+   "S": 4.0
+  },
+  "layers.3.layer_norm2": {
+   "absmax": 16.1845,
+   "S": 4.0
+  },
+  "layers.4.layer_norm1": {
+   "absmax": 18.3476,
+   "S": 4.0
+  },
+  "layers.4.layer_norm2": {
+   "absmax": 14.7791,
+   "S": 2.0
+  },
+  "layers.5.layer_norm1": {
+   "absmax": 15.7482,
+   "S": 2.0
+  },
+  "layers.5.layer_norm2": {
+   "absmax": 12.2569,
+   "S": 2.0
+  },
+  "layers.6.layer_norm1": {
+   "absmax": 13.5598,
+   "S": 2.0
+  },
+  "layers.6.layer_norm2": {
+   "absmax": 11.5942,
+   "S": 2.0
+  },
+  "vit_merger.layer_norm1": {
+   "absmax": 11.2417,
+   "S": 2.0
+  },
+  "vit_merger.pre_norm": {
+   "absmax": 45.135,
+   "S": 8.0
+  },
+  "layers.7.layer_norm1": {
+   "absmax": 11.6061,
+   "S": 2.0
+  },
+  "layers.7.layer_norm2": {
+   "absmax": 10.8943,
+   "S": 2.0
+  },
+  "layers.8.layer_norm1": {
+   "absmax": 10.9738,
+   "S": 2.0
+  },
+  "layers.8.layer_norm2": {
+   "absmax": 11.616,
+   "S": 2.0
+  },
+  "layers.9.layer_norm1": {
+   "absmax": 11.2606,
+   "S": 2.0
+  },
+  "layers.9.layer_norm2": {
+   "absmax": 11.1993,
+   "S": 2.0
+  },
+  "layers.10.layer_norm1": {
+   "absmax": 1302.7598,
+   "S": 256.0
+  },
+  "layers.10.layer_norm2": {
+   "absmax": 1303.219,
+   "S": 256.0
+  },
+  "layers.11.layer_norm1": {
+   "absmax": 1303.6498,
+   "S": 256.0
+  },
+  "layers.11.layer_norm2": {
+   "absmax": 1303.2667,
+   "S": 256.0
+  },
+  "layers.12.layer_norm1": {
+   "absmax": 1303.5394,
+   "S": 256.0
+  },
+  "layers.12.layer_norm2": {
+   "absmax": 1302.8907,
+   "S": 256.0
+  },
+  "layers.13.layer_norm1": {
+   "absmax": 1303.5262,
+   "S": 256.0
+  },
+  "layers.13.layer_norm2": {
+   "absmax": 1301.9888,
+   "S": 256.0
+  },
+  "layers.14.layer_norm1": {
+   "absmax": 1302.9259,
+   "S": 256.0
+  },
+  "layers.14.layer_norm2": {
+   "absmax": 1302.3184,
+   "S": 256.0
+  },
+  "layers.15.layer_norm1": {
+   "absmax": 1304.5659,
+   "S": 256.0
+  },
+  "layers.15.layer_norm2": {
+   "absmax": 1304.9583,
+   "S": 256.0
+  },
+  "layers.16.layer_norm1": {
+   "absmax": 1307.5475,
+   "S": 256.0
+  },
+  "layers.16.layer_norm2": {
+   "absmax": 1306.9084,
+   "S": 256.0
+  },
+  "layers.17.layer_norm1": {
+   "absmax": 1307.8395,
+   "S": 256.0
+  },
+  "layers.17.layer_norm2": {
+   "absmax": 1306.5869,
+   "S": 256.0
+  },
+  "layers.18.layer_norm1": {
+   "absmax": 1318.2061,
+   "S": 256.0
+  },
+  "layers.18.layer_norm2": {
+   "absmax": 1318.851,
+   "S": 256.0
+  },
+  "layers.19.layer_norm1": {
+   "absmax": 1320.593,
+   "S": 256.0
+  },
+  "layers.19.layer_norm2": {
+   "absmax": 1320.321,
+   "S": 256.0
+  },
+  "layers.20.layer_norm1": {
+   "absmax": 1321.8873,
+   "S": 256.0
+  },
+  "layers.20.layer_norm2": {
+   "absmax": 1319.8049,
+   "S": 256.0
+  },
+  "layers.21.layer_norm1": {
+   "absmax": 1326.0593,
+   "S": 256.0
+  },
+  "layers.21.layer_norm2": {
+   "absmax": 1324.6089,
+   "S": 256.0
+  },
+  "layers.22.layer_norm1": {
+   "absmax": 1327.7622,
+   "S": 256.0
+  },
+  "layers.22.layer_norm2": {
+   "absmax": 1323.7137,
+   "S": 256.0
+  },
+  "layers.23.layer_norm1": {
+   "absmax": 1326.6632,
+   "S": 256.0
+  },
+  "layers.23.layer_norm2": {
+   "absmax": 1323.3173,
+   "S": 256.0
+  },
+  "layers.24.layer_norm1": {
+   "absmax": 1327.3252,
+   "S": 256.0
+  },
+  "layers.24.layer_norm2": {
+   "absmax": 1324.4056,
+   "S": 256.0
+  },
+  "layers.25.layer_norm1": {
+   "absmax": 1326.5159,
+   "S": 256.0
+  },
+  "layers.25.layer_norm2": {
+   "absmax": 1320.2245,
+   "S": 256.0
+  },
+  "layers.26.layer_norm1": {
+   "absmax": 1319.6986,
+   "S": 256.0
+  },
+  "layers.26.layer_norm2": {
+   "absmax": 1330.9535,
+   "S": 256.0
+  },
+  "post_layernorm": {
+   "absmax": 1508.8969,
+   "S": 256.0
+  },
+  "merger.pre_norm": {
+   "absmax": 28.3411,
+   "S": 4.0
+  }
+ }
+}
