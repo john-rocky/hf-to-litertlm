@@ -1577,6 +1577,17 @@ Chat template embedded
 one `AutoTokenizer` actually resolves). Reasoning model: ChatML turns, `<think>`,
 `eos = <|im_end|>` (id 11) added by the stop-token guard on top of the exported `ids: 2`.
 
+**2026-10-13 — chat template re-pack (metadata only).** The template NVIDIA ships keeps the full `<think>…</think>` block on the latest assistant turn and rewrites it to an empty `<think></think>` on every assistant turn that a newer user message follows (`truncate_history_thinking`, default true). LiteRT-LM re-renders the conversation before each message and requires the new render to extend the previous one; on litert-lm 0.18.0, which passes the model's reasoning to the template, the second message of every conversation with thinking on therefore failed with `INTERNAL: The new rendered template string does not start with the previous rendered template string` (own report [LiteRT-LM#3166](https://github.com/google-ai-edge/LiteRT-LM/issues/3166); litert-lm 0.17.1 did not pass the reasoning and was unaffected). `templates/nemotron3nano_history.jinja` is that template with the position condition removed on its two lines (134 and 172), so every assistant turn in the history renders as `<think></think>` plus its answer; the generation prompt is unchanged.
+
+```bash
+# litert-lm 0.18.0 (CLI and builder); <in> = the file published until 2026-10-13 (sha256 feefdcd5…)
+python scripts/set_prompt_template.py <in>/Nemotron-3-Nano-4B_int8.litertlm out/Nemotron-3-Nano-4B_int8.litertlm \
+    templates/nemotron3nano_history.jinja --litert-lm litert-lm
+python scripts/section_identity.py <in>/Nemotron-3-Nano-4B_int8.litertlm out/Nemotron-3-Nano-4B_int8.litertlm
+```
+
+Result: `LlmMetadataProto 11006 -> 10932 DIFF`, `ExecutorMetadataProto 3365 -> 3365 SAME`, `HF_Tokenizer_Zlib 2806488 -> 2806488 SAME`, `TFLiteModel 4123829984 -> 4123829984 SAME` — the only field that differs inside `LlmMetadataProto` is `jinja_prompt_template`. File size unchanged (4,126,697,184 B). The published file's sha256 is `e9274fb21c95944c5ad76b10a8294ebfe5b54a359d6d6166b1879a958331ca6a`; a re-run gives a different file sha256 (the 0.18 packer writes a fresh uuid and timestamp into the header) with all four sections byte-identical to it. Checked on the new file: three turns ("My name is Kenji." / "What is my name? Answer with the name only." / "What is 17 times 23? Answer with the number only.") answer "Kenji" and "391" on litert-lm 0.18.0 with thinking on and off and on 0.17.1 (CPU, greedy, one run each), on a Galaxy S26 CPU with thinking on and off, and the card's 8-question gate is 8/8 on CPU and on GPU with `--cache no` on the 0.18.0 CLI (the same as the previous file).
+
 Three things this intake fixed or established, each measured:
 
 - **`auto_map` is not proof of remote code.** The repo declares `auto_map`, and the entry
