@@ -365,5 +365,10 @@
     "task": "chat",
     "group": 1,
     "recipe": "REPRODUCE.md#g9v3-3b--a-dense-3b-with-a-thinking-switch-gptq-calibrated-int4-on-a-mac-and-a-gpu-activation-type-declared-per-file"
+  },
+  "MiniCPM-V-4.7-1B": {
+    "task": "chat + image",
+    "group": 3,
+    "recipe": "REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token"
   }
 }
