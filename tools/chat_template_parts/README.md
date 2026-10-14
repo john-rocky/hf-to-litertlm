@@ -38,3 +38,5 @@ The bundle uuid and creation timestamp change with every pack; the weights do no
 - `swap_template.py` — the swap and its verification (writes a JSON report and an evidence directory next to it).
 
 Four templates keep a pre-existing role limitation on purpose: S1-mini and Shieldstral-vision drop a system message, CodeGemma raises on one, Falcon3 reads `eos_token` (the runtime binds it). The swap changes the content form only.
+
+The other 0.18 template rule is about the history rather than the message: every assistant turn must render the same way wherever it sits in the conversation, or the second message fails — see [../chat_template_prefix/](../chat_template_prefix/).

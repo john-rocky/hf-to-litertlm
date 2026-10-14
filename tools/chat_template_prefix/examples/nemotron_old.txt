@@ -1,0 +1,10 @@
+<|im_start|>system
+<|im_end|>
+<|im_start|>user
+My name is Kenji.<|im_end|>
+<|im_start|>assistant
+<think>
+We need to respond. The user says "My name is Kenji." Probably a greeting. We can respond politely, maybe ask how can I help. No special constraints. Use friendly tone.
+</think>
+
+Hello, Kenji! How can I assist you today?<|im_end|>

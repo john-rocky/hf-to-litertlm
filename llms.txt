@@ -30,6 +30,7 @@ litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on
 
 - [docs/android-gpu.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/android-gpu.md), [docs/android-npu.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/android-npu.md): GPU and NPU on Android for these bundles, measured.
 - [tools/devicebench/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/devicebench): one harness for on-device gates of LiteRT graphs on Android: an owned hold on a shared phone, legs from a plan file, a 2-second clock, thermal and memory sampler, host scoring of every finished leg, and a fake-phone dry run on the Mac.
+- [tools/chat_template_prefix/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/chat_template_prefix): check a `.litertlm` chat template against LiteRT-LM's multi-turn rule (each message's render must extend the previous one; from 0.18.0 the reply's reasoning reaches the template): a desk renderer calibrated against the runtime's own error strings, a three-turn table, and the metadata-only fix.
 - [hfmodels-android](https://github.com/john-rocky/hfmodels-android): one Gradle line and a few lines of Kotlin to a first reply; the walkthrough pins LFM2.5-1.2B-Instruct on a Pixel 8a.
 - [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm): `LiteRTChat(huggingFaceRepo:fileName:)` on iPhone and Mac; [recipe for a fine-tuned model on iPhone](https://raw.githubusercontent.com/john-rocky/swift-litert-lm/main/docs/recipe-hf-finetune-to-iphone.md).
 
