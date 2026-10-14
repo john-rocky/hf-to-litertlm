@@ -40,3 +40,15 @@ The bundle uuid and creation timestamp change with every pack; the weights do no
 Four templates keep a pre-existing role limitation on purpose: S1-mini and Shieldstral-vision drop a system message, CodeGemma raises on one, Falcon3 reads `eos_token` (the runtime binds it). The swap changes the content form only.
 
 The other 0.18 template rule is about the history rather than the message: every assistant turn must render the same way wherever it sits in the conversation, or the second message fails — see [../chat_template_prefix/](../chat_template_prefix/).
+
+## A second turn: where the newline after `<|im_end|>` goes
+
+LiteRT-LM prefills only the increment `render(history + message) − render(history)`, and the stop token the model emitted enters the cache as the pending token of the next prefill. A ChatML template that closes an assistant turn with `<|im_end|>\n` therefore never puts that `\n` in the cache: the second turn's context is the upstream render minus one token. End the assistant turn at `<|im_end|>` and write the newline at the head of whatever follows (the next message or the generation prompt); the full render is unchanged, the increment grows by one token and the cache equals the upstream ids.
+
+`dual/a07bb77727e4.jinja` is such a template (MiniCPM-V-4.7-1B's text-only bundle; its two text+image bundles carry the same rule with image parts, `minicpmv47_work/chat_template_mv47_dual.jinja`). `dual/b3f69d650a63.jinja`, which the Qwen3.5 bundles carry, still ends the assistant turn with `<|im_end|>\n`: the one-token gap was measured on the runtime with MiniCPM-V-4.7's bundle before its fix (litert-lm 0.18.0, two turns in one process), and the Qwen3.5 files have not been re-checked.
+
+```
+python tools/chat_template_parts/two_turn_increment.py <template.jinja> <tokenizer.json> --stop "<|im_end|>"
+```
+
+renders two turns with the runtime's Jinja settings ([../chat_template_prefix/desk_render.py](../chat_template_prefix/desk_render.py)), prints the increment and compares the cache (turn-1 render + reply + stop token + increment) with the upstream two-turn ids: `dual/b3f69d650a63.jinja` → a gap of one token (`\n`), `dual/a07bb77727e4.jinja` → equal. The desk check assumes the reply tokenizes the same way it was generated; the runtime's own check is three turns on the engine.

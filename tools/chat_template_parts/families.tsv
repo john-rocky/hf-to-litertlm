@@ -59,3 +59,4 @@ mlboydaisuke/Qwen3.5-0.8B-MTP-repro-LiteRT	Qwen3.5-0.8B_mtp_drafter_int8.litertl
 mlboydaisuke/S1-mini-LiteRT	S1-mini_int8.litertlm	4cca9d116922	S-RAISE
 mlboydaisuke/SmolLM3-3B-LiteRT	model.litertlm	c6b463e0706d	S-LEAK
 mlboydaisuke/TwIL-LM3-LiteRT	TwIL-LM3_int4.litertlm	4bd85b95399f	S-LEAK
+litert-community/MiniCPM-V-4.7-1B	MiniCPM-V-4.7-1B_int8.litertlm	a07bb77727e4	none

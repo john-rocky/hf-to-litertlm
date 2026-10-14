@@ -146,6 +146,8 @@ A card or table row carries the phone (`device`, `android`), the runtime (`liter
 - **Memory decides the phone.** On an 8 GB Pixel 8a the GPU compile of an 896 MB graph did not fit: the memory guard stopped it 6 s in, after lowmemorykiller had killed 26 background apps. The same file runs on the 12 GB Galaxy S26. A Pixel PASS does not stand in for an S26 PASS.
 - **`check` rewrites `inputs.sha256` in the round dir.** Never point it at a finished round you want to keep.
 - **One hold file per phone.** Every session that uses a phone names the same `HOLD`. A second hold file for it is a second arbiter, and the hold protects nothing.
+- **One process per timing run for hybrid models.** A second Conversation on one LiteRT-LM Engine starts from the first one's linear-attention state (LiteRT-LM #3165), so a leg that loops its runs inside one process measures a drifting model. Give each run its own leg.
+- **Image legs with the LiteRT-LM binary** need the image first in the prompt (`[image:…]question`), `--benchmark=true` for the prefill count and `--vision_backend` for the executor: [docs/android-gpu.md](../../docs/android-gpu.md) "Image prompts and timing".
 
 ## Output layout
 
