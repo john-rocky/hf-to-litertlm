@@ -53,7 +53,7 @@ tags:
 
 Qwen3-ASR-1.7B is Qwen's speech recognition model (2.04 B parameters). A 24-layer audio encoder feeds a 28-layer Qwen3 language model, which writes `language <name><asr_text><transcript>`. The model card lists language identification and recognition for 30 languages and 22 Chinese dialects; this file was scored on English, Mandarin and Japanese.
 
-The files run on the generic audio path of the released runtime (the 30 s file measured with `litert-lm-api` 0.17.1, the 15 s file with 0.18.0). The runtime cuts 16 kHz PCM into 10 ms frames and hands the bundled encoder a window of 30 s or 15 s, depending on the file; the encoder computes the log-mel spectrogram itself. No runtime change is needed.
+The files run on the generic audio path of the released runtime (the 30 s file measured with `litert-lm-api` 0.17.1, the 15 s file with 0.18.0; the 15 s file also loads and answers on 0.17.1, in the Android sample below). The runtime cuts 16 kHz PCM into 10 ms frames and hands the bundled encoder a window of 30 s or 15 s, depending on the file; the encoder computes the log-mel spectrogram itself. No runtime change is needed.
 
 ![The same sentence read in Mandarin, English and Japanese, transcribed on a Galaxy S26: each screen shows the transcript, the language the model named and the seconds the transcription took](assets/demo_s26.png)
 
@@ -64,7 +64,7 @@ Galaxy S26 (SM-S942Q), CPU with 4 threads, airplane mode on, LiteRT-LM 0.17.1 th
 | `Qwen3-ASR-1.7B-15s.litertlm` | LM int8 dynamic (weights) with an int8 embedding table · audio encoder fp16 weights, fp32 compute, 15 s window · prefill signatures for 128 and 256 tokens | 2.70 GB |
 | `Qwen3-ASR-1.7B.litertlm` | LM int8 dynamic (weights) with an int8 embedding table · audio encoder fp16 weights, fp32 compute, 30 s window | 2.69 GB |
 
-The two files hold the same weights. The 15 s file encodes a clip in 15 s windows (195 audio tokens per window), so a clip of up to 15 s costs half the encoder and prefill work of the 30 s file; its measured response times are in the Performance section. The 30 s file is the one measured on the released 0.17.1 runtime and in the Android sample below.
+The two files hold the same weights. The 15 s file encodes a clip in 15 s windows (195 audio tokens per window), so a clip of up to 15 s costs half the encoder and prefill work of the 30 s file; its measured response times are in the Performance section. The 30 s file is the one in the screenshots above; the Android sample below runs both files on `litertlm-android` 0.17.1.
 
 | Section | Content | Size |
 |---|---|---|
@@ -184,7 +184,7 @@ print(raw.partition("<asr_text>")[2].strip())
 
 For the Chinese example clip the 30 s file returns `language Chinese<asr_text>开放时间：早上九点至下午五点。` and the script prints the text after the tag; the 15 s file returns the same sentence in traditional characters, `開放時間：早上九點至下午五點。` (both files run with this block on litert-lm-api 0.18.0; on the 50 Mandarin FLEURS clips, whose ground truth is simplified, the 15 s file scores CER 6.19 %). `backend=GPU()` (from `litert_lm.interfaces`) puts the language model on the GPU. Keep `audio_backend=CPU()`: the audio encoder does not run on the GPU delegate (`create_conversation` fails). The Kotlin Conversation API takes the same calls. In the Galaxy S26 app above (`litertlm-android`), the engine is built with `Backend.CPU` for both the model and the audio, and each clip is sent as `Content.AudioFile` in a new conversation.
 
-Sample app (Android): [`android/`](https://huggingface.co/litert-community/Qwen3-ASR-1.7B/tree/main/android) — one app for the 30 s file and two sibling bundles (Qwen3-ASR-1.7B, Fun-ASR-Nano-2512, Confucius4-R2T2): a model picker, hold-to-talk up to 30 s and three FLEURS clips, with a device check. Galaxy S26, language model and audio encoder on the CPU (4 threads), the 6.4 s English clip in 2.49 s and the 9.7 s Mandarin clip in 2.38 s of wall time per call. The 15 s file was not run in the sample app.
+Sample app (Android): [`android/`](https://huggingface.co/litert-community/Qwen3-ASR-1.7B/tree/main/android) — one app for both files and two sibling bundles (Qwen3-ASR-1.7B, Qwen3-ASR-1.7B-15s, Fun-ASR-Nano-2512, Confucius4-R2T2): a model picker, hold-to-talk up to 30 s and three FLEURS clips, with a device check. Galaxy S26, language model and audio encoder on the CPU (4 threads), `litertlm-android` 0.17.1, wall time per call: the 30 s file 2.49 s for the 6.4 s English clip and 2.38 s for the 9.7 s Mandarin clip (2026-10-09); the 15 s file 1.79 s and 2.32 s (2026-10-14, where its device check passed all 14 steps: the three clips, a microphone recording, a 30 s message in two windows, release and reload). The sample's README has the full rows.
 
 On Android the S26 rows above came from the command-line tool: `litert_lm_advanced_main --backend=cpu --audio_backend=cpu --sampler_backend=cpu --num_cpu_threads=4 --model_path=Qwen3-ASR-1.7B-15s.litertlm --cache_dir=cache --max_num_tokens=1024 --max_output_tokens=256 --benchmark --input_prompt='[audio:/path/clip.wav]'` (`--backend=gpu` for the GPU rows; the 30 s file with its own file name).
 
