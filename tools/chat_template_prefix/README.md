@@ -10,7 +10,7 @@ new_string: ...
 
 The same check runs a second time inside the refill: when a reply carried a channel (a thought), the next message rewinds the KV cache and prefills the history render again, comparing it with the render up to the rewind point. So a template passes only if every assistant turn in the history renders the same way wherever it sits, and a template can pass message 2 and fail message 3.
 
-From litert-lm 0.18.0 the runtime hands the template each reply's reasoning as `reasoning_content` (and `channels`) next to its content parts. litert-lm 0.17.1 passed a reply as a plain string without them, so a template whose think handling depends on the turn's position passes on 0.17.1 and fails on 0.18.0.
+From litert-lm 0.18.0 the runtime hands the template each reply's reasoning as `reasoning_content` (and `channels`) next to its content parts, for every model type. litert-lm 0.17.1 did so only for bundles of the `lfm2` model type and, on the generic model type, for templates that read `content` only as parts; otherwise it passed a one-part reply as a plain string without them. So a template whose think handling depends on the turn's position passes on 0.17.1 and fails from 0.18.0 on, except in those two cases, where it fails on 0.17 already (the LFM2.5-Thinking row below is a litert-lm 0.17.0 run).
 
 ## Template shapes that fail
 
@@ -19,7 +19,7 @@ From litert-lm 0.18.0 the runtime hands the template each reply's reasoning as `
 | the latest assistant turn keeps its think block, earlier turns get an empty one | `truncate_history_thinking` with `loop.index0 < ns.last_user_idx` (Nemotron-3-Nano) | message 2 when the reply carried a thought; thinking off passes |
 | the turn after the last user message gets a think block even when the reasoning is empty | the Hugging Face Qwen3 template, `last_query_index` | message 2, thinking on or off, 0.17.1 too |
 | think blocks kept only after the last user message, opt-in | `preserve_thinking` with `loop.index0 > ns.last_user_index` (LFM2.5) | message 2 when the reply carried a thought |
-| the think block kept on the last assistant turn only | `loop.index0 == ns.last_assistant_index` (LFM2.5-Thinking) | message 3, in the refill; message 2 passes because that turn is still the last assistant turn |
+| the think block kept on the last assistant turn only | `loop.index0 == ns.last_assistant_index` (LFM2.5-Thinking) | message 3, in the refill (measured on litert-lm 0.17.0); message 2 passes because that turn is still the last assistant turn |
 | the non-generation render ends with a token the generation render does not have | `{% if add_generation_prompt %}<assistant>{% else %}<placeholder>{% endif %}` (Hy-MT2) | message 2, every setting, 0.17.1 too |
 
 A keyword search does not decide it: some templates compute `last_query_index` and never use it, and some render the reasoning on every turn, which is position-independent and passes. Render the template.

@@ -39,7 +39,7 @@ The bundle uuid and creation timestamp change with every pack; the weights do no
 
 Four templates keep a pre-existing role limitation on purpose: S1-mini and Shieldstral-vision drop a system message, CodeGemma raises on one, Falcon3 reads `eos_token` (the runtime binds it). The swap changes the content form only.
 
-The other 0.18 template rule is about the history rather than the message: every assistant turn must render the same way wherever it sits in the conversation, or the second message fails — see [../chat_template_prefix/](../chat_template_prefix/).
+The other template rule is about the history rather than the message, and litert-lm 0.17 and 0.18 both enforce it: every assistant turn must render the same way wherever it sits in the conversation, or the second message (or the third, after a reply that carried a thought) fails — see [../chat_template_prefix/](../chat_template_prefix/).
 
 ## A second turn: where the newline after `<|im_end|>` goes
 
