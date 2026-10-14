@@ -14,6 +14,7 @@
     DEC=out/northmv-decoder VIS=out/northmv-vision TOK=sp CACHE=4096 \
       .venv-vl0930-t515/bin/python northmv_work/build_northmv_bundle.py
 """
+import hashlib
 import os
 
 import litert_lm_builder as litertlm_builder
@@ -32,6 +33,13 @@ BOS_ID = 2  # <BOS_TOKEN>
 
 SOT, EOT = "<|START_OF_TURN_TOKEN|>", "<|END_OF_TURN_TOKEN|>"
 USER, MODEL, SYSTEM = "<|USER_TOKEN|>", "<|CHATBOT_TOKEN|>", "<|SYSTEM_TOKEN|>"
+
+# The HF tokenizer section is the base repo's own tokenizer.json at a pinned revision, checked by
+# sha256. AutoTokenizer.save_pretrained (prep_northmv_decoder.py) rewrites the file with transformers'
+# CohereTokenizer pipeline, which splits every digit; the trained tokenizer groups digits in threes.
+TOK_REPO = "CohereLabs/North-Micro-Vision-Instruct"
+TOK_REV = "fa548d9aa62c1220bfd21fc6cfc465f1bd2a1a40"
+TOK_SHA256 = "6fcc5292908e0c8ad1400c67fe9413825c656486fe4190dce7d8d62c38bfbbf6"
 
 # Same shape as the FastVLM/InternVL jinja (string content and list content both handled;
 # roles user/model/system as the runtime names them). BOS comes from start_token.
@@ -66,6 +74,20 @@ def find_tflite(d, *keywords):
   raise FileNotFoundError(f"no tflite matching {keywords} in {d}: {cands}")
 
 
+def hf_tokenizer():
+  """TOK_REPO's tokenizer.json at TOK_REV (HF_TOK may point at a local copy of the same file)."""
+  path = os.environ.get("HF_TOK")
+  if not path:
+    from huggingface_hub import hf_hub_download
+    path = hf_hub_download(TOK_REPO, "tokenizer.json", revision=TOK_REV)
+  with open(path, "rb") as f:
+    digest = hashlib.sha256(f.read()).hexdigest()
+  assert digest == TOK_SHA256, (
+      f"{path}: sha256 {digest} is not {TOK_REPO}'s tokenizer.json at {TOK_REV[:8]} "
+      f"({TOK_SHA256[:12]}...); a save_pretrained copy splits every digit")
+  return path
+
+
 def main():
   embedder = find_tflite(DEC, "embedder_quantized", "embedder")
   prefill_decode = find_tflite(DEC, "model_quantized", "prefill", "decode")
@@ -78,11 +100,10 @@ def main():
   sp = [os.path.join(DEC, f) for f in os.listdir(DEC) if f.endswith((".spiece", ".model", ".spm"))]
   if tok_mode == "hf":
     sp = []
-  hf = os.environ.get("HF_TOK", "src_models/north-micro-vision-llm/tokenizer.json")
   print("embedder:", embedder)
   print("prefill_decode:", prefill_decode)
   print("vision_encoder:", vision_encoder, "vision_adapter:", vision_adapter)
-  print("sp tokenizer:", sp, "| hf fallback:", hf)
+  print("sp tokenizer:", sp, "| hf fallback:", os.environ.get("HF_TOK") or f"{TOK_REPO}@{TOK_REV[:8]}")
 
   md = llm_metadata_pb2.LlmMetadata()
   md.max_num_tokens = MAX_TOKENS
@@ -111,6 +132,7 @@ def main():
     b.add_sentencepiece_tokenizer(sp[0])
     print("added SP tokenizer:", sp[0])
   else:
+    hf = hf_tokenizer()
     b.add_hf_tokenizer(hf)
     print("added HF tokenizer:", hf)
   b.add_tflite_model(embedder, litertlm_builder.TfLiteModelType.EMBEDDER)

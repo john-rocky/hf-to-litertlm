@@ -32,6 +32,10 @@ Text-only conversion (the Falcon3 decoder; no vision/audio towers).
 | **Base model** | tiiuae/Falcon3-3B-Instruct |
 | **Decode speed** | ~27 tok/s (iPhone 17 Pro, Metal GPU) · ~89 tok/s (Mac M4 Max, LiteRT-LM, greedy) |
 
+2026-09-21: chat template updated to accept the 0.18 content-parts form (string form unchanged); weights, tokenizer and executor metadata byte-identical.
+
+**Tool calls on litert-lm 0.18.0.** Since the 2026-10-14 re-pack (metadata only: `llm_model_type qwen2p5`, and the chat template now renders tool calls and tool results), the runtime parses the tool call and the tool result reaches the model. Passing `tools` works since the re-pack (the earlier template failed with `too many arguments`). The 2026-10-14 re-pack changes the model type, and with it the runtime's GPU executor defaults (every non-generic LiteRT-LM model type shares them: allow_src_quantized_fc_conv_ops on, OpenCL hint_waiting_for_completion off, kernel batch size unset); the phone GPU rows on this card were measured with the previous file and have not been re-run — the Mac GPU digit check passed on 0.18.0.
+
 ## Usage
 
 Run with the LiteRT-LM runtime:

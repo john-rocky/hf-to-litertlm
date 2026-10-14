@@ -17,7 +17,7 @@ library_name: litert-lm
 
 # MiniCPM5-2B — LiteRT-LM
 
-[openbmb/MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime. **Requires litert-lm ≥ 0.16** (thought channel + `ThinkingConfig`); measured here on 0.17.0.
+[openbmb/MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime. **Requires litert-lm ≥ 0.18.0** since the 2026-10-13 re-pack (the template reads content parts; on 0.17.x the user turn renders empty). Passing `tools` works since the re-pack (the earlier template failed with `too many arguments`).
 
 MiniCPM5-2B is OpenBMB's 2.5B-parameter dense **hybrid-reasoning** model (42 layers, hidden 2048, GQA 16:2, untied 130k-vocab embeddings, 131k-token native context, released September 2026): one checkpoint answers directly or works the problem inside `<think>…</think>` first, chosen by an `enable_thinking` switch in its chat template. These bundles carry that machinery unchanged: the model's own `chat_template.jinja` verbatim, a declared `thought` channel, and the `enable_thinking` knob reachable from the runtime.
 
@@ -25,6 +25,10 @@ MiniCPM5-2B is OpenBMB's 2.5B-parameter dense **hybrid-reasoning** model (42 lay
 |---|---|---|
 | `MiniCPM5-2B_int4.litertlm` | int4 blockwise-32 + OCTAV on linears, int8 embedding | 1.55 GB |
 | `MiniCPM5-2B_int8.litertlm` | int8 dynamic on linears + embedding; **fp32 activations declared** (see notes) | 2.60 GB |
+
+2026-09-21: chat template updated to accept the 0.18 content-parts form (string form unchanged); weights, tokenizer and executor metadata byte-identical.
+
+2026-10-13: re-packed with LiteRT-LM's official `models/minicpm5` metadata and chat template (metadata only; weights, tokenizer and graph byte-identical): passing `tools` works, the tool call is parsed on litert-lm 0.18.0, and the model answers directly unless `enable_thinking` is true. The 2026-10-13 re-pack changes the model type, and with it the runtime's GPU executor defaults (every non-generic LiteRT-LM model type shares them: allow_src_quantized_fc_conv_ops on, OpenCL hint_waiting_for_completion off, kernel batch size unset); the phone GPU rows on this card were measured with the previous files and have not been re-run — the Mac GPU digit check passed on 0.18.0.
 
 The **int4 file is the phone file** (smaller, fastest GPU decode on every platform measured) — best used for direct answers or short reasoning; see the thinking-mode note below. **int8 is the file for reasoning that has to complete**: its thinking chains are ~3–4× shorter than int4's on the same questions and terminate where int4 runs into the token budget. int8's main weight section is 2.33 GB, above the single-section mmap ceiling of default-entitlement iOS apps, so it is a desktop / Android build.
 
@@ -64,7 +68,7 @@ litert-lm run ./MiniCPM5-2B_int4.litertlm --backend gpu --cache no --prompt "...
 
 On Android the files import into the [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) app ("Import from HF" with this repo's file URL, or a local file).
 
-Thinking is the model's **default**: with no `ThinkingConfig` it decides for itself and, in practice, reasons before every answer (100–700 characters on trivial questions, thousands on math). To control it:
+Since the 2026-10-13 re-pack the default is a **direct answer**: the bundled template closes an empty think block unless `enable_thinking` is true (before, the model decided for itself and in practice reasoned before every answer). With thinking on:
 
 - **Give it a generous output budget (≥ 2048 tokens; 4096 for math).** Truncated mid-thought it produces no final answer at all.
 - The bundle declares the `thought` channel (`<think>` / `</think>`), so the streamed text contains only the answer and runtimes that expose `ThinkingConfig` can cap or read the reasoning separately.
@@ -98,7 +102,7 @@ GPU wins prefill (5–10× on the phone, 11× on the Mac) and time-to-first-toke
 
 Converted with [`litert-torch`](https://github.com/google-ai-edge/litert-torch) 0.9.3 / litert-converter 0.4.0 / ai-edge-quantizer 0.9.0 / litert-lm-builder 0.16.1 from a pristine released stack (reproduction: [hf-to-litertlm](https://github.com/john-rocky/hf-to-litertlm), `bash scripts/reproduce_llm.sh minicpm5-2b`).
 
-- **The chat template is the checkpoint's `chat_template.jinja`, byte for byte**, embedded on the runtime's jinja path — the same packaging as litert-community/MiniCPM5-1B. That is what keeps `enable_thinking` and the tool-calling format available to the app; the `thought` channel is declared alongside it.
+- **The chat template is LiteRT-LM's official `models/minicpm5/chat_template.jinja`** since the 2026-10-13 re-pack, with the official metadata (`llm_model_type minicpm5`, stop tokens, `thought` channel). It keeps `enable_thinking` and the runtime's tool calling available to the app. Until then the bundle carried the checkpoint's `chat_template.jinja` byte for byte, which failed when `tools` were passed.
 - **Start token `<s>`** is correct for this family: the template's own `{{ bos_token }}` renders empty at runtime and the engine prepends the metadata start token, so the model sees exactly one `<s>` as it does upstream. Stops are the model's `</s>` and `<|im_end|>`.
 - **int4 needed a zero-scale fix.** Decoder layer 0's MLP contains 13 all-zero rows; blockwise quantization emits a zero scale for each of their blocks, which the CPU (XNNPACK) path refuses to load while the GPU path silently accepts. The scales were replaced in place by a tiny positive epsilon (the quantized values in those blocks are zero, so the dequantized weights are unchanged) — 3,328 bytes of a 1.55 GB file.
 - **int8 declares fp32 activations in-bundle.** With the runtime's default fp16 GPU activations, the int8 model's reasoning on one gate question ran 2000+ tokens without closing `</think>` (it fails the 8-question gate); with fp32 declared it closes in ~450 tokens and passes 8/8, at a cost of ~14 % GPU decode speed. On a ten-question thinking-on GSM8K subset the two dtypes were closer (fp16 finished 10/10, fp32 7/10), so this is a measured trade for the gate, not a cure. The int4 file keeps the fp16 default: it passes the gate there, and declaring fp32 only reproduces the CPU reference's non-terminating chains (see Correctness).

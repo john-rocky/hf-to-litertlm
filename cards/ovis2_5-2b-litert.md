@@ -54,6 +54,8 @@ contrast with depth of field").
 > **Reasoning VLM.** Ovis2.5 is a *thinking* model: it may emit a `<think>…</think>` block before its
 > final answer (this matches the base model). Allow enough max-tokens (≥1024) for the answer to follow.
 
+**Thinking channel.** Since the 2026-10-14 re-pack (metadata only: `LlmMetadata.channels` declares the `thought` channel with `<think>`…`</think>`; every other section of the file is byte-identical), litert-lm returns the reasoning on the thought channel (`channels["thought"]`) and the message text carries only the answer (litert-lm 0.18.0, measured 2026-10-14); the earlier file returned the `<think>` block inside the message text. `enable_thinking=False` does not switch the reasoning off (the chat template does not read it). If you downloaded before 2026-10-14, re-download.
+
 > **On-device performance:** decode/load are expected to be in line with the InternVL3.5-2B build on
 > the same runtime (~20 tok/s CPU, ~45 tok/s GPU on iPhone 17 Pro for single-image VQA). Independent
 > on-device measurement for this specific build is recommended before quoting exact numbers.

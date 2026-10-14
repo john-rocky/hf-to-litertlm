@@ -14,6 +14,175 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## Metadata re-packs (2026-10)
+
+From 2026-10-13 to 2026-10-15, 28 published `.litertlm` files were re-packed with the litert-lm 0.18.0 CLI, each from the file at the Hub commit in the table below. In 26 files only LlmMetadata changed (the model type, the chat template or a thought channel), in 2 only the tokenizer section; every other section is byte-identical to the file it was built from. Each repo's model card says what changed for its users.
+
+The blocks after the table are the commands the files were built with. Run them from the repository root in bash or zsh, with `REPO`, `FILE` and `SRC` set from a row of the table and `WORK` an empty directory for that file, after this start:
+
+```sh
+litert-lm() { uvx --from litert-lm==0.18.0 litert-lm "$@"; }
+litert-lm --version
+mkdir -p $WORK/src $WORK/out
+[ -f $WORK/src/$FILE ] || curl -fsSL -o $WORK/src/$FILE https://huggingface.co/$REPO/resolve/$SRC/$FILE
+shasum -a 256 $WORK/src/$FILE
+```
+
+The CLI prints its errors and still exits 0: read the `Successfully` line of every unpack and pack and the counts of the `grep -c` lines (the old value 1 → 0, the new one 0 → 1); every `diff` prints nothing. The packer writes a new uuid and creation timestamp into the container header, so a rebuilt file's sha256 differs from the table; compare it section by section with `python scripts/section_identity.py <published> <rebuilt>` (every section `SAME`). The one-command tools named in blocks E, F and G need the litert-lm CLI and litert-lm-builder in the Python that runs them (`pip install litert-lm==0.18.0`).
+
+| block | repo | file | change | built from (Hub commit) | result sha256 (first 16) | Hub commit of the result |
+|---|---|---|---|---|---|---|
+| A | litert-community/LFM2.5-1.2B-Instruct | LFM2.5-1.2B-Instruct_int4.litertlm | `lfm2` + tool rendering | a997cb6f49a991c0d9b541d3dc4b6ffaa405fb3c | e904729a8a8a0160 | d23bed4d |
+| A | litert-community/LFM2.5-1.2B-Instruct | LFM2.5-1.2B-Instruct_int4_gpu.litertlm | `lfm2` + tool rendering | a997cb6f49a991c0d9b541d3dc4b6ffaa405fb3c | 8d3a4d73e121166a | a872e98e |
+| A | litert-community/LFM2.5-1.2B-Instruct | LFM2.5-1.2B-Instruct_int8.litertlm | `lfm2` + tool rendering | a997cb6f49a991c0d9b541d3dc4b6ffaa405fb3c | ed8201f88a1a1162 | b2614265 |
+| A | litert-community/LFM2.5-1.2B-JP | LFM2.5-1.2B-JP_int4.litertlm | `lfm2` + tool rendering | 20a41f29c1e61485a28eaf783c3ca3e796d685f9 | eed10977c555e7a7 | 896c0aab |
+| A | litert-community/LFM2.5-1.2B-JP | LFM2.5-1.2B-JP_int4_gpu.litertlm | `lfm2` + tool rendering | 20a41f29c1e61485a28eaf783c3ca3e796d685f9 | 2f70967b635324bc | fc1951ca |
+| A | litert-community/LFM2.5-1.2B-JP | LFM2.5-1.2B-JP_int8.litertlm | `lfm2` + tool rendering | 20a41f29c1e61485a28eaf783c3ca3e796d685f9 | d4b0af0842582646 | f1de60e7 |
+| A | litert-community/LFM2.5-1.2B-JP | LFM2.5-1.2B-JP_int8_gpu.litertlm | `lfm2` + tool rendering | 20a41f29c1e61485a28eaf783c3ca3e796d685f9 | a3248222f6cb0c62 | 2c0464e4 |
+| A | litert-community/LFM2.5-1.2B-Thinking | LFM2.5-1.2B-Thinking_int4.litertlm | `lfm2` + tool rendering | 773d2ccb1807ed28867da924a4cb7a6112ef3501 | da3c0ad154b78f33 | b96ac1f5 |
+| A | litert-community/LFM2.5-1.2B-Thinking | LFM2.5-1.2B-Thinking_int4_gpu.litertlm | `lfm2` + tool rendering | 773d2ccb1807ed28867da924a4cb7a6112ef3501 | 51130e6e57a940bb | ea485b08 |
+| A | litert-community/LFM2.5-1.2B-Thinking | LFM2.5-1.2B-Thinking_int8.litertlm | `lfm2` + tool rendering | 773d2ccb1807ed28867da924a4cb7a6112ef3501 | 6c9fb75c38a5d3c3 | 66d411fb |
+| A | litert-community/LFM2.5-1.2B-Thinking | LFM2.5-1.2B-Thinking_int8_gpu.litertlm | `lfm2` + tool rendering | 773d2ccb1807ed28867da924a4cb7a6112ef3501 | 73122d7c8e72009d | d72ba82f |
+| A | litert-community/LFM2.5-2.6B | LFM2.5-2.6B_int4.litertlm | `lfm2` + tool rendering | 0a88561cd1ddc82ab8badff4e641bd54236a4867 | d18381eaee160ede | e6f5ac5d |
+| A | litert-community/LFM2.5-2.6B | LFM2.5-2.6B_int8.litertlm | `lfm2` + tool rendering | 0a88561cd1ddc82ab8badff4e641bd54236a4867 | 16460604711efd81 | e3cbd311 |
+| B | litert-community/LFM2.5-230M | LFM2.5-230M_int4.litertlm | `lfm2` | eef2b56ccb220f8bd9e2c4ecd6a06fd8728776b0 | c9065e28358a1f2f | d145aeda |
+| B | litert-community/LFM2.5-230M | LFM2.5-230M_int8.litertlm | `lfm2` | eef2b56ccb220f8bd9e2c4ecd6a06fd8728776b0 | 3c891cb3ab299385 | aa064b96 |
+| C | mlboydaisuke/MiniCPM5-2B-LiteRT | MiniCPM5-2B_int4.litertlm | official `minicpm5` configuration | fc93c93a1be1c27c863cef06fa10f30585120df2 | 7234c22920b42798 | 967ffe12 |
+| C | mlboydaisuke/MiniCPM5-2B-LiteRT | MiniCPM5-2B_int8.litertlm | official `minicpm5` configuration | fc93c93a1be1c27c863cef06fa10f30585120df2 | 702b28cf111bedd2 | cb9a20cf |
+| D | litert-community/Falcon-H1-3B-Instruct | Falcon-H1-3B-Instruct_int8.litertlm | `qwen2p5` + tool results | 5979909b36447edc3b685e7ad93101ab9acb5a43 | 2b03ccab37a26c4e | d8c58dfb |
+| D | litert-community/granite-4.0-h-1b | granite-4.0-h-1b_int8.litertlm | `qwen2p5` + tool results | 09a702fac64abf082a9ca9c842782fd121160b48 | a38b9af8d8fe150d | a3ef2ced |
+| D | litert-community/granite-4.0-h-350m | granite-4.0-h-350m_fp16.litertlm | `qwen2p5` + tool results | 808e03b1ea0b1c23981fce68498650ef17346ead | a48f4471dce39abe | 5307042a |
+| D | litert-community/granite-4.0-h-350m | granite-4.0-h-350m_int8.litertlm | `qwen2p5` + tool results | 808e03b1ea0b1c23981fce68498650ef17346ead | 46d2781278e77d96 | baeac72e |
+| D | litert-community/granite-4.0-h-350m | granite-4.0-h-350m_int8_gpu.litertlm | `qwen2p5` + tool results | 808e03b1ea0b1c23981fce68498650ef17346ead | 81020b48fa6384b8 | 482b1786 |
+| D | mlboydaisuke/Falcon3-3B-Instruct-LiteRT | model.litertlm | `qwen2p5` + tool results | 3190c7349875ca6059a542e31a56ca649e6a7806 | 00fe6ef173363ba8 | a553da43 |
+| E | mlboydaisuke/Qwen3-0.6B-wo4-float-repro-LiteRT | qwen3-0.6b_weight_only_wi4_afp32.litertlm | content parts | 8897b5efd1babebf191fff925b3366119c1a85a6 | 4cc6201f38aa6655 | 6432f5b8 |
+| F | litert-community/Ovis2.5-2B | Ovis2.5-2B.litertlm | `thought` channel | d36697ad01dca6962117b1ae3101da44e3b1ed22 | f31d0ef62545bf31 | ccb79915 |
+| F | mlboydaisuke/DeepSeek-R1-Distill-Qwen-7B-LiteRT | model.litertlm | `thought` channel | e3608156cdbcf020f16d3cfeca2268ba100253c6 | b4b373725e074096 | d66b93a8 |
+| G | litert-community/North-Micro-Vision-Instruct | North-Micro-Vision-Instruct_int4.litertlm | tokenizer section | 54df6991b685dc0c2aa933b15990fab3d2b50951 | 0518a6fe7c73dd04 | c97bb1e8 |
+| G | litert-community/North-Micro-Vision-Instruct | North-Micro-Vision-Instruct_wi8.litertlm | tokenizer section | 54df6991b685dc0c2aa933b15990fab3d2b50951 | 6ce917e1eec510f0 | d812a8a7 |
+
+**A — `lfm2` and tool rendering (13 files).** The model type changes from `generic_model` to `lfm2`, so litert-lm 0.18.0 and newer parse the model's `<|tool_call_start|>` calls instead of returning them as text, and the file's own template gets the tool rendering of LiteRT-LM's `models/lfm2/chat_template.jinja`. `add_tool_branch.py` writes that template from the one the source file carries and prints `MATCH` when the result is the packed template.
+
+```sh
+curl -fsSL -o $WORK/official_lfm2.jinja https://raw.githubusercontent.com/google-ai-edge/LiteRT-LM/a484d21d5113886348fe4c56af61830e45e664a8/models/lfm2/chat_template.jinja
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+python tools/chat_template_parts/add_tool_branch.py lfm2 $WORK/orig.jinja $WORK/tools.jinja --official $WORK/official_lfm2.jinja
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  lfm2 {$' $WORK/work/LlmMetadataProto.pbtext
+perl -0pi -e 's/^llm_model_type \{\n  generic_model \{\n  \}\n\}$/llm_model_type {\n  lfm2 {\n  }\n}/m' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  lfm2 {$' $WORK/work/LlmMetadataProto.pbtext
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+litert-lm pack $WORK/work --chat-template $WORK/tools.jinja --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $WORK/tools.jinja
+diff -r -x LlmMetadataProto.pbtext -x model.toml $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+**B — `lfm2` only (2 files).** The template these files carry already renders tool calls and tool results, so the model type is the whole change.
+
+```sh
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  lfm2 {$' $WORK/work/LlmMetadataProto.pbtext
+perl -0pi -e 's/^llm_model_type \{\n  generic_model \{\n  \}\n\}$/llm_model_type {\n  lfm2 {\n  }\n}/m' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  lfm2 {$' $WORK/work/LlmMetadataProto.pbtext
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+litert-lm pack $WORK/work --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $WORK/orig.jinja
+diff -r -x LlmMetadataProto.pbtext -x model.toml $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+**C — the official `minicpm5` configuration (2 files).** LiteRT-LM's `models/minicpm5` metadata and chat template replace the file's (the re-packed files need litert-lm 0.18.0 or newer), with the steps of `scripts/repack_official_metadata.sh`: download, unpack, the official pbtext in place, pack with the official template, the section check. `max_num_tokens` is 4096 before and after.
+
+```sh
+bash scripts/repack_official_metadata.sh mlboydaisuke/MiniCPM5-2B-LiteRT MiniCPM5-2B_int4.litertlm minicpm5 fc93c93a1be1c27c863cef06fa10f30585120df2 4096 a484d21d5113886348fe4c56af61830e45e664a8
+bash scripts/repack_official_metadata.sh mlboydaisuke/MiniCPM5-2B-LiteRT MiniCPM5-2B_int8.litertlm minicpm5 fc93c93a1be1c27c863cef06fa10f30585120df2 4096 a484d21d5113886348fe4c56af61830e45e664a8
+# -> out/repack/<file>
+```
+
+**D — `qwen2p5` and tool results (6 files).** The model type changes from `generic_model` to `qwen2p5`, so the runtime parses the JSON calls these models write in `<tool_call>`, and the file's own template also renders the tool result, which litert-lm 0.18 passes as a `tool_response` content part. In Falcon3's template `tojson` also loses its `indent` argument (the runtime's `tojson` takes none, so passing `tools` failed), and in Falcon-H1's the tool-call schema line is written in JSON (the runtime's parser rejects single quotes). The granite files get `tools/chat_template_parts/granite-4.0-h_tools.jinja`; for the Falcon files `add_tool_branch.py` writes the template from the source file's own.
+
+```sh
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+TPL=$PWD/tools/chat_template_parts/granite-4.0-h_tools.jinja   # granite-4.0-h; for Falcon, the two lines below instead
+# python tools/chat_template_parts/add_tool_branch.py falcon-h1 $WORK/orig.jinja $WORK/tools.jinja && TPL=$WORK/tools.jinja   # Falcon-H1-3B-Instruct
+# python tools/chat_template_parts/add_tool_branch.py falcon3 $WORK/orig.jinja $WORK/tools.jinja && TPL=$WORK/tools.jinja     # Falcon3-3B-Instruct
+shasum -a 256 $TPL
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  qwen2p5 {$' $WORK/work/LlmMetadataProto.pbtext
+perl -0pi -e 's/^llm_model_type \{\n  generic_model \{\n  \}\n\}$/llm_model_type {\n  qwen2p5 {\n  }\n}/m' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  generic_model {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  qwen2p5 {$' $WORK/work/LlmMetadataProto.pbtext
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+litert-lm pack $WORK/work --chat-template $TPL --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $TPL
+diff -r -x LlmMetadataProto.pbtext -x model.toml $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+**E — content parts (1 file).** litert-lm 0.18 hands every message content to the template as a list of parts; this file's template read strings only, so every turn rendered empty. `tools/chat_template_parts/qwen3-0.6b-wo4_parts.jinja` reads both forms; nothing else changes. `python scripts/set_prompt_template.py $WORK/src/$FILE $WORK/out/$FILE $TPL` gives the same sections.
+
+```sh
+TPL=$PWD/tools/chat_template_parts/qwen3-0.6b-wo4_parts.jinja
+shasum -a 256 $TPL
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^channels {$' $WORK/work/LlmMetadataProto.pbtext
+litert-lm pack $WORK/work --chat-template $TPL --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $TPL
+diff -r -x LlmMetadataProto.pbtext -x model.toml $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+**F — a thought channel (2 files).** On litert-lm 0.18.0 the reasoning came back inside the message text. A `thought` channel with the bare markers `<think>` and `</think>` (single tokens in both tokenizers) returns it on the thought channel; nothing else changes. DeepSeek-R1-Distill-Qwen-7B's file carries no Jinja template: unpack it without `--chat-template` and skip the template diff. `python tools/add_thought_channel.py $WORK/src/$FILE $WORK/out/$FILE --start '<think>' --end '</think>'` gives the same sections.
+
+```sh
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^channels {$' $WORK/work/LlmMetadataProto.pbtext
+[ "$(tail -c 1 $WORK/work/LlmMetadataProto.pbtext | xxd -p)" = 0a ]
+printf 'channels {\n  channel_name: "thought"\n  start: "<think>"\n  end: "</think>"\n}\n' >> $WORK/work/LlmMetadataProto.pbtext
+grep -c '^channels {$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  channel_name: "thought"$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  start: "<think>"$' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^  end: "</think>"$' $WORK/work/LlmMetadataProto.pbtext
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+litert-lm pack $WORK/work --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $WORK/orig.jinja
+grep -c '^channels {$' $WORK/chk/LlmMetadataProto.pbtext
+diff -r -x LlmMetadataProto.pbtext -x model.toml $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+**G — the tokenizer section (2 files).** The section held the `tokenizer.json` that `AutoTokenizer.save_pretrained` writes, which splits every digit; it is now CohereLabs/North-Micro-Vision-Instruct's own `tokenizer.json` at `fa548d9a` (sha256 `6fcc5292…`), and every other section, LlmMetadata included, is byte-identical. `python tools/tokenizer_parity/swap_tokenizer_section.py $WORK/src/$FILE $WORK/tokenizer.json $WORK/out/$FILE` gives the same sections.
+
+```sh
+curl -fsSL -o $WORK/tokenizer.json https://huggingface.co/CohereLabs/North-Micro-Vision-Instruct/resolve/fa548d9aa62c1220bfd21fc6cfc465f1bd2a1a40/tokenizer.json
+shasum -a 256 $WORK/tokenizer.json
+litert-lm unpack $WORK/src/$FILE --output-dir $WORK/work --chat-template $WORK/orig.jinja
+grep '^max_num_tokens' $WORK/work/LlmMetadataProto.pbtext
+grep -c '^section_type = "HF_Tokenizer"$' $WORK/work/model.toml
+grep -c '^data_path = "Section1_HF_Tokenizer_Zlib.zlib"$' $WORK/work/model.toml
+mv $WORK/work/Section1_HF_Tokenizer_Zlib.zlib $WORK/orig_tokenizer_section.zlib
+cp $WORK/tokenizer.json $WORK/work/tokenizer.json
+perl -pi -e 's/^data_path = "Section1_HF_Tokenizer_Zlib\.zlib"$/data_path = "tokenizer.json"/' $WORK/work/model.toml
+grep -c '^data_path = "tokenizer.json"$' $WORK/work/model.toml
+grep -c 'Section1_HF_Tokenizer_Zlib' $WORK/work/model.toml
+litert-lm pack $WORK/work --output $WORK/out/$FILE
+litert-lm unpack $WORK/out/$FILE --output-dir $WORK/chk --chat-template $WORK/chk.jinja && diff $WORK/chk.jinja $WORK/orig.jinja
+diff $WORK/work/LlmMetadataProto.pbtext $WORK/chk/LlmMetadataProto.pbtext
+diff -r -x LlmMetadataProto.pbtext -x model.toml -x tokenizer.json -x Section1_HF_Tokenizer_Zlib.zlib $WORK/work $WORK/chk
+shasum -a 256 $WORK/out/$FILE
+```
+
+Checked on 2026-10-15 on a Mac with litert-lm 0.18.0: run as printed from the source commit, blocks A, B, D, E, F and G rebuilt LFM2.5-1.2B-Instruct_int4, LFM2.5-230M_int4, granite-4.0-h-350m_int8, qwen3-0.6b_weight_only_wi4_afp32, Ovis2.5-2B and North-Micro-Vision-Instruct_int4 with every section equal to the published file, and `set_prompt_template.py`, `add_thought_channel.py` and `swap_tokenizer_section.py` gave the same sections for the E, F and G files. Block C was not re-run.
+
 ## 2026-10-12 — metadata re-ship to the official LiteRT-LM configuration, second batch (3 files, weights unchanged)
 
 Same recipe and script as the 2026-10-10 batch (`scripts/repack_official_metadata.sh`, official config at LiteRT-LM commit `4a363c0728d4461eaf05c4d87250ef3e90deb035`, byte-identical to main `03d3979f` on 2026-10-10). Every section other than LlmMetadata is byte-identical to the published file; `max_num_tokens` was left at the official 4096 because each original either set 4096 or left the field unset. Proposed as Hub pull requests (metadata only); until a PR merges, `main` serves the original.
@@ -314,7 +483,7 @@ top generative Qwen2-VL-2B derivative). Two findings, one of them a wall:
   passes both `gate_specials.py` and its task gate (`qwen2vl_work/gate_nuextract.py`).
   NuExtract-2.0-2B has not been re-converted and remains unpublished.**
 
-`north-micro-vision` is Cohere's North-Micro-Vision-Instruct (2.48B, apache-2.0) — the first Cohere-family model on this rail, and its vision tower is the Qwen3-VL design (SigLIP2-SO400M dims, 27 blocks, three *deepstack* mergers). Three things the scripts encode. (1) **Deepstack folds into the single fast_vlm image embedding**: HF adds three extra vision embeddings to the residual stream after decoder layers 0/1/2; the fast_vlm contract carries one embedding, so the encoder emits `concat(h27, h8, h16, h24)` and the adapter computes `merger(h27) + Σ deepstack_merger_i(h_i)` — exactly representable, and the ablation (`northmv_work/phase0_deepstack_ablation.py`, `phase0_teacher_forced.py`) shows fold beats drop on every metric (teacher-forced top-1 0.96 fold / 0.93 fold+1-D positions vs the released model, no collapse). (2) **The decoder re-hosts as `Cohere2ForCausalLM` with a rope-layout patch** (`northmv_work/northmv_rope_patch.py`): CohereCompass rotates Llama-style half-split pairs while stock Cohere2 rotates interleaved pairs; patching Cohere2 to the Llama-style math loads the weights verbatim (text logits maxdiff 0.0) *and* replaces the `BROADCAST_TO` + 5-D `CONCATENATION` that stock Cohere2's rope lowers to — both rejected by the GPU delegate. (3) **Vision GPU rules learned the hard way** (all in `convert_northmv_vision.py`): keep every activation rank ≥3 with a leading batch dim (the Metal delegate computes rank-2 elementwise ops against a rank-2 constant *wrong*, silently — the symptom is "this image is a blank canvas"); pre-scale LayerNorm inputs by a calibrated power of two from block 9 on (register-scale activations |x|≈2000 overflow fp16 (x−m)²); and a `clamp` between LN and the following FC stops the converter folding LN-gamma into the int8 weight. Ship quant is int8 vision + int8 (dynamic) decoder with `prefer_activation_type="fp32_fp16"` declared on the decoder section — Mali-class GPUs accumulate fp16 and overflow at the 256 image-token positions, so an fp16 decoder answers image turns as if blind (echoes the question) while text-only stays perfect; the in-bundle declaration fixes it on every runtime without flags. Vision fp16 is desktop-only (compiling it on a Mali GPU hard-crashes the phone). Tokenizer: bundle the HF `tokenizer.json` — the sentencepiece conversion crashes on null-byte pieces and splits digits differently from Cohere's per-digit pre-tokenizer. The runtime's 1-D positions replace M-RoPE, with the same 2-D-table-ranking caveat as `qwen2-vl-2b`. Needs transformers ≥5.16 (`cohere_compass`) for the vision/prep side and the released litert-torch 0.9.3 stack for the decoder export.
+`north-micro-vision` is Cohere's North-Micro-Vision-Instruct (2.48B, apache-2.0) — the first Cohere-family model on this rail, and its vision tower is the Qwen3-VL design (SigLIP2-SO400M dims, 27 blocks, three *deepstack* mergers). Three things the scripts encode. (1) **Deepstack folds into the single fast_vlm image embedding**: HF adds three extra vision embeddings to the residual stream after decoder layers 0/1/2; the fast_vlm contract carries one embedding, so the encoder emits `concat(h27, h8, h16, h24)` and the adapter computes `merger(h27) + Σ deepstack_merger_i(h_i)` — exactly representable, and the ablation (`northmv_work/phase0_deepstack_ablation.py`, `phase0_teacher_forced.py`) shows fold beats drop on every metric (teacher-forced top-1 0.96 fold / 0.93 fold+1-D positions vs the released model, no collapse). (2) **The decoder re-hosts as `Cohere2ForCausalLM` with a rope-layout patch** (`northmv_work/northmv_rope_patch.py`): CohereCompass rotates Llama-style half-split pairs while stock Cohere2 rotates interleaved pairs; patching Cohere2 to the Llama-style math loads the weights verbatim (text logits maxdiff 0.0) *and* replaces the `BROADCAST_TO` + 5-D `CONCATENATION` that stock Cohere2's rope lowers to — both rejected by the GPU delegate. (3) **Vision GPU rules learned the hard way** (all in `convert_northmv_vision.py`): keep every activation rank ≥3 with a leading batch dim (the Metal delegate computes rank-2 elementwise ops against a rank-2 constant *wrong*, silently — the symptom is "this image is a blank canvas"); pre-scale LayerNorm inputs by a calibrated power of two from block 9 on (register-scale activations |x|≈2000 overflow fp16 (x−m)²); and a `clamp` between LN and the following FC stops the converter folding LN-gamma into the int8 weight. Ship quant is int8 vision + int8 (dynamic) decoder with `prefer_activation_type="fp32_fp16"` declared on the decoder section — Mali-class GPUs accumulate fp16 and overflow at the 256 image-token positions, so an fp16 decoder answers image turns as if blind (echoes the question) while text-only stays perfect; the in-bundle declaration fixes it on every runtime without flags. Vision fp16 is desktop-only (compiling it on a Mali GPU hard-crashes the phone). Tokenizer: bundle the repo's own `tokenizer.json` bytes at a pinned revision — the sentencepiece conversion crashes on null-byte pieces, and `AutoTokenizer.save_pretrained` rewrites the file with transformers' `CohereTokenizer` pipeline, which splits every digit while the trained tokenizer groups digits in threes. Files built before 2026-10-15 carried that per-digit section; the published files were fixed by a tokenizer-section swap (`tools/tokenizer_parity/swap_tokenizer_section.py`). The runtime's 1-D positions replace M-RoPE, with the same 2-D-table-ranking caveat as `qwen2-vl-2b`. Needs transformers ≥5.16 (`cohere_compass`) for the vision/prep side and the released litert-torch 0.9.3 stack for the decoder export.
 
 `mage-vl` is Microsoft's 4.7B general VLM (describe / VQA / full-page OCR). Its vision tower is the Qwen2-VL design, but two things make it *simpler* to convert: `temporal_patch_size=1` (the patch-embed already is a stride-16 `Conv2d` — no Conv3d fold) and the text decoder is a **stock Qwen3-4B fed plain 1-D positions**, so the fast_vlm runtime contract is mathematically exact (no M-RoPE caveat at all — the 2-D-table-ranking limitation of `qwen2-vl-2b` does not apply). Its 3-D rope splits head_dim 4:6:6 over (t,h,w) with *interleaved* rotation (not half-split); the scripts precompute it from raster positions with t=0 and verify the whole patch pipeline bit-identical against the model's own processor. Cache is 2048 on purpose: at 4096 the 36-layer/kv8 fp32 KV cache is ~1.2 GB, which more than doubles the on-device session footprint; 2048 keeps the whole phone session ~1.5 GiB. Env gotchas baked into the ship script: python 3.14 breaks torchao's import (use ≤3.13), and torchvision must be the torch-matched pair (`torch==2.12.1 torchvision==0.27.1`) or pip upgrades torch past litert-torch's pin. `magevl_work/precheck_magevl_vision.py` runs the full static-rewrite export precheck on a random-init tower — no checkpoint download — in minutes.
 

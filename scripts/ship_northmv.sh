@@ -55,7 +55,7 @@ PYEOF
 
 echo "### 4. bundle (HF tokenizer.json; decoder section declares fp32_fp16 — Mali-CL fp16 goes blind on image turns)"
 DEC="$DECO" VIS="$VISO" VENC=vision_encoder_int8dyn.tflite VADP=vision_adapter_int8dyn.tflite \
-  TOK=hf HF_TOK="$LLM/tokenizer.json" IMAGE_SIZE=512 CACHE=4096 OUT_DIR=out/northmv-bundle \
+  TOK=hf IMAGE_SIZE=512 CACHE=4096 OUT_DIR=out/northmv-bundle \
   OUT_NAME=North-Micro-Vision-Instruct_wi8.litertlm \
   $PY northmv_work/build_northmv_bundle.py 2>&1 | tail -1
 ls -la out/northmv-bundle/North-Micro-Vision-Instruct_wi8.litertlm | awk '{print "BUNDLE:", $NF, $5/1e9" GB"}'

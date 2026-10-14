@@ -36,6 +36,9 @@ The bundle uuid and creation timestamp change with every pack; the weights do no
 - `dual/<sha12>.jinja` — the dual-form version of every string-only template found in the bundles we published (32 families; `sha12` = the first 12 hex digits of the sha256 of the ORIGINAL template text as stored in the bundle, so you can match a bundle by hashing its `jinja_prompt_template`).
 - `families.tsv` — which published file carried which family and its failure mode before the swap.
 - `swap_template.py` — the swap and its verification (writes a JSON report and an evidence directory next to it).
+- `add_tool_branch.py` — adds tool-call and tool-result rendering to the template a bundle carries (rules `lfm2`, `granite`, `falcon-h1`, `falcon3`; `lfm2` copies the tool rendering of LiteRT-LM's `models/lfm2/chat_template.jinja`). For the templates of the files re-packed in 2026-10 it checks the result against the template that was packed into them ([REPRODUCE.md](../../REPRODUCE.md), "Metadata re-packs (2026-10)").
+- `granite-4.0-h_tools.jinja` — IBM's granite-4.0-h chat template (Apache-2.0) with `tool_response` content items rendered, as packed into the litert-community granite-4.0-h-350m and -1b files on 2026-10-14; `add_tool_branch.py granite` writes the same bytes from the bundles' previous template.
+- `qwen3-0.6b-wo4_parts.jinja` — the Qwen3 chat template (Apache-2.0) of `mlboydaisuke/Qwen3-0.6B-wo4-float-repro-LiteRT` with a `format_content` macro at the places that read message content (its header says what changed), as packed into that file on 2026-10-14.
 
 Four templates keep a pre-existing role limitation on purpose: S1-mini and Shieldstral-vision drop a system message, CodeGemma raises on one, Falcon3 reads `eos_token` (the runtime binds it). The swap changes the content form only.
 

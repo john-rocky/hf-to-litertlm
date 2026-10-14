@@ -19,6 +19,8 @@ converter, not affiliated with Google.
 | Run the bundle on a Mac to check it | `litert-lm run out/<model>/*.litertlm --prompt "Hello"` | README top |
 | Rebuild a published bundle | `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>` (`--list` for keys) | [REPRODUCE.md](REPRODUCE.md) |
 | Check that a bundle's chat template survives the second message (the runtime re-renders the history before every message and requires the new render to extend the previous one) | `python tools/chat_template_prefix/desk_prefix.py table <template.jinja> tools/chat_template_prefix/examples/conv_three_turns.json` — every cell PASS; fix the template and re-pack with `scripts/set_prompt_template.py`; then `python tools/chat_template_parts/two_turn_increment.py <template.jinja> <tokenizer.json>` — the cache after the second message must equal the upstream two-turn ids (the newline after the stop token) | [tools/chat_template_prefix/](tools/chat_template_prefix/) |
+| Check that a bundle's tokenizer is the model's own | Compare the bundle's tokenizer section with the repo's `tokenizer.json` (sha256 of the unpacked section, at least normalizer + pre-tokenizer); fix a built bundle with `python tools/tokenizer_parity/swap_tokenizer_section.py in.litertlm tokenizer.json out.litertlm` | [tools/tokenizer_parity/](tools/tokenizer_parity/) |
+| A bundle returns tool calls as plain text, or answers without the tool result | Re-pack metadata only: the family's `llm_model_type` + the bundle's own template + the official template's tool-call / tool-response branch; desk-render a tool round trip; mind rule 9 (GPU defaults) and rule 10 (floor) | `scripts/set_prompt_template.py`, `scripts/section_identity.py`, [tools/chat_template_parts/](tools/chat_template_parts/) |
 | Run a published bundle in an Android app | [hfmodels-android](https://github.com/john-rocky/hfmodels-android): one Gradle line, a few lines of Kotlin; the walkthrough pins LFM2.5-1.2B-Instruct on a Pixel 8a | hfmodels-android README "Add it" |
 | Run a bundle in an iPhone app | [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm): `LiteRTChat(huggingFaceRepo:fileName:)` or `LiteRTChat(modelFileURL:)` | [recipe: a fine-tuned model on iPhone](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md) |
 | A hybrid family no released exporter handles (granite-4.0-h, Falcon-H1, Zamba2, Nemotron-H) | `convert.py` routes to the pinned family recipe by `model_type`; the one-time checkout command is printed on refusal | README "Convert a finetune" table, `<family>_work/` |
@@ -47,6 +49,23 @@ converter, not affiliated with Google.
 5. **The derivative's own chat template is embedded verbatim.** Do not substitute the base model's
    template; the adapter's tokenizer, template and generation config win over the base's.
 6. **Model files are not in this repository.** Bundles live on Hugging Face; `out/` is local.
+7. **The tokenizer section is the repo's own `tokenizer.json`.** Bundle the file from the Hub at a
+   pinned revision and compare the unpacked section with it by sha256. `AutoTokenizer.save_pretrained`
+   rewrites `tokenizer.json` when `tokenizer_config.json` names a dedicated class (transformers'
+   `CohereTokenizer` splits every digit; the trained tokenizer groups digits in threes), and an HF
+   reference loaded the same way shares the defect.
+8. **A tool-calling model is not packed as `generic_model`.** The runtime chooses the tool-call parser
+   by `llm_model_type` (`lfm2` for `<|tool_call_start|>` calls from litert-lm 0.18.0, `qwen2p5` / `qwen3`
+   for JSON in `<tool_call>`); `generic_model` returns every call as text. The template must also render
+   the tool result (0.18 passes it as a `tool_response` content part): desk-render a tool round trip
+   and find the result in the second turn's prompt.
+9. **A non-generic `llm_model_type` changes three GPU-executor defaults** that no bundle field or public
+   API overrides. Re-measure the phone GPU after a re-pack that changes the type; see
+   [docs/android-gpu.md](docs/android-gpu.md).
+10. **The official LiteRT-LM chat templates read content parts only.** A bundle re-packed with them
+   (`scripts/repack_official_metadata.sh`) needs litert-lm 0.18.0 or newer: 0.17.x sends string content
+   and the user turn renders empty, exit 0. Keep the bundle's own template and add only the official
+   tool branch when an older runtime must keep working.
 
 ## Not this repo
 

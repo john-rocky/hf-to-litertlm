@@ -13,7 +13,10 @@ tags:
   - cohere
 pipeline_tag: image-text-to-text
 library_name: litert-lm
+base_model_relation: quantized
 ---
+
+Measured on device (edge-compat): Galaxy S26 · LiteRT-LM 0.16.0 · GPU · decode 10.4 tok/s · prefill 280 tok/s · TTFT 810 ms · all 1380 ops delegated (2026-08-24); Pixel 8a · LiteRT-LM 0.16.1 · GPU · decode 4.3 tok/s · prefill 124 tok/s · TTFT 2.41 s · all 1380 ops delegated (2026-08-19); iPhone 17 Pro · LiteRT-LM 0.16.0 · GPU · decode 13.6 tok/s · prefill 244 tok/s · TTFT 685 ms (2026-08-19). Record: https://github.com/john-rocky/edge-compat/blob/main/cards/north-micro-vision-instruct-wi8/CARD.md
 
 # North-Micro-Vision-Instruct — LiteRT-LM (on-device Vision-Language Model)
 
@@ -54,6 +57,25 @@ Run the decoder on the GPU on 8 GB-class phones — the CPU backend pages agains
 
 iPhone 17 Pro (Metal decoder + Metal vision, cold, this exact 3.07 GB file): peak resident **2.9–3.0 GB** with the vision executor loaded (2.1 GB text-only); decode **13.6 tok/s** on a 39-token text turn; vision time-to-first-token 2.3–5.0 s cold (302-token image prompt, prefill 322–362 tok/s). Same phone, same model through Apple's Core AI runtime (own measurement, 2026-08-14, int8 decoder + fp16 tower): **18.2 tok/s** decode, 21.5 tok/s prefill, image oracle 24/24. Read it as "same class, Core AI ahead on decode (~1.3×), LiteRT-LM ahead on prefill and vision TTFT"; both numbers are cold single runs on the same device and the same day-class build, not a tuned benchmark.
 
+## Galaxy S26 — GPU backend
+
+Both published bundles run on the Android GPU backend and generate.
+
+| file | GPU backend | delegation | peak |
+|---|---|---|---:|
+| `North-Micro-Vision-Instruct_int4.litertlm` | runs | 5344 / 5344 ops across 4 subgraphs on `LiteRT GPU` | 1787 MB |
+| `North-Micro-Vision-Instruct_wi8.litertlm` | runs | 5344 / 5344 ops across 4 subgraphs on `LiteRT GPU` | 1403 MB |
+
+Measured on a **Samsung Galaxy S26** (SM-S942Q / SM8850, Android 16) with `litert_lm_advanced_main` from litert-lm 0.16.0, `--backend=gpu --sampler_backend=cpu`, prompt `What is the capital of France?`. Peak is the process high-water mark (`VmHWM`) sampled during that same run. Gated 2026-08-25.
+
+The op counts above are the `LiteRT GPU` partitions. XNNPACK additionally takes 1 of the 4 nodes in `main`; the runtime accepts that split.
+
+The gate prompt carries no image, so this covers engine creation and the text path. The vision path on the GPU is not measured here.
+
+**No speed rows, on purpose.** On this handset the GPU backend wins prefill and does not win decode, so a GPU throughput figure only means something beside a CPU row from the same handset, and no S26 CPU row exists for this model yet.
+
+GPU wiring, including the Gallery import toggle: [GPU guide](https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/android-gpu.md).
+
 ## On-device demo (Pixel 8a, this exact file, decoder on the OpenCL GPU + vision on CPU)
 
 | | |
@@ -67,8 +89,8 @@ Verbatim outputs from `litert_lm_advanced_main` (litert-lm v0.16.1, `--backend=g
 ## Quality
 
 - **9-case COCO suite** (3 images × 3 questions, 48-token greedy) against a fp32 PyTorch oracle running the same single-embedding / 1-D-position contract: content-correct and image-grounded on 9/9 (cats on a pink couch with remotes, the two kitchens, colour palettes, "where is this scene"); the int8 vision encoder shifts token choices, so token-exact is 1/9 (the desktop fp16-vision build keeps 5/9 token-exact).
-- **8-question text gate: 7/8**, non-degenerate. The one miss ("17 + 25" read as "1.7 + 2.5") reproduces token-for-token on the HF fp32 model — Cohere's per-digit pre-tokenizer, not a conversion artifact.
-- **Device**: Pixel 8a Ask-Image 2/2 grounded ("two cats lying on a pink surface, possibly a couch or a bed…", "warm brown wooden counter, black stove, white apron, hanging pots and pans"); iPhone 17 Pro vision-grounding probes 2/2 ("Does this image contain visible written text?" → **No** on the no-text fractal, **Yes** on the text probe), 8-question text gate 6/8 on-device (the same digit quirk plus one rhyme miss).
+- **8-question text gate: 7/8** with the earlier files, non-degenerate. The one miss ("17 + 25" read as "1.7 + 2.5") is the same digit misreading as "17 times 23" (see 2026-10-15 below); the gate has not been re-run on the re-packed files.
+- **Device**: Pixel 8a Ask-Image 2/2 grounded ("two cats lying on a pink surface, possibly a couch or a bed…", "warm brown wooden counter, black stove, white apron, hanging pots and pans"); iPhone 17 Pro vision-grounding probes 2/2 ("Does this image contain visible written text?" → **No** on the no-text fractal, **Yes** on the text probe), 8-question text gate 6/8 on-device with the earlier file (the same digit miss plus one rhyme miss).
 - **int4 variant**: coherent and content-correct on all 9 suite cases but terser and further from the fp32 wording; prefer wi8 where storage allows.
 
 > **What the fast_vlm contract changes, and what it costs.** The released model injects three DeepStack vision embeddings after decoder layers 0/1/2 and uses interleaved M-RoPE. This bundle folds the DeepStack embeddings into the single image embedding (exactly representable; teacher-forced top-1 vs the released model 0.96 fold-only, 0.93 with the runtime's 1-D positions) and the runtime supplies plain sequential positions in place of M-RoPE. Measured effect on probe prompts: **describe / VQA / spatial relations / single-cell lookup preserved**; **2-D table cross-cell questions and digit-dense OCR degrade** (row count off-by-one, "$652,000" read as "$652,000,000", a duplicated word in a dense paragraph). Same class of trade as the Qwen2-VL-2B bundle. Use it for reading and describing; don't rely on it to rank table cells.
@@ -96,8 +118,20 @@ Use the LiteRT-LM Swift runtime ([swift-litert-lm](https://github.com/google-ai-
 - **DeepStack fold.** The three DeepStack mergers' outputs are added to the main merger output inside the adapter, so the decoder receives one embedding per image token that carries all four vision taps.
 - **Static rewrite of the dynamic-res tower**: fixed 32×32 grid, precomputed 2-D rope and resampled learned position embedding, full attention; `Conv3d` (temporal 2) folded to `Conv2d` with the summed temporal kernel; patches kept in raster order through the encoder with the 2×2 merge done by strided slices + concat in the adapter (**no GATHER_ND**, which the mobile GPU delegate cannot compile). Every activation keeps a leading batch dim (rank ≥3) — required for correct results on the Metal GPU delegate. LayerNorm inputs are pre-scaled by calibrated powers of two so the tower survives fp16 GPU precision.
 - **Decoder re-host.** The Cohere decoder is re-hosted as a standalone `Cohere2ForCausalLM` (parallel block, mean-subtracting LayerNorm, NoPE full-attention layers, logit scale 0.25, tied head) with its rotary layout patched to the checkpoint's half-split convention — text-only logits identical to the original (max |Δ| = 0.0). The decoder section declares `prefer_activation_type = fp32_fp16`: some mobile GPUs accumulate fp16 and overflow at the image-token positions, which blanks the vision conditioning (the model answers as if it saw nothing); the in-bundle declaration selects mixed precision automatically.
-- **Tokenizer**: the HF `tokenizer.json` is bundled as-is (byte-level BPE, 255k + 38 special tokens).
+- **Tokenizer**: the model's own `tokenizer.json` is bundled as-is since 2026-10-15 (byte-level BPE, 255k + 38 special tokens); the files before carried the copy transformers' `CohereTokenizer` class writes, which splits every digit (see 2026-10-15 below).
 - Reproduce: [hf-to-litertlm](https://github.com/john-rocky/hf-to-litertlm) — `bash scripts/reproduce_vlm.sh north-micro-vision` (`REPRODUCE.md` has the full recipe and gotchas).
+
+### 2026-08-31 — chat template fix: history turns with role 'assistant' (metadata-only, weights unchanged)
+
+The chat template in `North-Micro-Vision-Instruct_int4.litertlm`, `North-Micro-Vision-Instruct_wi8.litertlm` matched history turns only on role `'model'`, so a conversation created through the Conversation API with the standard role `'assistant'` (for example `create_conversation(messages=[...])` restoring a chat) silently dropped every assistant turn from the rendered prompt — the model saw consecutive user turns with its own replies gone. The template's role conditions now also accept `'assistant'`. The engine's own `send_message` flow was never affected.
+
+**Template-only change**: every section of the bundle except the metadata is byte-identical to the previous file (verified by per-section sha256), and single-turn renders, token ids, prefill counts and greedy answers are unchanged (verified on the LiteRT-LM runtime), so the numbers on this card still describe this file — only the file's own sha256 differs. Re-download only matters if you inject conversation history with role `'assistant'`. Details: google-ai-edge/LiteRT-LM#3417 (https://github.com/google-ai-edge/LiteRT-LM/issues/3417).
+
+### 2026-10-15 — tokenizer fix: digits (tokenizer section only, weights unchanged)
+
+**Digits.** Since the 2026-10-15 re-pack (tokenizer section replaced by the upstream tokenizer), "17 times 23" is read as 17 × 23 and answered 391; the earlier files read it as 1.7 × 2.3 on every digit check of litert-lm 0.18.0 (the int4 file answered 3.91).
+
+The earlier files carried the `tokenizer.json` that transformers' `CohereTokenizer` class writes: it splits every digit into its own token, so "17" reached the model as "1", "7". The model's own `tokenizer.json` groups numbers in runs of up to three digits. The tokenizer section is now that file byte for byte (CohereLabs/North-Micro-Vision-Instruct at `fa548d9a`, the commit where upstream made transformers v5 use it verbatim); the vocabulary and token ids are unchanged. Every other section, the metadata included, is byte-identical to the previous file (verified by per-section sha256), so the speed numbers on this card still describe this file. Text other than digits also tokenizes as upstream does now (upper-case contractions, runs of newlines or tabs, decomposed accents), so the verbatim outputs and gate scores above, recorded with the earlier files, can differ on the new ones. The new section tokenizes identically on litert-lm 0.15.0 through 0.18.0 (286 probe texts each).
 
 ## License
 

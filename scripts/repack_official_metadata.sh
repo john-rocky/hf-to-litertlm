@@ -5,6 +5,8 @@
 #   bash scripts/repack_official_metadata.sh <hf-repo> <file.litertlm> <family> <hub-commit> [max_num_tokens] [litert-lm-commit]
 #   e.g. bash scripts/repack_official_metadata.sh litert-community/MiniCPM5-1B minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm minicpm5 f6a837aa9437aa389f0161f2a1a65c715ae1c17a 1024
 #
+# The official templates read content parts only: the re-packed file needs litert-lm >= 0.18.0. A non-generic llm_model_type changes three GPU-executor defaults: re-measure the phone GPU.
+#
 # Output: out/repack/<file>  (sha256 printed last). Needs uv (for the pinned litert-lm 0.18.0 CLI), curl, shasum, diff, perl.
 set -euo pipefail
 REPO=${1:?hf repo, e.g. litert-community/Qwen3-4B}; FILE=${2:?file name}; FAMILY=${3:?minicpm5 | qwen3 | qwen2_5}; HUB=${4:?hub commit of the original}

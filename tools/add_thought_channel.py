@@ -9,8 +9,12 @@ channel's end-token ids, and with no channel there are none. The exporter does
 not emit the block on the structured-template path, so add it after export.
 
 Verifies after packing that every tflite section is byte-identical to the input
-and that the metadata differs ONLY in `channels`, so the fix can never be a
-quality change.
+and that the metadata differs ONLY in `channels`. Byte-identical sections do not
+mean identical behaviour: the block turns on the thinking budget and drops the
+thought from later turns' history, which changed one model's multi-turn answers
+— run a multi-turn check before shipping. Use markers that are single tokens and
+match what the model writes (a model that writes no newline at the tags needs
+the bare form).
 
 Requires `pip install litert-lm-builder` and the `litert-lm` CLI (or point
 LITERT_LM_BIN at one).

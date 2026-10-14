@@ -25,6 +25,15 @@ process substantially faster. Budget RAM before choosing GPU: the GPU path needs
 **2× the model size** (weights plus the runtime's GPU weight cache), so a 3B int4 bundle
 (~2.7 GB) wants a 12 GB device; on 8 GB devices prefer a 1–2B model or CPU.
 
+**The bundle's model type changes GPU defaults.** When the app sets nothing, LiteRT-LM picks three
+GPU-executor settings by whether the bundle's `llm_model_type` is `generic_model`: typed bundles allow
+quantized fully-connected / conv ops (the runtime's note: faster at the risk of quality), only generic
+bundles make OpenCL wait for completion after each invoke (the note: a known quality issue on AMD and
+Mali GPUs), and only generic bundles get a kernel batch hint (`runtime/engine/engine_settings.cc`, every
+release since 0.14). Nothing in the bundle or the public APIs overrides them. A metadata re-pack that
+changes the type leaves every graph byte-identical and still runs differently on Adreno and Mali:
+measure the GPU again before quoting older GPU numbers.
+
 ### Image prompts and timing with the LiteRT-LM Android binary
 
 Measured with MiniCPM-V-4.7-1B (`fast_vlm` bundles) on a Galaxy S26 and a Pixel 8a with the prebuilt `litert_lm_advanced_main` of 2026-10-13 (REPRODUCE.md, 2026-10-13):
