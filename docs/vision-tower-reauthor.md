@@ -34,7 +34,9 @@ These are the steps that turned MiniCPM-V-4.7-1B's 27-layer window-merger ViT (4
    the module keeps a leading batch axis (537 such float activations in this encoder). Read them for the
    mobile-GPU trap classes (LiteRT #10445: a rank-2 elementwise op against a rank-2 or rank-3 constant, a
    rank-3 PAD on a non-innermost axis, an int8 FULLY_CONNECTED feeding the residual ADD), not for the rank
-   of every activation; this encoder had none of the elementwise form.
+   of every activation; this encoder had none of the elementwise form. A static pre-flight that matches these
+   forms against a measured compatibility matrix is `edge-lint` in
+   [edge-compat](https://github.com/john-rocky/edge-compat); run it on the `.tflite` before the device leg.
 8. **Contract cost, measured first.** The runtime squares the image to the fixed size and feeds 1-D
    positions. Run the upstream fp32 model three ways before deciding that a derived-position graph is
    needed: processor-native, the fixed square, and the fixed square with 1-D positions. MiniCPM-V-4.7, 9
