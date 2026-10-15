@@ -12,9 +12,10 @@ A fake phone (`fake_adb.py`) runs the same chains end to end on the Mac (`dryrun
 | `npu_chain.sh` | `check`, `run`, `cleanup` with a native C-API runner instead of the app (NPU legs, and GPU legs of the same runner) |
 | `lib.sh` | Shared functions: loading `lane.env`, phone reads, the plan, the hold and its clock, the ready gate, the transfer check |
 | `run.sh` | One leg of the measurement app (`am start`, poll, stop at the limit, pull, logcat), plus `state` and `cleanup` |
-| `keeper.sh` | Waits in the phone's named line, owns the hold, releases it on request or at the 30-minute limit |
+| `keeper.sh` | Waits in the phone's named line, owns the hold, releases it on request or at its limit (`HOLD_LIMIT`; the chains set it from `END_MIN`, 30 minutes by default) |
 | `fake_adb.py` | A stand-in for `adb` with a fake phone in a directory; the app's process is the lane's stand-in |
 | `dryrun.sh` | Three scenarios of `chain.sh` against the fake phone, with a `summary.json` of checks |
+| `test_xfer.sh` | `chain.sh`'s push (`xfer`: exec-in, then the byte count polled) against a fake phone and a fake clock |
 | `dryrun_npu.sh` | Three scenes of `npu_chain.sh` against the fake phone and the lane's stand-in runner |
 | `examples/pixel8a.lane.env` | Settings for a second phone (Pixel 8a) |
 | `hold/` (when present) | The hold tools `CA` defaults to: `device_hold.py` (the owned hold file), `hold_cli.py` (acquire / release / read from bash), `queue_cli.py` (the phone's named waiting line) and their tests |
@@ -134,9 +135,11 @@ It puts an `adb` tripwire first on `PATH`, sets `ADB=fake_adb.py`, a fake hold f
 
 `summary.json` lists every check with `ok`, `got` and `want`: each step's exit code, no real adb call, every fake adb call inside a hold, the chain's transfer check, ready gate, leg, pull, cleanup and release lines, every graph swap and small file checked on the phone, every plan leg run or skipped with a reason, the GPU reads of the fake phone's kind (a GPU line in every leg's samples and no failed GPU read, a `gpu:` line in every state file, the GPU level in every ready gate line; on Mali also the GPU's temperature and cooling device in the slow samples), every leg's report JSON (the fake `exec-out`, like the real one, returns `cat`'s error text for a missing report: it is kept aside as `<tag>.report_pull.txt`), the thermal service's raw dump and the sysfs cooling devices kept after the hold, the cooling source named in `s_gpu.txt` (the fake Adreno phone has a Galaxy S26's form: its thermal service lists no cooling device and its sysfs lists twelve, so `sysfs`; the fake Mali phone a Pixel 8a's: its thermal service lists nine, so `hal`, and a sysfs device of a kept type is left alone), the cooling devices from that source (each state file's `cooling:` line equals the HAL's `mType` 2 and 3 devices or the kept sysfs devices with their states; every leg's slow samples name a GPU device and nothing else), every temperature from the current section (both fakes' cached sections hold older values: each state file's `skin:` and `hal_temps:`, every slow sample's skin and, on Mali, `G3D`), the fake phone clean and the hold free afterwards. With `DRY_REFERENCE` it also compares the leg statuses, skips, verdicts, line counts, the scorer's results, timing sets and the stand-in's layout check with an earlier run (a kgsl phone's record: a Mali dry run skips the comparison, because the app's own cool wait reads kgsl and sleeps a fixed time on Mali). The script exits 0 only when every check is ok.
 
+The fake phone writes a whole file before `exec-in` returns, so the dry run never reaches the byte-count polls of `chain.sh`'s push (`xfer`). `bash test_xfer.sh` runs that function against a fake phone and a fake clock: a file complete at once, one complete 0.7 s after `exec-in` returned (one second of polls), one stuck (stopped after 30 s without growth and removed), one slow but growing, one never complete (`XFER_MAX_S`), and a phone lost in the transfer.
+
 `bash dryrun_npu.sh <lane.env>` does the same for `npu_chain.sh` with the lane's stand-in runner (staged under the runner's name; it dumps known outputs instead of running the graph), three scenes, each on its own fake phone and hold file: `normal` (the plan `NPU_DRY_PLAN` as it is: every leg DONE with its dumps and a score; the runner's stdout and stderr in two files, LiteRT's log lines only in `stderr.txt`, the runner's `summary` line at a line start of `stdout.txt` and in the scorer's results, `delegate.txt` opening with the runner's own delegation lines, the raw thermal dump and the sysfs cooling devices kept, every temperature from the current section and the cooling devices from sysfs), `compile_hang` (every NPU compile hangs: `COMPILE_TIMEOUT` by the compile watch, the killed runner's `stderr.txt` still pulled, the GPU legs still run, a leg that needs a timed-out leg is skipped) and `usb_lost` (the phone leaves adb during the first leg: hard stop, release, then `cleanup`). Every fake adb call must fall inside a hold and every stage must be gone at the end; `NPU_DRY_REFERENCE` / `NPU_DRY_REFERENCE_NORMAL` compare the scenes with an earlier run.
 
-## Before a run: four checks, and which phone
+## Before a run: five checks, and which phone
 
 Check these before starting a run (or an agent session that will start one), and do not start when one fails:
 
@@ -144,6 +147,7 @@ Check these before starting a run (or an agent session that will start one), and
 2. The terminal workspace manager that hosts the sessions responds.
 3. The account's usage left covers the length of the run.
 4. The phone: `adb devices`, the waiting line (`python3 queue_cli.py list <hold file>`) and the scheduled jobs that take a free phone (for example a nightly benchmark at 02:00 and 05:30).
+5. The clock: no leg starts after `SKIP_MIN` (25) minutes of hold, every leg ends by `RUN_END_MIN` (28) and the keeper releases at `END_MIN` (30). When the phone is promised to others for less time, set the three in `lane.env` to that budget. Count the setup in it: every pushed file adds its transfer and its sha256 read-back to the hold (a rows set with dozens of input files takes minutes), so push one set per hold or fold inputs into fewer files.
 
 Which phone:
 

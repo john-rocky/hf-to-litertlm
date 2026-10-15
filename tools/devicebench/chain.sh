@@ -105,18 +105,20 @@ dev_sha() {  # name -> MATCH / CHECK line; fails unless both sides are non-empty
 
 xfer() {  # src name: exec-in into the app's files/ (no staged copy); the client may return before the phone has
   # written everything -> poll the byte count until it equals the source's, or stops growing for 30 s, or XFER_MAX_S;
-  # no `timeout` on the client
-  local src=$1 name=$2 want got last=-1 still=0 t0 rc
+  # no `timeout` on the client. The first polls come 0.2-2 s apart: a fixed 5 s sleep cost about 5 s per file
+  local src=$1 name=$2 want got last=-1 t0 rc grew wi=0
+  local waits=(0.2 0.3 0.5 1 2 5)   # most files are complete within a second of exec-in returning
   want=$(stat -L -f %z "$src"); t0=$(now)
   A exec-in "run-as $PKG sh -c 'cat > files/$name'" < "$src"; rc=$?
   present || hard_stop "device_lost_in_transfer_$name"
+  grew=$(now)
   while :; do
     got=$(A shell run-as "$PKG" stat -c %s "files/$name" 2>/dev/null | tr -d '\r')
     [ -n "$got" ] && [ "$got" = "$want" ] && break
-    if [ "$got" = "$last" ]; then still=$(( still + 5 )); else still=0; fi
+    [ "$got" = "$last" ] || grew=$(now)
     last=$got
-    { [ "$still" -ge 30 ] || [ $(( $(now) - t0 )) -ge "$XFER_MAX_S" ]; } && break
-    sleep 5
+    { [ $(( $(now) - grew )) -ge 30 ] || [ $(( $(now) - t0 )) -ge "$XFER_MAX_S" ]; } && break
+    sleep "${waits[$wi]}"; [ "$wi" -lt $(( ${#waits[@]} - 1 )) ] && wi=$(( wi + 1 ))
   done
   echo "exec-in $name rc=$rc bytes ${got:-<none>}/$want in $(( $(now) - t0 ))s"
   if [ "$rc" = 0 ] && [ -n "$got" ] && [ "$got" = "$want" ]; then return 0; fi

@@ -426,7 +426,9 @@ take_hold() {  # the keeper is its own process (its pid owns the hold, so the ho
   rm -f "$R/RELEASE_HOLD" "$R/HOLD_RELEASED" "$R/GAVE_UP"
   cp "$BENCH/keeper.sh" "$R/keeper.sh.tmp" && mv "$R/keeper.sh.tmp" "$R/keeper.sh"
   echo "===== keeper for $SCRIPT_NAME started by chain pid $$ $(ts) (keeper.sh sha256 $(shasum -a 256 "$R/keeper.sh" | cut -c1-16))" >> "$R/keeper.log"
-  nohup bash "$R/keeper.sh" "$R" "$HOLD" "$SCRIPT_NAME" >> "$R/keeper.log" 2>&1 < /dev/null &
+  # the keeper's own limit is END_MIN unless HOLD_LIMIT is set: without it a lane's shorter END_MIN changed only the
+  # "released by" line, and the keeper still held the phone to its 30-minute default
+  HOLD_LIMIT=${HOLD_LIMIT:-$(( END_MIN * 60 ))} nohup bash "$R/keeper.sh" "$R" "$HOLD" "$SCRIPT_NAME" >> "$R/keeper.log" 2>&1 < /dev/null &
   echo "$!" > "$R/keeper.pid"
   echo "keeper pid $(cat "$R/keeper.pid") waiting in line for $HOLD as $SCRIPT_NAME $(ts)"
   until [ -f "$R/HOLD_ACQUIRED" ]; do
