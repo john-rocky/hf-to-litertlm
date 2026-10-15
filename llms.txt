@@ -28,6 +28,7 @@ litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on
 - [tools/tokenizer_parity/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/tokenizer_parity): compare a bundle's tokenizer with the repo's own tokenizer.json and swap the section when they differ (AutoTokenizer.save_pretrained can rewrite the pre-tokenizer).
 - [tools/vlm_text_ckpt/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/vlm_text_ckpt): export a VLM's text tower through the LLM rail as a derived CausalLM checkpoint (prefix rename, untied head, text_config as config.json), with the fp32 logits proof of the remap against the full model.
 - [docs/vision-tower-reauthor.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/vision-tower-reauthor.md): re-authoring a vision tower in plain PyTorch for the fast_vlm contract (constant positions, block-diagonal window mask, strided-slice merges, fp16-safe LayerNorm, the gates and the quantization form), from MiniCPM-V-4.7-1B.
+- [docs/fp16-safe-norms.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/fp16-safe-norms.md): fp16-safe RMSNorm for raw graphs: a per-site power-of-two rescale that keeps fp32 bit-exact, the rsqrt clamp for padding rows, a finite mask constant, float output masks.
 
 ## Running the bundles
 
