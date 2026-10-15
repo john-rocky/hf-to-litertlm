@@ -33,7 +33,8 @@ The bundle uuid and creation timestamp change with every pack; the weights do no
 
 ## What is here
 
-- `dual/<sha12>.jinja` — the dual-form version of every string-only template found in the bundles we published (32 families; `sha12` = the first 12 hex digits of the sha256 of the ORIGINAL template text as stored in the bundle, so you can match a bundle by hashing its `jinja_prompt_template`).
+- `dual/<sha12>.jinja` — the dual-form version of every string-only template found in the bundles we published, plus MiniCPM-V-4.7-1B's text-only variant, which shipped in dual form (33 templates; the Nemotron-H-4B one was removed on 2026-10-15, see [dual/LICENSES.md](dual/LICENSES.md); `sha12` = the first 12 hex digits of the sha256 of the ORIGINAL template text as stored in the bundle, so you can match a bundle by hashing its `jinja_prompt_template`).
+- [`dual/LICENSES.md`](dual/LICENSES.md) — where each `dual/` template comes from and its license, which is the source model's, not this repository's Apache-2.0 (license texts and notices in `dual/licenses/`).
 - `families.tsv` — which published file carried which family and its failure mode before the swap.
 - `swap_template.py` — the swap and its verification (writes a JSON report and an evidence directory next to it).
 - `add_tool_branch.py` — adds tool-call and tool-result rendering to the template a bundle carries (rules `lfm2`, `granite`, `falcon-h1`, `falcon3`; `lfm2` copies the tool rendering of LiteRT-LM's `models/lfm2/chat_template.jinja`). For the templates of the files re-packed in 2026-10 it checks the result against the template that was packed into them ([REPRODUCE.md](../../REPRODUCE.md), "Metadata re-packs (2026-10)").

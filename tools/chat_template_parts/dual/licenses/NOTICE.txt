@@ -1,0 +1,48 @@
+Notices that the licenses of some templates in this directory ask to be kept with copies, and statements they ask to be shown (see ../LICENSES.md).
+
+ecd6ae513fe1.jinja (Gemma Terms of Use, section 3.1):
+Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms
+
+16a45cbae34d.jinja (Llama 3.2 Community License, sections 1.b.i and 1.b.iii):
+Built with Llama
+Llama 3.2 is licensed under the Llama 3.2 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.
+
+369c53d3ab00.jinja (Qwen Research License, section 3.c):
+Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) Alibaba Cloud. All Rights Reserved.
+
+1b73228ab46a.jinja, 914ccd80356f.jinja, b4bb2b316799.jinja (TII Falcon License, section 6.1):
+1b73228ab46a.jinja is built using artificial intelligence technology from the Technology Innovation Institute
+914ccd80356f.jinja is built using artificial intelligence technology from the Technology Innovation Institute
+b4bb2b316799.jinja is built using artificial intelligence technology from the Technology Innovation Institute
+
+d05de611ebbf.jinja (MIT License of microsoft/Phi-4-mini-reasoning; its full text with the permission notice is mit-phi-4-mini-reasoning.txt):
+Copyright (c) Microsoft Corporation.
+
+460cb42fdd40.jinja (MIT License of WeiboAI/VibeThinker-3B. The repo names no copyright holder: its card says `license: mit`, its README "The model repository is licensed under the MIT License.", and it has no LICENSE file at 77bd2cc. Permission notice as in https://spdx.org/licenses/MIT.json, retrieved 2026-10-15):
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+4cca9d116922.jinja (the NOTICE file of superwhisper/s1-mini, verbatim from https://huggingface.co/superwhisper/s1-mini/blob/88f6b15896c73bbb13a3b596e0afe8ea0d5150b4/NOTICE, retrieved 2026-10-15):
+S1-mini
+Copyright 2026 Superwhisper
+
+This work is a derivative of Qwen3-0.6B, Copyright 2024 Alibaba Cloud,
+licensed under the Apache License, Version 2.0.
+
+Any use, distribution, or integration of this model, whether unmodified or
+as part of a derivative work or product, must continue to identify it by its
+original name, "S1-mini" by "Superwhisper", using that exact capitalization.
+This restates the ADDITIONAL TERM of the LICENSE file, which is the
+operative text.
