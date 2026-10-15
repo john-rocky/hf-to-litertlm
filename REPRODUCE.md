@@ -183,6 +183,25 @@ shasum -a 256 $WORK/out/$FILE
 
 Checked on 2026-10-15 on a Mac with litert-lm 0.18.0: run as printed from the source commit, blocks A, B, D, E, F and G rebuilt LFM2.5-1.2B-Instruct_int4, LFM2.5-230M_int4, granite-4.0-h-350m_int8, qwen3-0.6b_weight_only_wi4_afp32, Ovis2.5-2B and North-Micro-Vision-Instruct_int4 with every section equal to the published file, and `set_prompt_template.py`, `add_thought_channel.py` and `swap_tokenizer_section.py` gave the same sections for the E, F and G files. Block C was not re-run.
 
+## External weights (2026-10)
+
+A first published `.litertlm` is re-packed so that the weights of its TFLiteModel section sit in a TFLiteWeights section at the end of the file, with LiteRT's `externalize_tflite_flatbuffer.py` and `externalize_litertlm_sections.py` (commit `c5c0d28f`) and litert-lm-builder 0.18.0 (Hub PR https://huggingface.co/litert-community/Qwen3-0.6B/discussions/13, open). The Android GPU path of a LiteRT-LM build at tag v0.18.0 crashes on such a file (google-ai-edge/LiteRT-LM#3986); a build at or after b7c40ea81 runs it. Every other section is byte-identical to the file it was built from; `tools/externalize/README.md` lists the checks each file passed.
+
+| repo | file | built from (Hub commit) | source sha256 (first 16) | TFLiteModel / TFLiteWeights sections | result sha256 (first 16) | Hub commit of the result |
+|---|---|---|---|---|---|---|
+| litert-community/Qwen3-0.6B | Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm | a3c5d805ae362dff7f580bc25f2dfb9a5a7eaa76 | 03e7da1eb1108b50 | 1 / 1 | 96491bb0f78fa680 | PR #13 (open 2026-10-15, refs/pr/13) |
+
+Rebuild a row from the repository root, after the `pip install` line and `fetch_tools.sh` in `tools/externalize/README.md`:
+
+```sh
+export XR_TOOLS_PATH=$HOME/.cache/litert-externalize/c5c0d28f27abddec81bcc14bbd05bdb84eb5c556
+bash tools/externalize/externalize_repo.sh litert-community/Qwen3-0.6B Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm \
+  --revision a3c5d805ae362dff7f580bc25f2dfb9a5a7eaa76
+```
+
+The builder writes a new uuid and creation timestamp into the container header, so a rebuilt file's sha256 differs from the table. Compare it with the published file section by section: `python scripts/section_identity.py <published> externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm` prints SAME for every section. The run's report (`externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm.REPORT.md`) gives the raw sha256 of each section: TFLiteModel `dcb1e3d69326af0d…`, TFLiteWeights `21011d25361c728d…`.
+
+
 ## 2026-10-12 — metadata re-ship to the official LiteRT-LM configuration, second batch (3 files, weights unchanged)
 
 Same recipe and script as the 2026-10-10 batch (`scripts/repack_official_metadata.sh`, official config at LiteRT-LM commit `4a363c0728d4461eaf05c4d87250ef3e90deb035`, byte-identical to main `03d3979f` on 2026-10-10). Every section other than LlmMetadata is byte-identical to the published file; `max_num_tokens` was left at the official 4096 because each original either set 4096 or left the field unset. Proposed as Hub pull requests (metadata only); until a PR merges, `main` serves the original.
