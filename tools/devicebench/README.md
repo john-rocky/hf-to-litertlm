@@ -18,6 +18,7 @@ A fake phone (`fake_adb.py`) runs the same chains end to end on the Mac (`dryrun
 | `dryrun_npu.sh` | Three scenes of `npu_chain.sh` against the fake phone and the lane's stand-in runner |
 | `examples/pixel8a.lane.env` | Settings for a second phone (Pixel 8a) |
 | `hold/` (when present) | The hold tools `CA` defaults to: `device_hold.py` (the owned hold file), `hold_cli.py` (acquire / release / read from bash), `queue_cli.py` (the phone's named waiting line) and their tests |
+| `pool_parts.py` | One verdict for a check set that ran as parts, pooled exactly from the parts' scorer files ("The plan"); `test_pool_parts.py` its cases |
 
 Host: macOS (BSD `date` and `stat`), bash 3.2 or later, the system `python3` for small JSON reads and the hold tools, the lane's Python for its scorer and stand-in. `CA` names the hold tools' directory (default: `hold/` in this folder when it has `queue_cli.py`, else this folder's parent). The keeper needs `queue_cli.py wait <hold file> <name> <pid>` (wait in the phone's named line, then take the hold for that pid) and `list`, and `hold_cli.py release <hold file> <pid>` (remove the hold only when that pid owns it); the dry run also uses `hold_cli.py acquire` and `queue_cli.py enqueue`.
 
@@ -57,6 +58,16 @@ tag  limit_s  accel  precision  graph  rows  mode  ready  [extras]
 Extras (`key=value`): `rest=<s>` (rest since the previous leg, default 60), `keep=<graph,...>` (graphs that stay on the phone), `guard=<kB>` (MemAvailable below it force-stops the app; default `MEM_GUARD_KB`; 0 = off), `sample=<s>` (sampler period, default 2), `poll=<s>` (ready gate poll), `needs=<tag>` (run only when that leg is DONE), `needs_pass=<tag>` (run only when that gate leg's verdict is PASS; waits up to `VERDICT_WAIT_S` for the scorer), `once=1` (one attempt per round dir), `whole=1` (start only when the whole limit fits before `RUN_END_MIN`), `prep=<kind>:<leg>` (a generic leg whose rows and inputs `lane_prep` makes from that earlier generic leg's pulled output), `threads=<n>` (default 4), and the app's own extras listed in `APP_INT_EXTRAS` / `APP_STR_EXTRAS`. An extra reaches the app only when it has a value.
 
 A leg whose report already says DONE is skipped, so the next hold continues the plan where the last one stopped.
+
+A check set that does not fit one leg (the app's limit, the rows file's size, the hold clock) runs as parts: one rows file per part (`<set>a.json`, `<set>b.json`, …) and one leg each. A part's verdict is a verdict on a subset; `pool_parts.py` pools the parts' scorer files into one verdict for the whole set, with the rule given as arguments: `--wmean F:W` (the mean weighted by W, for example the tokens), `--min` / `--max` / `--sum`, `--concat` (lists joined and sorted), `--complete` (a condition every part must meet: scored, every row present) and `--bar` (the conditions on the pooled values); `--rules <file>` keeps a lane's rule in one file. List every part of the set, present or not: an absent part, a part that fails a `--complete` condition or lacks a value a rule reads makes the whole INCOMPLETE, never PASS.
+
+```bash
+python3 pool_parts.py --out results/whole_w10.json --id tag \
+  --sum tokens --wmean cos_mean:tokens --min cos_min --max max_abs \
+  --complete 'verdict in (PASS, FAIL)' --complete 'rows_present == @rows' \
+  --bar 'cos_mean >= 0.999' --bar 'cos_min >= 0.99' \
+  results/w10a.json results/w10b.json results/w10c.json
+```
 
 ## lane.env
 
