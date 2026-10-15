@@ -74,3 +74,5 @@ litert-community/LFM2-2.6B-Exp
 litert-community/granite-4.0-micro
 litert-community/G9v3-3B
 litert-community/MiniCPM-V-4.7-1B
+litert-community/granite-4.1-8b
+litert-community/Ministral-3-8B-Instruct-2512

@@ -370,5 +370,15 @@
     "task": "chat + image",
     "group": 3,
     "recipe": "REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token"
+  },
+  "granite-4.1-8b": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#granite-41-8b--the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite"
+  },
+  "Ministral-3-8B-Instruct-2512": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#ministral-3-8b-instruct-2512--a-text-tower-out-of-a-vision-checkpoint-the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite"
   }
 }

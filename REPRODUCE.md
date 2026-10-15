@@ -2558,6 +2558,74 @@ The script wrote these section hashes (`repack_int8.json` / `repack_int4.json`, 
 - **int8 = `dynamic_wi8_afp32` (channelwise int8 weights, float activations); int4 = `BOCTAV4` (blockwise-32 OCTAV int4 + int8 embedding), every scale normal.** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 1024 output tokens, one process per question): bf16 86, int8 83 on the CPU and 90 on the GPU, int4 84 on the GPU; the files keep the runtime's default fp16 GPU activations.
 - Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0 on the Mac, prebuilt `litert_lm_advanced_main` 2026-09-18 on the phones): Mac M4 Max GPU (WebGPU) int8 1425 / 69.8 tok/s, int4 1455 / 87.3; Galaxy S26 GPU 27.75–29.17 s for int8 and 21.25–22.17 s for int4 over 3 runs each; Pixel 8a GPU int4 98.2 / 8.24 tok/s — the int8 file has no Pixel 8a GPU row: the harness stops the runtime below 400,000 kB of MemAvailable, and it stopped every process of that try; every decoder signature fully delegated on all three GPUs.
 
+### granite-4.1-8b — the lightweight export path for an 8B, and the GPU-composite graph by rewrite
+
+`granite41_work/convert_granite41_8b.sh` converts [ibm-granite/granite-4.1-8b](https://huggingface.co/ibm-granite/granite-4.1-8b) at commit `1504002f` — "a 8B parameter long-context instruct model" — into the two files of [litert-community/granite-4.1-8b](https://huggingface.co/litert-community/granite-4.1-8b). Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1, torch 2.13.0; litert-lm 0.18.0 for the metadata step, the graph rewrite's pack and running the files.
+
+```bash
+EXPORT_PY=/path/to/python-with-litert-torch-0.9.4 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash granite41_work/convert_granite41_8b.sh out_granite41_8b
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `granite-4.1-8b_int8.litertlm` (8,949,862,832 B) | LlmMetadataProto | 6,122 | `7db3ad38d53da7ef22963c575df91540ab90a69baffec62145df4847f9dbb3b1` |
+|  | ExecutorMetadataProto | 5,446 | `d6a12663c3b913d5dc4e21f17e8330ea0ef21a9e4e1f251144c52170d77fa346` |
+|  | HF_Tokenizer_Zlib | 1,404,724 | `7d73e13c3e3c6e082ca8e3bdae4c212936b191fc0f57e94b087e205399e38ee6` |
+|  | TFLiteModel | 8,528,914,704 | `b298d333ff77cc673a5451eb9217a4b792ec40e8fdbb3a67d7dc954e727621d8` |
+|  | TFLiteModel | 419,484,080 | `7f239a4fefee591ff51112fce2af15342f8917452d35c703d10f2609cb1eb4ab` |
+| `granite-4.1-8b_int4.litertlm` (5,151,986,096 B) | LlmMetadataProto | 6,122 | `7db3ad38d53da7ef22963c575df91540ab90a69baffec62145df4847f9dbb3b1` |
+|  | ExecutorMetadataProto | 5,446 | `d6a12663c3b913d5dc4e21f17e8330ea0ef21a9e4e1f251144c52170d77fa346` |
+|  | HF_Tokenizer_Zlib | 1,404,724 | `7d73e13c3e3c6e082ca8e3bdae4c212936b191fc0f57e94b087e205399e38ee6` |
+|  | TFLiteModel | 4,731,041,056 | `77b54f7a1725be9660d8455597f5ee0bfbf1f82db89b40543eac7f2abb9f8a06` |
+|  | TFLiteModel | 419,484,080 | `7f239a4fefee591ff51112fce2af15342f8917452d35c703d10f2609cb1eb4ab` |
+
+The recipe rebuilt every one of these sections byte for byte when it was run from the pinned checkpoint on 2026-10-14, and the two exported-graph files as well. The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **The lightweight export path.** An export of this model through the default path reached 98.8 GB on a 128 GB Mac in the converter passes before a RAM guard stopped it. `export_lightweight.py` is `scripts/export_simple_template.py` plus `experimental_lightweight_conversion` (`LIGHTWEIGHT=1`). With litert-torch's 1 MiB default for lazy constants the converter left the 40 o_proj weights unquantized behind a constant-only MUL (× residual_multiplier 0.22), so `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000` keeps only constants above 1e8 bytes (the MLP weights and the embedding table) lazy; every FULLY_CONNECTED weight is then an int8 / int4 constant and no op has all-constant inputs, and the residual scale stays a scalar MUL on each down_proj output. Peaks 50–56 GiB per export. Run one export at a time.
+- **IBM's template, no start token, one stop.** `USE_JINJA=1` embeds IBM's chat_template.jinja byte for byte; unlike granite-4.0-micro's it has no default system message, so a conversation without one has no system turn. Its renders on the engine's template renderer equal transformers' in 9 of 10 conversation shapes. `bos == eos == <|end_of_text|>` with `add_bos_token: false`, so `NO_START_TOKEN=1` (the granite-4.1-3b lesson above): the engine's prefill count equals transformers' and the prompt starts with `<|start_of_role|>`. `make_pbtext.py` keeps only the stop id 100257 of the exporter's 15 entries and sets `supports_thinking` and `supports_function_calling` false.
+- **Tool calls come back as text; send tool results back as text.** The bundle's model type has no tool-call parser: the model's `<tool_call>{…}</tool_call>` JSON arrives in the reply text. A tool result passed to the Python API as a tool-response content part renders empty with this template and the reply did not use it; the same result as the tool message's text was used.
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), embedder externalised**. The main TFLite section is 8,528,914,704 bytes (int8) and 4,731,041,056 bytes (int4), both over 2 GiB; not run on iOS.
+- **int8 = `dynamic_wi8_afp32` (channelwise int8 weights, float activations); int4 = `BOCTAV4` (blockwise-32 OCTAV int4 + int8 embedding), every scale normal.** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 1024 output tokens, one process per question): bf16 96, int8 95, int4 93 on the Mac GPU; the same weights before the graph rewrite: 95 and 93, with no question changing between right and wrong.
+- **The GPU-composite graph by rewrite.** `tools/gpu_graph/gpu_graph_retrofit.py X_plain.litertlm X.litertlm --decomp exporter --mask add_bcast` (step 4, once per file) turns each layer's two DYNAMIC_UPDATE_SLICE KV writes into one `odml.cache_update` and the attention products into `odml.runtime_bmm` (280 and 548 composites), keeps every weight byte and every other section. On the Mac GPU the 1024 / 256 / 2048 workload went from 8.20 to 6.95 s (int8) and from 6.93 to 5.78 s (int4); on the CPU the difference stayed inside the run-to-run spread.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 718.0 / 46.34 tok/s, int4 720.1 / 58.80; CPU int8 112.9 / 10.48, int4 52.1 / 11.63; every decoder signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac CPU (one `run` each, #110). No phone row: the Pixel 8a int4 GPU try was stopped by the harness's guard at 400,000 kB of MemAvailable, and the int8 file was not run on the Galaxy S26 after another 8B int8 file dropped that phone during its GPU engine warm-up.
+
+### Ministral-3-8B-Instruct-2512 — a text tower out of a vision checkpoint, the lightweight export path for an 8B, and the GPU-composite graph by rewrite
+
+`ministral_work/convert_ministral3_8b.sh` converts [mistralai/Ministral-3-8B-Instruct-2512-BF16](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-BF16) at commit `f6fae979` — the BF16 weights of [mistralai/Ministral-3-8B-Instruct-2512](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512), whose repo ships FP8 weights — into the two files of [litert-community/Ministral-3-8B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-8B-Instruct-2512). Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1, torch 2.13.0; litert-lm 0.18.0 for the metadata step, the graph rewrite's pack and running the files.
+
+```bash
+EXPORT_PY=/path/to/python-with-litert-torch-0.9.4 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash ministral_work/convert_ministral3_8b.sh out_ministral3_8b
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Ministral-3-8B-Instruct-2512_int8.litertlm` (8,638,820,784 B) | LlmMetadataProto | 3,734 | `4fa8c1545105d9ecb22c2d84acb58293b58b7b179d24bc00c1a5e4f4fd4272b5` |
+|  | ExecutorMetadataProto | 4,618 | `a3db49d0f81caf3130c521ca2e672a9ddd032b52c2c86b0744e2de6a349b8aa4` |
+|  | HF_Tokenizer_Zlib | 2,806,681 | `d30768fefb41588cee87f2f0aa1c1fe7883c6650864be23f0285bfc5842ca5fc` |
+|  | TFLiteModel | 8,088,047,040 | `91c219c33b9e865cf03fab00f89ded7052e296032e9fe77b1fafa61d793cd57c` |
+|  | TFLiteModel | 547,893,680 | `4be81d8d5f7e6fc108b9486eeae109a8b2b569861aeb9a2f0261c0fcf736b1ba` |
+| `Ministral-3-8B-Instruct-2512_int4.litertlm` (5,039,124,912 B) | LlmMetadataProto | 3,734 | `4fa8c1545105d9ecb22c2d84acb58293b58b7b179d24bc00c1a5e4f4fd4272b5` |
+|  | ExecutorMetadataProto | 4,618 | `a3db49d0f81caf3130c521ca2e672a9ddd032b52c2c86b0744e2de6a349b8aa4` |
+|  | HF_Tokenizer_Zlib | 2,806,681 | `d30768fefb41588cee87f2f0aa1c1fe7883c6650864be23f0285bfc5842ca5fc` |
+|  | TFLiteModel | 4,488,362,336 | `7872d3ab4a8ececed80e54b676bf54c4887e1510539623a2130538d4d86c2dc4` |
+|  | TFLiteModel | 547,893,680 | `4be81d8d5f7e6fc108b9486eeae109a8b2b569861aeb9a2f0261c0fcf736b1ba` |
+
+The recipe rebuilt every one of these sections byte for byte when it was run from the pinned checkpoint on 2026-10-14 (40 minutes on a 128 GB Mac; #132, #133). The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **A text tower out of a vision checkpoint.** The checkpoint is `Mistral3ForConditionalGeneration`: a Pixtral vision tower, a projector and a Ministral 3 text decoder. `scripts/extract_ministral3_text.py` keeps the decoder and its untied lm_head as a standalone `Ministral3ForCausalLM` (0 missing, 0 unexpected keys; the YaRN rope parameters kept) and drops the rest; the full model and the text tower give the same bf16 logits at every position of three 528–533-token prompts, max |delta| 0.0.
+- **The lightweight export path.** An 8B export through the default path (granite-4.1-8b on the same 128 GB Mac) reached 98.8 GB in the converter passes before a RAM guard stopped it. `export_lightweight.py` is `scripts/export_simple_template.py` plus `experimental_lightweight_conversion` (`LIGHTWEIGHT=1`), and `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000` keeps only constants above 1e8 bytes (the MLP weights and the lm_head) lazy; peaks 46 GB (int8) and 52 GB (int4). `const_ops.py` and `fc_dtypes.py` check the result: no op with all-constant inputs, no fp32 FULLY_CONNECTED weight. Run one export at a time.
+- **The 3B bundle's template with the 8B system message.** `ministral3_8b_dual.jinja` is the template of the Ministral-3-3B-Instruct-2512 bundle (string or content-parts messages) with Mistral AI's default system message for the 8B verbatim; `{today}` and `{yesterday}` stay literal text, as in the vendor template. The template writes no BOS; the bundle's start token `<s>` adds one, and the engine's prefill count equals transformers' for the vendor template. Its renders equal transformers' vendor render in 6 conversation shapes; the vendor's tool list is not rendered. `make_pbtext.py` keeps only the stop id 2 (`</s>`) of the exporter's 15 entries and sets `supports_thinking` and `supports_function_calling` false.
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), embedder externalised**. The main TFLite section is 8,088,047,040 bytes (int8) and 4,488,362,336 bytes (int4), both over 2 GiB; not run on iOS.
+- **int8 = `dynamic_wi8_afp32` (channelwise int8 weights, float activations); int4 = `BOCTAV4` (blockwise-32 OCTAV int4 + int8 embedding), every scale normal.** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 1024 output tokens, one process per question): bf16 95, int8 97, int4 96 on the Mac GPU; the same weights before the graph rewrite: 95 and 94.
+- **The GPU-composite graph by rewrite.** `tools/gpu_graph/gpu_graph_retrofit.py X_plain.litertlm X.litertlm --decomp exporter --mask add_bcast` (step 5, once per file) turns each layer's two DYNAMIC_UPDATE_SLICE KV writes into one `odml.cache_update` and the attention products into `odml.runtime_bmm` (238 and 464 composites), keeps every weight byte and every other section. On the Mac GPU the 1024 / 256 / 2048 workload went from 7.78 to 6.76 s (int8) and from 6.40 to 5.35 s (int4); on the CPU within 1 %.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 776.8 / 47.02 tok/s, int4 778.2 / 63.52; CPU int8 124.8 / 11.60, int4 56.0 / 13.08; every decoder signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac GPU (one `run` each, #114). No phone row: the int8 file's Galaxy S26 GPU try ended with the phone dropping off USB during the engine warm-up, and the Pixel 8a int4 GPU try was stopped by the harness's guard at 400,000 kB of MemAvailable.
+
 ## granite-4.2-3b (dense, thinking) — the think prefill an extracted template silently drops
 
 `granite42_work/convert_granite42_3b.sh` converts IBM's compact reasoning model (3.66B dense, Aug 2026) on a pristine released stack (litert-torch 0.9.3 / litert-converter 0.4.0 / ai-edge-quantizer 0.9.0 / litert-lm-builder 0.16.1, transformers 5.14.1). Published: [litert-community/granite-4.2-3b](https://huggingface.co/litert-community/granite-4.2-3b). **Requires litert-lm ≥ 0.16 to run.**
