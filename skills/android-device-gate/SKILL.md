@@ -108,7 +108,7 @@ bash tools/devicebench/chain.sh check "$ROUND" "$LANE_ENV"
 
 No adb, no hold: the sha256 sums of every graph, rows file and input file go to `$RUN_DIR/inputs.sha256`, and the APK is checked against its `.sha256`; a missing file, or an APK that does not match, exits 1.
 
-**4. Run it on the phone.** First do README "Before a run: four checks, and which phone". The chain can wait in the line for a long time: start it in the background and wait for its exit, not for a sleep.
+**4. Run it on the phone.** First do README "Before a run: five checks, and which phone". The chain can wait in the line for a long time: start it in the background and wait for its exit, not for a sleep.
 
 ```bash
 bash tools/devicebench/chain.sh run "$ROUND" "$LANE_ENV" > "$RUN_DIR/chain.log" 2>&1; echo "chain exit $?"
@@ -127,7 +127,7 @@ After a hard stop, this takes the phone again, removes the app and the stage dir
 bash tools/devicebench/chain.sh cleanup "$ROUND" "$LANE_ENV"
 ```
 
-No leg starts after 25 minutes of hold, every leg ends by 28, and the keeper releases at 30 at the latest. A leg whose report says DONE is skipped by the next run of the same round, so a later hold continues the plan.
+No leg starts after 25 minutes of hold, every leg ends by 28, and the keeper releases at 30 at the latest. These are the defaults of `SKIP_MIN`, `RUN_END_MIN` and `END_MIN`; when the phone is promised to others for less time, set the three in `lane.env` to your budget so the chain, not your margin, keeps it. Count the setup into the budget: every pushed file adds its transfer and its sha256 read-back to the hold (a rows set with dozens of input files takes minutes), so push one set per hold or fold inputs into fewer files. A leg whose report says DONE is skipped by the next run of the same round, so a later hold continues the plan.
 
 **5. Read the record.**
 
