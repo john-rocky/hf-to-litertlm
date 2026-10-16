@@ -1,0 +1,130 @@
+--- a/litert_torch/generative/export_hf/model_ext/nemotron_h/patch.py
++++ b/litert_torch/generative/export_hf/model_ext/nemotron_h/patch.py
+@@ -19,10 +19,17 @@
+ attribute names match granite's exactly, so the folded rank<=4 rewrite ports
+ with exactly TWO functional differences, both asserted/checked here:
+ 
+-1. **dt clamp is min-only.** The installed reference clamps
+-   `softplus(dt + dt_bias)` at `time_step_min` and leaves the max unclamped
+-   (the `time_step_max` clamp is commented out upstream). Granite clamps to
+-   `time_step_limit[0..1]`. The folded port follows the installed reference.
++1. **dt limit = NVIDIA's, not transformers'.** (2026-10-14.) The
++   installed transformers reference clamps `softplus(dt + dt_bias)` from below
++   at `time_step_min` (0.001; the `time_step_max` clamp commented out), but
++   NVIDIA's NemotronH code (the model repo's modeling_nemotron_h.py, its
++   torch path and the CUDA kernels' dt_limit) clamps to `time_step_limit`,
++   default (0.0, inf) = no clamp. On NVIDIA-Nemotron-Nano-9B-v2, 339 of 3,456
++   heads have softplus(dt_bias) < 0.001 and that lower clamp moved 5 % of the
++   teacher-forced argmax at 1k tokens, so the port follows NVIDIA's limit
++   (`_vendor_dt_limit`); the self-check compares with the transformers
++   reference with its lower clamp removed (time_step_min = 0). The first port (the
++   4B rail) followed the installed reference's lower clamp.
+ 2. **The in_proj split carries two `d_mlp` slices** which are width-0 on every
+    published NemotronH config (`projection_size = intermediate + conv_dim +
+    heads` forces `d_mlp == 0`). Asserted at patch time; the port uses the
+@@ -84,14 +91,30 @@
+     return super().forward(input_ids=input_ids, **kwargs)
+ 
+ 
++def _vendor_dt_limit(dt, limit):
++  """NVIDIA's dt limit on softplus(dt + dt_bias): clamp to config.time_step_limit.
++
++  The model repo's modeling_nemotron_h.py clamps to time_step_limit (l.573 /
++  l.622, default (0.0, inf)) and hands no dt_limit to the CUDA kernels for that
++  default (l.425); transformers 5.14.1 floors at time_step_min instead. A bound
++  that cannot bind on a softplus output (lo <= 0, hi = inf) emits no op.
++  """
++  lo, hi = limit if limit is not None else (0.0, float("inf"))
++  if lo > 0.0:
++    dt = torch.clamp(dt, min=lo)
++  if hi != float("inf"):
++    dt = torch.clamp(dt, max=hi)
++  return dt
++
++
+ def _folded_torch_forward_nemotron(
+     self, input_states, cache_params=None, attention_mask=None
+ ):
+   """granite's folded rank<=4 SSD scan, ported to NemotronHMamba2Mixer.
+ 
+-  Identical to granitemoehybrid._folded_torch_forward except the dt clamp
+-  (min-only, matching the installed NemotronH reference). Helper functions are
+-  granite's own.
++  Identical to granitemoehybrid._folded_torch_forward except the dt limit
++  (NVIDIA's time_step_limit, `_vendor_dt_limit`; see the module docstring).
++  The helper functions come from granite.
+   """
+   del attention_mask  # the pad mask arrives via `_litert_valid`
+   _ones_row = granite_patch._ones_row
+@@ -201,7 +224,7 @@
+ 
+   if single_step:
+     dt = F.softplus(dt[:, 0, :] + self.dt_bias)  # (b, H)
+-    dt = torch.clamp(dt, self.time_step_min)  # NemotronH: min-only clamp
++    dt = _vendor_dt_limit(dt, self.time_step_limit)  # NVIDIA's limit, default no clamp
+     dA = torch.exp(dt * A)  # (b, H)
+ 
+     x = hidden_states.reshape(batch_size, H, P)  # (b, H, P)
+@@ -230,13 +253,12 @@
+     c = seq_p // cl
+ 
+     dt = F.softplus(dt + self.dt_bias)  # (b, seq, H)
+-    dt = torch.clamp(dt, self.time_step_min)  # NemotronH: min-only clamp
++    dt = _vendor_dt_limit(dt, self.time_step_limit)  # NVIDIA's limit, default no clamp
+     # Pad positions must be EXACT identity steps. The -30 pre-softplus trick
+-    # (granite) is not enough here: granite clamps to time_step_limit[0]=0.0,
+-    # but NemotronH's min-only clamp FLOORS pad dt at time_step_min (1e-3), so
+-    # every pad decays the state by exp(time_step_min * A) — ~15% per 10 pads
+-    # on A≈-16 heads, state-annihilating on large underfilled signatures.
+-    # Post-clamp masking forces dA = exp(0) = 1 exactly on pads.
++    # leaves softplus(-30) ~ 1e-13 (and a floored limit, e.g. transformers'
++    # time_step_min = 1e-3 in the first port, decays the state by
++    # exp(time_step_min * A) every pad). Post-limit masking forces dA = exp(0) = 1
++    # exactly on pads whatever the limit.
+     if valid is not None:
+       dt = dt * valid[..., None]
+ 
+@@ -334,7 +356,13 @@
+ 
+ 
+ def _selfcheck_folded_nemotron(tol=2e-4):
+-  """Run the ported folded scan against the installed NemotronH reference."""
++  """Run the ported folded scan against the installed NemotronH reference.
++
++  The reference runs with its time_step_min clamp removed (0.0 = clamp(dt, 0)
++  on a softplus output = no clamp), i.e. NVIDIA's default time_step_limit
++  (0.0, inf) that the port follows; contiguous group-to-head mapping on both
++  sides (repeat_interleave = the CUDA kernels' grouping).
++  """
+   from transformers.models.nemotron_h.configuration_nemotron_h import (
+       NemotronHConfig,
+   )
+@@ -353,6 +381,8 @@
+       conv_kernel=4,
+   )
+   layer = modeling_nemotron_h.NemotronHMamba2Mixer(cfg, layer_idx=0).eval().float()
++  layer.time_step_min = 0.0  # the reference without transformers' lower clamp (the port reads time_step_limit)
++  assert tuple(layer.time_step_limit) == (0.0, float("inf")), layer.time_step_limit
+   worst = 0.0
+   for seq in (16, 13):
+     x = torch.randn(1, seq, cfg.hidden_size)
+@@ -363,7 +393,8 @@
+   if worst > tol:
+     raise AssertionError(
+         "NemotronH folded SSD disagrees with the installed transformers "
+-        f"implementation (relative max|diff| {worst:.2e} > {tol:.0e})."
++        "implementation without its dt lower clamp "
++        f"(relative max|diff| {worst:.2e} > {tol:.0e})."
+     )
+   return worst
+ 
+@@ -375,7 +406,8 @@
+   rel = _selfcheck_folded_nemotron()
+   print(
+       "NemotronH patch applied (granite folded rank<=4 SSD + pad guard, "
+-      f"min-only dt clamp; self-check rel {rel:.1e})."
++      "NVIDIA dt limit = time_step_limit (no lower clamp); "
++      f"self-check rel {rel:.1e} vs transformers without its dt lower clamp)."
+   )
+   original_model = modeling_nemotron_h.NemotronHModel
+   original_mixer = modeling_nemotron_h.NemotronHMamba2Mixer

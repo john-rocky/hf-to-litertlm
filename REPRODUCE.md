@@ -2003,6 +2003,40 @@ Env: litert-torch ≥ 0.9.2, transformers 5.14.1, torch 2.12. The non-obvious pa
 - **`wi8fc` int8 = FC dynamic-range + EMBEDDING_LOOKUP channelwise, convs float.** 353.5M params, vocab 64402 (the embedder's is 65536 — a bench script that borrowed the sibling's vocab bound produced out-of-range ids). fp32 1416.5 MB, int8 370.1 MB, fp16 709.8 MB. No `GATHER_ND`, no `LOGICAL_AND`.
 - **int8 is the mobile artifact.** iPhone 17 Pro, 6 threads: int8 reproduces desktop outputs **bit-exactly** (cosine 1.000000, max diff 0.0) across a real 32-token query with 23 expansion positions, documents in three scripts, and the same document at two signature lengths — encode_32 30 ms, encode_128 40–64 ms, encode_512 180 ms, peak 1254 MiB. fp16 also passes but peaks at 5786 MiB, and is slower than fp32 on CPU because XNNPACK unpacks fp16 weights at run time.
 
+
+### NVIDIA-Nemotron-Nano-9B-v2 — the 9B on the Nemotron-H rail, NVIDIA's dt limit instead of transformers' lower clamp, and a template litert-lm 0.18 can parse
+
+`nemotron_h_work/convert_nemotron_nano_9b.sh` converts [nvidia/NVIDIA-Nemotron-Nano-9B-v2](https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-9B-v2) at commit `6533e8de` — a 56-layer three-kind hybrid, 27 Mamba2 + 25 MLP + 4 attention layers, which NVIDIA compressed and distilled from Nemotron-Nano-12B-v2 — into the two files of [litert-community/NVIDIA-Nemotron-Nano-9B-v2](https://huggingface.co/litert-community/NVIDIA-Nemotron-Nano-9B-v2). Environments: the export and quantization python had torch 2.12.1, transformers 5.14.1, ai-edge-quantizer 0.8.0, litert-converter 0.3.0 and ai-edge-litert 2.1.6, with litert-torch from commit 115a136 plus the two patches on `PYTHONPATH`; litert-lm 0.18.0 packs the metadata and runs the files.
+
+```bash
+EXPORT_PY=/path/to/python-with-transformers-5.14.1-and-ai-edge-quantizer-0.8.0 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash nemotron_h_work/convert_nemotron_nano_9b.sh out_nemotron_nano_9b
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `NVIDIA-Nemotron-Nano-9B-v2_int8.litertlm` (9,072,259,712 B) | LlmMetadataProto | 4,043 | `d877751e12c04c36a8dd74c7b61d454945bf5f2f4fc0c70c0962f78bdfa425b9` |
+|  | ExecutorMetadataProto | 4,181 | `a59a735f28ac13a15c6d1a7c49d4754190ae5ee1cd486a3f000898a18b2c8d60` |
+|  | HF_Tokenizer_Zlib | 2,806,525 | `4265cd3c805431c7c95219f59c51ea138a9eebe16414abb61f8e654a15945a94` |
+|  | TFLiteModel | 9,069,392,512 | `9b9deafb4d20bbec7e73b2204a0337f86338266e2edffab7460e1b28cb4efa97` |
+| `NVIDIA-Nemotron-Nano-9B-v2_int4.litertlm` (5,592,589,856 B) | LlmMetadataProto | 4,043 | `d877751e12c04c36a8dd74c7b61d454945bf5f2f4fc0c70c0962f78bdfa425b9` |
+|  | ExecutorMetadataProto | 4,181 | `a59a735f28ac13a15c6d1a7c49d4754190ae5ee1cd486a3f000898a18b2c8d60` |
+|  | HF_Tokenizer_Zlib | 2,806,525 | `4265cd3c805431c7c95219f59c51ea138a9eebe16414abb61f8e654a15945a94` |
+|  | TFLiteModel | 5,589,722,656 | `ea67042adf37666e37d0df331b99858ec6c8187e70e7abde5b2e432048d64cf4` |
+
+The conversion run that produced these files (the same steps as this script, with the local paths and memory gates of a shared machine) rebuilt every one of these sections byte for byte from the pinned checkpoint on 2026-10-15; a run of this script as published is pending and will be recorded here. The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **NVIDIA's dt limit, not transformers' lower clamp.** transformers 5.14.1 clamps the Mamba2 `softplus(dt + dt_bias)` from below at `time_step_min` (0.001); NVIDIA's modeling code clamps to `time_step_limit`, default (0.0, inf) = no clamp. In this checkpoint 339 of 3,456 heads have softplus(dt_bias) below 0.001; with the same bf16 weights the two forms agree on 94.3–94.8 % of the teacher-forced argmax at about 1k tokens. `nemotron_h_vendor_dt.patch` (on top of `nemotron_h_litert_torch.patch`) makes the folded scan follow NVIDIA's limit: the 27 MAXIMUM ops per signature that the lower clamp adds are gone, and the patched mixer matches NVIDIA's torch forward within 1.4e-7 relative. On GSM8K both forms scored 93 on the Mac GPU with the same questions wrong; the files use NVIDIA's.
+- **The lightweight export path for a 9B.** `experimental_lightweight_conversion` with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000`, six prefill signatures (1024, 256, 64, 16, 4, 1) + decode over a 4096-token KV cache; `const_ops.py` / `fc_dtypes.py`: every FULLY_CONNECTED weight a constant, only the scan's chunk masks have all-constant inputs. Export peak 40.8 GB, each quantize step 35.5 GB on a 128 GB Mac. Run one export at a time.
+- **int8 = `wi8fc` (dynamic int8 on every FULLY_CONNECTED + int8 embedding; the convolutions and the selective scan stay float); int4 = `wi4b32_wi8` (int4 blockwise-32 FCs + int8 lm_head and embedding) through `quantize_clamped.py`, which floors blockwise scales at 2^-14 — 66,388 floored here; every scale normal after.**
+- **fp32 GPU activations are declared** (`scripts/set_activation_type.py --type fp32`): with the runtime's fp16 default the int8 file answered `<unk>` repeated on all eight check questions; the fp16 file was 1.5 % faster.
+- **The template.** NVIDIA's template does not parse on litert-lm 0.18.0 (`.split('</think>')[1]` becomes `| split('</think>')[1]`), and its trailing-assistant branch renders an assistant turn differently by position. `make_template.py` rebuilds it as `nemotron_nano_dual.jinja` with 11 asserted edits: content parts through `format_content_dual_tool.jinja`, filters for the Python string methods, the trailing-assistant branch removed; its renders equal transformers' render of NVIDIA's template in 13 conversation shapes × 3 thinking states. Reasoning stays NVIDIA's switch: `/no_think` in the system or a user message turns it off, otherwise the prompt ends with `<think>` + newline.
+- **Metadata.** No start token: the prompt stream starts at `<SPECIAL_10>` and the engine's prefill count equals transformers'; stop ids 2, 11, 12; the thought channel `<think>\n` … `\n</think>`; 62 state buffers = 4 key + 4 value caches + one conv and one SSM state per Mamba2 layer; the tokenizer section is the repo's tokenizer.json byte for byte.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 480.18 / 41.02 tok/s, int4 478.27 / 45.52; CPU int8 127.93 / 12.39, int4 56.87 / 13.99; every signature fully delegated on the Mac GPU. GSM8K (questions 0–99, thinking off, greedy, at most 1024 output tokens): int8 93, int4 92 on the Mac GPU; transformers on MPS scored 83 (bf16) and 84 (fp32), the whole gap on the 16 prompts longer than 128 tokens, the chunk size of transformers' torch scan; those 16 re-run in fp32 as one chunk answered 15.
+- No phone row: the Galaxy S26 was not used for this file after a Mamba2-hybrid sibling dropped it off USB during its GPU warm-up, and the Pixel 8a int4 GPU try was stopped by the harness's RAM guard. One Engine per conversation: the 27 Mamba2 layers keep a recurrent state (LiteRT-LM #3165).
+
 ## Nemotron-3-Embed-1B (a bidirectional embedder wearing a decoder's clothes)
 
 `nemotron_work/convert_nemotron3_embed.py` converts [nvidia/Nemotron-3-Embed-1B-BF16](https://huggingface.co/nvidia/Nemotron-3-Embed-1B-BF16) — NVIDIA's multilingual retrieval/RAG embedding model (34 languages, 2048-d, pruned+distilled from Ministral-3-3B) — to plain LiteRT `.tflite`. Like the LFM2.5 encoders this is NOT an `export_hf` run: there is no KV cache in the embedding path, so the HF eager model is traced directly with `litert_torch` multi-signature convert. Signatures `embed_{64,128,256,512}` → `output_0` `[1,2048]`, **already mean-pooled and L2-normalized** — one call in, one finished embedding out.

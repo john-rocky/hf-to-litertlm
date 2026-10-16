@@ -380,5 +380,10 @@
     "task": "chat",
     "group": 1,
     "recipe": "REPRODUCE.md#ministral-3-8b-instruct-2512--a-text-tower-out-of-a-vision-checkpoint-the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite"
+  },
+  "NVIDIA-Nemotron-Nano-9B-v2": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#nvidia-nemotron-nano-9b-v2--the-9b-on-the-nemotron-h-rail-nvidias-dt-limit-instead-of-transformers-lower-clamp-and-a-template-litert-lm-018-can-parse"
   }
 }

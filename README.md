@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 78 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 79 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 ## Hugging Face model → `.litertlm` → phone
@@ -127,6 +127,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Qwen3-4B-Thinking-2507](https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507) | 4B | reasoning | Galaxy S26 GPU 15.3 | M4 Max GPU 92.1 | [card](cards/qwen3-4b-thinking-litert.md) |
 | [Spark-X2.5-4B](https://huggingface.co/litert-community/Spark-X2.5-4B) | 4.11B | reasoning | Galaxy S26 CPU 5.5–5.6 | M4 Max GPU 53.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |
 | [DeepSeek-R1-Distill-Qwen-7B](https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-7B) | 7B | reasoning | Galaxy S26 GPU 8.5–10.3 | M4 Max GPU 79.1 | [card](cards/r1-distill-qwen-7b-litert.md) |
+| [NVIDIA-Nemotron-Nano-9B-v2](https://huggingface.co/litert-community/NVIDIA-Nemotron-Nano-9B-v2) | 8.89B | reasoning | — | M4 Max GPU 45.5 | [recipe](REPRODUCE.md#nvidia-nemotron-nano-9b-v2--the-9b-on-the-nemotron-h-rail-nvidias-dt-limit-instead-of-transformers-lower-clamp-and-a-template-litert-lm-018-can-parse) |
 | [granite-docling-258M](https://huggingface.co/litert-community/granite-docling-258M) | 0.26B | document to DocTags | Galaxy S26 CPU 28.6–33.5 | M4 Max CPU 64.0 | [card](cards/granite-docling-258m-litert.md) |
 | [LFM2.5-VL-450M](https://huggingface.co/litert-community/LFM2.5-VL-450M) | 0.45B | chat + image | Galaxy S26 GPU 103.1 | M4 Max GPU 360.0 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
 | [LLaVA-OneVision-0.5B](https://huggingface.co/litert-community/LLaVA-OneVision-0.5B) | 0.5B | chat + image | Galaxy S26 GPU 83.9 | M4 Max GPU 239.3 | [card](cards/llava-onevision-0.5b-litert.md) |
