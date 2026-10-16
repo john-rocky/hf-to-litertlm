@@ -1330,6 +1330,139 @@ python ../scripts/set_activation_type.py out_qwen35_4b/Qwen3.5-4B_int8.litertlm 
 
 The command above, run end to end on 2026-10-13 (the pinned worktree, ai-edge-quantizer 0.8.0 and `litert-lm-builder` 0.18.0 on `PATH`), writes the new Hub file's TFLite section byte for byte (sha256 `f9f6fc26…`); the Hub bundle's metadata is the 2026-10-09 re-pack with the thinking switch.
 
+### 2026-10-16 — Ornith-1.0-9B: a Qwen3.5-9B finetune on the 9B hybrid recipe, with thinking off in the template
+
+`qwen35_work/convert_qwen35_9b.sh` converts [ornith-ai/Ornith-1.0-9B](https://huggingface.co/ornith-ai/Ornith-1.0-9B) at commit `83dc1f5e` — Ornith's finetune of Qwen3.5-9B, "the most lightweight member of the Ornith family" — into the two files of [litert-community/Ornith-1.0-9B](https://huggingface.co/litert-community/Ornith-1.0-9B). The old id `deepreinforce-ai/Ornith-1.0-9B` redirects to it. Environments: for the export and quantize steps transformers 5.14.1, torch 2.12.1, ai-edge-quantizer 0.8.0 and litert-torch at `115a13607c73` with `decider2bv_work/deps/qwen35_hybrid_litert_torch.patch` applied (the `qwen35_work/` copy of that patch is an older version; #106); litert-lm 0.18.0 for the metadata step and for running the files.
+
+```bash
+git clone https://github.com/john-rocky/litert-torch qwen35_work/litert-torch-qwen35
+git -C qwen35_work/litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 apply "$(pwd)/decider2bv_work/deps/qwen35_hybrid_litert_torch.patch"
+QWEN35_PY=/path/to/python-with-transformers-5.14.1-torch-2.12.1-ai-edge-quantizer-0.8.0 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm-0.18.0 \
+CHECK_PY=/path/to/python-with-ai-edge-litert-and-litert-lm-builder \
+  bash qwen35_work/convert_qwen35_9b.sh ornith-ai/Ornith-1.0-9B out_ornith10_9b 83dc1f5e24ef8527af019a6b3bf66ac0f1c2c999
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Ornith-1.0-9B_int8.litertlm` (9,201,127,808 B) | LlmMetadataProto | 729 | `edc4ab993144df3f8a5e9833c3db500ffe9ef8e2b57ae19db7ad8a9e03c6fdc4` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,913,268 | `4b9bc2f069b49a2ec3019a51bc625b6b568d33a124a599f7f29de009227905a1` |
+|  | TFLiteModel | 9,197,162,880 | `80237a807bf28b9cc24b4132bfc7189fe56af71ab84b5e2015a322924caec398` |
+| `Ornith-1.0-9B_mixed_int4.litertlm` (6,060,652,448 B) | LlmMetadataProto | 729 | `edc4ab993144df3f8a5e9833c3db500ffe9ef8e2b57ae19db7ad8a9e03c6fdc4` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,913,268 | `4b9bc2f069b49a2ec3019a51bc625b6b568d33a124a599f7f29de009227905a1` |
+|  | TFLiteModel | 6,056,687,520 | `60b4047d98c6d521518fbd86941ac87e263d1109e07bcfa6b5582286543f9cdf` |
+
+Run as published on 2026-10-16 (one command, the environment of its header, 18 minutes on a 128 GB Mac, peak 48.3 GB), this script rebuilt every one of these sections byte for byte from the pinned checkpoint; so had the conversion run of 2026-10-15 behind the shipped files. The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **The 9B recipe, unchanged.** The same script converts Qwen/Qwen3.5-9B; for Ornith only the HF id and the revision change. Ornith keeps every Qwen3.5-9B text_config value, ships no MTP weights, and its generation_config names two eos ids (248044 and 248046), which the export writes as the two stop tokens.
+- **The lightweight export path.** `convert_qwen35_hybrid_lw.py` is `convert_qwen35_hybrid.py` plus `experimental_lightweight_conversion` with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000`; no op has all-constant inputs and every FULLY_CONNECTED weight is a constant. The float export peaked at 49.4 GB and each quantize step at 36.5 GB on a 128 GB Mac. Run one export at a time.
+- **int8 = `wi8fc` (channelwise int8 weights, float activations); Mixed INT4 = blockwise-32 min-max int4 FCs + int8 channelwise lm_head and embedding**; in both files the 48 GatedDeltaNet decay/gate projections (`in_proj_a`, `in_proj_b`) stay float, and every int4 scale is normal.
+- **fp32 GPU activations, declared.** `set_activation_type.py --type fp32` writes `prefer_activation_type: fp32` into the TFLite section; without it the int8 weights answered 0 of 8 check questions on the Mac GPU, every reply a run of `!`.
+- **Thinking off in the template.** `make_new_pbtext.py --template-only` replaces only the prompt template with `qwen35_text_current.jinja`, the dual-form ChatML template of the earlier Qwen3.5 text files: every assistant turn and the generation prompt carry an empty think block. Its renders equal transformers' render of Ornith's template with `enable_thinking=False` in six conversation shapes; tool lists are not rendered. The thinking-switch template of the Qwen3.5-4B bundle was not used: it writes past assistant turns without the think block that Ornith's template always writes.
+- **The tokenizer is the repo's file; no start token.** The bundle's tokenizer section inflates to Ornith's tokenizer.json byte for byte, and the engine's prefill count equals transformers' token count of the vendor render.
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), 64 state buffers** (8 + 8 KV caches, 48 GatedDeltaNet states). The TFLite section is 9,197,162,880 bytes (int8) and 6,056,687,520 bytes (Mixed INT4), both over 2 GiB; not run on iOS.
+- GSM8K (questions 0–99, 0-shot step by step, greedy, at most 2048 output tokens, one process per question, thinking off): bf16 95, int8 97, Mixed INT4 95 on the Mac GPU.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 581.4 / 39.99 tok/s, Mixed INT4 585.4 / 44.93; CPU int8 227.4 / 15.17, Mixed INT4 68.4 / 15.77; every signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac CPU (one `run` each, #84). No phone row yet: no Qwen3.5 file on the Hub built a GPU engine on the Pixel 8a and its RAM is below the CPU path's need, and the int8 file is not run on the Galaxy S26.
+
+### 2026-10-16 — Qwen3.5-9B: the 9B hybrid recipe, the repo's tokenizer.json in the tokenizer section, the Qwen3.5-4B thinking switch in the metadata
+
+`qwen35_work/convert_qwen35_9b.sh` converts [Qwen/Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) at commit `c2022362` (the script's default revision for this id) — the post-trained 9B of Qwen3.5, a "Causal Language Model with Vision Encoder" whose text decoder these files hold — into the int8 and Mixed INT4 files of [litert-community/Qwen3.5-9B](https://huggingface.co/litert-community/Qwen3.5-9B); `qwen35_work/use_repo_tokenizer.sh` then replaces each file's tokenizer section with the repo's `tokenizer.json`, and `qwen35_work/use_switch_template.sh` gives each file the metadata of the litert-community/Qwen3.5-4B files: the template `qwen35_text_T1.jinja` with a thinking switch that is off by default, a `thought` channel, `supports_thinking` true. Environments: for the export and quantize steps transformers 5.14.1, torch 2.12.1, ai-edge-quantizer 0.8.0 and litert-torch at `115a13607c73` with `decider2bv_work/deps/qwen35_hybrid_litert_torch.patch` applied (the `qwen35_work/` copy of that patch is an older version; #115); litert-lm 0.18.0 for the metadata steps, the tokenizer swap and running the files.
+
+```bash
+git clone https://github.com/john-rocky/litert-torch qwen35_work/litert-torch-qwen35
+git -C qwen35_work/litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 apply "$(pwd)/decider2bv_work/deps/qwen35_hybrid_litert_torch.patch"
+export QWEN35_PY=/path/to/python-with-transformers-5.14.1-torch-2.12.1-ai-edge-quantizer-0.8.0
+export RUN_PY=/path/to/python-with-litert-lm-0.18.0
+export LITERT_LM=/path/to/litert-lm-0.18.0
+export CHECK_PY=/path/to/python-with-ai-edge-litert-litert-lm-builder-and-tokenizers
+bash qwen35_work/convert_qwen35_9b.sh Qwen/Qwen3.5-9B out_qwen35_9b
+SNAP=out_qwen35_9b/hf_cache/models--Qwen--Qwen3.5-9B/snapshots/c202236235762e1c871ad0ccb60c8ee5ba337b9a
+for f in Qwen3.5-9B_int8 Qwen3.5-9B_mixed_int4; do
+  EXPECT_TOKENIZER_SHA256=5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42 \
+    bash qwen35_work/use_repo_tokenizer.sh out_qwen35_9b/$f.litertlm out_qwen35_9b/$f.swap.litertlm "$SNAP/tokenizer.json"
+  bash qwen35_work/use_switch_template.sh out_qwen35_9b/$f.swap.litertlm out_qwen35_9b/$f.switch.litertlm
+  mv out_qwen35_9b/$f.switch.litertlm out_qwen35_9b/$f.litertlm && rm out_qwen35_9b/$f.swap.litertlm
+done
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Qwen3.5-9B_int8.litertlm` (9,200,832,896 B) | LlmMetadataProto | 4,314 | `7fc50e38ed0bcdebf42fde57a216193962c14271ddfbaac466c68d4cd3601691` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+|  | TFLiteModel | 9,197,162,880 | `f4c77e3760190eb690f62e9dfb31ecd223c3b25e530e972e8b6abf4ab38fabd4` |
+| `Qwen3.5-9B_mixed_int4.litertlm` (6,060,357,536 B) | LlmMetadataProto | 4,314 | `7fc50e38ed0bcdebf42fde57a216193962c14271ddfbaac466c68d4cd3601691` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+|  | TFLiteModel | 6,056,687,520 | `13312a1045cfc93e6ab05c2c9338ab68bfd2b5da0484028e77d64207d16ce7b0` |
+
+How these sections were reproduced: the export, quantize and metadata steps, run again from the pinned checkpoint on 2026-10-14 (the same steps as `convert_qwen35_9b.sh`), rebuilt the four sections of the files before the tokenizer swap byte for byte; the swap applied to those files gives their four sections after it; `use_switch_template.sh` as printed, run on those swapped files, gives the four sections above, byte for byte (it prints each command it runs as `### CMD:`; #136). `use_repo_tokenizer.sh` as printed, run on a file that already carries the repo's tokenizer, returns its four sections unchanged. `convert_qwen35_9b.sh` itself ran as published on 2026-10-16 for Ornith-1.0-9B (the same script bytes on that repo's id and revision, one command, 18 minutes on a 128 GB Mac): all four sections of both of that repo's files byte for byte; the three commands above were not run end to end on this repo's id in the form printed here. The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **The tokenizer section is the repo's `tokenizer.json`.** The export writes the tokenizer that transformers builds from the Qwen2Tokenizer class: its pre-tokenizer regex has no `\p{M}`, and it adds the 7 audio / TTS tokens of `tokenizer_config.json`. The repo's file has the `\p{M}` regex; the two give different ids for text with combining marks (Hindi, Thai, Tamil, Arabic with harakat), while English, CJK, code and emoji tokenize the same. After the swap, litert-lm 0.18.0 `Engine.tokenize` matches `tokenizers` on the repo file in 346 of 346 test strings, and every evaluation prompt below has the same ids as before it. The swap tool is `tools/tokenizer_parity/swap_tokenizer_section.py`.
+- **The lightweight export path, as for every 9B of this family.** `convert_qwen35_hybrid_lw.py` is `convert_qwen35_hybrid.py` plus `experimental_lightweight_conversion` with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000`; no op has all-constant inputs and every FULLY_CONNECTED weight is a constant. The float export peaked at 49.4 GB and each quantize step at 35.4 GB on a 128 GB Mac. Run one export at a time.
+- **int8 = `wi8fc` (channelwise int8 weights, float activations); Mixed INT4 = blockwise-32 min-max int4 FCs + int8 channelwise lm_head and embedding**; in both files the 48 GatedDeltaNet decay/gate projections (`in_proj_a`, `in_proj_b`) stay float, and every int4 scale is normal.
+- **fp32 GPU activations, declared.** Without the declaration the int8 weights answered 0 of 8 check questions on the Mac GPU, every reply a run of `!`.
+- **A thinking switch, off by default.** `make_new_pbtext.py` without `--template-only` writes the four LlmMetadata fields of the Qwen3.5-4B files: the template `qwen35_text_T1.jinja` (LiteRT-LM's `models/qwen3_5/chat_template.jinja` at 87ab9334 with two edits), the `thought` channel (`<think>\n` / `\n</think>`), `supports_thinking` true and `supports_function_calling` false; stops and everything else stay. With nothing set the generation prompt carries an empty think block and past assistant turns render without one, as Qwen's template writes them; `enable_thinking=true` (`ThinkingConfig`, or `--thinking true` on the CLI) pre-fills `<think>\n` and the reasoning comes back on the channel. The template renders 6 of 7 checked conversation shapes byte for byte as transformers renders Qwen's template. With thinking on and a 2,048-token cap the thought does not always close; with `thinking_token_budget=300` it closed in every run on both files, and a three-turn conversation passed on the CPU and the GPU.
+- **Tools.** The template renders tool definitions; `llm_model_type` stays `generic_model`, which has no parser for Qwen3.5's XML tool call, and `supports_function_calling` is false.
+- **Stops and start token.** The repo has no `generation_config.json`; the export declares config.json's eos (248044, `<|endoftext|>`) and the rail adds 248046 (`<|im_end|>`); no start token, and the engine's prefill count equals transformers' token count of the vendor render.
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), 64 state buffers** (8 + 8 KV caches, 48 GatedDeltaNet states); the TFLite section is over 2 GiB in both files; not run on iOS.
+- GSM8K (questions 0–99, 0-shot step by step, greedy, at most 2048 output tokens, one process per question, thinking off): bf16 97, int8 98, Mixed INT4 95 on the Mac GPU.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 593.1 / 38.37 tok/s, Mixed INT4 603.6 / 46.07; CPU int8 228.1 / 15.06, Mixed INT4 66.25 / 14.25; every signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac CPU. No phone row yet: no Qwen3.5 file on the Hub built a GPU engine on the Pixel 8a and its RAM is below the CPU path's need, and the int8 file is not run on the Galaxy S26.
+
+### 2026-10-16 — Ornith-1.5-9B: the same 9B hybrid recipe, plus one step that puts the model repo's tokenizer.json in the bundle
+
+`qwen35_work/convert_qwen35_9b.sh` converts [ornith-ai/Ornith-1.5-9B](https://huggingface.co/ornith-ai/Ornith-1.5-9B) at commit `489cb979` — Ornith's post-training of Qwen3.5-9B that extends Ornith-1.0, "the most lightweight member of the Ornith-1.5 family" — into the two files of [litert-community/Ornith-1.5-9B](https://huggingface.co/litert-community/Ornith-1.5-9B). One step runs after the script: each file's tokenizer section is replaced by the model repo's `tokenizer.json`, because the export bundles the tokenizer as transformers writes it for the Qwen2Tokenizer class, which is not this repo's file. Environments (the same as for Qwen3.5-9B and Ornith-1.0-9B): transformers 5.14.1, torch 2.12.1, ai-edge-quantizer 0.8.0 and litert-torch at `115a13607c73` with `decider2bv_work/deps/qwen35_hybrid_litert_torch.patch` applied; litert-lm 0.18.0 (CLI and builder) for the metadata step, the swap and running the files.
+
+```bash
+git clone https://github.com/john-rocky/litert-torch qwen35_work/litert-torch-qwen35
+git -C qwen35_work/litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 apply "$(pwd)/decider2bv_work/deps/qwen35_hybrid_litert_torch.patch"
+QWEN35_PY=/path/to/python-with-transformers-5.14.1-torch-2.12.1-ai-edge-quantizer-0.8.0 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm-0.18.0 \
+CHECK_PY=/path/to/python-with-ai-edge-litert-and-litert-lm-builder \
+  bash qwen35_work/convert_qwen35_9b.sh ornith-ai/Ornith-1.5-9B out_ornith15_9b 489cb97981b8654bcfcf30ce1f94ed1b62e07b53
+TOK=out_ornith15_9b/hf_cache/models--ornith-ai--Ornith-1.5-9B/snapshots/489cb97981b8654bcfcf30ce1f94ed1b62e07b53/tokenizer.json
+shasum -a 256 "$TOK"   # 5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42
+mkdir -p ornith15_9b
+for f in Ornith-1.5-9B_int8 Ornith-1.5-9B_mixed_int4; do
+  LITERT_LM_CLI=/path/to/litert-lm-0.18.0 /path/to/python-with-litert-lm-0.18.0 \
+    tools/tokenizer_parity/swap_tokenizer_section.py out_ornith15_9b/$f.litertlm "$TOK" ornith15_9b/$f.litertlm
+done
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Ornith-1.5-9B_int8.litertlm` (9,200,832,896 B) | LlmMetadataProto | 720 | `998962b1831fe4da10f92b1d7317e9cb003f6bcbe158e1e29c554dcae4d00c09` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+|  | TFLiteModel | 9,197,162,880 | `4d6d2197af22bca87173926ee0826fee7437ce178cf3c731713ae5406c6bd476` |
+| `Ornith-1.5-9B_mixed_int4.litertlm` (6,060,357,536 B) | LlmMetadataProto | 720 | `998962b1831fe4da10f92b1d7317e9cb003f6bcbe158e1e29c554dcae4d00c09` |
+|  | ExecutorMetadataProto | 4,293 | `8a366d569ef88de755e22c623aa25e905dcfed55e2b2652f29feb437efea3d30` |
+|  | HF_Tokenizer_Zlib | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+|  | TFLiteModel | 6,056,687,520 | `dda8d148266fc1a4ab2ed3e0439e7cb555dd9c7a3c399eba0a44103596eeb1b8` |
+
+The recipe and the swap rebuilt every one of these sections byte for byte when they were run again from the pinned checkpoint on 2026-10-15; the script as published (the same bytes) rebuilt the Ornith-1.0-9B files from their pinned checkpoint on 2026-10-16 (one command, the environment of its header, 18 minutes on a 128 GB Mac, all four sections byte for byte). The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **The 9B recipe, unchanged.** The script is byte-identical to the one that converts Qwen/Qwen3.5-9B and Ornith-1.0-9B; only the HF id and the revision change. Ornith-1.5 keeps every Qwen3.5-9B text_config value, and its checkpoint carries the vision tower and an MTP head that the text export does not read.
+- **The tokenizer swap.** `swap_tokenizer_section.py` unpacks the bundle with the litert-lm CLI, replaces the tokenizer file, packs it again and asserts that the other three sections are byte-identical; the new section inflates to the repo's `tokenizer.json` byte for byte. The two tokenizers give the same ids on English, code, CJK and every check and eval prompt; they differ on Hindi, Thai, Tamil and Arabic with diacritics, where the bundle now matches the vendor's file. litert-lm 0.18.0 and 0.17.1 tokenize as `tokenizers` does with the repo file, 174 of 174 probes.
+- **One stop token.** The repo has no `generation_config.json`, so the export declares `config.json`'s eos, id 248046 (`<|im_end|>`), as the only stop token; the Qwen3.5-9B and Ornith-1.0-9B bundles of the same recipe carry 248044 and 248046.
+- **The lightweight export path.** `convert_qwen35_hybrid_lw.py` is `convert_qwen35_hybrid.py` plus `experimental_lightweight_conversion` with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000`; no op has all-constant inputs and every FULLY_CONNECTED weight is a constant. The float export peaked at 49.4 GB and each quantize step at 35–37 GB on a 128 GB Mac. Run one export at a time.
+- **int8 = `wi8fc` (channelwise int8 weights, float activations); Mixed INT4 = blockwise-32 min-max int4 FCs + int8 channelwise lm_head and embedding**; in both files the 48 GatedDeltaNet decay/gate projections (`in_proj_a`, `in_proj_b`) stay float, and every int4 scale is normal.
+- **fp32 GPU activations, declared.** `set_activation_type.py --type fp32` writes `prefer_activation_type: fp32` into the TFLite section; without it the int8 weights answered 0 of 8 check questions on the Mac GPU, every reply a run of `!`.
+- **Thinking off in the template.** `make_new_pbtext.py --template-only` replaces only the prompt template with `qwen35_text_current.jinja` (the same 701-byte file as in the Qwen3.5-9B and Ornith-1.0-9B files): every assistant turn and the generation prompt carry an empty think block. Its renders equal transformers' render of Ornith's `chat_template.jinja` with `enable_thinking=False` in six conversation shapes; tool lists are not rendered. The repo also carries a different template inside `tokenizer_config.json`; transformers loads `chat_template.jinja`.
+- **No start token; KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), 64 state buffers** (8 + 8 KV caches, 48 GatedDeltaNet states). The TFLite section is 9,197,162,880 bytes (int8) and 6,056,687,520 bytes (Mixed INT4), both over 2 GiB; not run on iOS.
+- GSM8K (questions 0–99, 0-shot step by step, greedy, at most 2048 output tokens, one process per question, thinking off): bf16 94, int8 95, Mixed INT4 92 on the Mac GPU. On the Mac CPU the int8 file answered 15 of 17 prompt lengths of a one-word check, with a polite refusal at 23 and 24 tokens; the GPU and the Mixed INT4 file answered all 17.
+- Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.0, Mac M4 Max): GPU (WebGPU) int8 609.0 / 39.57 tok/s, Mixed INT4 615.5 / 45.58; CPU int8 234.1 / 14.98, Mixed INT4 68.1 / 14.78; every signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac CPU. No phone row yet: no Qwen3.5 file on the Hub built a GPU engine on the Pixel 8a and its RAM is below the CPU path's need, and the int8 file is not run on the Galaxy S26.
+
 ## Qwen3.5-2B VISION build — the shipped text model was half of a VLM
 
 The Qwen3.5 checkpoints are multimodal, and the text conversion above deliberately drops the vision tower. `qwen35vl_work/` keeps it: the checkpoint's own 24-layer, 1024-dim ViT (no DeepStack — `deepstack_visual_indexes` is empty upstream), wired to LiteRT-LM's `fast_vlm` contract at a static 512x512. Published alongside the text file: [litert-community/Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) (`Qwen3.5-2B-VL_int8.litertlm`).
@@ -1498,6 +1631,39 @@ PYTHONPATH=litert-torch-falcon python convert_falcon_tinyr.py src/Falcon-H1-Tiny
 The reasoning is packaged, not just tolerated: the `thought` channel (`<think>`/`</think>`) is declared post-hoc with `tools/add_thought_channel.py` (verified: reasoning arrives on the channel on Mac CPU/GPU and iPhone, and `--thinking-budget 16` cuts at exactly 16 tokens), and both upstream stop tokens `[11, 228]` ride in from `generation_config`. Give sessions a ≥ 2048-token output budget — truncated mid-thought a reasoner produces no final answer.
 
 Ship verification: **GSM8K 100-question greedy at 2048 tokens, scored after `</think>`: the int8 bundle 76/100 vs the bf16 PyTorch model 71/100** on the identical stream and protocol (per-question flips run in both directions — quantization noise, not degradation). 8-question gate: Mac CPU 6/8 / GPU 7/8, iPhone 17 Pro CPU 6/8 / Metal 6/8, zero unclosed thinks; the recurring misses are two fact-recall knife-edges the bf16 model also flips under one-token perturbations. Mac M4 Max (`-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.16.0): GPU 2216 prefill / 97.8 decode / TTFT 0.13 s, CPU 381 / 47.8 / 0.69 s. iPhone 17 Pro (cold, single runs, 148-token composite prompt): **CPU decodes faster than Metal at this size** — 29.4 vs 22.8 tok/s, at 0.82 vs 3.01 GB peak — the GPU-overhead side of the small-model law, opposite to every larger sibling.
+
+### 2026-10-15 — Falcon-H1R-7B: the family's reasoning 7B on the same patch, a lightweight export, and int4 scales clamped before quantizing
+
+`falcon_h1_work/convert_falcon_h1r_7b.sh` converts [tiiuae/Falcon-H1R-7B](https://huggingface.co/tiiuae/Falcon-H1R-7B) at commit `a6f74bf1` — TII's reasoning-specialized Falcon-H1 7B, 44 layers of attention ∥ Mamba2 — into the two files of [litert-community/Falcon-H1R-7B](https://huggingface.co/litert-community/Falcon-H1R-7B). Environments: litert-torch at the pinned base `115a136` + `falcon_h1_litert_torch.patch` (as above), torch 2.12.1, transformers 5.14.1, ai-edge-quantizer 0.8.0, ai-edge-litert 2.1.6, litert-converter 0.3.0 for the export and the quantization; litert-lm 0.18.0 for the metadata steps and for running the files.
+
+```bash
+EXPORT_PY=/path/to/python-with-transformers-5.14.1-and-ai-edge-quantizer-0.8.0 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+CHECK_PY=/path/to/python-with-ai-edge-litert \
+  bash falcon_h1_work/convert_falcon_h1r_7b.sh out_falcon_h1r_7b
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Falcon-H1R-7B_int8.litertlm` (7,810,102,560 B) | LlmMetadataProto | 3,909 | `4357d902b8bba60c04772ea93df3f51b8e7d5b63778562bf124d9513f1cca65d` |
+|  | ExecutorMetadataProto | 11,901 | `46ce186bbd0653fc8bd389b9e3ac08b7360f8d3b9f91a2efe65a172301bcbf09` |
+|  | HF_Tokenizer_Zlib | 2,165,329 | `daf71f7283b2f4d6562aa7fa66f1db1e14af3c00658bb7ffbf857efe5f42090a` |
+|  | TFLiteModel | 7,807,874,336 | `0e4138cdf09ee010db0ee1e3d930cac106cc6aab5249dc8d868899ca5009bc16` |
+| `Falcon-H1R-7B_int4.litertlm` (4,689,037,856 B) | LlmMetadataProto | 3,909 | `4357d902b8bba60c04772ea93df3f51b8e7d5b63778562bf124d9513f1cca65d` |
+|  | ExecutorMetadataProto | 11,901 | `46ce186bbd0653fc8bd389b9e3ac08b7360f8d3b9f91a2efe65a172301bcbf09` |
+|  | HF_Tokenizer_Zlib | 2,165,329 | `daf71f7283b2f4d6562aa7fa66f1db1e14af3c00658bb7ffbf857efe5f42090a` |
+|  | TFLiteModel | 4,686,809,632 | `9d0a95684e2c698a49689f6c2a23f092190f5d124c3d95972c6813e1c5fbb530` |
+
+Run as published on 2026-10-16 (one command, the environment of its header, 74 minutes on a 128 GB Mac, peak 60.1 GB; the export 71 minutes, 55 of them the converter's constant folding, each quantize step 1.5 minutes), this script rebuilt every one of these sections byte for byte from the pinned checkpoint; so had the conversion run of 2026-10-14 behind the shipped files (22:23 → 01:01; #134). The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections.
+
+- **Same patch, three changes for a 7B.** The float export takes six prefill signatures (1024, 256, 64, 16, 4, 1) over a 4096-position cache instead of the rail's ladder, and litert-torch's `--experimental_lightweight_conversion=True` with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000` (constants of 1e8 bytes or more stay lazy through the MLIR lowering): the default path of an 8B model reached a 98.8 GB peak on a 128 GiB Mac. The export peaks at about 61 GB and takes ~80 minutes, ~60 of them in litert-torch's runtime constant folding of 10 small constants (the folding pass copies every composite decomposition of the graph); each quantization ~30 GB. Run one export or quantization at a time.
+- **A loud, random export failure.** One run failed in the MLIR verifier with `redefinition of symbol named 'jax_lowering_9dc46fef'`: litert-torch's JAX bridge names each lowering with 32 random bits; re-running draws new names.
+- **int8 = `wi8fc`** (dynamic int8 on every FULLY_CONNECTED + int8 channelwise embedding; the Mamba conv and the scan stay float). **int4 = `wi4b32_wi8`** (int4 blockwise-32 min-max FCs + int8 lm_head and embedding) run through `quantize_clamped.py`: a plain build leaves 96 zero and 748 subnormal fp16 block scales in 7 Mamba-mixer tensors, and XNNPACK prepares a blockwise int4 FC only when every scale is normal, so the CPU path of such a file is lost; the wrapper raises every blockwise int4 scale below 2^-14 to 2^-14 before quantizing; `scan_scales.py` then finds every scale normal.
+- **Reasoning packaging.** `falcon_h1r_dual.jinja` is the vendor's ChatML template with a content-parts macro (string or list-of-parts messages), the vendor's past-turn form for every history turn (the answer, without the thought), and TII's default system message verbatim; its renders equal transformers' vendor render in 24 cells (8 conversation shapes × 3 thinking states). The prompt ends with the bare assistant header and the model writes `<think>` itself; the bundle declares the `thought` channel (`<think>` / `</think>`), `supports_thinking`, stop ids 11 and 228, and no start token (the vendor stream has no BOS; the engine's prefill counts equal transformers'). A thinking budget cuts the thought.
+- **fp32 GPU activations.** With the GPU decoder's default fp16 activations the int8 file wrote `<|pad|>` from the first token on all 8 check questions; `set_activation_type.py --type fp32` fixes it at about 1 % of the GPU benchmark time.
+- **State and tokenizer.** 176 state buffers = 44 K + 44 V + 88 Mamba conv / recurrent states. The tokenizer section is the vendor's `tokenizer.json` with an identity `post_processor` written by the exporter (ids identical on 15 test sentences). One Engine per conversation: the running state is the shape of LiteRT-LM #3165.
+- **Checks** (litert-lm 0.18.0, Mac M4 Max): GSM8K questions 0–99, greedy, at most 2,048 output tokens, scored after `</think>` (a reply that never closed its thought is scored on its whole text): int8 96 / 100, int4 98 / 100 on the GPU; the bf16 reference ran questions 0–20 only (21 / 21); the 8-question check 8/8 on CPU and GPU for both files. Prefill 1024 / decode 256 / context 2048: GPU int8 565.05 / 35.88 tok/s (8.95 s), int4 565.78 / 39.71 tok/s (8.26 s); CPU int8 135.64 / 11.59 tok/s (29.65 s), int4 60.33 / 12.35 tok/s (37.72 s).
 
 ### 2026-08-27 — Qwen3.5-4B Mixed INT4: the block size is the only knob that matters
 
@@ -2678,6 +2844,47 @@ Run as published on 2026-10-16 (one command, the environment of its header, 24 m
 - **int8 = `dynamic_wi8_afp32` (channelwise int8 weights, float activations); int4 = `BOCTAV4` (blockwise-32 OCTAV int4 + int8 embedding), every scale normal.** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 1024 output tokens, one process per question): bf16 95, int8 97, int4 96 on the Mac GPU; the same weights before the graph rewrite: 95 and 94.
 - **The GPU-composite graph by rewrite.** `tools/gpu_graph/gpu_graph_retrofit.py X_plain.litertlm X.litertlm --decomp exporter --mask add_bcast` (step 5, once per file) turns each layer's two DYNAMIC_UPDATE_SLICE KV writes into one `odml.cache_update` and the attention products into `odml.runtime_bmm` (238 and 464 composites), keeps every weight byte and every other section. On the Mac GPU the 1024 / 256 / 2048 workload went from 7.78 to 6.76 s (int8) and from 6.40 to 5.35 s (int4); on the CPU within 1 %.
 - Measured (prefill 1024 / decode 256 / context 2048): Mac M4 Max, litert-lm 0.18.0, two passes per file, the median — GPU (WebGPU) int8 784.8 / 46.66 tok/s, int4 787.5 / 61.74; CPU int8 124.05 / 11.49, int4 55.39 / 12.93; every decoder signature fully delegated on the Mac GPU. Galaxy S26 (the prebuilt litert_lm_advanced_main of 2026-09-18, OpenCL), the int4 file in two sessions: prefill 99.98 / 98.36, decode 5.72 / 5.57 tok/s. On litert-lm 0.17.1 both files answered a one-word question on the Mac GPU (one `run` each). The int8 file's Galaxy S26 GPU try ended with the phone restarting during the engine warm-up (2026-10-14), and the Pixel 8a int4 GPU try was stopped by the harness's guard at 400,000 kB of MemAvailable.
+
+### Olmo-3-7B-Think — a sliding-window dense 7B whose int4 scales need a lower bound, and a GPU-composite rewrite that does not apply
+
+`olmo3_work/convert_olmo3_7b_think.sh` converts [allenai/Olmo-3-7B-Think](https://huggingface.co/allenai/Olmo-3-7B-Think) at commit `d97e442d` — Ai2's "Olmo 3 … Think" 7B, the final RLVR model after SFT and DPO — into the three files of [litert-community/Olmo-3-7B-Think](https://huggingface.co/litert-community/Olmo-3-7B-Think): the int8 file, the int4 file and the int4 weights with a 2,048-token cache (the phone form). Environments (released wheels): litert-torch 0.9.4, litert-converter 0.4.0, ai-edge-quantizer 0.9.0, transformers 5.14.1, torch 2.13.0; litert-lm 0.18.0 for the metadata step, the pack and running the files.
+
+```bash
+EXPORT_PY=/path/to/python-with-litert-torch-0.9.4 \
+RUN_PY=/path/to/python-with-litert-lm-0.18.0 \
+LITERT_LM=/path/to/litert-lm \
+  bash olmo3_work/convert_olmo3_7b_think.sh out_olmo3_7b_think
+```
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `Olmo-3-7B-Think_int8.litertlm` (7,434,672,480 B) | LlmMetadataProto | 2,547 | `a5241fd35a249b90e4279fd5cbbbb8c6271434dc580bbd3819de13cebb0e6217` |
+|  | ExecutorMetadataProto | 4,342 | `8204f6768cf688ea74ad882370d702cd3e2a7e64fd029f2574e089ce1905c50a` |
+|  | HF_Tokenizer_Zlib | 1,403,566 | `16308de7d8fb86b623319e70f47466cce8e6c820a49be62cc79c73db35b8b84f` |
+|  | TFLiteModel (tf_lite_prefill_decode) | 7,014,027,584 | `7bccf11343093aaa79b6d7eb7aa5ef5db96161076462f4d57225d03e27e1534b` |
+|  | TFLiteModel (tf_lite_embedder) | 419,174,752 | `54858deca8f8027e7e0c9e17fff83dac6dcef767b4b00cfcf50423b527b413b3` |
+| `Olmo-3-7B-Think_int4.litertlm` (4,309,457,248 B) | LlmMetadataProto | 2,547 | `a5241fd35a249b90e4279fd5cbbbb8c6271434dc580bbd3819de13cebb0e6217` |
+|  | ExecutorMetadataProto | 4,342 | `8204f6768cf688ea74ad882370d702cd3e2a7e64fd029f2574e089ce1905c50a` |
+|  | HF_Tokenizer_Zlib | 1,403,566 | `16308de7d8fb86b623319e70f47466cce8e6c820a49be62cc79c73db35b8b84f` |
+|  | TFLiteModel (tf_lite_prefill_decode) | 3,888,809,568 | `cef4605667184f1bdfbb4373e449000bc3420121ead70fb065744e3e2e0af60d` |
+|  | TFLiteModel (tf_lite_embedder) | 419,174,752 | `54858deca8f8027e7e0c9e17fff83dac6dcef767b4b00cfcf50423b527b413b3` |
+| `Olmo-3-7B-Think_int4_c2048.litertlm` (4,309,440,864 B) | LlmMetadataProto | 2,547 | `24577128e747b23411b4dff6561abbfaa8874fddce2d20a720c3134c803e57fc` |
+|  | ExecutorMetadataProto | 4,342 | `11c3dd26fd5db88ab88d8648ba9e2d78d1e98e8d4a6a8d8c94f87210f94f0ffa` |
+|  | HF_Tokenizer_Zlib | 1,403,566 | `16308de7d8fb86b623319e70f47466cce8e6c820a49be62cc79c73db35b8b84f` |
+|  | TFLiteModel (tf_lite_prefill_decode) | 3,888,801,952 | `26c7e0b919700535a4adaf2c7977f20ccdd7e744f7f9a7b7c324c6a8c0ff5393` |
+|  | TFLiteModel (tf_lite_embedder) | 419,174,752 | `54858deca8f8027e7e0c9e17fff83dac6dcef767b4b00cfcf50423b527b413b3` |
+
+The conversion run that produced these files (the same steps as this script, with the local paths and RAM gates of a shared machine) was rebuilt from the pinned checkpoint in one command on 2026-10-16: the int8 file and the cache-2048 file came back with all five sections raw-identical; the int4 file came back with four of five raw-identical, and its main graph the same size with 17,917 differing bytes — the two RoPE inverse-frequency constants (sliding default, full-layer YaRN) stored in the other order and the operator order of the seven signature subgraphs, the 879 decomposition subgraphs identical; a structural comparison that ignores tensor indices and names finds the seven signatures equal. A run of this script as published is pending and will be recorded here. The file sha256 differs from run to run (the packer writes a new uuid and creation timestamp), so compare sections. Run as published on 2026-10-16 (one command, the environment of its header, 34 minutes on a 128 GB Mac, peak 55.9 GB; the checkpoint from a local cache), this script rebuilt the cache-2048 file with all five sections byte for byte and the int8 and int4 files with four of five; their decoder sections came back the same size and equal by the structural comparison, in the other of the two orders an export writes the RoPE constants and the signature subgraphs in: int8 `4875e643c90fb4f39dce99728b041c84b99eac04b057e91296d4de9b2d845e07` (the shipped file: `7bccf11343093aaa79b6d7eb7aa5ef5db96161076462f4d57225d03e27e1534b`), int4 `35fcfe45352f713465fe5da7be918f09f278b8738aeec4da65f2b880995eeafb` (shipped: `cef4605667184f1bdfbb4373e449000bc3420121ead70fb065744e3e2e0af60d`; this form also came out of the recipe re-run, bit for bit) - a run of yours may land on either hash.
+
+- **Files of this repo the script calls** (as they are at the time of writing; their code is that of the files the conversion run used, apart from comments and the rounding of `repack_metadata.py`'s reported timings): `granite41_work/export_lightweight.py` (sha256 `fef0bb83fd9cb4090c7ed4ffbb4770946b6b07bf713e586bc8cd6fb1cc5a9268`), `granite_work/scan_scales.py` (`e742ab3b0bfaa662e143e68addd2588ecfa3a5542fdb22efa517aeef0e26702e`), `granite_work/repack_metadata.py` (`0f1b2ded56d561fd1b018aee168740711a50cb00812982e3cbb456dc6db4a297`), `tools/tokenizer_parity/swap_tokenizer_section.py` (`2f8749beba92124c652b6a3b9fff90d111a0b52ad3303c5adeb6b3e1bb171476`), `tools/gpu_graph/gpu_graph_retrofit.py` (`ce32549cfceeb5eb0cfe713bc730d954344c76ec7b1592d8dfea341efba60e72`, step 4 only); the rest is in `olmo3_work/`.
+- **Stock export path, lightweight conversion.** `Olmo3ForCausalLM` exports through litert-torch's `export_hf` with no custom code: the sliding-window layers get litert-torch's sliding mask (`create_sliding_mask(...) + mask`) over a full-length cache, which for a cache no longer than the 4,096-token window is the causal mask, and the eight full-attention layers get YaRN cos / sin. `granite41_work/export_lightweight.py` with `LIGHTWEIGHT=1` and `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000`: every FULLY_CONNECTED weight is an int8 / int4 constant and no op has all-constant inputs. Peaks 52.6–56.9 GB per export on a 128 GB Mac; run one export at a time.
+- **A lower bound on the int4 block scales.** Plain `BOCTAV4` wrote 1,574,919 zero and 2,031,784 subnormal fp16 block scales (of 215,210,752) into this model's FC weights, most in the late layers' q_proj; XNNPACK refuses non-normal scales. `olmo3_work/export_clamped_lw.py` floors every blockwise int4 scale at 2^-14 before the weights are rounded: `CLAMP_TOTAL tensors=55 scales=3606703`, and the scan of the result finds every scale normal (3,611,960 at exactly 2^-14).
+- **Ai2's template, edited for the runtime's template engine.** `olmo3_think_dual.jinja` (built by `make_template.py`) is Ai2's chat_template.jinja with the content-parts macro and `.get` rewritten as `is defined` tests; its renders equal transformers' render of Ai2's template in 9 conversation shapes × 3 `enable_thinking` states × both history forms, as strings and as content parts. Its default system message is the template's ("You are OLMo, a helpful function-calling AI assistant built by Ai2. …"), which differs from the README's "Default System Message" section. The generation prompt ends `<|im_start|>assistant\n<think>`: every reply starts in the thought, and `--thinking false` does not change that. No start token: the engine's prefill count equals transformers'. `make_pbtext.py` keeps the stop ids 100265 and 100257 of the exporter's 16 entries and sets `supports_thinking` true and `supports_function_calling` false; the thought channel `<think>` / `</think>` is declared by the exporter.
+- **Tokenizer section = the repo's tokenizer.json.** The export writes transformers' re-serialization (the post_processor differs); `tools/tokenizer_parity/swap_tokenizer_section.py` puts the repo's bytes in, `tok_section.py` checks.
+- **The GPU-composite rewrite does not apply.** `tools/gpu_graph/gpu_graph_retrofit.py --decomp exporter --mask add_bcast` (step 4, `GPU_GRAPH=1`) refuses this graph — the attention-mask input also feeds the sliding-window mask construction — so the published files are the exporter's graphs.
+- **KV budget 4096, six prefill signatures (1024, 256, 64, 16, 4, 1), embedder externalised.** The main TFLite section is 7,014,027,584 bytes (int8) and 3,888,809,568 bytes (int4), both over 2 GiB; not run on iOS. The KV cache is multi-head (32 × 128 per layer, full length on every layer).
+- **int8 = `dynamic_wi8_afp32`; int4 = `BOCTAV4` with every block scale at least 2^-14.** GSM8K (questions 0–99, 0-shot step by step, greedy, at most 2,048 output tokens, one process per question; the answer after `</think>`, a reply whose thought did not close scored on its whole text): bf16 84 (26 replies with the thought still open at 2,048 tokens), int8 81 (32), int4 80 (37) on the Mac GPU; the cache-2048 file 77 at 1,900 / 2,048 tokens (47).
+- Measured (prefill 1024 / decode 256 / context 2048): Mac M4 Max, litert-lm 0.18.0, two passes per file, the median — GPU (WebGPU) int8 838.81 / 30.40 tok/s, int4 836.55 / 34.76; CPU int8 131.36 / 6.70, int4 64.28 / 7.11; every decoder signature fully delegated on the Mac GPU. On litert-lm 0.17.1 both files answered a one-word question on the Mac CPU (one `run` each). The int8 file was not run on the Galaxy S26 (another 8B int8 file dropped that phone during its GPU engine warm-up), and the Pixel 8a was not run (the int4 file plus its KV cache is more than that phone's free RAM); the Galaxy S26 int4 GPU rows are pending.
 
 ## granite-4.2-3b (dense, thinking) — the think prefill an extracted template silently drops
 

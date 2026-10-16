@@ -385,5 +385,30 @@
     "task": "reasoning",
     "group": 2,
     "recipe": "REPRODUCE.md#nvidia-nemotron-nano-9b-v2--the-9b-on-the-nemotron-h-rail-nvidias-dt-limit-instead-of-transformers-lower-clamp-and-a-template-litert-lm-018-can-parse"
+  },
+  "Ornith-1.0-9B": {
+    "task": "agentic coding",
+    "group": 1,
+    "recipe": "REPRODUCE.md#2026-10-16--ornith-10-9b-a-qwen35-9b-finetune-on-the-9b-hybrid-recipe-with-thinking-off-in-the-template"
+  },
+  "Qwen3.5-9B": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#2026-10-16--qwen35-9b-the-9b-hybrid-recipe-the-repos-tokenizerjson-in-the-tokenizer-section-the-qwen35-4b-thinking-switch-in-the-metadata"
+  },
+  "Ornith-1.5-9B": {
+    "task": "agentic coding",
+    "group": 1,
+    "recipe": "REPRODUCE.md#2026-10-16--ornith-15-9b-the-same-9b-hybrid-recipe-plus-one-step-that-puts-the-model-repos-tokenizerjson-in-the-bundle"
+  },
+  "Falcon-H1R-7B": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#2026-10-15--falcon-h1r-7b-the-familys-reasoning-7b-on-the-same-patch-a-lightweight-export-and-int4-scales-clamped-before-quantizing"
+  },
+  "Olmo-3-7B-Think": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#olmo-3-7b-think--a-sliding-window-dense-7b-whose-int4-scales-need-a-lower-bound-and-a-gpu-composite-rewrite-that-does-not-apply"
   }
 }

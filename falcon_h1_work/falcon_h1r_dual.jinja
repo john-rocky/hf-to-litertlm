@@ -1,0 +1,99 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif item['type'] == 'tool_response' -%}
+                {%- if item['response'] is mapping or item['response'] is sequence -%}
+                    {{- item['response'] | tojson -}}
+                {%- else -%}
+                    {{- item['response'] | string -}}
+                {%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{# --- System Prompt Handling --- #}
+{%- if messages and messages[0]['role'] == 'system' %}
+  {% set system_msg = format_content(messages[0]['content']) %}  
+  {%- set remaining_messages = messages[1:] %}
+{%- else %}
+  {% set system_msg = "You are Falcon, a helpful AI assistant created by Technology Innovation Institute (TII). To answer the user's question, you first think about the reasoning process and then provide the user with the answer. The reasoning process is enclosed within <think> </think> tags, i.e., <think> reasoning process here </think> answer here." %}
+  {%- set remaining_messages = messages %}
+{%- endif %}
+
+{%- if tools %}
+<|im_start|>system
+{{ system_msg }}
+# Tools
+You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags.
+<tools>
+{%- for tool in tools %}
+{{- "" }}
+{{ tool | tojson }}
+{%- endfor %}
+{{- "" }}
+</tools>
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+<|im_end|>
+
+{%- else %}
+<|im_start|>system
+{{ system_msg }}
+<|im_end|>
+{%- endif %}
+
+{# --- Render remaining messages --- #}
+{%- for message in remaining_messages %}
+  {%- set content = format_content(message['content']) %}
+  {%- if message['role'] == 'user' %}
+    {{- '<|im_start|>' + message['role'] + '\n' + content + '<|im_end|>\n' }}
+  {%- elif message['role'] == 'assistant' %}
+    {{- '<|im_start|>' + message.role + '\n' }}
+        {%- if '</think>' in content %}
+            {%- set content = content | split('</think>') | last | lstrip('\n') %}
+        {%- elif message.reasoning_content is string %}
+            {%- set content = content | lstrip('\n') %}
+        {%- endif %}
+        {{- content + '\n' }}
+    {%- if tools and message.tool_calls %}
+      {%- for tool_call in message.tool_calls %}
+          {%- if tool_call.function is defined %}
+              {%- set tool_call = tool_call.function %}
+          {%- endif %}
+          {{-'<tool_call>\n' }}
+          {{- '{"name": "'+ tool_call.name + '", "arguments":' }}
+          {%- if tool_call.arguments is string -%}
+          {{ tool_call.arguments }}
+          {%- else -%}
+          {{ tool_call.arguments | tojson }}
+          {%- endif -%}
+          {{- '}' }}
+          {{- '\n</tool_call>\n' }}
+      {%- endfor %}
+    {%- endif %}
+    {%- if not loop.last %}
+      {{- '<|im_end|>' + '\n' }}
+    {%- else %}
+      {{- '<|im_end|>' }}
+    {%- endif %}
+  {%- elif message['role'] == 'tool' %}
+    {# Tool responses treated as user messages #}
+    {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != "tool") %}
+        {{- '<|im_start|>user' }}
+    {%- endif %}
+    {{- '\n<tool_response>\n' + format_content(message['content']) + '\n</tool_response>' }}
+    {%- if loop.last or (messages[loop.index0 + 1].role != "tool") %}
+        {{- '<|im_end|>\n' }}
+    {%- endif %}
+  {%- endif %}
+  {# --- Add generation prompt after last message if requested --- #}
+  {%- if loop.last and add_generation_prompt %}
+    {{- '<|im_start|>assistant\n' }}
+  {%- endif %}
+{%- endfor %}

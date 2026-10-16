@@ -77,3 +77,8 @@ litert-community/MiniCPM-V-4.7-1B
 litert-community/granite-4.1-8b
 litert-community/Ministral-3-8B-Instruct-2512
 litert-community/NVIDIA-Nemotron-Nano-9B-v2
+litert-community/Ornith-1.0-9B
+litert-community/Qwen3.5-9B
+litert-community/Ornith-1.5-9B
+litert-community/Falcon-H1R-7B
+litert-community/Olmo-3-7B-Think

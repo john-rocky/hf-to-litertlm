@@ -1,0 +1,33 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif item['type'] == 'tool_response' -%}
+                {%- if item['response'] is mapping or item['response'] is sequence -%}
+                    {{- item['response'] | tojson -}}
+                {%- else -%}
+                    {{- item['response'] | string -}}
+                {%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{% set has_system = messages|selectattr('role', 'equalto', 'system')|list|length > 0 %}{% if not has_system %}{{ '<|im_start|>system
+You are OLMo, a helpful function-calling AI assistant built by Ai2. Your date cutoff is November 2024, and your model weights are available at https://huggingface.co/allenai. You do not currently have access to any functions. <functions></functions><|im_end|>
+' }}{% endif %}{% for message in messages %}{% if message['role'] == 'system' %}{{ '<|im_start|>system
+' + format_content(message['content']) }}{% if message['functions'] is defined and message['functions'] is not none %}{{ ' <functions>' + message['functions'] + '</functions><|im_end|>
+' }}{% else %}{{ ' You do not currently have access to any functions. <functions></functions><|im_end|>
+' }}{% endif %}{% elif message['role'] == 'user' %}{% if message['functions'] is defined and message['functions'] is not none %}{{ '<|im_start|>user
+' + format_content(message['content']) + '
+' + '<functions>' + message['functions'] + '</functions><|im_end|>
+' }}{% else %}{{ '<|im_start|>user
+' + format_content(message['content']) + '<|im_end|>
+' }}{% endif %}{% elif message['role'] == 'assistant' %}{{ '<|im_start|>assistant
+' }}{% if message['content'] is defined and message['content'] is not none %}{{ format_content(message['content']) }}{% endif %}{% if message['function_calls'] is defined and message['function_calls'] is not none %}{{ '<function_calls>' + message['function_calls'] + '</function_calls>' }}{% endif %}{% if not loop.last %}{{ '<|im_end|>' + '
+' }}{% else %}{{ eos_token }}{% endif %}{% elif message['role'] == 'environment' %}{{ '<|im_start|>environment
+' + format_content(message['content']) + '<|im_end|>
+' }}{% endif %}{% if loop.last and add_generation_prompt %}{{ '<|im_start|>assistant
+<think>' }}{% endif %}{% endfor %}
