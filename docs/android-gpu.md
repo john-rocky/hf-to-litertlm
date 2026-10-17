@@ -25,6 +25,16 @@ process substantially faster. Budget RAM before choosing GPU: the GPU path needs
 **2× the model size** (weights plus the runtime's GPU weight cache), so a 3B int4 bundle
 (~2.7 GB) wants a 12 GB device; on 8 GB devices prefer a 1–2B model or CPU.
 
+**A CPU-vs-GPU decode comparison also measures the KV cache the bundle allocates.** On the CPU
+path (XNNPACK) the attention step runs over the whole allocated cache, filled or not, so CPU decode
+falls as `max_num_tokens` grows: Gemma 3 270M int8 on a Galaxy S26, same 1,024-token prompt, 139.9 →
+80.2 tok/s from 1,280 to 4,096 entries; Qwen3-0.6B int4 (a 128-token benchmark prompt) 94.9 → 15.4 tok/s from
+384 to 4,096. The OpenCL GPU decode stays flat over the same range, and the weight kernels take the
+same time on both paths. A bundle whose cache is sized at export always pays that length; one that
+leaves it resizable takes the engine's or the app's allocation. So when the GPU reads two or three
+times the CPU at the bundle default, set `max_num_tokens` to the context you need, measure the CPU
+again before calling it a GPU gain, and state the allocation beside every pair of numbers.
+
 **The bundle's model type changes GPU defaults.** When the app sets nothing, LiteRT-LM picks three
 GPU-executor settings by whether the bundle's `llm_model_type` is `generic_model`: typed bundles allow
 quantized fully-connected / conv ops (the runtime's note: faster at the risk of quality), only generic
