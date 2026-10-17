@@ -22,7 +22,7 @@ installing these TS/Dart reference readers is not required. A reference-reader s
 version does not identify the code inside a published mobile SDK.
 
 **Other existing SDK procedures (not device-verified by this walkthrough):**
-[Flutter Gemma installation](https://pub.dev/packages/flutter_gemma#installation) and
+[flutter_edge_ai_litertlm — install from a Hugging Face repo](https://pub.dev/packages/flutter_edge_ai_litertlm#install-from-a-hugging-face-repo-litertlm_manifestjson) and
 [React Native installation and manifest resolution](https://github.com/hung-yueh/react-native-litert-lm#installation).
 Follow each SDK's published-package requirements. Their unit tests, and the tests below,
 check their respective code layers; a passing JS/Dart suite alone does not establish

@@ -51,14 +51,19 @@ are listed separately with their verification scope.
 ## Used in other projects
 
 - [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) — on-device LLM
-  inference for React Native on LiteRT-LM. Since 0.7.0 its `resolveFromManifest()` picks the
-  `.litertlm` file, backend, sampler defaults, and stream channels from a model repo's
-  [`litertlm_manifest.json`](#deployment-manifests)
+  inference for React Native on LiteRT-LM, on npm as
+  [`react-native-litert-lm`](https://www.npmjs.com/package/react-native-litert-lm). Since 0.7.0 its
+  `resolveFromManifest()` takes a repo name from the table above and picks the
+  `.litertlm` file, backend, sampler defaults, and stream channels from that repo's
+  [`litertlm_manifest.json`](#deployment-manifests), so a published bundle of a family its
+  engine knows (its README lists them) loads without a conversion step
   ([source](https://github.com/hung-yueh/react-native-litert-lm/blob/568552814d9e512a09763b547261918dccd5224b/src/manifestResolver.ts)).
 - [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai) (formerly flutter_gemma) —
-  on-device AI for Flutter. Its LiteRT-LM package has shipped `LitertlmManifestResolver` since
-  `flutter_gemma_litertlm` 1.6.0 (now `flutter_edge_ai_litertlm`). The resolver reads a Hugging
-  Face repo's manifest and returns the `.litertlm` file that fits the platform
+  on-device AI for Flutter. Its LiteRT-LM package, on pub.dev as
+  [`flutter_edge_ai_litertlm`](https://pub.dev/packages/flutter_edge_ai_litertlm), has shipped
+  `LitertlmManifestResolver` since `flutter_gemma_litertlm` 1.6.0. `FlutterEdgeAi.resolveHuggingFace("<repo>")`
+  reads a repo's manifest and returns the `.litertlm` file that fits the platform, so a
+  published bundle from the table above installs in a Flutter app without a conversion step
   ([source](https://github.com/DenisovAV/flutter_edge_ai/tree/712ff53881695c8866eb7a0ae56e9b72ee85dc12/packages/flutter_edge_ai_litertlm/lib/src/manifest)).
 - [local_assistant_v2](https://github.com/taslimmuhammed/local_assistant_v2) — an Android
   assistant app with on-device memory search. Its EmbeddingGemma converter, which builds a
