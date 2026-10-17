@@ -82,3 +82,12 @@ of the same model. Short-prompt prefill numbers are a floor, not a throughput cl
 if the prompt was under ~100 tokens, say so in the conditions line. A GPU gate failure is
 recorded as `GPU_FAIL({reason})` (or `OOM`) in the tracking table, and the card keeps the
 CPU row.
+
+A check that fails on the CPU backend only while the GPU and the bf16 reference pass (with an int8
+file, a near-tie that the CPU's run-time int8 quantization of each layer's input can flip, e.g. a
+polite refusal at 2 of 17 prompt lengths) is written as the fact: which inputs, the same result in
+three fresh processes, the bf16 margin if it was read, then "consistent with the CPU backend's
+run-time int8 quantization; the CPU logits were not read, so the cause is not measured". The CPU
+row stays. litert-lm 0.18.0's `benchmark` prints an init time that sums overlapping init phases,
+about twice the engine build in the verbose log's timestamps: quote it with that note, or measure
+the build from the log.

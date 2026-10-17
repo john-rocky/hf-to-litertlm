@@ -16,6 +16,7 @@ converter, not affiliated with Google.
 |---|---|---|
 | Check whether the model is already converted | Look it up in the model table; each row links the Hugging Face repo and its recipe | README "Converted models" |
 | Convert a finetune, or any supported model, to a gated bundle | `python scripts/convert.py <org>/<model>` (`--int4` for the proven int4 recipe) | README "Convert a finetune" |
+| Convert a finetune of a model this repo converts with a family script (a Qwen3.5-9B finetune on `qwen35_work/convert_qwen35_9b.sh`) | Before running the base's script with the finetune's id and revision, diff the text config key by key (`jq -S .text_config` of both config.json files: every shared key equal, or one the export sets itself), then generation_config (each eos id becomes a stop token), the checkpoint's key list, `tokenizer.json` (rule 7) and the chat template (rule 5); a difference that reaches the graph means the family script is not the recipe | REPRODUCE.md "Ornith-1.0-9B" |
 | Run the bundle on a Mac to check it | `litert-lm run out/<model>/*.litertlm --prompt "Hello"` | README top |
 | Rebuild a published bundle | `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>` (`--list` for keys) | [REPRODUCE.md](REPRODUCE.md) |
 | Re-pack a published bundle so its weights sit in TFLiteWeights sections at the end of the file (LiteRT-LM Web form) | `bash tools/externalize/fetch_tools.sh`, then `bash tools/externalize/externalize_repo.sh <org>/<repo> <file.litertlm> --revision <sha>`; read the staged REPORT (dtypes, graph size, smoke) before any upload | [tools/externalize/README.md](tools/externalize/README.md), [REPRODUCE.md](REPRODUCE.md) "External weights" |
@@ -25,10 +26,18 @@ converter, not affiliated with Google.
 | Run a published bundle in an Android app | [hfmodels-android](https://github.com/john-rocky/hfmodels-android): one Gradle line, a few lines of Kotlin; the walkthrough pins LFM2.5-1.2B-Instruct on a Pixel 8a | hfmodels-android README "Add it" |
 | Run a bundle in an iPhone app | [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm): `LiteRTChat(huggingFaceRepo:fileName:)` or `LiteRTChat(modelFileURL:)` | [recipe: a fine-tuned model on iPhone](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md) |
 | A hybrid family no released exporter handles (granite-4.0-h, Falcon-H1, Zamba2, Nemotron-H) | `convert.py` routes to the pinned family recipe by `model_type`; the one-time checkout command is printed on refusal | README "Convert a finetune" table, `<family>_work/` |
+| Plan the phone rows of a 7–9B hybrid (Mamba2, GatedDeltaNet) | The int4 GPU engine of such a file does not build on a 12 GB Galaxy S26 or on a Pixel 8a; measure the Mac rows and say so on the card | [docs/android-gpu.md](docs/android-gpu.md) "7–9B models on a 12 GB phone" |
+| A Mamba2-hybrid bundle scores above its transformers reference on CPU / MPS | Split the score at the config's `chunk_size` and re-run the long prompts with `chunk_size` ≥ the longest prompt (the naive scan loses context across chunks); take the dt arithmetic from the vendor's modeling code, not transformers' torch path | REPRODUCE.md "Nemotron-H" |
+| A thinking switch on a Qwen3.5-family hybrid | `qwen35_work/use_switch_template.sh` re-packs the template; gate thinking on with `thinking_token_budget=300` over three fresh CPU processes (without a budget a CPU thought can run past 2,048 tokens a turn) | REPRODUCE.md "Qwen3.5-9B" |
 | A dense architecture that is not listed | `scripts/export_simple_template.py`, then a `case` in `scripts/reproduce_llm.sh` | README "Convert a new architecture" |
+| Export a dense 7–9B model on a machine with about 128 GB of RAM (the default path reached 98.8 GB in the converter passes for granite-4.1-8b) | `granite41_work/export_lightweight.py` = `scripts/export_simple_template.py` with `experimental_lightweight_conversion` (`LIGHTWEIGHT=1`) and `RESOURCE_CONSTANT_NUMEL_THRESHOLD=100000000` (bytes: above the weights the converter folds with a scale, below the MLP weights); accept only with no constant-only op and every FULLY_CONNECTED weight an int8 / int4 constant | REPRODUCE.md "granite-4.1-8b", "Ministral-3-8B-Instruct-2512" |
+| Faster GPU decode for a dense bundle without re-exporting (KV writes and attention as GPU composites) | `python tools/gpu_graph/gpu_graph_retrofit.py in.litertlm out.litertlm --decomp exporter --mask add_bcast --report r.json` (weights and the other sections byte-identical); check the CPU answers against the input file and the GPU answers, then time both files in both orders on each device | [tools/gpu_graph/README.md](tools/gpu_graph/README.md), REPRODUCE.md "granite-4.1-8b" |
+| A blockwise int4 bundle the Mac CPU refuses (XNNPACK prepares a blockwise int4 FULLY_CONNECTED only when every fp16 block scale is a normal float) | Floor the block scales at 2^-14: at export, `olmo3_work/export_clamped_lw.py` (the clamp-before-quantize monkeypatch on the lightweight path), or at quantization, `falcon_h1_work/quantize_clamped.py`; then `granite_work/scan_scales.py` must report zero 0 and subnormal 0. Which models produce such scales is not predictable: Olmo-3-7B-Think wrote 3,606,703 of 215 M, granite-4.1-8b none | REPRODUCE.md "Olmo-3-7B-Think", "Falcon-H1R-7B" |
+| A rebuilt bundle whose TFLite section differs from the published one | Compare sections first; when a graph section differs, `python tools/tfl_compare/tfl_struct.py A B SECTION out.json` compares operators and constants without tensor indices or names (run a must-differ control beside it). An export can store the RoPE constants and the signature subgraphs' operators in either of two orders: the same computation, a different sha256 | [tools/tfl_compare/README.md](tools/tfl_compare/README.md), REPRODUCE.md "Olmo-3-7B-Think" |
 | A new VLM | Copy the closest `scripts/ship_*.sh` with its `convert_*_vision.py` / `prep_*_decoder.py` | README "Convert a new architecture", [docs/vision-tower-reauthor.md](docs/vision-tower-reauthor.md) (the vision tower in plain torch for the fast_vlm contract) |
 | A raw graph that is right at GPU fp32 and collapses at fp16 or on the NPU (RMSNorm sums past 65,504) | Rewrite each norm with a per-site power-of-two rescale (exact in fp32), clamp the rsqrt for padding rows, keep masks float | [docs/fp16-safe-norms.md](docs/fp16-safe-norms.md) |
 | A VLM whose text tower is a model the LLM rail already exports (Qwen3.5 text under MiniCPM-V-4.7) | `python tools/vlm_text_ckpt/make_text_ckpt.py <snapshot> <out> --prefix model.language_model. --model-type qwen3_5_text --architectures Qwen3_5ForCausalLM --prove`, then the LLM rail on the derived directory | [tools/vlm_text_ckpt/README.md](tools/vlm_text_ckpt/README.md) |
+| A Ministral 3 checkpoint (Mistral3ForConditionalGeneration, text only) | `python scripts/extract_ministral3_text.py <snapshot> <out>` (the decoder and its lm_head as a standalone Ministral3ForCausalLM; an 8B tower is written in fp32, so it needs the RAM of an export), then the dense rail with `ministral_work/ministral3_8b_dual.jinja` (string and content-parts messages, the vendor system message, no BOS in the template) | REPRODUCE.md "Ministral-3-8B-Instruct-2512" |
 | Gate a VLM bundle's image answers against the model's own fp32 outputs | `python minicpmv47_work/suite_mv47.py run <bundle> --label <name>` (one process per image question, keyword grounding) then `score <suite dir>` (first divergence against the reference arms) | REPRODUCE.md "2026-10-13 — MiniCPM-V-4.7-1B" |
 | Which file fits which device, backend and RAM budget, at what speed | `litertlm_manifest.json` in every published repo; schema, generator and readers in this repo | README "Deployment manifests", [manifest/SCHEMA.md](manifest/SCHEMA.md), [readers/](readers/) |
 | GPU or NPU on Android for these bundles | Measured notes | [docs/android-gpu.md](docs/android-gpu.md), [docs/android-npu.md](docs/android-npu.md) |
@@ -50,12 +59,22 @@ converter, not affiliated with Google.
    a Galaxy S26 GPU figure to another phone.
 5. **The derivative's own chat template is embedded verbatim.** Do not substitute the base model's
    template; the adapter's tokenizer, template and generation config win over the base's.
+   When the bundle carries a thinking-off form instead (Ornith-1.0-9B ships the 701-byte `qwen35_text_current.jinja`),
+   render it the way the runtime does (`tools/chat_template_prefix/desk_render.py`) and render the derivative's own
+   template with transformers' `apply_chat_template(..., enable_thinking=False)`; ship it only if the two are
+   byte-identical in every conversation shape. A family template that matches the base but not the derivative (the
+   Qwen3.5-4B switch template drops the think block Ornith writes into past assistant turns) is a substitution.
 6. **Model files are not in this repository.** Bundles live on Hugging Face; `out/` is local.
 7. **The tokenizer section is the repo's own `tokenizer.json`.** Bundle the file from the Hub at a
    pinned revision and compare the unpacked section with it by sha256. `AutoTokenizer.save_pretrained`
    rewrites `tokenizer.json` when `tokenizer_config.json` names a dedicated class (transformers'
    `CohereTokenizer` splits every digit; the trained tokenizer groups digits in threes), and an HF
-   reference loaded the same way shares the defect.
+   reference loaded the same way shares the defect. The litert-torch Qwen3.5 rail writes transformers'
+   `Qwen2Tokenizer` pipeline the same way (a pre-tokenizer without the `\p{M}` class: Hindi, Thai, Tamil
+   and Arabic with harakat tokenize differently); `tools/tokenizer_parity/swap_tokenizer_section.py`
+   replaces that section with the repo file and leaves the other sections byte-identical. A section that
+   differs from the repo file only in `post_processor` (an identity TemplateProcessing where the repo has
+   none) gave the same ids on 15 probe texts with and without special tokens (Falcon-H1R-7B).
 8. **A tool-calling model is not packed as `generic_model`.** The runtime chooses the tool-call parser
    by `llm_model_type` (`lfm2` for `<|tool_call_start|>` calls from litert-lm 0.18.0, `qwen2p5` / `qwen3`
    for JSON in `<tool_call>`); `generic_model` returns every call as text. The template must also render
@@ -68,6 +87,13 @@ converter, not affiliated with Google.
    (`scripts/repack_official_metadata.sh`) needs litert-lm 0.18.0 or newer: 0.17.x sends string content
    and the user turn renders empty, exit 0. Keep the bundle's own template and add only the official
    tool branch when an older runtime must keep working.
+11. **A hybrid bundle (Mamba2, GatedDeltaNet) declares fp32 GPU activations.** With the GPU executor's
+   default fp16 activations the hybrid conversions of this repository answered nothing (the pad token,
+   `!` or `<unk>` repeated from the first token: Falcon-H1R-7B, Qwen3.5-9B, Ornith-1.0-9B, Ornith-1.5-9B,
+   NVIDIA-Nemotron-Nano-9B-v2); `scripts/set_activation_type.py --type fp32` fixes it at 1–8 % of the
+   GPU time (Falcon-H1R-7B 1 %, Nemotron 1.5 %, Qwen3.5-9B 8 %). Dense conversions keep fp16: the
+   declaration costs them about 15 % (granite-4.1-8b 15.4 %, Ministral-3-8B 14.7 %) and their answers
+   do not change.
 
 ## Not this repo
 

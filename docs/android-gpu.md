@@ -34,6 +34,29 @@ release since 0.14). Nothing in the bundle or the public APIs overrides them. A 
 changes the type leaves every graph byte-identical and still runs differently on Adreno and Mali:
 measure the GPU again before quoting older GPU numbers.
 
+### 7–9B models on a 12 GB phone
+
+Measured with the prebuilt `litert_lm_advanced_main` of 2026-09-18 (OpenCL) on a Galaxy S26 with 11.4 GB of
+RAM (MemTotal 11,389,756 kB), the phone in our hands and a device-lab unit of the same model line:
+
+- **Dense 8B-class int4 files build and run** (granite-4.1-8b, Ministral-3-8B-Instruct-2512: 5.1 / 5.0 GB,
+  six prefill signatures). The GPU-composite rewrite of granite-4.1-8b (`tools/gpu_graph/`) decoded 1.4×
+  faster than the exported graph on this phone in both orders (5.35 vs 3.75 tok/s) and prefilled 15 % faster.
+  Their int8 files are not run on it: an 8B-class int8 GPU engine warm-up rebooted the phone, which then
+  stays off adb until a person unlocks it.
+- **A 7–9B hybrid's int4 GPU engine does not build.** Qwen3.5-9B (Mixed INT4, 6.1 GB) and its finetunes
+  Ornith-1.0-9B / Ornith-1.5-9B failed the GPU engine build in every session, with six or three prefill
+  signatures (the OpenCL delegate took one or two signatures, then the phone ran out of memory); the
+  Falcon-H1R-7B int4 file (4.69 GB, Mamba2 hybrid, fp32 activations declared) had every node of all seven
+  signatures delegated, then memory ran out — the phone in our hands rebooted 69 s after the engine start,
+  the device-lab unit's low-memory killer emptied the phone and its system services died. A Pixel 8a stops
+  on memory during the same build. File size alone does not decide (the dense files above are as large):
+  plan the Mac rows for a hybrid of this size and say on the card that the phone GPU engine does not build.
+- **A 7B multi-head-attention int4 file builds only with a 2,048-token KV cache.** Olmo-3-7B-Think int4
+  (32 KV heads, 4.3 GB) built its GPU engine with a 2,048-token cache and did not build with 4,096 (the
+  low-memory killer ran down to foreground apps and the framework restarted); export the phone file with
+  `CACHE=2048` and say on the card that it serves contexts of up to 2,048 tokens.
+
 ### Image prompts and timing with the LiteRT-LM Android binary
 
 Measured with MiniCPM-V-4.7-1B (`fast_vlm` bundles) on a Galaxy S26 and a Pixel 8a with the prebuilt `litert_lm_advanced_main` of 2026-10-13 (REPRODUCE.md, 2026-10-13):
