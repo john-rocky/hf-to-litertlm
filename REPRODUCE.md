@@ -1703,7 +1703,7 @@ git clone --no-checkout --depth 1 https://github.com/google-ai-edge/litert-torch
 git -C "$LITERT_TORCH_DIR" fetch --depth 1 https://github.com/google-ai-edge/litert-torch 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C "$LITERT_TORCH_DIR" checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C "$LITERT_TORCH_DIR" apply "$(pwd)/qwen35_work/qwen35_hybrid_litert_torch.patch"
-git -C "$LITERT_TORCH_DIR" apply "$(pwd)/agents_a1_work/qwen35_export_compat.patch"
+if git -C "$LITERT_TORCH_DIR" apply --check "$(pwd)/agents_a1_work/qwen35_export_compat.patch" 2>/dev/null; then git -C "$LITERT_TORCH_DIR" apply "$(pwd)/agents_a1_work/qwen35_export_compat.patch"; fi  # a no-op since 2026-10-17: qwen35_work's patch carries the branch; patch_state.json checks the seven files either way
 "$PY" -B agents_a1_work/export_float.py --download --model "$AGENTS_A1_CHECKPOINT" --output "$AGENTS_A1_OUTPUT/float" --litert-torch-dir "$LITERT_TORCH_DIR"
 "$PY" -B agents_a1_work/build_bundles.py --model "$AGENTS_A1_CHECKPOINT" --float-bundle "$AGENTS_A1_OUTPUT/float/model.litertlm" --output "$AGENTS_A1_OUTPUT"
 # Float CPU parity first (pt and lt run serially in their respective environments):

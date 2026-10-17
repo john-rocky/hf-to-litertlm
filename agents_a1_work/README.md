@@ -88,13 +88,14 @@ not run that driver's older template or int8-only steps. A plain abbreviated
 checkout no longer retrieves the required base; use the full fetch-by-hash
 command above.
 
-`qwen35_work/qwen35_hybrid_litert_torch.patch` in this repository predates the export measured here:
-its no-token-id path lacks the position-derived padding mask used for an
-externalized embedder. `qwen35_export_compat.patch` restores that exact branch;
-normal text input still uses the same token-id mask. The preparation step
+Until 2026-10-17 `qwen35_work/qwen35_hybrid_litert_torch.patch` in this repository
+predated the export measured here: its no-token-id path lacked the position-derived
+padding mask used for an externalized embedder, and `qwen35_export_compat.patch`
+restored that exact branch (normal text input uses the same token-id mask either
+way). The shared patch now carries the branch itself, so `export_float.py` applies
+the supplement only where `git apply --check` accepts it; the preparation step
 verifies SHA256 values for all seven patched source files against
-`patch_state.json`, so the existing patch plus this small supplement exactly
-matches the executed source. No shared patch file is replaced.
+`patch_state.json`, so both paths yield exactly the executed source.
 
 `build_bundles.py` reuses `minicpm5_work/quantize_minicpm5.py`,
 `scripts/add_executor_metadata.py` and `scripts/set_activation_type.py` from

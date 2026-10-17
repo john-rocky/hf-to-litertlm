@@ -100,7 +100,7 @@ LiteRT-LM's PyPI build runs its GPU backend through a statically linked WebGPU d
 - Published-row agreement with the fp32 oracle (`results/r6/check_<v>_<backend>.json`): fp16 CPU 53/53, max |dp| 4.06e-05; v7c CPU 52/53, max 0.00846; fp16 Metal 53/53, 4.07e-05; v7c Metal 53/53, 0.00621; text-only 9/9 in all four.
 - The runtime's greedy token is the top token over the whole vocabulary. On `v2_game_pong_nes_center_multi` question 1 (two options) the top token is `C` in upstream fp32 and in both files; the runtime path only reads the last question of a request, and on every single-question published row the top token is the option argmax, but a request can in principle get a letter that is not an option.
 - The curated fixture generators staged for the public mirror (internal photo/document rows and the five platformer-style frames removed) regenerate the 42 published rows with identical image bytes, RGB hashes, contexts, questions and options (run in a scratch copy).
-- The public mirror's copy of the hybrid patch (`qwen35_work/qwen35_hybrid_litert_torch.patch`, sha256 `997bfc4d…`) lacks the externalized-embedder pad guard (valid rows from position monotonicity) that this VLM decoder was exported with (`0a01e2ae…`); the staged mirror copy carries the exact patch under `deps/`.
+- Until 2026-10-17 the public mirror's copy of the hybrid patch (`qwen35_work/qwen35_hybrid_litert_torch.patch`, then sha256 `997bfc4d…`; since synced to `0a01e2ae…`, the bytes in `deps/`) lacked the externalized-embedder pad guard (valid rows from position monotonicity) that this VLM decoder was exported with (`0a01e2ae…`); the staged mirror copy carries the exact patch under `deps/`.
 
 ## 11. Round 6: one decision on the Mac through LiteRT-LM 0.17.1
 

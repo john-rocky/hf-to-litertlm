@@ -51,7 +51,11 @@ def prepare_checkout(path):
     subprocess.run(['git', '-C', str(path), 'fetch', '--depth', '1', url, TORCH_REVISION], check=True)
     subprocess.run(['git', '-C', str(path), 'checkout', '--detach', TORCH_REVISION], check=True)
     subprocess.run(['git', '-C', str(path), 'apply', str(patch)], check=True)
-    subprocess.run(['git', '-C', str(path), 'apply', str(HERE / 'qwen35_export_compat.patch')], check=True)
+    # Since 2026-10-17 qwen35_work's patch carries the position-derived mask itself (the same seven-file
+    # state as its older copy plus this supplement), so the supplement is applied only where it still fits.
+    compat = HERE / 'qwen35_export_compat.patch'
+    if subprocess.run(['git', '-C', str(path), 'apply', '--check', str(compat)], capture_output=True).returncode == 0:
+        subprocess.run(['git', '-C', str(path), 'apply', str(compat)], check=True)
     verify_patch(path)
 
 

@@ -1,5 +1,5 @@
 diff --git a/litert_torch/generative/export_hf/core/attention.py b/litert_torch/generative/export_hf/core/attention.py
-index 7b1c68c..166a883 100644
+index 7b1c68c0..166a883d 100644
 --- a/litert_torch/generative/export_hf/core/attention.py
 +++ b/litert_torch/generative/export_hf/core/attention.py
 @@ -149,8 +149,12 @@ def transposed_attention(
@@ -18,7 +18,7 @@ index 7b1c68c..166a883 100644
  
  
 diff --git a/litert_torch/generative/export_hf/core/cache.py b/litert_torch/generative/export_hf/core/cache.py
-index 5c13dea..fcca905 100644
+index 5c13deaa..fcca9057 100644
 --- a/litert_torch/generative/export_hf/core/cache.py
 +++ b/litert_torch/generative/export_hf/core/cache.py
 @@ -116,6 +116,10 @@ class LiteRTLMCacheLayer(cache_base_lib.LiteRTLMCacheLayerMixin):
@@ -670,7 +670,7 @@ index 5c13dea..fcca905 100644
        k_cache_idx = flat_names.index(f"k_{i}")
        v_cache_idx = flat_names.index(f"v_{i}")
 diff --git a/litert_torch/generative/export_hf/core/export_lib.py b/litert_torch/generative/export_hf/core/export_lib.py
-index 589653d..97c472f 100644
+index 589653d5..97c472fa 100644
 --- a/litert_torch/generative/export_hf/core/export_lib.py
 +++ b/litert_torch/generative/export_hf/core/export_lib.py
 @@ -181,6 +181,20 @@ def load_model(
@@ -695,7 +695,7 @@ index 589653d..97c472f 100644
      model.generation_config.cache_implementation = 'static'
      model.generation_config.do_sample = False
 diff --git a/litert_torch/generative/export_hf/core/exportable_module.py b/litert_torch/generative/export_hf/core/exportable_module.py
-index 0fc99e4..cf96a36 100644
+index 0fc99e4b..cf96a360 100644
 --- a/litert_torch/generative/export_hf/core/exportable_module.py
 +++ b/litert_torch/generative/export_hf/core/exportable_module.py
 @@ -144,6 +144,11 @@ class LiteRTExportableModuleForDecoderOnlyLM(ExportableModuleBase):
@@ -727,9 +727,18 @@ index 0fc99e4..cf96a36 100644
    def forward(
        self,
        tokens,
+diff --git a/litert_torch/generative/export_hf/model_ext/__init__.py b/litert_torch/generative/export_hf/model_ext/__init__.py
+index 963689de..2303fbb7 100644
+--- a/litert_torch/generative/export_hf/model_ext/__init__.py
++++ b/litert_torch/generative/export_hf/model_ext/__init__.py
+@@ -18,3 +18,4 @@ from litert_torch.generative.export_hf.model_ext.gemma3 import patch as _
+ from litert_torch.generative.export_hf.model_ext.gemma3n import patch as _
+ from litert_torch.generative.export_hf.model_ext.gemma4 import patch as _
+ from litert_torch.generative.export_hf.model_ext.lfm2 import patch as _
++from litert_torch.generative.export_hf.model_ext.qwen3_5 import patch as _
 diff --git a/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py b/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py
 new file mode 100644
-index 0000000..c0f98a7
+index 00000000..c0f98a7b
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/__init__.py
 @@ -0,0 +1,14 @@
@@ -749,10 +758,10 @@ index 0000000..c0f98a7
 +# ==============================================================================
 diff --git a/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
 new file mode 100644
-index 0000000..3eaa6c0
+index 00000000..693f8fa3
 --- /dev/null
 +++ b/litert_torch/generative/export_hf/model_ext/qwen3_5/patch.py
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,431 @@
 +# Copyright 2026 The LiteRT Torch Authors.
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
@@ -837,7 +846,21 @@ index 0000000..3eaa6c0
 +    # mask here and stash it directly on every GatedDeltaNet instance — the
 +    # linear-attention layers receive attention_mask=None during export (see
 +    # module docstring), so the guarded forward reads `self._litert_valid`.
-+    valid = (input_ids != 0).to(torch.float32) if input_ids is not None else None
++    if input_ids is not None:
++      valid = (input_ids != 0).to(torch.float32)
++    elif position_ids is not None:
++      # Externalized-embedder graphs (fast_vlm) carry no token ids; the engine
++      # pads prefill chunks with non-increasing positions, so derive the mask
++      # from position monotonicity instead (the same contract upstream 0.9.3's
++      # exportable_module uses for its input_pos fallback, proven by LFM2.5-VL).
++      p = position_ids[0] if position_ids.ndim == 3 else position_ids
++      if p.ndim == 1:
++        p = p.unsqueeze(0)
++      v0 = torch.ones_like(p[:, :1], dtype=torch.float32)
++      v1 = (p[:, 1:] > p[:, :-1]).to(torch.float32)
++      valid = torch.cat([v0, v1], dim=1)
++    else:
++      valid = None
 +    for module in self.modules():
 +      if isinstance(module, PatchedQwen3_5GatedDeltaNet):
 +        module._litert_valid = valid
@@ -1170,13 +1193,3 @@ index 0000000..3eaa6c0
 +    modeling_qwen3_5.Qwen3_5TextModel = original_text_model
 +    modeling_qwen3_5.Qwen3_5GatedDeltaNet = original_mixer
 +    modeling_qwen3_5.Qwen3_5TextRotaryEmbedding = original_rotary
-diff --git a/litert_torch/generative/export_hf/model_ext/__init__.py b/litert_torch/generative/export_hf/model_ext/__init__.py
-index 963689d..1111111 100644
---- a/litert_torch/generative/export_hf/model_ext/__init__.py
-+++ b/litert_torch/generative/export_hf/model_ext/__init__.py
-@@ -17,4 +17,5 @@
- from litert_torch.generative.export_hf.model_ext.gemma3 import patch as _
- from litert_torch.generative.export_hf.model_ext.gemma3n import patch as _
- from litert_torch.generative.export_hf.model_ext.gemma4 import patch as _
- from litert_torch.generative.export_hf.model_ext.lfm2 import patch as _
-+from litert_torch.generative.export_hf.model_ext.qwen3_5 import patch as _
