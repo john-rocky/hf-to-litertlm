@@ -44,6 +44,8 @@ Usage:
                         [--report out.json] [--dry-run]
   gpu_graph_retrofit.py IN.litertlm OUT.litertlm [...]     (unpack -> swap prefill_decode -> pack,
                         every other section asserted byte-identical; needs LITERT_LM_CLI)
+                        [--allow-linear-attention-state]  (without it, a bundle whose ExecutorMetadata
+                        declares a linear-attention state buffer is refused: README.md, Limits)
 """
 
 import argparse
@@ -878,11 +880,52 @@ def run_cli(args):
   return text
 
 
-def retrofit_bundle(src, dst, work, **kw):
+# State inputs that LiteRT-LM treats as linear-attention state by name (IsLinearAttentionStateName,
+# main 615d193f): "kv_cache_c_" convolution state, "kv_cache_r_" recurrent state.
+LINEAR_STATE_PREFIXES = ("kv_cache_c_", "kv_cache_r_")
+LINEAR_STATE_STOP = (
+    "{}: refused, the ExecutorMetadata declares {} linear-attention state buffer(s) ({}), and LiteRT-LM 0.18.0's "
+    "GPU executor does not pass state buffers as inputs to a graph with param_tensor, so these layers lose their "
+    "state and the GPU text breaks. LiteRT-LM main 615d193f changes this (not tested here); "
+    "--allow-linear-attention-state runs the retrofit anyway.")
+
+
+def linear_attention_states(unpack_dir):
+  """Report keys from the ExecutorMetadata of an unpacked bundle: state_buffers [{"name", "type"}] and
+  linear_attention_state [names] (TYPE_LINEAR_ATTENTION, or a name in LINEAR_STATE_PREFIXES). Both None,
+  with the reason in state_buffers_skipped, when the bundle has no ExecutorMetadata section."""
+  from google.protobuf import text_format
+  from litert_lm_builder.runtime.proto import executor_metadata_pb2 as em
+  toml = open(os.path.join(unpack_dir, "model.toml")).read()
+  m = re.search(r'section_type = "ExecutorMetadata"\s*\ndata_path = "([^"]+)"', toml)
+  if not m:
+    return {"state_buffers": None, "linear_attention_state": None,
+            "state_buffers_skipped": "no ExecutorMetadata section in the bundle"}
+  # litert-lm unpack (0.15.0-0.18.0) writes this section as text format; fields this litert_lm_builder does
+  # not know (a newer CLI) are skipped, an unknown state type stops with a ParseError.
+  with open(os.path.join(unpack_dir, m.group(1))) as f:
+    md = text_format.Parse(f.read(), em.ExecutorMetadata(), allow_unknown_field=True)
+  states = []
+  for sb in md.llm_executor_metadata.state_buffers:
+    # the runtime keys a state buffer by its first non-empty name (state.cc MetadataBasedCreate)
+    names = (sb.prefill_input_name, sb.prefill_output_name, sb.decode_input_name, sb.decode_output_name)
+    states.append({"name": next((n for n in names if n), ""), "type": em.StateBuffer.Type.Name(sb.type)})
+  linear = [s["name"] for s in states
+            if s["type"] == "TYPE_LINEAR_ATTENTION" or s["name"].startswith(LINEAR_STATE_PREFIXES)]
+  return {"state_buffers": states, "linear_attention_state": linear}
+
+
+def retrofit_bundle(src, dst, work, state_check=False, allow_linear_attention_state=False, **kw):
+  """state_check (set by main): report the ExecutorMetadata state buffers and refuse a linear-attention one
+  unless allow_linear_attention_state. prefill_bucket_clone.py / shape_variant.py call this without it."""
   unpack = os.path.join(work, "unpack")
   if os.path.exists(unpack):
     shutil.rmtree(unpack)
   run_cli(["unpack", src, "--output-dir", unpack])
+  states = linear_attention_states(unpack) if state_check else {}
+  if states.get("linear_attention_state") and not allow_linear_attention_state:
+    shutil.rmtree(work, ignore_errors=True)  # as main() does after a finished run: no dst, no report
+    raise SystemExit(LINEAR_STATE_STOP.format(src, len(states["linear_attention_state"]), ", ".join(states["linear_attention_state"])))
   toml_path = os.path.join(unpack, "model.toml")
   toml = open(toml_path).read()
   m = re.search(r'model_type = "(?:TF_LITE_)?(?i:prefill_decode)"\s*\nsection_type = "TFLiteModel"\s*\ndata_path = "([^"]+)"', toml)
@@ -917,6 +960,7 @@ def retrofit_bundle(src, dst, work, **kw):
       raise RuntimeError(f"section {a['type']} {a['items']} changed")
     secs.append(row)
   report["bundle_sections"] = secs
+  report.update(states)
   return report
 
 
@@ -946,6 +990,9 @@ def main():
   ap.add_argument("--report")
   ap.add_argument("--dry-run", action="store_true")
   ap.add_argument("--work", help="work dir for .litertlm unpack (default: next to dst)")
+  ap.add_argument("--allow-linear-attention-state", action="store_true",
+                  help="retrofit a bundle whose ExecutorMetadata declares a linear-attention state buffer "
+                       "(broken GPU text on LiteRT-LM 0.18.0; README.md, Limits)")
   args = ap.parse_args()
   kw = dict(decomp=args.decomp, indices=args.indices, rhs_cache_update=not args.no_rhs_cache_update, mask=args.mask)
   if args.src.endswith(".litertlm"):
@@ -953,12 +1000,15 @@ def main():
       raise SystemExit("--dry-run is for .tflite input")
     work = args.work or (os.path.splitext(args.dst)[0] + "_work")
     os.makedirs(work, exist_ok=True)
-    report = retrofit_bundle(args.src, args.dst, work, **kw)
+    report = retrofit_bundle(args.src, args.dst, work, state_check=True,
+                             allow_linear_attention_state=args.allow_linear_attention_state, **kw)
     report["bundle"] = {"src": args.src, "dst": args.dst, "src_bytes": os.path.getsize(args.src),
                         "dst_bytes": os.path.getsize(args.dst)}
     shutil.rmtree(work, ignore_errors=True)
   else:
     report = retrofit_tflite(args.src, args.dst, dry_run=args.dry_run, **kw)
+    report.update(state_buffers=None, linear_attention_state=None,
+                  state_buffers_skipped=".tflite input: no ExecutorMetadata to read")
   text = json.dumps(report, indent=1, default=str)
   if args.report:
     with open(args.report, "w") as f:
