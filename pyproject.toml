@@ -1,0 +1,22 @@
+[project]
+name = "hf-to-litertlm"
+version = "0.1.0"
+description = "Hugging Face model -> .litertlm with a pinned toolchain and a lock file (scripts/convert.py)"
+requires-python = ">=3.12"
+dependencies = [
+    # the exporter stack; raise it with `uv lock --upgrade-package ...` (docs/one-command-lock.md)
+    "litert-torch==0.9.4",
+    "litert-lm-builder==0.18.0",
+    "litert-lm==0.18.0",
+    "torch==2.13.0",
+    "transformers==5.14.1",
+    "huggingface_hub",
+    "fire",
+    "safetensors",
+    "jinja2",
+    "peft",  # the adapter route merges LoRA repos into their base (merge child process)
+    "minijinja==2.14.0",  # the template engine version of litert-lm 0.18.0 (scripts/chat_template_dual.py)
+]
+
+[tool.uv]
+package = false
