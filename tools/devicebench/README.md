@@ -156,7 +156,7 @@ Which phone:
 - A Pixel PASS does not stand in for an S26 PASS: GPU op support and fp16 behaviour differ between Mali and Adreno. Use the Pixel to narrow the candidates and to catch failures early.
 - The GPU is read through each driver's own paths (next section). On the Pixel, gate legs are the tested use; a timing leg needs a definition of a clean Mali GPU checked on the phone first (the clock limit itself is not readable there).
 - Where it has run: `chain.sh` on a Pixel 8a (Mali) and on a Galaxy S26 (Adreno), `npu_chain.sh` on the Galaxy S26 (an HTP JIT leg and the same runner's GPU legs), each end to end from the hold to the release.
-- Memory: on the Pixel 8a (8 GB) the GPU compile of an 896 MB graph did not fit. The memory guard stopped it 6 s into the leg with the compile not finished (MemAvailable 838,800 kB, the app's VmHWM 4,011,432 kB), after lowmemorykiller had killed 26 background apps. The same file compiles and runs on the S26's GPU (the C-API runner's VmHWM 4,258,152 kB). Give a graph that large its GPU legs on the S26.
+- Memory: a stop by the memory guard is the harness's rule, not the phone's limit. On the Pixel 8a (8 GB), with `guard=400000`, a 1.26 GB graph compiled whole on the GPU at `FP16_WITH_FP32_ACCUM` and passed its gate (2026-10-19). During that compile MemAvailable fell to 522,628 kB, below the default guard of 1,500,000 kB, and lowmemorykiller killed 25 cached background processes but not the app. Run a large graph's GPU legs on the Pixel at `guard=400000` before moving them to the S26.
 
 ## GPU reads: Adreno (kgsl) and Mali
 
