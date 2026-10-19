@@ -1,6 +1,6 @@
 # hf-to-litertlm
 
-> Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 62 published conversions on Hugging Face (litert-community), each with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
+> Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 84 published conversions on Hugging Face (78 in litert-community, 6 under mlboydaisuke), each with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
 
 ```bash
 pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm

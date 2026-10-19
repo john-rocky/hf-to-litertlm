@@ -6,9 +6,10 @@ bundles". This file routes; the README has the commands.
 
 **What this is.** A converter from open-weight Hugging Face LLMs and VLMs to `.litertlm` bundles
 for Google's [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) runtime, plus the recipe
-and the measurement record for 62 published conversions
-([litert-community](https://huggingface.co/litert-community) on Hugging Face). Independent
-converter, not affiliated with Google.
+and the measurement record for 84 published conversions (78 in
+[litert-community](https://huggingface.co/litert-community) on Hugging Face, 6 under
+[mlboydaisuke](https://huggingface.co/mlboydaisuke)). Independent converter, not affiliated
+with Google.
 
 ## Route
 
