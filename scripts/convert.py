@@ -567,6 +567,13 @@ def fail(msg):
     sys.exit(3)
 
 
+# The entry gate reads the repo's own gated flag, so a token does not change a gated refusal.
+GATED_ACTION = ("gated repos are not converted, with or without a token; for a model that "
+                "needs no sign-in, start from a converted one at "
+                "https://huggingface.co/litert-community, such as "
+                "litert-community/gemma-4-E2B-it-litert-lm")
+
+
 def refuse(report, reason, detail, action):
     report["status"] = "refused"
     report["refusal"] = {"reason": reason, "detail": detail, "action": action}
@@ -632,8 +639,7 @@ def vet_adapter_base(report, model_id, files, api):
     except GatedRepoError:
         refuse(report, "adapter_base_gated",
                f"base model {base_id} is gated — its weights are not openly downloadable",
-               "accept the base model's terms on huggingface.co and retry with a token; "
-               "not converted on a guess")
+               "adapters on a gated base are not converted, with or without a token")
     except RepositoryNotFoundError:
         refuse(report, "adapter_base_missing",
                f"base model {base_id} not found on the Hub",
@@ -641,7 +647,7 @@ def vet_adapter_base(report, model_id, files, api):
     if getattr(base_info, "gated", False):
         refuse(report, "adapter_base_gated",
                f"base model {base_id} is gated (gated={base_info.gated!r})",
-               "accept the base model's terms on huggingface.co and retry with a token")
+               "adapters on a gated base are not converted, with or without a token")
 
     base_cfg_text = hf_fetch(f"https://huggingface.co/{base_id}/raw/main/config.json")
     if not base_cfg_text:
@@ -753,14 +759,14 @@ def main():
     except GatedRepoError:
         refuse(report, "gated",
                "the repo requires accepting a license/terms before download",
-               "accept the terms on huggingface.co and retry with a token; not converted on a guess")
+               GATED_ACTION)
     except RepositoryNotFoundError:
         fail(f"model not found on the Hub: {args.model}")
 
     if getattr(info, "gated", False):
         refuse(report, "gated",
                f"gated={info.gated!r} — weights are not openly downloadable",
-               "accept the terms on huggingface.co and retry with a token")
+               GATED_ACTION)
 
     files = {s.rfilename for s in (info.siblings or [])}
     merged_dir = base_info = gate_backend = normalized_dir = None
