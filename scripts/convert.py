@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
 """Thin gated wrapper around the stock litert-torch export.
 
-    ~/venvs/ltconv040dev/bin/python scripts/convert.py <hf_model_id> [--out DIR]
-                                                       [--int4] [--min-correct N]
+    uv sync
+    uv run python scripts/convert.py <hf_model_id> [--revision SHA] [--recipe int8|int4]
+                                     [--out DIR] [--min-correct N] [--smoke] [--check]
+
+-> out/<name>/<name>_<recipe>.litertlm, <name>.lock.json, convert_report.json.
+
+The lock (docs/one-command-lock.md) pins the source (repo, commit, size and sha256 of every
+file the export read, each checked against the Hub's tree), the export call, the toolchain
+(every installed package, uv.lock's sha256) and the output (file and section sha256). The
+builder's random uuid and now() timestamp are replaced in this process by values derived from
+the source, so `scripts/verify_lock.py <lock>` can rebuild the same bytes. A failure ends with
+one line on stderr, `FAIL <stage>: <op or first error line> -> next: <hint>` (hints:
+scripts/failure_hints.json), and the same fields in convert_report.json["failure"].
 
 Measured basis (2026-08-24): stock `export(model, output_dir)` with no other
 arguments converts untouched finetunes correctly on both the model_ext path
@@ -11,8 +22,9 @@ arguments converts untouched finetunes correctly on both the model_ext path
 template byte-equal, A≡B) —
 the derivative's own chat template is embedded verbatim (including a
 `chat_template.jinja` that tokenizer_config.json doesn't reference) and the
-runtime applies it (greedy A/B/C proof). So this wrapper adds NO template or
-architecture handling. It adds only:
+runtime applies it (greedy A/B/C proof). So this wrapper adds NO per-model
+template or architecture handling (item 6 is one generic, proven content-form
+adaptation for the runtime). It adds only:
 
   1. an entry gate — refuse, with a structured reason, what stock export
      cannot convert honestly (gated repos, remote-code architectures,
@@ -48,23 +60,65 @@ architecture handling. It adds only:
      data-dependent growth branch kills torch.export; the baked-theta
      snapshot it exports instead is bitwise-equal to the HF reference
      (measured 2026-08-27, see normalize_static_alpha_rope).
+  6. the template the 0.18 runtime can render — litert-lm 0.18.0 renders on
+     native minijinja values: content is a list of text parts and a map has no
+     Python methods, so a transformers template drops the message (Qwen3-1.7B:
+     the user turn rendered empty), raises (SmolLM2: str + list; gemma-4-E2B-it:
+     "map has no method named get") or prints the list. Only when it must, the
+     template gets .get('k') -> ['k'] and then the dual form (LiteRT-LM's
+     format_content on every content read), and goes into the export only once
+     the runtime's render equals transformers' byte for byte on four
+     conversations; after the export the runtime's own render must equal it too
+     (prepare_template, check_runtime_template, scripts/chat_template_dual.py).
+  7. one toolchain-skew shim — litert-torch 0.9.4 writes a Gemma4 metadata
+     field litert-lm-builder 0.18.0 dropped; the one assignment is skipped
+     when both are installed, as litert-torch main does (builder_compat).
 
-Exit codes: 0 = converted and gate passed, 1 = converted but gate failed,
-2 = refused at the entry gate (see the printed JSON), 3 = harness error.
+Exit codes: 0 = converted and gate passed, 1 = converted but gate (or check) failed,
+2 = stopped at the entry gate (fetch / gate stage; refusals also print their JSON),
+3 = failed in the pipeline (load / trace / convert / quantize / bundle, or past --max-minutes).
 Every run writes <out>/convert_report.json with the decisions taken.
 """
 import argparse
+import datetime
+import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from failure_line import failure, first_line  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INT4_RECIPE = REPO_ROOT / "recipes" / "qwen3_int4_block32_octav.json"
 VERIFY = REPO_ROOT / "scripts" / "verify_quality.py"
+CLI_VERIFIER = REPO_ROOT / "scripts" / "litert_lm_cli_verifier.py"
+CURATED_INDEX = REPO_ROOT / "recipes" / "curated_index.json"
+PINNED_ENV = REPO_ROOT / ".venv"
+CAPPED_CHILD_ENV = "HF_TO_LITERTLM_CAPPED_CHILD"
+# PYTHONHASHSEED of every run (see the __main__ block); the lock records it
+HASH_SEED = os.environ.get("HF_TO_LITERTLM_HASH_SEED", "0")
+LOCK_VERSION = 1
+
+# --recipe -> the export's quantization_recipe. int8 is the export's own default
+# (dynamic_wi8_afp32); int4 is the proven blockwise-32 OCTAV recipe file.
+RECIPES = {"int8": "dynamic_wi8_afp32", "int4": str(INT4_RECIPE)}
+# The export's defaults (litert-torch 0.9.4 ExportableModuleConfig), passed explicitly so the
+# lock pins them even if a later release moves a default.
+EXPORT_DEFAULTS = {"prefill_lengths": [128], "cache_length": 4096}
+# Top-level files the stock export reads besides the weights (configs, tokenizer, template).
+SOURCE_SUFFIXES = (".json", ".txt", ".model", ".jinja", ".tiktoken")
+# The decisions of the post-export guards; they change bytes, so the lock carries them.
+POST_EXPORT_KEYS = ("stop_tokens_added", "start_token", "start_token_bos", "executor_metadata")
+
+_REPORT = None  # the run's report, so fail() can record the failure in it
+_T0 = time.time()
 
 # Python-style constructs in vendor Jinja that old minijinja builds could not
 # render. Current runtimes render all of these (measured 2026-08-24).
@@ -187,7 +241,7 @@ def zamba2_preport_guard(report, cfg):
                "ask the model author to re-serialize: load with transformers <=4.48 "
                "and save_pretrained with >=4.49, then convert the re-serialized repo")
 
-def normalize_static_alpha_rope(report, model_id, cfg, out_dir):
+def normalize_static_alpha_rope(report, model_id, cfg, out_dir, revision=None):
     """hunyuan_v1_dense ships `rope_scaling: {type: dynamic, alpha: ...}`, but
     transformers 5.14.1 resolves it STATICALLY at init —
     modeling_hunyuan_v1_dense ("DynamicNTKAlphaRotary - unique to this model")
@@ -203,7 +257,8 @@ def normalize_static_alpha_rope(report, model_id, cfg, out_dir):
     config carries the baked value; everything else symlinks into the HF
     cache."""
     from huggingface_hub import snapshot_download
-    snap = Path(snapshot_download(model_id, ignore_patterns=["*.png", "*.jpg", "train/*"]))
+    snap = Path(snapshot_download(model_id, revision=revision,
+                                  ignore_patterns=["*.png", "*.jpg", "train/*"]))
     norm = out_dir / "rope_normalized_src"
     norm.mkdir(parents=True, exist_ok=True)
     for f in snap.iterdir():
@@ -305,13 +360,20 @@ def ensure_turn_end_stop(bundle, tokenizer_src, report):
     print(f"stop-token guard: added tokenizer eos {eos_id} to the bundle's stop_tokens")
 
 
+def in_pinned_env():
+    """True when this interpreter is the uv.lock environment (`uv run` from the repo)."""
+    return PINNED_ENV.exists() and Path(sys.prefix).resolve() == PINNED_ENV.resolve()
+
+
 def resolve_litert_lm_cli():
-    """A litert-lm >= 0.15 CLI: $LITERT_LM_CLI, else the ~/venvs/lt0160run
-    default, else `litert-lm` on PATH (last — which() can surface a pyenv shim
-    that exits 127, so the known venv wins)."""
-    import os
+    """A litert-lm >= 0.15 CLI: $LITERT_LM_CLI, else the pinned environment's
+    own CLI when convert.py runs in it (litert-lm 0.18.0 from uv.lock), else
+    the ~/venvs/lt0160run default, else `litert-lm` on PATH (last — which() can
+    surface a pyenv shim that exits 127, so the known venv wins)."""
+    pinned_cli = Path(sys.executable).parent / "litert-lm"
     default_cli = Path.home() / "venvs/lt0160run/bin/litert-lm"
     return (os.environ.get("LITERT_LM_CLI")
+            or (str(pinned_cli) if in_pinned_env() and pinned_cli.exists() else None)
             or (str(default_cli) if default_cli.exists() else None)
             or shutil.which("litert-lm"))
 
@@ -335,7 +397,7 @@ def ensure_executor_metadata(bundle, report):
     elif "already has" in (proc.stdout + proc.stderr):
         report["decisions"]["executor_metadata"] = "present"
     else:
-        fail("add_executor_metadata failed: " + (proc.stdout + proc.stderr)[-500:])
+        fail("add_executor_metadata failed: " + (proc.stdout + proc.stderr)[-500:], stage="bundle")
 
 def convert_via_recipe(report, recipe, export_src, out_dir, args):
     """HYBRID_RECIPE path: run the family recipe converter as a subprocess with
@@ -385,18 +447,18 @@ def convert_via_recipe(report, recipe, export_src, out_dir, args):
     if proc.returncode:
         report["status"] = "export_failed"
         write_report(report)
-        fail(f"recipe converter failed (exit {proc.returncode})")
+        fail(f"recipe converter failed (exit {proc.returncode})", stage="convert")
     report["export_seconds"] = round(time.time() - t0)
     bundle = out_dir / (Path(export_src).name + "_int8.litertlm")
     if not bundle.exists():
-        fail(f"recipe converter finished without producing {bundle.name}")
+        fail(f"recipe converter finished without producing {bundle.name}", stage="bundle")
     if recipe.get("drop_start_token"):
         dropped = bundle.parent / (bundle.name + ".nobos")
         proc = subprocess.run(
             [sys.executable, str(REPO_ROOT / recipe["drop_start_token"]),
              str(bundle), str(dropped)], env=env, text=True)
         if proc.returncode:
-            fail("drop_start_token failed")
+            fail("drop_start_token failed", stage="bundle")
         dropped.replace(bundle)
         report["decisions"]["start_token"] = "dropped"
         print("start-token guard: dropped (family template has no leading BOS)")
@@ -430,7 +492,39 @@ def _leading(text, token):
     return n
 
 
-def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
+def drop_start_token_in_process(bundle):
+    """granite_work/drop_start_token.py's edit (remove the leading start_token
+    block of LlmMetadata) through litert_lm_builder's unpack/pack in this
+    process — the functions the `litert-lm unpack` / `pack` CLI wraps — so the
+    pinned system metadata (pin_system_metadata) applies to the repack too.
+    False when the bundle has no leading start_token."""
+    import tempfile
+    from litert_lm_builder import litertlm_builder
+
+    with tempfile.TemporaryDirectory(dir=bundle.parent) as td:
+        toml = litertlm_builder.unpack(str(bundle), td)
+        pb = Path(td) / "LlmMetadataProto.pbtext"
+        text = pb.read_text()
+        if not text.startswith("start_token {"):
+            return False
+        depth, quoted, prev = 0, False, ""
+        for i, ch in enumerate(text):  # the block's own closing brace, quotes skipped
+            if ch == '"' and prev != "\\":
+                quoted = not quoted
+            elif not quoted:
+                depth += (ch == "{") - (ch == "}")
+                if ch == "}" and depth == 0:
+                    break
+            prev = "" if prev == "\\" else ch
+        pb.write_text(text[i + 1:].lstrip("\n"))
+        dropped = bundle.parent / (bundle.name + ".nobos")
+        dropped.unlink(missing_ok=True)
+        litertlm_builder.pack(toml, str(dropped))
+        dropped.replace(bundle)
+    return True
+
+
+def ensure_no_spurious_start_token(bundle, tokenizer_src, report, in_process=False):
     """Post-export guard: the bundling writes LlmMetadata start_token from
     tokenizer.bos_token without consulting add_bos_token or the chat template,
     and the engine prepends that start_token to every rendered prompt.
@@ -496,10 +590,17 @@ def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
         # BOS as a literal; surfaced rather than silently shipped.
         fail(f"start-token guard: bundle would feed {have} BOS but the reference "
              f"has {want} — the template renders BOS through a variable and no "
-             f"start_token supplies it")
+             f"start_token supplies it", stage="bundle")
     decision = ("dropped_duplicate_bos" if want >= 1 else "dropped_spurious_bos")
     note = (f"start-token guard: dropped (bundle would feed {have} leading BOS, "
             f"the reference has {want})")
+    if in_process:
+        if drop_start_token_in_process(bundle):
+            report["decisions"]["start_token"] = decision
+            print(note)
+        else:
+            report["decisions"].setdefault("start_token", "absent")
+        return
     cli = resolve_litert_lm_cli()
     env = dict(os.environ)
     if cli:
@@ -517,7 +618,7 @@ def ensure_no_spurious_start_token(bundle, tokenizer_src, report):
         # dropped its start token must keep saying "dropped", not "absent"
         report["decisions"].setdefault("start_token", "absent")
     else:
-        fail("drop_start_token failed: " + (proc.stdout + proc.stderr)[-300:])
+        fail("drop_start_token failed: " + (proc.stdout + proc.stderr)[-300:], stage="bundle")
 
 
 # The adapter merge MUST run in its own process: loading/merging the model with
@@ -562,9 +663,32 @@ info_path.write_text(json.dumps({
 """
 
 
-def fail(msg):
+def fail(msg, *, stage, context="", code=3):
+    """Stop with the FAIL line of docs/one-command-lock.md (stage + op or first
+    error line + hint), recorded in the open report as `failure`."""
+    f = failure(stage, msg, context=context, **failure_fields())
+    if _REPORT is not None:
+        _REPORT["status"] = "failed"
+        _REPORT["failure"] = f
+        write_report(_REPORT)
     print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(3)
+    print(f["line"], file=sys.stderr)
+    sys.exit(code)
+
+
+def failure_fields():
+    """seconds since the start and the toolchain id, for a table of failures."""
+    tid = ((_REPORT or {}).get("toolchain") or {}).get("id")
+    if tid is None:
+        try:
+            tid = toolchain_info()["id"]
+        except Exception:  # noqa: BLE001 — the failure line must still print
+            tid = None
+    return {"seconds": round(time.time() - _T0), "toolchain": tid}
+
+
+# Refusals that happen before any file is read are the fetch stage; the rest are the gate.
+REFUSAL_STAGE = {"gated": "fetch", "adapter_base_gated": "fetch", "adapter_base_missing": "fetch"}
 
 
 # The entry gate reads the repo's own gated flag, so a token does not change a gated refusal.
@@ -577,8 +701,13 @@ GATED_ACTION = ("gated repos are not converted, with or without a token; for a m
 def refuse(report, reason, detail, action):
     report["status"] = "refused"
     report["refusal"] = {"reason": reason, "detail": detail, "action": action}
+    report["failure"] = failure(
+        REFUSAL_STAGE.get(reason, "gate"), f"{reason}: {detail}",
+        context=f"model_type={report['decisions'].get('model_type')}", hint=action,
+        **failure_fields())
     print(json.dumps(report["refusal"], indent=2))
     write_report(report)
+    print(report["failure"]["line"], file=sys.stderr)
     sys.exit(2)
 
 
@@ -588,20 +717,26 @@ def write_report(report):
     (out / "convert_report.json").write_text(json.dumps(report, indent=2))
 
 
-def hf_fetch(url):
-    import urllib.request
-    req = urllib.request.Request(url, headers={"User-Agent": "hf-to-litertlm-convert"})
+def hub_text(model_id, filename, revision):
+    """A small file of the repo at `revision`, through hf_hub_download (it
+    sends the stored token and caches; anonymous raw/ requests get
+    rate-limited, HTTP 429 measured 2026-10-19). None when it is not there."""
+    from huggingface_hub import hf_hub_download
+    from huggingface_hub.utils import EntryNotFoundError, HfHubHTTPError
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.read().decode()
-    except Exception:
+        return Path(hf_hub_download(model_id, filename, revision=revision)).read_text()
+    except (EntryNotFoundError, HfHubHTTPError, OSError):
         return None
 
 
-def get_chat_template(model_id):
+def get_chat_template(src, revision=None):
     """The template stock export will embed: tokenizer_config's chat_template,
-    else chat_template.jinja (both observed in the wild)."""
-    tc = hf_fetch(f"https://huggingface.co/{model_id}/raw/main/tokenizer_config.json")
+    else chat_template.jinja (both observed in the wild). `src` is the local
+    dir the export reads, or a Hub id read at `revision`."""
+    local = Path(src).is_dir()
+    read = ((lambda name: (Path(src) / name).read_text() if (Path(src) / name).exists() else None)
+            if local else (lambda name: hub_text(src, name, revision)))
+    tc = read("tokenizer_config.json")
     if tc:
         try:
             t = json.loads(tc).get("chat_template")
@@ -609,20 +744,299 @@ def get_chat_template(model_id):
                 return t
         except json.JSONDecodeError:
             pass
-    j = hf_fetch(f"https://huggingface.co/{model_id}/raw/main/chat_template.jinja")
-    return j
+    return read("chat_template.jinja")
 
 
-def vet_adapter_base(report, model_id, files, api):
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 22), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def pick_source_files(files):
+    """The top-level files the stock export reads: configs, tokenizer files and
+    the chat template (SOURCE_SUFFIXES), and the weights — model*.safetensors,
+    else any top-level *.safetensors, else pytorch_model*.bin. Subfolders
+    (onnx/, original/, runs/) are never fetched (SmolLM2-1.7B-Instruct carries
+    15 GB of ONNX files next to its 3.4 GB checkpoint)."""
+    top = sorted(f for f in files if "/" not in f)
+    st = [f for f in top if f.endswith(".safetensors")]
+    weights = ([f for f in st if f.startswith("model")] or st
+               or [f for f in top if f.startswith("pytorch_model") and f.endswith(".bin")])
+    return sorted(set(weights) | {f for f in top if f.endswith(SOURCE_SUFFIXES)})
+
+
+def download_source(report, model_id, revision, names):
+    """snapshot_download of exactly `names` at the pinned commit (xet off: it
+    stalls on multi-GB pulls on this host). Returns the snapshot dir."""
+    from huggingface_hub import snapshot_download, try_to_load_from_cache
+    cached = {n for n in names
+              if isinstance(try_to_load_from_cache(model_id, n, revision=revision), str)}
+    t0 = time.time()
+    snap = Path(snapshot_download(model_id, revision=revision,
+                                  allow_patterns=[re.sub(r"([*?\[])", r"[\1]", n) for n in names]))
+    report["download"] = {"seconds": round(time.time() - t0, 1), "files": len(names),
+                          "files_already_cached": len(cached)}
+    return snap, cached
+
+
+def verify_source(report, api, model_id, revision, snap, names, cached):
+    """Size and hash of every fetched file against the Hub's tree at the
+    commit: an LFS file by its sha256 (the LFS oid), any other by its git blob
+    sha1. Returns the lock's source.files (path, size, sha256, lfs)."""
+    tree = {f.path: f for f in api.list_repo_tree(model_id, revision=revision)
+            if hasattr(f, "size")}
+    rows, fetched = [], 0
+    for name in names:
+        path, entry = snap / name, tree.get(name)
+        if entry is None or not path.is_file():
+            fail(f"{name}: not in the snapshot or not in the Hub tree at {revision}", stage="fetch")
+        size = path.stat().st_size
+        h256 = hashlib.sha256()
+        h1 = None if entry.lfs else hashlib.sha1(f"blob {size}\0".encode())
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 22), b""):
+                h256.update(chunk)
+                if h1:
+                    h1.update(chunk)
+        if size != entry.size:
+            fail(f"{name}: size mismatch (local {size:,} B, the Hub {entry.size:,} B)", stage="fetch")
+        if entry.lfs and h256.hexdigest() != entry.lfs.sha256:
+            fail(f"{name}: sha256 mismatch (local {h256.hexdigest()}, the Hub {entry.lfs.sha256})",
+                 stage="fetch")
+        if h1 and h1.hexdigest() != entry.blob_id:
+            fail(f"{name}: blob sha1 mismatch (local {h1.hexdigest()}, the Hub {entry.blob_id})",
+                 stage="fetch")
+        if name not in cached:
+            fetched += size
+        rows.append({"path": name, "size": size, "sha256": h256.hexdigest(), "lfs": bool(entry.lfs)})
+    report["download"]["bytes_fetched"] = fetched
+    report["download"]["verified"] = len(rows)
+    return rows
+
+
+def pin_system_metadata(uuid_value, timestamp):
+    """litert_lm_builder 0.18.0 writes a fresh uuid4() and now() into every
+    bundle header (populate_system_metadata, which LitertLmFileBuilder's
+    _build_sections looks up as a module global), so two honest runs never
+    match byte for byte. Replace it in this process with fixed values; every
+    pack in this process goes through it (the export's own build and the
+    guards' unpack/pack). The caller reads the header back to confirm."""
+    from litert_lm_builder import litertlm_builder as lb
+
+    def populate_system_metadata(system_metadata):
+        kept = [m for m in system_metadata if m.key not in ("uuid", "creation_timestamp")]
+        return kept + [lb.Metadata(key="uuid", value=uuid_value, dtype=lb.DType.STRING),
+                       lb.Metadata(key="creation_timestamp", value=timestamp,
+                                   dtype=lb.DType.STRING)]
+
+    lb.populate_system_metadata = populate_system_metadata
+
+
+def read_system_metadata(path):
+    """{key: value} of a bundle header's system metadata (string values)."""
+    from litert_lm_builder import litertlm_core
+    from litert_lm_builder import litertlm_header_schema_py_generated as schema
+    end_at = litertlm_core.HEADER_END_LOCATION_BYTE_OFFSET
+    with open(path, "rb") as f:
+        head = f.read(1 << 16)
+        hdr_end = int.from_bytes(head[end_at:end_at + 8], "little")
+        if hdr_end > len(head):
+            f.seek(0)
+            head = f.read(hdr_end + 64)
+    meta = schema.LiteRTLMMetaData.GetRootAs(
+        bytearray(head[litertlm_core.HEADER_BEGIN_BYTE_OFFSET:hdr_end]), 0)
+    out, sm = {}, meta.SystemMetadata()
+    for i in range(sm.EntriesLength()):
+        kv = sm.Entries(i)
+        value = None
+        if kv.ValueType() == schema.VData.StringValue:
+            sv = schema.StringValue()
+            sv.Init(kv.Value().Bytes, kv.Value().Pos)
+            value = sv.Value().decode()
+        out[kv.Key().decode()] = value
+    return out
+
+
+def bundle_identity(path):
+    """sha256, size, per-section sha256 (scripts/section_identity.py) and the
+    header's system metadata of a bundle."""
+    from section_identity import sections
+    return {
+        "file": Path(path).name,
+        "size": Path(path).stat().st_size,
+        "sha256": sha256_file(path),
+        "sections": [{"index": i, "type": t, "size": s, "sha256": h}
+                     for i, (t, s, h) in enumerate(sections(str(path)))],
+        "system_metadata": read_system_metadata(path),
+    }
+
+
+def toolchain_info():
+    """The exporter stack of this interpreter: id lt<litert-torch>-b<builder>-t<torch>,
+    every installed distribution, python, and uv.lock's sha256 when this is the
+    pinned environment."""
+    import importlib.metadata as md
+    import platform
+    pkgs = {}
+    for d in md.distributions():
+        name = re.sub(r"[-_.]+", "-", d.metadata["Name"] or "").lower()
+        if name:
+            pkgs[name] = d.version
+    v = lambda n: pkgs.get(n, "none")  # noqa: E731
+    pinned = in_pinned_env()
+    lock = REPO_ROOT / "uv.lock"
+    return {
+        "id": f"lt{v('litert-torch')}-b{v('litert-lm-builder')}-t{v('torch')}",
+        "python": platform.python_version(),
+        "pinned_env": pinned,
+        "uv_lock_sha256": sha256_file(lock) if pinned and lock.exists() else None,
+        "packages": dict(sorted(pkgs.items())),
+    }
+
+
+def converter_info():
+    """convert.py's own sha256 (its guards change bytes) and the repo commit."""
+    head = subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
+                          capture_output=True, text=True)
+    return {"path": "scripts/convert.py", "sha256": sha256_file(Path(__file__)),
+            "repo_commit": head.stdout.strip() if head.returncode == 0 else None}
+
+
+# One field litert-torch 0.9.4 writes that litert-lm-builder 0.18.0 no longer has: the gemma4
+# metadata builder sets llm_model_type.gemma4.use_template_for_fc_format (0.9.4
+# export_hf/model_ext/gemma4/metadata_builder.py l.54), 0.18.0's Gemma4 message dropped the field
+# (0.16.1 and 0.17.1 carry it), and every gemma4 export of the pair dies at the packaging step
+# (AttributeError, measured 2026-10-19; google-ai-edge/litert-torch#1329). litert-torch main deleted
+# the line (#1241), so the shim goes away with the next release: after raising the toolchain,
+# scripts/verify_refs.sh shows it doing nothing (recipe.compat empty in the gemma-4 lock).
+GEMMA4_FC_LINE = "  llm_metadata.llm_model_type.gemma4.use_template_for_fc_format = True\n"
+
+
+def builder_compat(report):
+    """When the installed builder's Gemma4 message lacks use_template_for_fc_format and the
+    installed litert-torch still writes it, run the gemma4 metadata builder without that one
+    line (the function recompiled from its own source minus the line, as litert-torch main has
+    it). Nothing changes for any other pair; the report and the lock record the skip when the
+    gemma4 metadata builder actually runs, so only a gemma4 lock carries it."""
+    import importlib
+    import inspect
+    from litert_lm_builder.runtime.proto import llm_model_type_pb2
+    if "use_template_for_fc_format" in llm_model_type_pb2.Gemma4.DESCRIPTOR.fields_by_name:
+        return
+    try:
+        mod = importlib.import_module(
+            "litert_torch.generative.export_hf.model_ext.gemma4.metadata_builder")
+    except ImportError:
+        return
+    src = inspect.getsource(mod.build_llm_metadata)
+    if src.count(GEMMA4_FC_LINE) != 1:
+        return
+    scope = {}
+    exec(compile(src.replace(GEMMA4_FC_LINE, ""), mod.__file__, "exec"), mod.__dict__, scope)
+    without_line = scope["build_llm_metadata"]
+    label = "gemma4-use_template_for_fc_format (litert-torch#1329, fixed on main by #1241)"
+
+    def build_llm_metadata(*args, **kwargs):
+        compat = report["decisions"].setdefault("compat", [])
+        if label not in compat:
+            compat.append(label)
+        return without_line(*args, **kwargs)
+
+    mod.build_llm_metadata = build_llm_metadata
+
+
+class StageTracker:
+    """Which stage the stock export is in — load, trace, convert, quantize,
+    bundle — written to convert_report.json when it changes, so a failure or a
+    --max-minutes timeout names its stage. The export calls each hooked function
+    through its module attribute (export.py: export_lib.load_model; core.py:
+    torch.export.export and litert_converter.exported_programs_to_flatbuffer;
+    export_lib: quantize_model), so wrapping the attribute is enough."""
+
+    def __init__(self, report):
+        self.report = report
+
+    def enter(self, stage):
+        if self.report.get("stage") != stage:
+            self.report["stage"] = stage
+            write_report(self.report)
+
+    def install(self):
+        import functools
+        import importlib
+        import torch
+        from litert_torch.generative.export_hf.core import export_lib
+        from litert_torch.generative.export_hf.core import litert_lm_builder as hf_bundle
+        converter = importlib.import_module("litert_torch._convert.litert_converter")
+
+        def wrap(owner, name, stage, after=None):
+            fn = getattr(owner, name)
+
+            @functools.wraps(fn)
+            def staged(*a, **k):
+                self.enter(stage)
+                out = fn(*a, **k)
+                if after:
+                    self.enter(after)
+                return out
+            setattr(owner, name, staged)
+
+        wrap(export_lib, "load_model", "load")
+        wrap(torch.export, "export", "trace", after="convert")
+        wrap(converter, "exported_programs_to_flatbuffer", "convert")
+        wrap(export_lib, "quantize_model", "quantize")
+        wrap(export_lib, "export_tokenizer", "bundle")
+        wrap(hf_bundle, "package_model", "bundle")
+
+
+def run_capped(args, out_dir):
+    """--max-minutes: rerun this command as a child and kill its process group
+    at the cap. The child keeps convert_report.json's `stage` current, so a kill
+    still names the stage it was in."""
+    import signal
+    env = dict(os.environ, **{CAPPED_CHILD_ENV: "1"})
+    t0 = time.time()
+    proc = subprocess.Popen([sys.executable, *sys.argv], env=env, start_new_session=True)
+    try:
+        return proc.wait(timeout=args.max_minutes * 60)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+    path = out_dir / "convert_report.json"
+    report = (json.loads(path.read_text()) if path.exists()
+              else {"model": args.model, "output_dir": str(out_dir), "decisions": {}})
+    report["status"] = "failed"
+    report["failure"] = failure(report.get("stage") or "fetch",
+                                f"timeout after {args.max_minutes:g} min (--max-minutes)",
+                                seconds=round(time.time() - t0),
+                                toolchain=(report.get("toolchain") or {}).get("id"))
+    write_report(report)
+    print(report["failure"]["line"], file=sys.stderr)
+    return 3
+
+
+def curated_key(model_id):
+    """The scripts/reproduce_llm.sh key of a repo this repo ships with a
+    hand-made recipe (recipes/curated_index.json), else None."""
+    try:
+        return json.loads(CURATED_INDEX.read_text())["models"].get(model_id)
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def vet_adapter_base(report, model_id, files, api, revision):
     """Vetting half of the adapter path: resolve the base from
     adapter_config.json and refuse what stock export could not convert
-    honestly (gated / remote-code / pre-quantized BASE). Downloads nothing —
+    honestly (gated / remote-code / pre-quantized BASE). Downloads no weights —
     `--check` stops here. Returns (base_id, base_info, base_cfg, gate_backend)."""
     from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
-    ac_text = hf_fetch(f"https://huggingface.co/{model_id}/raw/main/adapter_config.json")
+    ac_text = hub_text(model_id, "adapter_config.json", revision)
     if not ac_text:
-        fail("could not fetch adapter_config.json")
+        fail("could not fetch adapter_config.json", stage="fetch")
     base_id = json.loads(ac_text).get("base_model_name_or_path")
     if not base_id:
         refuse(report, "adapter_no_base",
@@ -649,9 +1063,10 @@ def vet_adapter_base(report, model_id, files, api):
                f"base model {base_id} is gated (gated={base_info.gated!r})",
                "adapters on a gated base are not converted, with or without a token")
 
-    base_cfg_text = hf_fetch(f"https://huggingface.co/{base_id}/raw/main/config.json")
+    report["decisions"]["adapter_base_revision"] = base_info.sha
+    base_cfg_text = hub_text(base_id, "config.json", base_info.sha)
     if not base_cfg_text:
-        fail(f"could not fetch base config.json for {base_id}")
+        fail(f"could not fetch base config.json for {base_id}", stage="fetch")
     base_cfg = json.loads(base_cfg_text)
     if base_cfg.get("auto_map"):
         if native_model_type(base_cfg.get("model_type")):
@@ -678,7 +1093,7 @@ def vet_adapter_base(report, model_id, files, api):
     return base_id, base_info, base_cfg, gate_backend
 
 
-def download_and_merge_adapter(report, model_id, base_id, out_dir):
+def download_and_merge_adapter(report, model_id, base_id, out_dir, revision, base_revision):
     """Download half of the adapter path: snapshot the base and the adapter,
     then merge_and_unload (subprocess-isolated) into a temporary hub-format
     dir that the stock export takes as its model arg. Only reached once
@@ -694,8 +1109,8 @@ def download_and_merge_adapter(report, model_id, base_id, out_dir):
     from huggingface_hub import snapshot_download
 
     print(f"adapter repo: merging into base {base_id} (merge-first, in a subprocess)")
-    base_dir = Path(snapshot_download(base_id))
-    adapter_dir = Path(snapshot_download(model_id, allow_patterns=[
+    base_dir = Path(snapshot_download(base_id, revision=base_revision))
+    adapter_dir = Path(snapshot_download(model_id, revision=revision, allow_patterns=[
         "adapter_config.json", "adapter_model.*", "tokenizer*", "*.model",
         "special_tokens_map.json", "vocab*", "merges.txt",
         "chat_template.jinja", "generation_config.json"]))
@@ -709,7 +1124,8 @@ def download_and_merge_adapter(report, model_id, base_id, out_dir):
         text=True)
     if proc.returncode != 0 or not info_path.exists():
         fail(f"adapter merge subprocess failed (exit {proc.returncode}); "
-             "if the traceback above is an ImportError: pip install peft")
+             "if the traceback above is an ImportError: uv sync (peft is in uv.lock)",
+             stage="load")
     merge_info = json.loads(info_path.read_text())
     info_path.unlink()
 
@@ -720,11 +1136,18 @@ def download_and_merge_adapter(report, model_id, base_id, out_dir):
 
 
 def main():
+    global _REPORT
+    sys.stdout.reconfigure(line_buffering=True)  # keep stdout in step with the exporter's stderr in a log
     ap = argparse.ArgumentParser()
     ap.add_argument("model", help="HF model id, e.g. org/name")
+    ap.add_argument("--revision",
+                    help="commit sha, branch or tag to convert (default: main, resolved "
+                         "to its commit sha; the lock records the sha)")
+    ap.add_argument("--recipe", choices=sorted(RECIPES), default="int8",
+                    help="int8 = the export's dynamic_wi8_afp32 (default); int4 = the "
+                         "proven blockwise-32 OCTAV recipe with an int8 embedding")
+    ap.add_argument("--int4", action="store_true", help="alias of --recipe int4")
     ap.add_argument("--out", help="output dir (default: out/<name>)")
-    ap.add_argument("--int4", action="store_true",
-                    help="quantize with the proven int4 recipe instead of default int8")
     ap.add_argument("--min-correct", type=int, default=6, help="exit-gate bar (of 8)")
     ap.add_argument("--keep-merged", action="store_true",
                     help="keep the temporary merged dir of an adapter conversion")
@@ -736,55 +1159,110 @@ def main():
                          "the generic gate certifies nothing")
     ap.add_argument("--check", action="store_true",
                     help="run the entry gate only — write convert_report.json with "
-                         "status 'accepted' and the decisions made so far (route, "
-                         "adapter base, params), print it, exit 0; refusals still "
-                         "exit 2. Nothing is downloaded")
+                         "status 'accepted' and the decisions made so far (revision, "
+                         "route, adapter base, params), print it, exit 0; refusals still "
+                         "exit 2. No weights are downloaded")
+    ap.add_argument("--smoke", action="store_true",
+                    help="scripts/check_bundle.py's one-prompt check instead of the 8-question "
+                         "gate, the run capped at --max-minutes (45 unless given), the failure "
+                         "in convert_report.json — for converting a batch of models")
+    ap.add_argument("--max-minutes", type=float,
+                    help="kill the run after this many minutes (the report names the stage)")
+    ap.add_argument("--curated", action="store_true",
+                    help="run this repo's hand-made recipe (recipes/curated_index.json -> "
+                         "scripts/reproduce_llm.sh) instead of the generic path; no lock")
+    ap.add_argument("--no-gate", action="store_true",
+                    help="build and lock only, no exit gate and no check "
+                         "(scripts/verify_lock.py rebuilds this way)")
     args = ap.parse_args()
+    if args.int4:
+        args.recipe = "int4"
+    args.int4 = args.recipe == "int4"
 
-    out_dir = Path(args.out) if args.out else REPO_ROOT / "out" / args.model.split("/")[-1]
+    name = args.model.split("/")[-1]
+    out_dir = Path(args.out) if args.out else REPO_ROOT / "out" / name
+    if args.smoke and args.max_minutes is None:
+        args.max_minutes = 45
+    if args.max_minutes and not os.environ.get(CAPPED_CHILD_ENV):
+        sys.exit(run_capped(args, out_dir))
     report = {
         "model": args.model,
+        "revision": None,
+        "recipe": args.recipe,
         "output_dir": str(out_dir),
         "status": "started",
+        "stage": "fetch",
         "decisions": {},
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
+    _REPORT = report
+    write_report(report)
+    # hf_xet stalls on multi-GB downloads on this host; plain HTTP is set before the import
+    os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
     # ---------------- entry gate ----------------
     from huggingface_hub import HfApi
-    from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
+    from huggingface_hub.utils import (GatedRepoError, HfHubHTTPError,
+                                       RepositoryNotFoundError, RevisionNotFoundError)
     api = HfApi()
     try:
-        info = api.model_info(args.model, files_metadata=False)
+        info = api.model_info(args.model, revision=args.revision, files_metadata=False)
     except GatedRepoError:
         refuse(report, "gated",
                "the repo requires accepting a license/terms before download",
                GATED_ACTION)
-    except RepositoryNotFoundError:
-        fail(f"model not found on the Hub: {args.model}")
+    except RevisionNotFoundError as e:
+        fail(f"revision {args.revision} not found in {args.model}", stage="fetch",
+             context=f"RevisionNotFoundError {e}", code=2)
+    except RepositoryNotFoundError as e:
+        fail(f"model not found on the Hub: {args.model}", stage="fetch",
+             context=f"RepositoryNotFoundError {e}", code=2)
+    except HfHubHTTPError as e:
+        fail(f"{type(e).__name__}: {first_line(str(e))}", stage="fetch", context=str(e), code=2)
+    sha = info.sha
+    commit_date = info.last_modified.astimezone(datetime.timezone.utc).isoformat()
+    report["revision"] = sha
+    report["decisions"]["commit_date"] = commit_date
+    print(f"source: {args.model} @ {sha} ({commit_date})")
+
+    key = curated_key(args.model)
+    if key:
+        report["decisions"]["curated_recipe"] = key
+        if args.curated:
+            print(f"--curated: bash scripts/reproduce_llm.sh {key} (no lock on this path)")
+            write_report(report)
+            os.execvp("bash", ["bash", str(REPO_ROOT / "scripts" / "reproduce_llm.sh"), key])
+        print(f"NOTE: this repo ships a hand-made recipe for {args.model}: "
+              f"bash scripts/reproduce_llm.sh {key} (REPRODUCE.md); continuing on the "
+              "generic path (--curated runs that recipe instead)")
+    elif args.curated:
+        fail(f"no curated recipe for {args.model} in recipes/curated_index.json", stage="gate",
+             code=2)
 
     if getattr(info, "gated", False):
         refuse(report, "gated",
                f"gated={info.gated!r} — weights are not openly downloadable",
                GATED_ACTION)
 
+    report["stage"] = "gate"
     files = {s.rfilename for s in (info.siblings or [])}
     merged_dir = base_info = gate_backend = normalized_dir = None
     is_adapter = "adapter_config.json" in files
     if is_adapter:
         base_id, base_info, base_cfg, gate_backend = vet_adapter_base(
-            report, args.model, files, api)
+            report, args.model, files, api, sha)
         if not args.check:
-            merged_dir = download_and_merge_adapter(report, args.model, base_id, out_dir)
+            merged_dir = download_and_merge_adapter(report, args.model, base_id, out_dir,
+                                                    sha, base_info.sha)
     elif not any(f.endswith(".safetensors") or f.endswith(".bin") for f in files):
         refuse(report, "no_weights",
                "no safetensors/bin weight files in the repo",
                "point at a repo with full PyTorch weights")
 
     if not is_adapter:  # adapter path already vetted the BASE's config
-        cfg_text = hf_fetch(f"https://huggingface.co/{args.model}/raw/main/config.json")
+        cfg_text = hub_text(args.model, "config.json", sha)
         if not cfg_text:
-            fail("could not fetch config.json")
+            fail("could not fetch config.json", stage="fetch", code=2)
         cfg = json.loads(cfg_text)
         if cfg.get("auto_map"):
             if native_model_type(cfg.get("model_type")):
@@ -811,7 +1289,7 @@ def main():
             if args.check:
                 report["decisions"]["rope_normalization"] = "would_apply_static_alpha_bake"
             else:
-                normalized_dir = normalize_static_alpha_rope(report, args.model, cfg, out_dir)
+                normalized_dir = normalize_static_alpha_rope(report, args.model, cfg, out_dir, sha)
 
     # ---------------- opt-ins ----------------
     params = getattr(getattr(base_info or info, "safetensors", None), "total", None)
@@ -821,11 +1299,10 @@ def main():
     if params is None:
         print("NOTE: param count unavailable from the Hub; not externalizing the embedder")
 
-    export_kwargs = {}
+    export_kwargs = dict(EXPORT_DEFAULTS)
     if externalize:
         export_kwargs["externalize_embedder"] = True
-    if args.int4:
-        export_kwargs["quantization_recipe"] = str(INT4_RECIPE)
+    export_kwargs["quantization_recipe"] = RECIPES[args.recipe]
     report["decisions"]["quantization"] = "int4_block32_octav" if args.int4 else "default_int8"
 
     # ≥3B models get the reduced prefill ladder the shipped Qwen3.5-4B and
@@ -841,16 +1318,38 @@ def main():
         export_kwargs["prefill_lengths"] = [1024, 256, 64, 16, 4, 1]
         report["decisions"]["prefill_ladder"] = "reduced_7sig_3b"
 
+    recipe = HYBRID_RECIPE.get(report["decisions"].get("model_type"))
+    # The lock covers the generic stock path from a plain repo; an adapter merge,
+    # a rope-normalized source and a family recipe carry none yet.
+    lockable = not (is_adapter or normalized_dir or recipe or report["decisions"].get(
+        "rope_normalization"))
+    report["decisions"]["lock"] = lockable
+
     if args.check:
         report["status"] = "accepted"
         write_report(report)
         print(json.dumps(report, indent=2))
         sys.exit(0)
 
+    # ---------------- source (pinned commit, every file checked) ----------------
+    source_files = None
+    if lockable:
+        report["stage"] = "fetch"
+        names = pick_source_files(files)
+        snap, cached = download_source(report, args.model, sha, names)
+        source_files = verify_source(report, api, args.model, sha, snap, names, cached)
+        d = report["download"]
+        print(f"source: {d['verified']} files verified against the Hub tree "
+              f"({d['bytes_fetched']:,} B fetched, {d['files_already_cached']} already cached, "
+              f"{d['seconds']} s)")
+        export_src = snap
+    else:
+        export_src = merged_dir or normalized_dir or args.model
+
     # ---------------- template lint (warn only) ----------------
-    template = get_chat_template(args.model)
+    template = get_chat_template(export_src, sha)
     if template is None and base_info is not None:
-        template = get_chat_template(report["decisions"]["adapter_base"])
+        template = get_chat_template(report["decisions"]["adapter_base"], base_info.sha)
     methods = sorted(set(PY_METHOD_RE.findall(template))) if template else []
     uses_strftime = bool(template and "strftime_now" in template)
     is_think = bool(template and ("<think>" in template or "enable_thinking" in template))
@@ -862,13 +1361,28 @@ def main():
               "renders on current runtimes (verified 2026-08-24), pre-2026 runtimes may fail "
               "on the first message")
 
+    # ---------------- chat template: the form the 0.18 runtime renders ----------------
+    # litert-lm 0.18.0 renders the template on native values: content is a list
+    # of text parts and a map has no Python methods. A transformers template then
+    # drops the message (Qwen3-1.7B: the runtime's own render of the user turn
+    # came back empty, 2026-10-19), raises (SmolLM2: str + list; gemma-4-E2B-it:
+    # "map has no method named get", template line 238) or prints the list. The
+    # edited template goes into the export only once its runtime render equals
+    # transformers' byte for byte (scripts/chat_template_dual.py).
+    template_record = template_path = None
+    if not recipe:
+        template_record, template_path = prepare_template(report, export_src, out_dir)
+        if template_path:
+            export_kwargs["jinja_chat_template_override"] = str(template_path)
+
     # ---------------- export (stock, or family recipe) ----------------
-    export_src = str(merged_dir or normalized_dir or args.model)
-    recipe = HYBRID_RECIPE.get(report["decisions"].get("model_type"))
+    toolchain = toolchain_info()
+    report["toolchain"] = {k: toolchain[k] for k in ("id", "python", "pinned_env", "uv_lock_sha256")}
+    lock = lock_path = None
     if recipe:
         gate_backend = "cpu"
         report["decisions"]["gate_backend"] = "cpu"
-        bundle = convert_via_recipe(report, recipe, export_src, out_dir, args)
+        bundle = convert_via_recipe(report, recipe, str(export_src), out_dir, args)
         report["bundle_bytes"] = bundle.stat().st_size
         ensure_turn_end_stop(bundle, export_src, report)
         # The same generic guard the stock path runs. Its condition reproduces
@@ -883,31 +1397,111 @@ def main():
         # granite-350m showed it bites at small scale.
         ensure_no_spurious_start_token(bundle, export_src, report)
     else:
-        print(f"exporting {export_src} -> {out_dir}  (stock defaults"
-              + (f", opts={export_kwargs}" if export_kwargs else "") + ")")
+        print(f"exporting {export_src} -> {out_dir}  (stock, opts={export_kwargs})")
+        system_metadata = {
+            "uuid": str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                   f"{args.model}@{sha}#{args.recipe}#{toolchain['id']}")),
+            "creation_timestamp": commit_date,
+        }
+        pin_system_metadata(system_metadata["uuid"], system_metadata["creation_timestamp"])
+        builder_compat(report)
+        StageTracker(report).install()
+        report["stage"] = "load"
         from litert_torch.generative.export_hf.export import export
         t0 = time.time()
-        export(model=export_src, output_dir=str(out_dir), **export_kwargs)
-        report["export_seconds"] = round(time.time() - t0)
-        bundle = out_dir / "model.litertlm"
-        if not bundle.exists():
+        try:
+            export(model=str(export_src), output_dir=str(out_dir), **export_kwargs)
+        except Exception as e:  # noqa: BLE001 — every failure becomes one FAIL line
+            import traceback
+            tb = traceback.format_exc()
+            sys.stderr.write(tb)
+            report["export_seconds"] = round(time.time() - t0)
             report["status"] = "export_failed"
-            write_report(report)
-            fail("export finished without producing model.litertlm")
-        report["bundle_bytes"] = bundle.stat().st_size
-        ensure_turn_end_stop(bundle, export_src, report)
-        ensure_no_spurious_start_token(bundle, export_src, report)
+            fail(f"{type(e).__name__}: {e}", stage=report.get("stage") or "load",
+                 context=f"{tb}\nmodel_type={report['decisions'].get('model_type')}")
+        report["export_seconds"] = round(time.time() - t0)
+        report["stage"] = "bundle"
+        exported = out_dir / "model.litertlm"
+        if not exported.exists():
+            report["status"] = "export_failed"
+            fail("export finished without producing model.litertlm", stage="bundle")
+        ensure_turn_end_stop(exported, export_src, report)
+        ensure_no_spurious_start_token(exported, export_src, report, in_process=True)
         if report["decisions"].get("model_type") in HYBRID_EXEC_RETROFIT:
-            ensure_executor_metadata(bundle, report)
+            ensure_executor_metadata(exported, report)
+        bundle = out_dir / f"{name}_{args.recipe}.litertlm"
+        exported.replace(bundle)
+        report["bundle_export_name"] = exported.name
+        report["bundle_bytes"] = bundle.stat().st_size
+        if template_record and template_record["form"] != "none" and not args.no_gate:
+            template_record["runtime"] = check_runtime_template(report, bundle, export_src,
+                                                                template_record)
+        if lockable:
+            ident = bundle_identity(bundle)
+            pinned = {k: ident["system_metadata"].get(k) for k in system_metadata}
+            ident["system_metadata_pinned"] = pinned == system_metadata
+            if not ident["system_metadata_pinned"]:
+                print(f"WARNING: the bundle header carries {pinned}, not the pinned "
+                      f"{system_metadata} — a pack outside this process; the bytes will "
+                      "not repeat")
+            rq = RECIPES[args.recipe]
+            lock = {
+                "lock_version": LOCK_VERSION,
+                "command": (f"uv run python scripts/convert.py {args.model} --revision {sha} "
+                            f"--recipe {args.recipe}"),
+                "source": {"repo": args.model, "revision": sha, "commit_date": commit_date,
+                           "files": source_files},
+                "recipe": {
+                    "id": args.recipe,
+                    "export_kwargs": {k: (str(Path(v).relative_to(REPO_ROOT))
+                                          if k == "quantization_recipe" and v.endswith(".json")
+                                          else Path(v).name if k == "jinja_chat_template_override"
+                                          else v) for k, v in export_kwargs.items()},
+                    "quantization_recipe_sha256": recipe_sha256(rq),
+                    "post_export": {k: report["decisions"][k] for k in POST_EXPORT_KEYS
+                                    if k in report["decisions"]},
+                    "compat": report["decisions"].get("compat", []),
+                },
+                "template": template_record,
+                "toolchain": toolchain,
+                "process": {"PYTHONHASHSEED": os.environ.get("PYTHONHASHSEED")},
+                "converter": converter_info(),
+                "bundle": ident,
+                "check": None,
+                "built_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                "host": host_info(),
+            }
+            lock_path = out_dir / f"{name}.lock.json"
+            write_lock(lock_path, lock)
+            report["lock"] = str(lock_path)
+            print(f"lock: {lock_path} (bundle sha256 {ident['sha256']})")
+        else:
+            print("NOTE: no lock for this source (adapter merge / rope-normalized source)")
+    report["bundle"] = str(bundle)
+
+    if args.no_gate:
+        report["status"] = "built"
+        report["stage"] = None
+        write_report(report)
+        print(f"built (no gate): {bundle} ({report['bundle_bytes']:,} B)")
+        sys.exit(0)
 
     # ---------------- exit gate ----------------
+    from check_bundle import check as check_bundle
+    cli = resolve_litert_lm_cli()
     gate_json = out_dir / "gate.json"
-    if args.gate_script:
+    t0 = time.time()
+    proc = None
+    if args.smoke:
+        report["stage"] = "engine-load"
+        result = check_bundle(bundle)
+        report["gate"] = {"smoke": result}
+        passed = result["pass"]
+    elif args.gate_script:
         print(f"exit gate: task gate {args.gate_script}"
               + (f" --backend {gate_backend}" if gate_backend else ""))
         gate_cmd = [sys.executable, args.gate_script, str(bundle),
                     "--backend", gate_backend or "cpu", "--out", str(gate_json)]
-        cli = resolve_litert_lm_cli()
         if cli:
             gate_cmd += ["--litert-lm", cli]
         proc = subprocess.run(gate_cmd, text=True)
@@ -915,19 +1509,58 @@ def main():
         report["gate"] = {"script": args.gate_script, "passed": proc.returncode == 0}
         if gate:
             report["gate"].update({k: gate[k] for k in ("match_hf", "n") if k in gate})
+        passed = proc.returncode == 0
     else:
         max_tokens = 3200 if is_think else 512
-        print(f"exit gate: verify_quality --max-tokens {max_tokens} --min-correct {args.min_correct}"
-              + (f" --backend {gate_backend}" if gate_backend else ""))
         gate_cmd = [sys.executable, str(VERIFY), str(bundle),
                     "--max-tokens", str(max_tokens), "--min-correct", str(args.min_correct),
                     "--json", str(gate_json)]
-        if gate_backend:
-            gate_cmd += ["--backend", gate_backend]
-        proc = subprocess.run(gate_cmd, text=True)
+        env = None
+        if recipe:
+            if gate_backend:
+                gate_cmd += ["--backend", gate_backend]
+        else:
+            # the stock path gates on the CLI of this environment (CPU, greedy):
+            # litert-mac-verify's --backend contract through scripts/litert_lm_cli_verifier.py
+            gate_cmd += ["--verifier", str(CLI_VERIFIER), "--backend", gate_backend or "cpu"]
+            env = dict(os.environ, LITERT_LM_CLI=cli or "")
+        print("exit gate: " + " ".join(gate_cmd[1:]))
+        proc = subprocess.run(gate_cmd, text=True, env=env)
         gate = json.loads(gate_json.read_text()) if gate_json.exists() else None
         report["gate"] = {k: gate[k] for k in ("score", "of", "degenerate", "passed")} if gate else None
-    report["status"] = "converted_pass" if proc.returncode == 0 else "converted_gate_failed"
+        if report["gate"] is not None and not recipe:
+            report["gate"]["engine"] = "litert-lm CLI (scripts/litert_lm_cli_verifier.py)"
+            report["gate"]["backend"] = gate_backend or "cpu"
+        passed = proc.returncode == 0
+    report["gate_seconds"] = round(time.time() - t0)
+
+    # ---------------- check (the pinned CLI loads it and the user's text reaches the model) ----------------
+    checked = report["gate"]["smoke"] if args.smoke else check_bundle(bundle)
+    report["check"] = {k: checked[k] for k in ("engine", "backend", "seconds", "answer_head", "pass",
+                                               "arithmetic")}
+    if lock is not None:
+        lock["check"] = {k: checked[k] for k in ("engine", "backend", "prompt", "answer_head",
+                                                 "pass", "seconds", "arithmetic")}
+        write_lock(lock_path, lock)
+
+    if args.smoke:
+        report["status"] = "smoke_pass" if passed else "smoke_failed"
+    elif not passed:
+        report["status"] = "converted_gate_failed"
+    elif not checked["pass"]:
+        report["status"] = "converted_check_failed"
+    else:
+        report["status"] = "converted_pass"
+    report["stage"] = None
+    if args.smoke or (passed and not checked["pass"]):
+        report["failure"] = checked.get("failure") and {**checked["failure"], **failure_fields()}
+    elif not passed:
+        g = report["gate"] or {}
+        what = (f"8-question gate {g['score']}/8 (bar {args.min_correct}/8"
+                + (", degenerate)" if g.get("degenerate") else ")")
+                if "score" in g else f"gate {args.gate_script or 'harness'} failed (exit "
+                f"{proc.returncode if proc else '?'})")
+        report["failure"] = failure("generate", what, **failure_fields())
     if merged_dir and not args.keep_merged:
         shutil.rmtree(merged_dir, ignore_errors=True)
         print(f"removed temporary merged dir {merged_dir} (--keep-merged retains it)")
@@ -937,8 +1570,121 @@ def main():
     write_report(report)
     print(f"{report['status']}: {bundle} ({report['bundle_bytes']:,} B); "
           f"report: {out_dir / 'convert_report.json'}")
-    sys.exit(0 if proc.returncode == 0 else 1)
+    if report.get("failure"):
+        print(report["failure"]["line"], file=sys.stderr)
+    sys.exit(0 if report["status"] in ("converted_pass", "smoke_pass") else 1)
+
+
+def prepare_template(report, export_src, out_dir):
+    """Prove the template the export would embed (the tokenizer's chat_template)
+    renders on the runtime as transformers renders it (scripts/chat_template_dual.py),
+    with the edits that needs (.get -> indexing, the dual form), and write the
+    edited template for the export's jinja_chat_template_override. Returns (lock
+    record, path or None); a template that cannot be proven stops the run before
+    the export (no bundle)."""
+    from transformers import AutoTokenizer
+    from chat_template_dual import prove
+    tmpl = AutoTokenizer.from_pretrained(str(export_src)).chat_template
+    if not isinstance(tmpl, str) or not tmpl.strip():
+        report["decisions"]["template"] = {"form": "none"}
+        return {"form": "none", "reason": "the tokenizer has no single string chat template"}, None
+    report["stage"] = "template"
+    proof, final = prove(tmpl)
+    record = {k: proof.get(k) for k in ("form", "edits", "original_sha256", "final_sha256", "classes",
+                                        "basis", "cases", "oracle", "macro", "macro_sha256")}
+    report["decisions"]["template"] = {k: record[k] for k in ("form", "edits", "classes", "basis")}
+    if not proof["pass"]:
+        fail(f"content read left unwrapped: {proof['unwrapped']}" if proof.get("unwrapped")
+             else proof["reason"], stage="template")
+    if final == tmpl:
+        print(f"chat template: unchanged (the runtime renders it as transformers does; basis "
+              f"{proof['basis']})")
+        return record, None
+    path = out_dir / "chat_template.bundle.jinja"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(final)
+    print(f"chat template: {proof['form']} ({proof['edits']}; the original on the runtime: "
+          f"{proof['classes']}; the edited template renders transformers' prompt byte for byte, "
+          f"basis {proof['basis']}) -> {path.name}")
+    return record, path
+
+
+def check_runtime_template(report, bundle, export_src, record):
+    """The prompt the runtime builds is the prompt the proof compared with:
+    litert-lm's Conversation.render_message_to_string (scripts/chat_template_dual.py
+    --runtime-render, its own process) against transformers' apply_chat_template
+    of the model's own template on c1-c3 — with string content, or with parts for
+    a case whose basis is parts (a template with its own list branch) — the
+    bundle's start token in front when it keeps one, whole or as the increment
+    after the history. Anything else stops the run."""
+    from transformers import AutoTokenizer
+    from chat_template_dual import RUNTIME_CASES, cases
+    tok = AutoTokenizer.from_pretrained(str(export_src))
+    proc = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "chat_template_dual.py"),
+                           "--runtime-render", str(bundle)], capture_output=True, text=True)
+    if proc.returncode != 0:
+        err = (proc.stderr or proc.stdout).strip().splitlines()
+        fail("runtime render failed: " + (err[-1] if err else f"exit {proc.returncode}"),
+             stage="engine-load", context=proc.stderr[-4000:])
+    got = json.loads(proc.stdout.strip().splitlines()[-1])
+    start = tok.bos_token if report["decisions"].get("start_token") == "kept_matches_reference" else ""
+    result = {}
+    for name, turns, _ in cases(""):
+        if name not in RUNTIME_CASES:
+            continue
+        form = record["basis"].get(name, "string")
+        msgs = [{"role": r, "content": t if form == "string" else [{"type": "text", "text": t}]}
+                for r, t in turns]
+        full = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        hist = (tok.apply_chat_template(msgs[:-1], tokenize=False, add_generation_prompt=False)
+                if len(msgs) > 1 else "")
+        if got[name] and start + got[name] == full:
+            result[name] = form
+        elif got[name] and hist and full.startswith(hist) and got[name] == full[len(hist):]:
+            result[name] = form + " increment"
+        else:
+            fail(f"the runtime's prompt for {name} is not what transformers renders ({form} "
+                 f"basis): {got[name][:120]!r}", stage="template")
+    report["decisions"]["template_runtime"] = result
+    print(f"chat template: the runtime's prompt equals transformers' render ({result})")
+    return result
+
+
+def recipe_sha256(recipe):
+    """sha256 of the quantization recipe the export resolves: the file's bytes
+    for a .json recipe, else the canonical JSON of ai_edge_quantizer's named
+    recipe (the export calls recipe_lib.<name>())."""
+    if recipe.endswith(".json"):
+        return sha256_file(recipe)
+    from ai_edge_quantizer import recipe as recipe_lib
+    canon = json.dumps(getattr(recipe_lib, recipe)(), sort_keys=True, default=str)
+    return hashlib.sha256(canon.encode()).hexdigest()
+
+
+def host_info():
+    import platform
+    return {"platform": platform.platform(), "machine": platform.machine()}
+
+
+def write_lock(path, lock):
+    Path(path).write_text(json.dumps(lock, indent=2) + "\n")
 
 
 if __name__ == "__main__":
-    main()
+    # The export orders sets of strings by their hash (litert-torch 0.9.4
+    # build_llm_metadata iterates `expanded_stop_tokens = set()` into
+    # LlmMetadata.stop_tokens), and Python randomizes string hashes per
+    # process: two runs wrote the same stop tokens in two orders (2026-10-19,
+    # Qwen3-1.7B, LlmMetadata 4,449 B both times, every other section equal).
+    # Rerun under a fixed seed before anything else happens.
+    if os.environ.get("PYTHONHASHSEED") != HASH_SEED:
+        os.execve(sys.executable, [sys.executable, *sys.argv],
+                  dict(os.environ, PYTHONHASHSEED=HASH_SEED))
+    try:
+        main()
+    except Exception as e:  # noqa: BLE001 — anything not already a FAIL line becomes one
+        import traceback
+        tb = traceback.format_exc()
+        sys.stderr.write(tb)
+        fail(f"{type(e).__name__}: {e}", stage=(_REPORT or {}).get("stage") or "fetch",
+             context=tb)

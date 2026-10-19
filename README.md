@@ -15,13 +15,19 @@ uvx litert-lm@0.18.0 run --from-huggingface-repo=litert-community/LFM2.5-1.2B-In
 ## Hugging Face model → `.litertlm` → phone
 
 ```bash
-pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
-python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
-litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone: see below
+uv sync                                                    # the pinned toolchain (uv.lock) into .venv
+uv run python scripts/convert.py <org>/<model>             # -> out/<model>/<model>_int8.litertlm + <model>.lock.json
+uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild from the lock: MATCH = the same bytes
+uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bundle runs on a phone: see below
 ```
 
 `convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
-pre-quantized repos) and gates every bundle before calling it done. To rebuild a published model
+pre-quantized repos) and gates every bundle before calling it done. The lock records the Hub
+commit, the sha256 of every file the export read, the export call and every package version
+([docs/one-command-lock.md](docs/one-command-lock.md)); a failure ends in one line,
+`FAIL <stage>: <op or first error line> -> next: <hint>`. Qwen3-1.7B, SmolLM2-1.7B-Instruct and
+gemma-4-E2B-it rebuild from their locks byte for byte (`bash scripts/verify_refs.sh`,
+[locks/refs/CHANGELOG.md](locks/refs/CHANGELOG.md)). To rebuild a published model
 instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
 
 In an Android app, a published bundle is one Gradle line and a few lines of Kotlin through

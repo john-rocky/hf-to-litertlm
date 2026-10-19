@@ -1,0 +1,113 @@
+{
+  "doc": "Hints for the FAIL line of scripts/convert.py and scripts/check_bundle.py (scripts/failure_line.py). The first row whose stages contain the failing stage and whose regex (case-insensitive) matches the error text (the message, the traceback, model_type=<type>) gives the hint; otherwise a refusal's own action; otherwise a model request with the line. Add a row only with a measured case in `source`.",
+  "hints": [
+    {
+      "id": "revision_not_found",
+      "stages": [
+        "fetch"
+      ],
+      "match": "RevisionNotFound|revision \\S+ not found|Invalid rev id",
+      "hint": "pass a commit sha, branch or tag that exists in the repo (huggingface.co/<org>/<model>/commits/main)",
+      "source": "huggingface_hub RevisionNotFoundError for --revision 0000000000000000000000000000000000000000 on Qwen/Qwen3-1.7B (2026-10-19)"
+    },
+    {
+      "id": "repo_not_found",
+      "stages": [
+        "fetch"
+      ],
+      "match": "RepositoryNotFound|not found on the Hub",
+      "hint": "check the repo id (org/name) on huggingface.co; a private repo needs a token with read access (hf auth login or HF_TOKEN)",
+      "source": "huggingface_hub RepositoryNotFoundError (404) for john-rocky/does-not-exist-20261019 (2026-10-19)"
+    },
+    {
+      "id": "rate_limited",
+      "stages": [
+        "fetch"
+      ],
+      "match": "\\b429\\b|rate.?limit",
+      "hint": "log in (hf auth login) or set HF_TOKEN, then rerun: the Hub rate-limits anonymous requests per IP",
+      "source": "anonymous /api/models requests answered 429 while token requests went through (2026-10-19)"
+    },
+    {
+      "id": "checksum_mismatch",
+      "stages": [
+        "fetch"
+      ],
+      "match": "size mismatch|sha256 mismatch|blob sha1 mismatch",
+      "hint": "delete that file's blob from the HF cache and rerun; for a multi-GB file that keeps arriving short, download it with ranged requests and check it against the Hub's sha256",
+      "source": "hf_hub_download delivered 0 bytes for some multi-GB files across retries (2026-08-24/25, 2026-09-05/06)"
+    },
+    {
+      "id": "hybrid_without_model_ext",
+      "stages": [
+        "gate",
+        "load",
+        "trace"
+      ],
+      "match": "model_ext_missing|linear_key_head_dim|update_conv_state",
+      "hint": "a hybrid model_type the released exporter has no model_ext for: the family recipe (README \"Convert a finetune\") or litert-torch main",
+      "source": "granite-4.0-h-350m finetune on 0.9.4: AttributeError 'linear_key_head_dim' (2026-08-25); Qwen3.5 on 0.9.3: update_conv_state TypeError (2026-08-24) - scripts/convert.py HYBRID_RECIPE / HYBRID_STOCK"
+    },
+    {
+      "id": "data_dependent_guard",
+      "stages": [
+        "trace"
+      ],
+      "match": "GuardOnDataDependentSymNode|data-dependent",
+      "hint": "a data-dependent branch in the model's forward stops torch.export; open a model request with the guard expression (scripts/convert.py normalize_static_alpha_rope removes one such branch by baking the config)",
+      "source": "tencent/Hy-MT2-1.8B: GuardOnDataDependentSymNode on Eq(u0, 1) in the dynamic rope growth branch (2026-08-27)"
+    },
+    {
+      "id": "template_unwrapped",
+      "stages": [
+        "template"
+      ],
+      "match": "content read left unwrapped|differs from transformers|not what transformers renders",
+      "hint": "the template reads content or calls a method the 0.18 runtime cannot render, in a form the two edits (.get -> indexing, format_content on message.content / message['content'] / messages[0].content) do not reach: write its runtime form by hand (tools/chat_template_parts/), check it with scripts/chat_template_dual.py, then convert with it",
+      "source": "scripts/chat_template_dual.py (Qwen3-1.7B dual 7, SmolLM2-1.7B-Instruct dual 1, gemma-4-E2B-it get 25; 2026-10-19)"
+    },
+    {
+      "id": "echo_missing",
+      "stages": [
+        "generate"
+      ],
+      "match": "does not carry",
+      "hint": "the user's text did not reach the model: compare the runtime's render with transformers' (scripts/chat_template_dual.py --runtime-render <bundle>) before anything else",
+      "source": "Qwen3-1.7B stock bundle on litert-lm 0.18.0: the user turn rendered empty and the model answered about an empty message (2026-10-19)"
+    },
+    {
+      "id": "quality_gate",
+      "stages": [
+        "generate"
+      ],
+      "match": "8-question gate \\d+/8",
+      "hint": "the bundle loads but fails the 8-question gate: read gate.json in the output dir (which answers are wrong, whether they loop) before changing the recipe",
+      "source": "scripts/verify_quality.py (8 questions, bar 6/8, degeneracy check)"
+    },
+    {
+      "id": "time_cap",
+      "stages": [
+        "fetch",
+        "load",
+        "trace",
+        "convert",
+        "quantize",
+        "bundle",
+        "engine-load",
+        "generate"
+      ],
+      "match": "timeout after",
+      "hint": "the stage ran past --max-minutes: rerun without the cap to see whether it finishes, and give its seconds in the model request",
+      "source": "scripts/convert.py --max-minutes (45 by default with --smoke)"
+    },
+    {
+      "id": "no_cli",
+      "stages": [
+        "engine-load"
+      ],
+      "match": "litert-lm CLI not found",
+      "hint": "uv sync (the pinned environment carries the litert-lm CLI), or set LITERT_LM_CLI",
+      "source": "scripts/check_bundle.py"
+    }
+  ]
+}
