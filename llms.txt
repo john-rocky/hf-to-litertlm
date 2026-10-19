@@ -3,12 +3,13 @@
 > Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 84 published conversions on Hugging Face (78 in litert-community, 6 under mlboydaisuke), each with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
 
 ```bash
-pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
-python scripts/convert.py <org>/<model>                    # -> out/<model>/ (bundle + convert_report.json)
-litert-lm run out/<model>/*.litertlm --prompt "Hello"      # same bundle runs on a phone
+uv sync                                                    # the pinned toolchain (uv.lock) into .venv
+uv run python scripts/convert.py <org>/<model>             # -> out/<model>/<model>_int8.litertlm + <model>.lock.json
+uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild from the lock: MATCH = the same bytes
+uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bundle runs on a phone
 ```
 
-`convert.py` exits 0 = converted and gated, 1 = converted but the gate failed, 2 = refused with a JSON reason (gated, remote-code, pre-quantized repos).
+`convert.py` exits 0 = converted and gated, 1 = converted but the 8-question gate or the one-prompt check (`scripts/check_bundle.py`) failed, 2 = refused (gated, remote-code, pre-quantized repos: a JSON reason) or stopped before any download (repo or revision not found), 3 = any later failure. Every failure ends in one `FAIL <stage>: … -> next: …` line on stderr.
 
 ## Start here
 

@@ -50,8 +50,10 @@ with Google.
 ## Rules
 
 1. **A bundle that loads is not done.** The exit gate decides: `scripts/verify_quality.py`, 8 fixed
-   questions, bar 6/8. `convert.py` exits 0 = converted and gated, 1 = converted but the gate
-   failed, 2 = refused. Report the exit code and `out/<model>/convert_report.json`, not "it ran".
+   questions, bar 6/8. `convert.py` exits 0 = converted and gated, 1 = converted but the gate or
+   the one-prompt check (`scripts/check_bundle.py`) failed, 2 = refused or stopped before any
+   download, 3 = any later failure. Report the
+   exit code and `out/<model>/convert_report.json`, not "it ran".
 2. **A refusal is an answer.** Gated, remote-code and pre-quantized repos are refused with a JSON
    reason before anything downloads. Quote the reason; do not work around the gate.
 3. **Pin the toolchain from README "Setup".** `transformers==5.14.*`; Qwen3.5 exports only on

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Hugging Face model -> .litertlm with a pinned toolchain and a lock file (scripts/convert.py)"
 requires-python = ">=3.12"
 dependencies = [
-    # the exporter stack; raise it with `uv lock --upgrade-package ...` (docs/one-command-lock.md)
+    # the exporter stack; raise it by editing the == pins below, then `uv lock` (docs/one-command-lock.md)
     "litert-torch==0.9.4",
     "litert-lm-builder==0.18.0",
     "litert-lm==0.18.0",
