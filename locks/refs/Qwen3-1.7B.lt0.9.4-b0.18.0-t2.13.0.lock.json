@@ -1,0 +1,340 @@
+{
+  "lock_version": 1,
+  "command": "uv run python scripts/convert.py Qwen/Qwen3-1.7B --revision 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e --recipe int8",
+  "source": {
+    "repo": "Qwen/Qwen3-1.7B",
+    "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "commit_date": "2025-07-26T03:46:32+00:00",
+    "files": [
+      {
+        "path": "config.json",
+        "size": 726,
+        "sha256": "1ddb5b89ebc90dcb417a45c213d818577e65976454d29385c8f6140771d95197",
+        "lfs": false
+      },
+      {
+        "path": "generation_config.json",
+        "size": 239,
+        "sha256": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+        "lfs": false
+      },
+      {
+        "path": "merges.txt",
+        "size": 1671853,
+        "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+        "lfs": false
+      },
+      {
+        "path": "model-00001-of-00002.safetensors",
+        "size": 3441185608,
+        "sha256": "169ad53ec313c3a34b06c0809216e4fc072cce444a5d4ff2b59690d064130ed5",
+        "lfs": true
+      },
+      {
+        "path": "model-00002-of-00002.safetensors",
+        "size": 622329984,
+        "sha256": "912becff8d60672aa8628ef08c05898d9adf17c2ad4ae3caf99b065622fdeff9",
+        "lfs": true
+      },
+      {
+        "path": "model.safetensors.index.json",
+        "size": 25605,
+        "sha256": "0d660e94b165eb912669a5249dff44b83188c4777a07ddb9611fb78d91b0578d",
+        "lfs": false
+      },
+      {
+        "path": "tokenizer.json",
+        "size": 11422654,
+        "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+        "lfs": true
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 9732,
+        "sha256": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+        "lfs": false
+      },
+      {
+        "path": "vocab.json",
+        "size": 2776833,
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+        "lfs": false
+      }
+    ]
+  },
+  "recipe": {
+    "id": "int8",
+    "export_kwargs": {
+      "prefill_lengths": [
+        128
+      ],
+      "cache_length": 4096,
+      "quantization_recipe": "dynamic_wi8_afp32",
+      "jinja_chat_template_override": "chat_template.bundle.jinja"
+    },
+    "quantization_recipe_sha256": "845239b701f07a044e4226323fcf111bf5728a90318dad1a5c52da48246e439d",
+    "post_export": {},
+    "compat": []
+  },
+  "template": {
+    "form": "dual",
+    "edits": {
+      "format_content": 7
+    },
+    "original_sha256": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+    "final_sha256": "3d72c8d126f75c33dc9d9407cdc16edf7feeced4017952354304fcc2f9b12f54",
+    "classes": {
+      "c1": "drop",
+      "c2": "raise",
+      "c3": "drop",
+      "c4_true": "drop",
+      "c4_false": "drop"
+    },
+    "basis": {
+      "c1": "string",
+      "c2": "string",
+      "c3": "string",
+      "c4_true": "string",
+      "c4_false": "string"
+    },
+    "cases": {
+      "c1": {
+        "basis": "string",
+        "reference": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        },
+        "runtime_parts": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        },
+        "equal": true,
+        "runtime_string": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        }
+      },
+      "c2": {
+        "basis": "string",
+        "reference": {
+          "sha256": "9d83b2a8d434a6a9ea19bdf122d407b4ad82e50cb066485f336a7af19724edb6",
+          "bytes": 188
+        },
+        "runtime_parts": {
+          "sha256": "9d83b2a8d434a6a9ea19bdf122d407b4ad82e50cb066485f336a7af19724edb6",
+          "bytes": 188
+        },
+        "equal": true,
+        "runtime_string": {
+          "sha256": "9d83b2a8d434a6a9ea19bdf122d407b4ad82e50cb066485f336a7af19724edb6",
+          "bytes": 188
+        }
+      },
+      "c3": {
+        "basis": "string",
+        "reference": {
+          "sha256": "5910c0db769b0842788e6701ed83a6c9df8bede5cc928955d9d7b0a3eaf2148b",
+          "bytes": 242
+        },
+        "runtime_parts": {
+          "sha256": "5910c0db769b0842788e6701ed83a6c9df8bede5cc928955d9d7b0a3eaf2148b",
+          "bytes": 242
+        },
+        "equal": true,
+        "runtime_string": {
+          "sha256": "5910c0db769b0842788e6701ed83a6c9df8bede5cc928955d9d7b0a3eaf2148b",
+          "bytes": 242
+        }
+      },
+      "c4_true": {
+        "basis": "string",
+        "reference": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        },
+        "runtime_parts": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        },
+        "equal": true,
+        "runtime_string": {
+          "sha256": "508a5678e55b35c24ab17035c80fb55f84db59633ac53823ea32e791c6d5f8ed",
+          "bytes": 80
+        }
+      },
+      "c4_false": {
+        "basis": "string",
+        "reference": {
+          "sha256": "f3c87af3dafc88c8b6552d9b2806612b5dc1e5c3442340c11e1000864f19a488",
+          "bytes": 99
+        },
+        "runtime_parts": {
+          "sha256": "f3c87af3dafc88c8b6552d9b2806612b5dc1e5c3442340c11e1000864f19a488",
+          "bytes": 99
+        },
+        "equal": true,
+        "runtime_string": {
+          "sha256": "f3c87af3dafc88c8b6552d9b2806612b5dc1e5c3442340c11e1000864f19a488",
+          "bytes": 99
+        }
+      }
+    },
+    "oracle": "minijinja 2.14.0 (runtime settings, literal messages) against transformers render_jinja_template",
+    "macro": "LiteRT-LM a8178d7d models/qwen3/chat_template.jinja (format_content, Apache-2.0)",
+    "macro_sha256": "a146c227eebbdaa9e9f9c632b7f09114ab091ccc9a95994afccf4012aa12ac87",
+    "runtime": {
+      "c1": "string",
+      "c2": "string",
+      "c3": "string"
+    }
+  },
+  "toolchain": {
+    "id": "lt0.9.4-b0.18.0-t2.13.0",
+    "python": "3.12.11",
+    "pinned_env": true,
+    "uv_lock_sha256": "30324419ea25df85e33d45e7c157ce79552b50501a72572374546ec8842eff67",
+    "packages": {
+      "absl-py": "2.5.1",
+      "accelerate": "1.15.0",
+      "ai-edge-litert": "2.2.0",
+      "ai-edge-quantizer": "0.9.0",
+      "annotated-doc": "0.0.5",
+      "anyio": "4.14.2",
+      "backports-strenum": "1.3.1",
+      "certifi": "2026.10.18",
+      "charset-normalizer": "3.5.2",
+      "click": "8.5.0",
+      "filelock": "4.2.4",
+      "fire": "0.7.1",
+      "flatbuffers": "25.12.19",
+      "fsspec": "2026.9.0",
+      "h11": "0.16.0",
+      "hf-xet": "1.7.0",
+      "httpcore": "1.0.9",
+      "httpx": "0.28.1",
+      "huggingface-hub": "1.33.0",
+      "idna": "3.20",
+      "immutabledict": "4.2.1",
+      "jax": "0.11.2",
+      "jaxlib": "0.11.2",
+      "jaxtyping": "0.3.11",
+      "jinja2": "3.1.6",
+      "kagglehub": "1.0.2",
+      "kagglesdk": "0.1.37",
+      "lark": "1.3.1",
+      "litert-converter": "0.4.0",
+      "litert-lm": "0.18.0",
+      "litert-lm-api": "0.18.0",
+      "litert-lm-builder": "0.18.0",
+      "litert-torch": "0.9.4",
+      "markdown-it-py": "4.2.0",
+      "markupsafe": "3.0.4",
+      "mdurl": "0.1.2",
+      "minijinja": "2.14.0",
+      "ml-dtypes": "0.6.0",
+      "mpmath": "1.3.0",
+      "multipledispatch": "1.0.0",
+      "networkx": "3.7",
+      "numpy": "2.5.4",
+      "opt-einsum": "3.4.0",
+      "ordered-set": "4.1.0",
+      "packaging": "26.3",
+      "peft": "0.21.2",
+      "pillow": "13.0.0",
+      "prompt-toolkit": "3.0.53",
+      "protobuf": "7.36.2",
+      "psutil": "7.2.2",
+      "pygments": "2.21.0",
+      "pyyaml": "6.0.3",
+      "questionary": "2.1.1",
+      "regex": "2026.9.29",
+      "requests": "2.34.2",
+      "rich": "15.0.0",
+      "safetensors": "0.8.0",
+      "scipy": "1.18.1",
+      "sentencepiece": "0.2.2",
+      "setuptools": "84.0.0",
+      "shellingham": "1.5.4",
+      "sympy": "1.14.0",
+      "tabulate": "0.10.0",
+      "termcolor": "3.3.0",
+      "tokenizers": "0.22.2",
+      "tomli": "2.5.0",
+      "torch": "2.13.0",
+      "torchao": "0.18.0",
+      "tqdm": "4.70.1",
+      "transformers": "5.14.1",
+      "typer": "0.27.3",
+      "typing-extensions": "4.12.2",
+      "urllib3": "2.8.0",
+      "wadler-lindig": "0.1.7",
+      "wcwidth": "0.9.2",
+      "xdsl": "0.28.0"
+    }
+  },
+  "process": {
+    "PYTHONHASHSEED": "0"
+  },
+  "converter": {
+    "path": "scripts/convert.py",
+    "sha256": "0bb0aa723af24db687ce8147b2f989a4abc48d664599c1766ec71c92a85c2393",
+    "repo_commit": "5103db002a25fc7c132067c9073d2eba6583d614"
+  },
+  "bundle": {
+    "file": "Qwen3-1.7B_int8.litertlm",
+    "size": 1743584304,
+    "sha256": "b8d6b890a81f1370e8fb5a599ccffa7867118c339997641b44c100f34a87aad4",
+    "sections": [
+      {
+        "index": 0,
+        "type": "LlmMetadataProto",
+        "size": 4896,
+        "sha256": "eb0cfb5d202a77c19e010253247c5c72a2436fb5ed9fe1a4a5828f52717f16a2"
+      },
+      {
+        "index": 1,
+        "type": "ExecutorMetadataProto",
+        "size": 3790,
+        "sha256": "1c3f450df7d1d66a46b5ed121ec57dfc2f8cbdc3254748656737c784f6530244"
+      },
+      {
+        "index": 2,
+        "type": "HF_Tokenizer_Zlib",
+        "size": 2142162,
+        "sha256": "7e610629f8a83c4f8a3e646acdb67d68f32d724e8e38dc1a4a73b5ec524b6a43"
+      },
+      {
+        "index": 3,
+        "type": "TFLiteModel",
+        "size": 1741388848,
+        "sha256": "770bb3a28622bcfc1370aeb95de6450b9efe3391bc2c5ffa6efdf6fff1f73e2e"
+      }
+    ],
+    "system_metadata": {
+      "Authors": "ODML",
+      "uuid": "b058407c-957e-5826-a014-c4f637c93759",
+      "creation_timestamp": "2025-07-26T03:46:32+00:00"
+    },
+    "system_metadata_pinned": true
+  },
+  "check": {
+    "engine": "0.18.0",
+    "backend": "cpu",
+    "prompt": "Repeat this word exactly and say nothing else: pineapple",
+    "answer_head": "pineapple pineapple",
+    "pass": true,
+    "seconds": 17.8,
+    "arithmetic": {
+      "prompt": "What is 17 + 25? Answer with the number only.",
+      "expected": "42",
+      "answer_head": "42",
+      "match": true,
+      "seconds": 12.6
+    }
+  },
+  "built_at": "2026-10-19T14:03:41+0900",
+  "host": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64"
+  }
+}
