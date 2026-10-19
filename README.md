@@ -4,6 +4,14 @@ Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Goog
 runtime (Android, iOS, macOS, Windows, Linux): 84 published conversions below, each with
 measured speeds and a one-command reproduction.
 
+LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
+(`com.google.mediapipe:tasks-genai`), which is in maintenance-only mode. To try a published
+bundle on a Mac before it goes on a phone (needs [uv](https://docs.astral.sh/uv/)):
+
+```bash
+uvx litert-lm@0.18.0 run --from-huggingface-repo=litert-community/LFM2.5-1.2B-Instruct LFM2.5-1.2B-Instruct_int4_gpu.litertlm --prompt="What is 17 + 25? Answer briefly."
+```
+
 ## Hugging Face model → `.litertlm` → phone
 
 ```bash
