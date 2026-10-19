@@ -25,7 +25,10 @@ uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bund
 pre-quantized repos) and gates every bundle before calling it done. The lock records the Hub
 commit, the sha256 of every file the export read, the export call and every package version
 ([docs/one-command-lock.md](docs/one-command-lock.md)); a failure ends in one line,
-`FAIL <stage>: <op or first error line> -> next: <hint>`. Qwen3-1.7B, SmolLM2-1.7B-Instruct and
+`FAIL <stage>: <op or first error line> -> next: <hint>`. When litert-lm 0.18 cannot render the model's chat template the way transformers does,
+`convert.py` edits it (`.get` → indexing, text parts → one string) and keeps the edit only if the prompt
+renders byte-identical on three test conversations (four when the template reads `enable_thinking`); the lock records
+the edit counts. Qwen3-1.7B, SmolLM2-1.7B-Instruct and
 gemma-4-E2B-it rebuild from their locks byte for byte (`bash scripts/verify_refs.sh`,
 [locks/refs/CHANGELOG.md](locks/refs/CHANGELOG.md)). To rebuild a published model
 instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
