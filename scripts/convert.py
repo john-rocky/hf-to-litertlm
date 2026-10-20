@@ -101,6 +101,12 @@ VERIFY = REPO_ROOT / "scripts" / "verify_quality.py"
 CLI_VERIFIER = REPO_ROOT / "scripts" / "litert_lm_cli_verifier.py"
 CURATED_INDEX = REPO_ROOT / "recipes" / "curated_index.json"
 PINNED_ENV = REPO_ROOT / ".venv"
+# The hf-to-litertlm package (pypi/) runs these files from its own unpacked copy and sets
+# HF_TO_LITERTLM_PACKAGE to its version: outputs then go under the caller's directory.
+PACKAGE = os.environ.get("HF_TO_LITERTLM_PACKAGE")
+OUT_ROOT = Path.cwd() / "out" if PACKAGE else REPO_ROOT / "out"
+COMMAND = "hf-to-litertlm" if PACKAGE else "uv run python scripts/convert.py"
+REPO_URL = "https://github.com/john-rocky/hf-to-litertlm"
 CAPPED_CHILD_ENV = "HF_TO_LITERTLM_CAPPED_CHILD"
 # PYTHONHASHSEED of every run (see the __main__ block); the lock records it
 HASH_SEED = os.environ.get("HF_TO_LITERTLM_HASH_SEED", "0")
@@ -898,7 +904,11 @@ def toolchain_info():
 
 
 def converter_info():
-    """convert.py's own sha256 (its guards change bytes) and the repo commit."""
+    """convert.py's own sha256 (its guards change bytes) and the repo commit; from the
+    package, its version instead (the unpacked copy is no checkout)."""
+    if PACKAGE:
+        return {"path": "scripts/convert.py", "sha256": sha256_file(Path(__file__)),
+                "repo_commit": None, "package": f"hf-to-litertlm {PACKAGE}"}
     head = subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
                           capture_output=True, text=True)
     return {"path": "scripts/convert.py", "sha256": sha256_file(Path(__file__)),
@@ -1180,7 +1190,7 @@ def main():
     args.int4 = args.recipe == "int4"
 
     name = args.model.split("/")[-1]
-    out_dir = Path(args.out) if args.out else REPO_ROOT / "out" / name
+    out_dir = Path(args.out) if args.out else OUT_ROOT / name
     if args.smoke and args.max_minutes is None:
         args.max_minutes = 45
     if args.max_minutes and not os.environ.get(CAPPED_CHILD_ENV):
@@ -1228,6 +1238,11 @@ def main():
     key = curated_key(args.model)
     if key:
         report["decisions"]["curated_recipe"] = key
+        if args.curated and PACKAGE:
+            refuse(report, "curated_needs_repo",
+                   f"the hand-made recipe {key} runs from a clone of {REPO_URL}",
+                   f"git clone {REPO_URL} && cd hf-to-litertlm && "
+                   f"bash scripts/reproduce_llm.sh {key} (REPRODUCE.md)")
         if args.curated:
             print(f"--curated: bash scripts/reproduce_llm.sh {key} (no lock on this path)")
             write_report(report)
@@ -1319,6 +1334,12 @@ def main():
         report["decisions"]["prefill_ladder"] = "reduced_7sig_3b"
 
     recipe = HYBRID_RECIPE.get(report["decisions"].get("model_type"))
+    if recipe and PACKAGE:
+        refuse(report, "recipe_needs_repo",
+               f"model_type {report['decisions']['model_type']} converts only through its family "
+               "recipe and a patched litert-torch checkout, which the package does not carry",
+               f"in a clone of {REPO_URL}: {recipe['setup']} ; then "
+               f"uv run python scripts/convert.py {args.model}")
     # The lock covers the generic stock path from a plain repo; an adapter merge,
     # a rope-normalized source and a family recipe carry none yet.
     lockable = not (is_adapter or normalized_dir or recipe or report["decisions"].get(
@@ -1447,8 +1468,7 @@ def main():
             rq = RECIPES[args.recipe]
             lock = {
                 "lock_version": LOCK_VERSION,
-                "command": (f"uv run python scripts/convert.py {args.model} --revision {sha} "
-                            f"--recipe {args.recipe}"),
+                "command": f"{COMMAND} {args.model} --revision {sha} --recipe {args.recipe}",
                 "source": {"repo": args.model, "revision": sha, "commit_date": commit_date,
                            "files": source_files},
                 "recipe": {

@@ -2,12 +2,14 @@
 """Rebuild the bundle a lock describes and compare the bytes: MATCH or DIFF.
 
     uv run python scripts/verify_lock.py out/<model>/<model>.lock.json [--keep] [--json OUT]
+    hf-to-litertlm verify out/<model>/<model>.lock.json    (the same, from the package)
 
 1. This interpreter's toolchain must be the lock's (toolchain id, python, every installed
    package version, uv.lock sha256). Otherwise it stops with FAIL and lists what differs: a lock
    is only a test of the toolchain that wrote it (to move to another one, raise the toolchain as
    docs/one-command-lock.md says).
-2. scripts/convert.py <repo> --revision <sha> --recipe <id> --no-gate, into a fresh dir under out/.
+2. scripts/convert.py <repo> --revision <sha> --recipe <id> --no-gate, into a fresh dir under out/
+   (from the package: out/ in the current directory).
 3. The whole-file sha256 equal -> MATCH. Otherwise DIFF, with each section's sha256 and the
    header's uuid / creation_timestamp of both files; the rebuilt file is kept for a closer look
    (tools/tfl_compare/ compares two TFLite sections).
@@ -24,7 +26,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import convert  # noqa: E402  (toolchain_info, converter_info, REPO_ROOT)
+import convert  # noqa: E402  (toolchain_info, converter_info, REPO_ROOT, OUT_ROOT)
 
 
 def toolchain_diffs(want, have):
@@ -42,6 +44,10 @@ def main():
     ap.add_argument("--keep", action="store_true", help="keep the rebuilt dir after a MATCH too")
     ap.add_argument("--json", help="write the comparison here")
     args = ap.parse_args()
+    if not Path(args.lock).is_file():
+        print(f"FAIL lock: no such file {args.lock} -> next: pass the <model>.lock.json "
+              "that convert.py wrote next to the bundle")
+        return 1
     lock = json.loads(Path(args.lock).read_text())
     repo, rev, rid = lock["source"]["repo"], lock["source"]["revision"], lock["recipe"]["id"]
     name = repo.split("/")[-1]
@@ -61,7 +67,7 @@ def main():
               f"({lock['converter']['sha256'][:12]} at {lock['converter']['repo_commit']}, "
               f"here {here['sha256'][:12]}); its guards change bytes — rebuilding anyway")
 
-    out_root = convert.REPO_ROOT / "out"
+    out_root = convert.OUT_ROOT
     out_root.mkdir(exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=f"{name}.verify-", dir=out_root))
     cmd = [sys.executable, str(convert.REPO_ROOT / "scripts" / "convert.py"), repo,

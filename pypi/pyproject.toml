@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hf-to-litertlm"
+version = "0.1.0"
+description = "One command from a Hugging Face model repo to a .litertlm bundle for LiteRT-LM, on a pinned toolchain; rebuilding from its lock file gives the same bytes"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Daisuke Majima", email = "rockyshikoku@gmail.com" }]
+keywords = ["litert", "litert-lm", "litertlm", "huggingface", "on-device", "llm", "android", "ios"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# the launcher runs the converter with `uv run --frozen` on the repo's uv.lock (hf_to_litertlm/cli.py)
+dependencies = ["uv>=0.11"]
+
+[project.urls]
+Homepage = "https://github.com/john-rocky/hf-to-litertlm"
+Documentation = "https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/one-command-lock.md"
+Issues = "https://github.com/john-rocky/hf-to-litertlm/issues"
+
+[project.scripts]
+hf-to-litertlm = "hf_to_litertlm.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["hf_to_litertlm"]

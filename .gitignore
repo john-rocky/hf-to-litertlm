@@ -59,3 +59,6 @@ bonsai_image_work/device/BonsaiApp/build/
 bonsai_image_work/device/BonsaiApp/Resources/
 bonsai_image_work/device/BonsaiApp/BonsaiApp.xcodeproj/
 bonsai_image_work/device/BonsaiApp/Info.plist
+
+# PyPI build output (pypi/build.py)
+pypi/dist/
