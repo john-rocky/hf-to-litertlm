@@ -20,9 +20,10 @@ gemma-4-E2B-it took 7 minutes and 64 GB
   transformers 5.14.1, and every other package at the version in the repository's `uv.lock`. The package
   carries the converter scripts with that `pyproject.toml` and `uv.lock` and runs them with
   `uv run --frozen` in `~/.cache/hf-to-litertlm/<version>/`, which is the environment `uv sync` makes in
-  a clone of the repository. So a lock written by the package rebuilds in a clone, and the other way
-  round, on the same Python 3.12.x. The first run installs the environment (about 1.6 GB on macOS arm64;
-  uv also fetches a Python 3.12 if none is installed). Model files download into the Hugging Face cache.
+  a clone of the repository. So a lock the package wrote verifies in a clone, and a clone's lock verifies
+  from the package, when both run the same Python patch version (the reference locks record 3.12.11).
+  The first run installs the environment (about 1.6 GB on macOS arm64; uv also fetches a Python 3.12 if
+  none is installed). Model files download into the Hugging Face cache.
 - **The lock** (`<model>.lock.json`) records the Hub commit, the size and sha256 of every file the export
   read, the export call, every package version, and the sha256 of the bundle and of each of its sections.
   litert-lm-builder writes a random uuid and the current time into every bundle header
@@ -47,12 +48,14 @@ gemma-4-E2B-it took 7 minutes and 64 GB
 
 Rebuilt byte for byte from their locks in a clone, on macOS arm64: `Qwen/Qwen3-1.7B`,
 `HuggingFaceTB/SmolLM2-1.7B-Instruct` and `google/gemma-4-E2B-it` (gate 8/8, 7/8 and 8/8). From this
-package, `Qwen/Qwen3-1.7B` gave the bytes its reference lock records, and the lock the package wrote
-rebuilt to the same bytes in a clone.
+package, `Qwen/Qwen3-1.7B` converted to the bytes that its lock in
+[`locks/refs/`](https://github.com/john-rocky/hf-to-litertlm/tree/main/locks/refs) records (gate 8/8),
+and a clone rebuilt the package's lock to the same bytes.
+
 The hybrid families that need a patched litert-torch checkout (granite-4.0-h, Falcon-H1, Zamba2,
 Nemotron-H) and the hand-made recipes of the repository's published conversions run from a clone of
 [the repository](https://github.com/john-rocky/hf-to-litertlm); the package refuses them before any
-download and names the clone.
+weight file is downloaded and names the clone.
 
 The design, the lock format and how to raise the toolchain:
 [docs/one-command-lock.md](https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/one-command-lock.md).
