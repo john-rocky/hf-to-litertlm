@@ -3505,3 +3505,57 @@ Published: [litert-community/clef-flash-LiteRT](https://huggingface.co/litert-co
 - **Check a download with the example.** `examples/run_example.py --check` (Metal at float32) and `--check --accelerator cpu` answer four public fixture requests (on the 256- and 512-token graphs, one with a drawn picture at the 256 px tile) and send twelve requests the host refuses. Both printed PASS: max |Δp| 8.71e-5 on Metal and 8.75e-5 on the CPU against the provider's float32 answers, and every refused request named its error. `--request examples/request.json --image fixtures/images/clock_3oclock_256x240.png --tile 256` returned the same response as the provider's code, value for value; a request that is refused exits with code 3.
 
 Scripts, the host, the test fixtures, an example and the reproduction guide: [`clef_flash_work/`](clef_flash_work/) (`REPRODUCE.md` with the sources, the steps and the published names; `conversion/README.md` with the commands in order). The graphs, the tables, the head and the tokenizer are on the Hub only.
+
+## parakeet-redux (TDT speech recognition, ternary encoder → LiteRT: int4 for the CPU, fp16 for the GPU and the NPU)
+
+[`parakeet_redux_work/`](parakeet_redux_work/) converts [moondream/parakeet-redux](https://huggingface.co/moondream/parakeet-redux) (NVIDIA's parakeet-tdt-0.6b-v3 with a ternary encoder) into plain LiteRT `.tflite` graphs: a log-mel front end and an encoder for each window length (10, 20 and 30 s) and one TDT decoder (`predict` / `joint`), with the greedy TDT loop on the host. No NeMo: the reference is transformers' `ParakeetForTDT` with the ternary weights expanded. Published: [litert-community/parakeet-redux](https://huggingface.co/litert-community/parakeet-redux) (CPU set 1.14 GB, GPU / NPU set 3.68 GB, with an Android runner).
+
+```sh
+cd parakeet_redux_work
+# three Python 3.12.11 environments at the versions that made the published files (scripts/requirements-venv-*.txt = uv pip freeze, macOS arm64)
+uv venv -p 3.12.11 .venv-ref && uv pip install -p .venv-ref -r scripts/requirements-venv-ref.txt
+uv venv -p 3.12.11 .venv-lt && uv pip install -p .venv-lt -r scripts/requirements-venv-lt.txt
+uv venv -p 3.12.11 .venv-q && uv pip install -p .venv-q -r scripts/requirements-venv-q.txt
+# inputs at pinned revisions (scripts/dl_targets.tsv: URL, local path, bytes, sha256 of the weights and the test sets)
+.venv-ref/bin/hf download moondream/parakeet-redux --revision 2bf128600aac4b16946f7ed8372e56117fe5e23b --local-dir hf/redux
+.venv-ref/bin/hf download nvidia/parakeet-tdt-0.6b-v3 --revision 541d1f99c6b0c3cd0b11a95167540bb8edefd82b --include "*.json" --local-dir hf/orig
+curl --create-dirs -L -o data/librispeech/test.clean-00000-of-00001.parquet \
+  https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/de79e57adf9983993bcc72586d7313460825f5eb/librispeech/test.clean-00000-of-00001.parquet
+.venv-ref/bin/python scripts/prep_librispeech.py data/librispeech/test.clean-00000-of-00001.parquet data/sets/librispeech-test-clean
+.venv-ref/bin/python scripts/make_subset.py data/sets/librispeech-test-clean --every 32     # S32: 82 utterances
+# the PyTorch reference on S32: 30 s windows + valid-length mask (out/s32_ii/*.npz: mel, encoder output, tokens)
+.venv-ref/bin/python scripts/s32_modes.py
+# 30 s graphs (litert-torch 0.9.4): mel30, the fp32 encoder, the decoder (and out/r2/enc30_r1.tflite, an earlier wrap of the encoder from scripts/enc_smoke.py kept as the comparison base of the rewrite, not shipped); then the rank-3 attention matmuls lifted to rank 4
+.venv-lt/bin/python scripts/r2_build.py
+.venv-q/bin/python scripts/r2_fb.py lift out/r2/enc30_fp32_raw.tflite out/r2/enc30_fp32.tflite
+.venv-q/bin/python scripts/r2_pack4.py out/r2/enc30_fp32.tflite out/r2/enc30_int4x.tflite --json results/r2_int4x.json
+# 10 / 20 s buckets and the LayerNorm-rescaled encoders (results/r4/fix.json, shipped here: the k of each of the 120 LayerNorms, x · 2^-k; scripts/r4_diag.py makes it from a range pass)
+.venv-lt/bin/python scripts/r4_build.py
+for n in enc10_fp32 enc20_fp32 enc10_fp32s enc20_fp32s enc30_fp32s; do
+  .venv-q/bin/python scripts/r2_fb.py lift out/r4/${n}_raw.tflite out/r4/$n.tflite --json results/r4/lift_$n.json
+done
+for b in 10 20; do .venv-q/bin/python scripts/r4_pack4.py out/r4/enc${b}_fp32.tflite out/r4/enc${b}_int4x.tflite --json results/r4/int4x_$b.json; done
+for b in 10 20 30; do .venv-q/bin/python scripts/r2_half.py out/r4/enc${b}_fp32s.tflite out/r4/enc${b}_fp16ws.tflite --json results/r4/fp16ws_$b.json; done
+# the decoder with int8 weights (ai-edge-quantizer dynamic_wi8_afp32)
+.venv-q/bin/python scripts/r4_dec8.py make
+# signatures read back from the files, then the token check on S32 (fp32 buckets: every window equal to the reference)
+for n in mel10 mel20 enc10_fp32 enc20_fp32 enc10_int4x enc20_int4x enc10_fp32s enc20_fp32s enc30_fp32s enc10_fp16ws enc20_fp16ws enc30_fp16ws; do
+  .venv-q/bin/python scripts/r2_fb.py census out/r4/$n.tflite --json results/r4/census_$n.json
+done
+.venv-q/bin/python scripts/r4_contract.py
+.venv-q/bin/python scripts/r4_p0.py --form fp32 --buckets 10,20,30
+```
+
+Run as printed in a clean checkout on 2026-10-21 (macOS 27 on an M4 Max; the commands from `s32_modes.py` onward took 20 min, peak memory 15.1 GB in the token check): the ten published `.tflite` files and `tokenizer.json` came out byte for byte (sha256 equal to the model repo's), and the token check (`r4_p0.py`) gave the reference's tokens on all 83 S32 windows.
+
+Published names: `out/r4/enc{10,20}_int4x` + `out/r2/enc30_int4x` → `parakeet_redux_encoder_{10,20,30}s_i4.tflite`, `out/r4/enc{10,20,30}_fp16ws` → `parakeet_redux_encoder_{10,20,30}s_f16.tflite`, `out/r4/mel10` / `mel20` + `out/r2/mel30` → `parakeet_redux_mel_{10,20,30}s.tflite`, `out/r4/dec_int8` → `parakeet_redux_decoder_i8.tflite`; `tokenizer.json` is the original's. The Android runner (`runner/redux_asr_runner_b.cc`, `runner/build_android.sh`, `runner/tdt_text.py`) is the one in the model repo. The docstrings of `scripts/r2_build.py` and `scripts/r4_build.py` name two helpers that are not in this copy (`r2_lift.py`, `r4_post.sh`); the commands above do those steps (`r2_fb.py lift`, `r4_pack4.py`, `r2_half.py`).
+
+Env (`scripts/requirements-venv-*.txt`, every package pinned): `.venv-ref` = torch 2.14.1 + transformers 5.20.2 + tokenizers 0.23.3 + pyarrow + soundfile (+ jiwer 4.0.0, kaldialign 0.12.0, num2words for the scoring); `.venv-lt` = litert-torch 0.9.4 + torch 2.13.0 + transformers 5.20.2 + litert-converter 0.4.0; `.venv-q` = ai-edge-litert 2.3.0 + ai-edge-quantizer 0.10.0 + soundfile. Python 3.12.11, uv. The scoring (`scripts/wer.py`) imports the Open ASR Leaderboard's `normalizer/` at huggingface/open_asr_leaderboard b2e6f0491796: copy that folder next to the scripts.
+
+**Ternary → int4 with the model's own codes and scales.** The checkpoint stores each ternary weight as a code 0 / 1 / 2 (−1 / 0 / +1) with an fp16 scale per 128 weights (`scripts/unpack3.py` expands them). The 240 ternary linear layers go through ai-edge-quantizer's blockwise-128 int4 with the payload written as code − 1 and the model's fp16 scales written back over the quantizer's (it rounds blockwise scales through bf16), each times the factor the converter folded into that weight: 1 in 168 layers, 0.5 in 48 (exact) and the attention scale 0.2973 in the 24 `k_proj`, rounded to fp16. `r2_pack4.py` checks every layer: payload × scale equals the expanded weight exactly in 216 layers and within 4.9e-4 relative in the 24 `k_proj`. The 24 relative-position projections fold into constant position tables and stay float32.
+
+**Float16 needs a LayerNorm rescale.** The first LayerNorm of block 0 sees inputs up to about ±8,300, and its squared deviation reaches 6.8e7 over the 55 windows of the range pass, beyond fp16's largest value 65,504; with fp16 arithmetic the encoder returned only blanks on a Mac GPU in our test. Each of the 120 LayerNorms takes x · 2^-k and eps · 4^-k (k = 3–9 from a range pass, `r4_diag.py` → `results/r4/fix.json`); in fp32 the output is bit-identical to the unscaled norm's, and every square stays under 65,504; the GPU (fp16 arithmetic) and the Hexagon NPU run these `fp16ws` files.
+
+**Masks as float arithmetic.** The encoder takes the mel graph's `mel_mask` and builds the subsampling masks by strided slices and MUL, the attention key bias as (mask − 1) × 30,000, so the graph has no SELECT_V2 and no integer op; the rank-3 attention BATCH_MATMULs are lifted to rank 4 in the flatbuffer (`r2_fb.py lift`) because the converter folds a batch-1 rank-4 matmul back to rank 3.
+
+**Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats ("1966" → "196").
