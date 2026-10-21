@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 84 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 85 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -115,6 +115,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct) | 1.2B | chat | Galaxy S26 GPU 54.5 | M4 Max GPU 318.3 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
 | [LFM2.5-1.2B-JP](https://huggingface.co/litert-community/LFM2.5-1.2B-JP) | 1.2B | chat, Japanese | iPhone 17 Pro GPU 70.0 | M4 Max GPU 316.0 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
 | [Zamba2-1.2B-instruct](https://huggingface.co/litert-community/Zamba2-1.2B-instruct) | 1.2B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 74.0 | [recipe](REPRODUCE.md#zamba2-mamba2-backbone--a-shared-lora-specialized-transformer-block--and-the-metaspace-tokenizer-trap) |
+| [granite-3.0-1b-a400m-instruct](https://huggingface.co/litert-community/granite-3.0-1b-a400m-instruct) | 1.33B | chat, tool calling | Galaxy S26 GPU 27.1–27.4 | M4 Max GPU 146.2–146.5 | [recipe](REPRODUCE.md#granite-30-1b-a400m-instruct--a-32-expert-moe-with-silu-experts-every-expert-for-every-token-each-layers-experts-as-two-fully-connected-layers-the-decode-logits-padded-for-the-gpu-sampler-fp32-gpu-activations-declared-2026-10-21) |
 | [Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct) | 1.5B | chat | Galaxy S26 CPU 11.3–12.0 | M4 Max GPU 51.7 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct) | 1.5B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 102.9 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct) | 1.54B | code | Galaxy S26 CPU 27.0–29.7 | M4 Max GPU 137.8 | [recipe](REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe) |

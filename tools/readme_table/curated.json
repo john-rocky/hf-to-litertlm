@@ -376,6 +376,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#granite-41-8b--the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite"
   },
+  "granite-3.0-1b-a400m-instruct": {
+    "task": "chat, tool calling",
+    "group": 1,
+    "recipe": "REPRODUCE.md#granite-30-1b-a400m-instruct--a-32-expert-moe-with-silu-experts-every-expert-for-every-token-each-layers-experts-as-two-fully-connected-layers-the-decode-logits-padded-for-the-gpu-sampler-fp32-gpu-activations-declared-2026-10-21"
+  },
   "Ministral-3-8B-Instruct-2512": {
     "task": "chat",
     "group": 1,
