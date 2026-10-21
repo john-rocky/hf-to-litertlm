@@ -75,6 +75,8 @@ mid-size vision model (SM8850, ~25 ms/inference on HTP): first load **11.6 s** (
 second load **0.17 s**. From the second launch on, JIT and a precompiled model are
 indistinguishable.
 
+**Two graphs, two accelerators.** An app that runs two graphs per window (a speech encoder, then a CTC reader over its output) can put the encoder on the NPU and the reader on the GPU. Give each graph's CompiledModel its own thread and hand window k's encoder output to the reader while the encoder takes window k + 1 (the sample app github.com/john-rocky/eg2-transcribe, `Pipeline.kt`). On a Galaxy S26 (LiteRT 2.2.0, QAIRT 2.47 libraries in the APK) a 54-minute recording in 532 windows of 10 s took 71.1 s this way, against 137.6 s with both graphs on the GPU at fp32 precision in 30 s windows. Log the time the encoder waits for the reader: it was 21.5 s in all (encoder 91.9 ms, reader 131.0 ms per window), so the GPU reader, not the NPU, set the pace. The second thread did not change the outputs: on 20 test utterances every token's label, best score and blank score was bit-identical to the one-thread order. Judge the form at task level as well: its word error rate on the 54-minute recording was 4.33 % against 3.81 % for the GPU fp32 form, and whether the NPU's fp16 arithmetic or the shorter windows cost the half point was not separated.
+
 ---
 
 ## 3. LLM bundles (`.litertlm`) — LiteRT-LM
