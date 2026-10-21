@@ -15,6 +15,13 @@ uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild i
 uv run python scripts/check_bundle.py out/<model>/*.litertlm           # litert-lm 0.18.0 CPU: load + one echo prompt -> PASS / FAIL
 ```
 
+From PyPI: the package carries these scripts with this `pyproject.toml` and `uv.lock` from one commit.
+`uvx hf-to-litertlm <org>/<model>`, `uvx hf-to-litertlm verify <lock>` and `uvx hf-to-litertlm check <bundle>` run
+them with `uv run --frozen --project ~/.cache/hf-to-litertlm/<version>/` (`HF_TO_LITERTLM_HOME` moves that
+directory); convert and verify write under `./out` of the current directory, check writes nothing unless given
+`--json`. A lock the package wrote verifies in a clone, and a clone's lock verifies from the package, when both have
+the same `uv.lock` and Python patch version (`verify_lock.py` compares both; the reference locks record 3.12.11).
+
 `convert.py` keeps its shape (entry gate → stock `litert_torch` export → exit gate). New: `--revision <sha>`
 (default: `main` resolved to its commit sha and recorded), `--recipe int8|int4` (`--int4` stays as the alias),
 `--smoke` (one-prompt check instead of the 8-question gate, `--max-minutes` cap, structured failure line), and the lock.
@@ -36,7 +43,8 @@ CLI, CPU, greedy (`scripts/litert_lm_cli_verifier.py` wraps the CLI for it: one 
 | `process.PYTHONHASHSEED` | the hash seed of the export process | `convert.py` (`0` unless `HF_TO_LITERTLM_HASH_SEED` is set) |
 | `template` | `form` (unchanged / get / dual / get+dual), `edits`, `original_sha256`, `final_sha256`, the per-case `classes`, `basis` and render hashes, the runtime check | `chat_template_dual.py`, see below |
 | `check` | engine version, backend, the echo prompt, answer head, PASS/FAIL; `arithmetic` (17 + 25: expected 42, the answer) as information | `check_bundle.py` |
-| `converter`, `built_at`, `host` | informational only — `convert.py`'s sha256 and the repo commit (`verify_lock.py` warns when it differs), date, platform | `sha256`, `git`, `platform` |
+| `command` | the command with the resolved revision and recipe (`uv run python scripts/convert.py <org>/<model> --revision <sha> --recipe int8\|int4`, or `hf-to-litertlm …` from the package) | `convert.py` |
+| `converter`, `built_at`, `host` | informational only — `convert.py`'s sha256 and the repo commit (`verify_lock.py` warns when it differs), date, platform; in a lock the package wrote, `repo_commit` is null and `package` = `hf-to-litertlm <version>` | `sha256`, `git` or the package version, `platform` |
 
 **Same command, same bytes.** `litert_lm_builder` writes a fresh `uuid4` and `now()` into every bundle header
 (`litertlm_builder.populate_system_metadata`, 0.18.0), so two honest runs can never be byte-identical by default.
@@ -65,6 +73,8 @@ model_ext and generic paths; the stock export embeds the derivative's own chat t
 maps Hub ids that this repo ships with a hand-made recipe to their `scripts/reproduce_llm.sh` key; `convert.py` prints
 that pointer and continues on the generic path unless `--curated` is given. Hybrid families without a released
 exporter route to the pinned family recipe (the checkout command of the family recipe is printed when the installed exporter lacks the family). Curated and family outputs carry no lock yet.
+From the package, the family recipes (granite-4.0-h, Falcon-H1, Zamba2, Nemotron-H: `HYBRID_RECIPE` in `convert.py`)
+and `--curated` refuse before any weight file is downloaded and name the clone.
 
 ## Chat template: the form the 0.18 runtime renders
 

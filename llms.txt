@@ -9,6 +9,8 @@ uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild f
 uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bundle runs on a phone
 ```
 
+The same scripts run from PyPI without a clone: `uvx hf-to-litertlm <org>/<model>` converts on the `uv.lock` of the commit the package was built from and writes under `./out`; `uvx hf-to-litertlm verify <lock>` and `uvx hf-to-litertlm check <bundle>` run `scripts/verify_lock.py` and `scripts/check_bundle.py`. The hybrid families and `--curated` need a clone.
+
 `convert.py` exits 0 = converted and gated, 1 = converted but the 8-question gate or the one-prompt check (`scripts/check_bundle.py`) failed, 2 = refused (gated, remote-code, pre-quantized repos: a JSON reason) or stopped before any download (repo or revision not found), 3 = any later failure. Every failure ends in one `FAIL <stage>: … -> next: …` line on stderr.
 
 ## Start here

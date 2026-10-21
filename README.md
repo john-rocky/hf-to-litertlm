@@ -21,6 +21,12 @@ uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild f
 uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bundle runs on a phone: see below
 ```
 
+The same scripts run from PyPI without a clone: `uvx hf-to-litertlm <org>/<model>` converts on the `uv.lock` of the
+commit the package was built from and writes under `./out`; `uvx hf-to-litertlm verify <lock>` and
+`uvx hf-to-litertlm check <bundle>` run `verify_lock.py` and `check_bundle.py` (litert-lm 0.18.0, CPU: load + one echo
+prompt). The hybrid families and `--curated` need a clone; the package says so and names it
+([pypi/README.md](pypi/README.md)).
+
 `convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
 pre-quantized repos) and gates every bundle before calling it done. The lock records the Hub
 commit, the sha256 of every file the export read, the export call and every package version
