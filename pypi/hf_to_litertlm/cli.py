@@ -6,17 +6,18 @@
 
 The first form is scripts/convert.py of https://github.com/john-rocky/hf-to-litertlm: it writes
 out/<model>/<model>_<recipe>.litertlm, <model>.lock.json and convert_report.json under the current
-directory. --check runs the entry gate only (no download); --smoke runs the one-prompt check instead of
-the 8-question gate. `hf-to-litertlm <org>/<model> --help` lists every flag; it runs inside the
-toolchain environment, so on a new machine it installs that first. Exit code of the first form: 0 =
+directory. --check runs the entry gate only (downloads no weights); --smoke runs the one-prompt check
+instead of the 8-question gate. `hf-to-litertlm <org>/<model> --help` lists every flag; it runs inside
+the toolchain environment, so on a new machine it installs that first. Exit code of the first form: 0 =
 converted and passed the gate, 1 = the gate or the check failed, 2 = refused or stopped before any
-download, 3 = any later failure. verify exits 0 on MATCH, check exits 0 on PASS.
+weight file is downloaded, 3 = any later failure. verify exits 0 on MATCH, check exits 0 on PASS.
 
 This package carries those scripts with the repo's pyproject.toml and uv.lock. Each run puts them in
 ~/.cache/hf-to-litertlm/<version>/ (HF_TO_LITERTLM_HOME replaces ~/.cache/hf-to-litertlm) and runs
 them there with `uv run --frozen`: the packages are the ones uv.lock pins, the environment `uv sync`
 makes in a clone, so a lock the package wrote verifies in a clone and a clone's lock verifies from the
-package, when both run the same Python patch version. The first run installs that environment there.
+package, when both have the same uv.lock and Python patch version. The first run installs that
+environment there.
 """
 import hashlib
 import json
