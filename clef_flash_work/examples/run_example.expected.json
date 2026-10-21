@@ -1,0 +1,338 @@
+{
+ "what": "what examples/run_example.py --check compares with: the provider's own code (Cloudflare/clef-flash at f0b7d3cd, joint_schema_model.py systemone()) in float32 on the CPU, one row per question; and the host's refusals",
+ "reference": {
+  "python": "3.12.11",
+  "torch": "2.9.0",
+  "transformers": "5.17.0",
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 10
+ },
+ "line": {
+  "near_tie": 0.02,
+  "max_abs_dp": 0.02,
+  "mean_of_request_means": 0.002
+ },
+ "requests": [
+  {
+   "record": "semif_a3f18f3a63d45345942b",
+   "arm": "text",
+   "tile": 448,
+   "image": null,
+   "input_tokens": 185,
+   "length": 256,
+   "questions": {
+    "decision": {
+     "type": "choice",
+     "option_ids": [
+      "contradicted",
+      "insufficient",
+      "supported"
+     ],
+     "probabilities": [
+      0.9379705190658569,
+      0.030058452859520912,
+      0.03197097405791283
+     ],
+     "argmax": "contradicted",
+     "near_tie": false,
+     "answer_fields": [
+      "choice",
+      "confidence",
+      "probabilities",
+      "type"
+     ]
+    }
+   }
+  },
+  {
+   "record": "own_t01",
+   "arm": "text",
+   "tile": 448,
+   "image": null,
+   "input_tokens": 436,
+   "length": 512,
+   "questions": {
+    "department": {
+     "type": "choice",
+     "option_ids": [
+      "account",
+      "billing",
+      "shipping",
+      "technical"
+     ],
+     "probabilities": [
+      0.0020749589893966913,
+      0.00972782727330923,
+      0.009951034560799599,
+      0.9782460927963257
+     ],
+     "argmax": "technical",
+     "near_tie": false,
+     "answer_fields": [
+      "choice",
+      "confidence",
+      "probabilities",
+      "type"
+     ]
+    },
+    "wants_refund": {
+     "type": "noul",
+     "option_ids": [
+      "true",
+      "false"
+     ],
+     "probabilities": [
+      0.013630282133817673,
+      0.9863697290420532
+     ],
+     "argmax": "false",
+     "near_tie": false,
+     "answer_fields": [
+      "noul",
+      "type"
+     ]
+    },
+    "urgency": {
+     "type": "score",
+     "option_ids": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ],
+     "probabilities": [
+      0.30694112181663513,
+      0.3810206353664398,
+      0.22470484673976898,
+      0.08733338862657547
+     ],
+     "argmax": "1",
+     "near_tie": false,
+     "answer_fields": [
+      "confidence",
+      "legend",
+      "probabilities",
+      "score",
+      "type"
+     ]
+    }
+   }
+  },
+  {
+   "record": "own_j02",
+   "arm": "text",
+   "tile": 448,
+   "image": null,
+   "input_tokens": 475,
+   "length": 512,
+   "questions": {
+    "can_ship": {
+     "type": "noul",
+     "option_ids": [
+      "true",
+      "false"
+     ],
+     "probabilities": [
+      0.02195017971098423,
+      0.9780498147010803
+     ],
+     "argmax": "false",
+     "near_tie": false,
+     "answer_fields": [
+      "noul",
+      "type"
+     ]
+    },
+    "blocker": {
+     "type": "choice",
+     "option_ids": [
+      "address",
+      "none",
+      "payment",
+      "stock"
+     ],
+     "probabilities": [
+      0.9526756405830383,
+      0.01776018552482128,
+      0.019623257219791412,
+      0.009940925054252148
+     ],
+     "argmax": "address",
+     "near_tie": false,
+     "answer_fields": [
+      "choice",
+      "confidence",
+      "probabilities",
+      "type"
+     ]
+    },
+    "gift": {
+     "type": "noul",
+     "option_ids": [
+      "true",
+      "false"
+     ],
+     "probabilities": [
+      0.9568854570388794,
+      0.04311459884047508
+     ],
+     "argmax": "true",
+     "near_tie": false,
+     "answer_fields": [
+      "noul",
+      "type"
+     ]
+    },
+    "priority": {
+     "type": "score",
+     "option_ids": [
+      "0",
+      "1",
+      "2"
+     ],
+     "probabilities": [
+      0.2836693525314331,
+      0.47363296151161194,
+      0.24269776046276093
+     ],
+     "argmax": "1",
+     "near_tie": false,
+     "answer_fields": [
+      "confidence",
+      "legend",
+      "probabilities",
+      "score",
+      "type"
+     ]
+    }
+   }
+  },
+  {
+   "record": "img_02",
+   "arm": "g256",
+   "tile": 256,
+   "image": "fixtures/images/bars_640x480.png",
+   "input_tokens": 466,
+   "length": 512,
+   "questions": {
+    "tallest": {
+     "type": "choice",
+     "option_ids": [
+      "blue",
+      "green",
+      "orange",
+      "red",
+      "yellow"
+     ],
+     "probabilities": [
+      0.01152847521007061,
+      0.9539625644683838,
+      0.013284590095281601,
+      0.010554770939052105,
+      0.010669572278857231
+     ],
+     "argmax": "green",
+     "near_tie": false,
+     "answer_fields": [
+      "choice",
+      "confidence",
+      "probabilities",
+      "type"
+     ]
+    },
+    "green_over_orange": {
+     "type": "noul",
+     "option_ids": [
+      "true",
+      "false"
+     ],
+     "probabilities": [
+      0.9484120607376099,
+      0.05158793926239014
+     ],
+     "argmax": "true",
+     "near_tie": false,
+     "answer_fields": [
+      "noul",
+      "type"
+     ]
+    },
+    "spread": {
+     "type": "score",
+     "option_ids": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ],
+     "probabilities": [
+      0.05013371258974075,
+      0.22498683631420135,
+      0.5188930630683899,
+      0.20598644018173218
+     ],
+     "argmax": "2",
+     "near_tie": false,
+     "answer_fields": [
+      "confidence",
+      "legend",
+      "probabilities",
+      "score",
+      "type"
+     ]
+    }
+   }
+  }
+ ],
+ "refusals": {
+  "too_long": {
+   "error": "RequestTooLong",
+   "message": "the record has 4848 tokens; the largest row graph holds 4096"
+  },
+  "two_pictures": {
+   "error": "UnsupportedMedia",
+   "message": "2 pictures: this host reads one picture per request"
+  },
+  "videos": {
+   "error": "UnsupportedMedia",
+   "message": "videos are not read by this host"
+  },
+  "media_kwargs": {
+   "error": "UnsupportedMedia",
+   "message": "media_kwargs are not read by this host (one picture at a fixed tile)"
+  },
+  "url_picture": {
+   "error": "UnsupportedMedia",
+   "message": "a picture is a PIL image, a uint8 array, image file bytes, a local path or a data URI (the host does not fetch URLs)"
+  },
+  "unreadable_picture": {
+   "error": "UnsupportedMedia",
+   "message": null
+  },
+  "tile_300": {
+   "error": "UnsupportedMedia",
+   "message": "tile 300: the tower graphs read 256 or 448 px tiles"
+  },
+  "no_model": {
+   "error": "MissingModelOrState",
+   "message": "model and state are required"
+  },
+  "no_questions": {
+   "error": "NoQuestions",
+   "message": "at least one question is required"
+  },
+  "bad_type": {
+   "error": "BadQuestionType",
+   "message": "faulty: type must be noul, choice, or score"
+  },
+  "empty_criteria": {
+   "error": "EmptyCriteria",
+   "message": "team: criteria must not be empty"
+  },
+  "schema_too_long": {
+   "error": "SchemaTooLong",
+   "message": "schema requires 53371 tokens before state; maximum is 16384"
+  }
+ }
+}

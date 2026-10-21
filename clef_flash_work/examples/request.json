@@ -1,0 +1,29 @@
+{
+ "model": "clef-flash",
+ "state": "The attached image shows a wall clock.",
+ "questions": {
+  "hour": {
+   "type": "choice",
+   "instructions": "What hour does the clock show?",
+   "criteria": {
+    "12": "twelve",
+    "3": "three",
+    "6": "six",
+    "9": "nine"
+   }
+  },
+  "minute_hand_up": {
+   "type": "noul",
+   "instructions": "The minute hand points straight up."
+  },
+  "confidence": {
+   "type": "score",
+   "instructions": "How clearly can the time be read?",
+   "criteria": [
+    "unclear",
+    "fairly clear",
+    "very clear"
+   ]
+  }
+ }
+}

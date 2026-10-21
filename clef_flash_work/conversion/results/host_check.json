@@ -1,0 +1,172 @@
+{
+ "what": "host/clef_litert against the provider's code: ids, spans, positions, row inputs, the head in NumPy float32 and the response on 257 runs (the provider's reference hidden states as input)",
+ "versions": {
+  "python": "3.12.11",
+  "numpy": "2.5.3",
+  "tokenizers": "0.23.2",
+  "pillow": "12.3.0",
+  "safetensors": "0.8.0",
+  "clef_litert": "0.2.0"
+ },
+ "pass": true,
+ "sections": {
+  "erf": {
+   "pass": true,
+   "summary": {
+    "points": 1000015,
+    "max_abs_diff": 2.220446049250313e-16,
+    "max_ulps": 4,
+    "exact": 749867,
+    "nan_in_nan_out": true,
+    "gelu_points": 300000,
+    "gelu_max_abs_diff": 1.4551915228366852e-11,
+    "gelu_max_ulps_where_abs_gt_1e-6": 1
+   }
+  },
+  "inputs": {
+   "pass": true,
+   "summary": {
+    "runs": 257,
+    "by_set": {
+     "ref": 214,
+     "red": 3,
+     "heldout": 40
+    },
+    "ids_equal": "257/257",
+    "questions_equal": "257/257",
+    "input_tokens_equal": "257/257",
+    "image_block_equal": "62/62",
+    "host_encode_equal": "243/243",
+    "patches_bit_equal": "48/48",
+    "lengths": {
+     "256": 145,
+     "512": 33,
+     "1024": 67,
+     "2048": 7,
+     "4096": 5
+    }
+   }
+  },
+  "positions": {
+   "pass": true,
+   "summary": {
+    "runs": 257,
+    "planes_equal": "257/257",
+    "cos_sin_vs_torch": {
+     "elements_each": 10076160,
+     "max_ulps": 1,
+     "cos_differing": 869374,
+     "sin_differing": 260912,
+     "file": "cache/r5a/torch_rope.npz"
+    }
+   }
+  },
+  "embeds": {
+   "pass": true,
+   "summary": {
+    "runs_ok": "257/257",
+    "layer0_runs": 2
+   }
+  },
+  "head": {
+   "pass": true,
+   "summary": {
+    "runs": 257,
+    "questions": 600,
+    "argmax_equal": "600/600",
+    "near_tie_argmax_equal": "6/6",
+    "max_abs_dp": 1.7881393432617188e-07,
+    "max_abs_dp_run": "ref:own_t06/text",
+    "max_abs_dlogit": 6.318092346191406e-06,
+    "max_abs_dlogit_run": "ref:own_t09/text",
+    "mean_of_run_means_abs_dp": 1.6811908339310757e-08,
+    "questions_logits_bit_equal": "26/600",
+    "runs_over_line": [],
+    "by_set": {
+     "ref": {
+      "runs": 214,
+      "max_abs_dp": 1.7881393432617188e-07,
+      "max_abs_dlogit": 6.318092346191406e-06
+     },
+     "red": {
+      "runs": 3,
+      "max_abs_dp": 1.1920928955078125e-07,
+      "max_abs_dlogit": 8.344650268554688e-07
+     },
+     "heldout": {
+      "runs": 40,
+      "max_abs_dp": 1.1920928955078125e-07,
+      "max_abs_dlogit": 3.337860107421875e-06
+     }
+    },
+    "line": {
+     "max_abs_dp": 1e-05,
+     "argmax": "all, near-ties included"
+    }
+   }
+  },
+  "response": {
+   "pass": true,
+   "summary": {
+    "runs": 257,
+    "bodies_equal": "257/257",
+    "json_text_equal": "257/257",
+    "values_equal": "2414/2414",
+    "values_differing": 0,
+    "choices_and_legends_equal": "257/257",
+    "model_usage_equal": "257/257",
+    "max_abs_diff": 0.0,
+    "every_difference_straddles_a_rounding_boundary": true,
+    "control_reference_probs": {
+     "bodies_equal": "257/257",
+     "json_text_equal": "257/257"
+    }
+   }
+  },
+  "controls": {
+   "pass": true,
+   "summary": {
+    "span_shift_plus_1_moves": "0/3",
+    "span_shift_plus_1_max_abs_dp": [
+     0.0053,
+     0.0017,
+     0.0083
+    ],
+    "span_shift_minus_1_moves": "2/3",
+    "span_shift_minus_1_max_abs_dp": [
+     0.029,
+     0.004,
+     0.0325
+    ],
+    "lexical_zero_max_abs_dp": 0.0553
+   }
+  },
+  "encode_cuts": {
+   "pass": true,
+   "summary": {
+    "cases": 6,
+    "equal_to_author": "6/6"
+   }
+  },
+  "refusals": {
+   "pass": true,
+   "summary": {
+    "cases": 14,
+    "named": "14/14",
+    "same_message_as_author": "8/8",
+    "four_named": {
+     "over_4096_tokens": "RequestTooLong",
+     "no_questions": "NoQuestions",
+     "bad_type": "BadQuestionType",
+     "empty_choice_criteria": "EmptyCriteria"
+    }
+   }
+  },
+  "decide": {
+   "pass": true
+  },
+  "torch_free": {
+   "pass": true
+  }
+ }
+}

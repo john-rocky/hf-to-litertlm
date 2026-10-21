@@ -1,0 +1,35 @@
+clef-flash for LiteRT
+
+The LiteRT graphs (*.tflite) and the tables (tables/) in this repository are converted from Cloudflare/clef-flash,
+revision f0b7d3cd65296abfe459e6c228b618f5d8b26d2f (https://huggingface.co/Cloudflare/clef-flash), by Cloudflare,
+licensed under the Apache License 2.0. clef-flash is post-trained from Qwen/Qwen3.5-9B
+(https://huggingface.co/Qwen/Qwen3.5-9B), licensed under the Apache License 2.0. LICENSE is a copy of the clef-flash
+repository's LICENSE file. Every graph and table is derived from that repository's model safetensors: the row graphs
+from its Qwen3.5 text model, the tower graphs from its vision tower and merger, tables/embed_tokens.safetensors and
+tables/lm_head.safetensors from the bytes of its embed_tokens and lm_head tensors under new names, and
+tables/vision_pos_g256.safetensors and tables/vision_pos_g448.safetensors from its 48 x 48 vision position table
+resampled to the two tiles by the bilinear code of transformers 5.17.0, in float32. head/joint_head.safetensors, head/joint_head_config.json and
+tokenizer/tokenizer.json are that repository's files, unchanged.
+
+The Python host (host/clef_litert) ports the request handling of that repository's joint_schema_model.py (Apache
+License 2.0) to NumPy: the request checks of systemone(), encode_record(), the joint schema head and systemone_answer().
+Its picture preprocessing follows the Qwen2VLImageProcessor of transformers 5.17.0 (Apache License 2.0), and
+host/clef_litert/_erf.py is a NumPy version of FreeBSD msun s_erf.c (Copyright (C) 1993 by Sun Microsystems, Inc.;
+its notice is in the file). Changes include float32 arithmetic in NumPy, fixed graph lengths and picture tiles, and the
+refusal of requests that do not fit instead of truncation.
+
+The conversion scripts (conversion/) run the Qwen3.5 model code of transformers 5.14.1 with litert-torch,
+ai-edge-quantizer and LiteRT (ai-edge-litert), each licensed under the Apache License 2.0.
+conversion/clef_qwen35_patch.py is adapted from a patch for the Qwen3.5 export in litert-torch (Copyright 2026 The
+LiteRT Torch Authors, licensed under the Apache License 2.0); its header states the changes.
+
+fixtures/ lists the 219 test records of the checks (fixtures/requests_public.json). 144 are SemIf authored144 records
+(github.com/TheoLeeCJ/SemIf, commit ca3ba65f), Copyright (c) 2026 TheoLeeCJ, licensed under the MIT License
+(fixtures/LICENSE-SemIf-MIT.txt). The others were written for these fixtures; 5 of them are given by the SHA-256 of
+their request only. The 18 drawn pictures in fixtures/images/ are CC0-1.0. The 6 photographs in fixtures/images/ (as
+the checks read them) and fixtures/photos/ (the thumbnails they were decoded from) are Wikimedia Commons files licensed
+CC0 (Creative Commons Zero, Public Domain Dedication) by their authors, Gerardolagunes, pasja1000, Bonnie Moreland,
+mcfoodie, Tommy Ferraz and Francesco Cecere; fixtures/photos.json gives each one's page. fixtures/reference_probs.json
+holds the float32 probabilities of the provider's code for every test run, without text.
+
+The rest of this repository is licensed under the Apache License 2.0 (LICENSE).

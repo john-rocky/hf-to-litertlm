@@ -1,0 +1,191 @@
+{
+ "what": "the six CC0 photographs of the picture records: images/<file> is the PNG the checks read (the pinned Commons thumbnail decoded by Pillow), photos/<name>.jpg the pinned thumbnail itself; fetch_photos.py checks whether Commons still serves the pinned thumbnails",
+ "photos": [
+  {
+   "name": "ho_photo_lighthouse",
+   "records": [
+    "ho_p01"
+   ],
+   "file": "images/ho_photo_lighthouse.png",
+   "bytes": 760436,
+   "sha256": "0a9f1baab17840622b823f700a3e538333f66c22e90c1148044d302a5ddbaf72",
+   "size": [
+    960,
+    960
+   ],
+   "rgb_sha256": "388cf96d5b6a65a6dccc66c1f1c71d883582dae17c7f713522081375db82ac4c",
+   "thumbnail": {
+    "file": "photos/ho_photo_lighthouse.jpg",
+    "bytes": 113437,
+    "sha256": "6daf0cb176e6150a97ba138b0374c282df8ad0d15e80a47431a8f1287e8b0253",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/Cap_de_Barbaria_lighthouse.jpg/960px-Cap_de_Barbaria_lighthouse.jpg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Cap_de_Barbaria_lighthouse.jpg",
+   "commons_title": "File:Cap de Barbaria lighthouse.jpg",
+   "author": "Tommy Ferraz on Unsplash",
+   "credit": "https://unsplash.com/photos/pnesgRnHJOU",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  },
+  {
+   "name": "ho_photo_sunflowers",
+   "records": [
+    "ho_p02"
+   ],
+   "file": "images/ho_photo_sunflowers.png",
+   "bytes": 1855784,
+   "sha256": "ac2994ef2cf71a6175a03b1c9d82ddf3dd1f1f1b99e5ec156f299f8b2a9977df",
+   "size": [
+    960,
+    1280
+   ],
+   "rgb_sha256": "cfc036b97dbf7464d13502af44841e7923d670dbdb11ce9ca19d6c1fbce9e6a3",
+   "thumbnail": {
+    "file": "photos/ho_photo_sunflowers.jpg",
+    "bytes": 265867,
+    "sha256": "83ad983d60ace81885d370ee84fc820bb771d1124d5340dc0563443e0bfd88dd",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Helianthus_%C3%97_laetiflorus_flower_%2805%29.jpeg/960px-Helianthus_%C3%97_laetiflorus_flower_%2805%29.jpeg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Helianthus_%C3%97_laetiflorus_flower_(05).jpeg",
+   "commons_title": "File:Helianthus × laetiflorus flower (05).jpeg",
+   "author": "Francesco Cecere",
+   "credit": "https://www.inaturalist.org/photos/53368056",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  },
+  {
+   "name": "photo_cat",
+   "records": [
+    "photo_02"
+   ],
+   "file": "images/photo_cat.png",
+   "bytes": 1164199,
+   "sha256": "3b25c6ce53f98cb305bca403d53a6a38fe0be2feff70281047e231ffc4ae2351",
+   "size": [
+    960,
+    640
+   ],
+   "rgb_sha256": "39270067b2a47a6585a72b13fb74435cdad28ec22bf9cb66e3c741f1ec57e328",
+   "thumbnail": {
+    "file": "photos/photo_cat.jpg",
+    "bytes": 198934,
+    "sha256": "242708bd1a489a885acebeec4a0f83d15d2551b9b210ddfd08daee11f82923bf",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Tabby_cat-3337027.jpg/960px-Tabby_cat-3337027.jpg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Tabby_cat-3337027.jpg",
+   "commons_title": "File:Tabby cat-3337027.jpg",
+   "author": "pasja1000",
+   "credit": "https://pixabay.com/en/animals-portrait-charming-cat-3337027/ archive copy at the Wayback Machine",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  },
+  {
+   "name": "photo_coffee",
+   "records": [
+    "photo_04"
+   ],
+   "file": "images/photo_coffee.png",
+   "bytes": 943734,
+   "sha256": "20aab0bebbd2e2b438448e971a619c1cb9582ed515063f978258f2f0478455a0",
+   "size": [
+    960,
+    635
+   ],
+   "rgb_sha256": "fddbe96e887af4ce3ee2100f9eceb2e27dbcf95a7910d628a9d9911cd88e3227",
+   "thumbnail": {
+    "file": "photos/photo_coffee.jpg",
+    "bytes": 166329,
+    "sha256": "672b86815fae409f073df0ce6f0411f9a908e5251b01fa0c058c7b9c6eadb32c",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Coffee_cup_and_coffee_bean.jpg/960px-Coffee_cup_and_coffee_bean.jpg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Coffee_cup_and_coffee_bean.jpg",
+   "commons_title": "File:Coffee cup and coffee bean.jpg",
+   "author": "mcfoodie",
+   "credit": "https://free-images.com/display/aroma_aromatic_beverage_bio.html",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  },
+  {
+   "name": "photo_fruit",
+   "records": [
+    "photo_01"
+   ],
+   "file": "images/photo_fruit.png",
+   "bytes": 1792033,
+   "sha256": "f3cfb976fc6f10dff6fd94ef55efdb49596ee2a7bcba761f3d304488f6bc6bcb",
+   "size": [
+    960,
+    1280
+   ],
+   "rgb_sha256": "c3c4456ffed1d4cb16db626b669a5ba806be827cd11b50b22648778142fd6caf",
+   "thumbnail": {
+    "file": "photos/photo_fruit.jpg",
+    "bytes": 281500,
+    "sha256": "e781f1deefe098097204409fa0b97fe06da8dac96f403a1f6186a2fdddb92331",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Fruits_in_bowl_oranges_lime_apples_%281%29.jpg/960px-Fruits_in_bowl_oranges_lime_apples_%281%29.jpg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Fruits_in_bowl_oranges_lime_apples_(1).jpg",
+   "commons_title": "File:Fruits in bowl oranges lime apples (1).jpg",
+   "author": "Gerardolagunes",
+   "credit": "Own work",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  },
+  {
+   "name": "photo_lake",
+   "records": [
+    "photo_03"
+   ],
+   "file": "images/photo_lake.png",
+   "bytes": 668690,
+   "sha256": "583071d0a921d93e49b46fc7fae1ae4a0600440ed5fa39231885783db891ea96",
+   "size": [
+    960,
+    640
+   ],
+   "rgb_sha256": "1fd3457bf939842969277dd37065f57013f117c299ceb81fdbc1eeecd39fcd97",
+   "thumbnail": {
+    "file": "photos/photo_lake.jpg",
+    "bytes": 116119,
+    "sha256": "cf5e281fab8eb63ba4335067d8a69fe81d9217fac4a2365e9655146d7cfa35d4",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Lake_Mountain_Landscape.jpg/960px-Lake_Mountain_Landscape.jpg"
+   },
+   "file_page": "https://commons.wikimedia.org/wiki/File:Lake_Mountain_Landscape.jpg",
+   "commons_title": "File:Lake Mountain Landscape.jpg",
+   "author": "Bonnie Moreland",
+   "credit": "https://isorepublic.com/photo/lake-mountain-landscape/",
+   "license": "CC0-1.0",
+   "license_checks": {
+    "fetch_record_2026-10-03": "CC0",
+    "images_meta": "CC0-1.0",
+    "commons_2026-10-21": "CC0"
+   },
+   "decode": "Pillow JPEG decode -> RGB -> PNG; the PNG's RGB = the thumbnail's decode"
+  }
+ ]
+}
