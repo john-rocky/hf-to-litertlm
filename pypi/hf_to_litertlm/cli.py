@@ -15,8 +15,8 @@ download, 3 = any later failure. verify exits 0 on MATCH, check exits 0 on PASS.
 This package carries those scripts with the repo's pyproject.toml and uv.lock. Each run puts them in
 ~/.cache/hf-to-litertlm/<version>/ (HF_TO_LITERTLM_HOME replaces ~/.cache/hf-to-litertlm) and runs
 them there with `uv run --frozen`: the packages are the ones uv.lock pins, the environment `uv sync`
-makes in a clone, so a lock written by the package rebuilds in a clone and the other way round (on the
-same Python 3.12.x). The first run installs that environment there.
+makes in a clone, so a lock the package wrote verifies in a clone and a clone's lock verifies from the
+package, when both run the same Python patch version. The first run installs that environment there.
 """
 import hashlib
 import json
