@@ -1,0 +1,18 @@
+{
+ "shift": {
+  "L1": 3,
+  "L3": 2,
+  "L5": 1,
+  "L7": 1,
+  "L9": 1,
+  "L11": 2,
+  "L13": 1,
+  "L17": 1,
+  "L19": 2,
+  "L21": 2,
+  "L29": 1
+ },
+ "rule": "L<i> = physical block i (an MLP block). k = the smallest k >= 0 with max sum(x^2) * 4^-k <= 65504 / 4 and max |x| * 2^-k <= 128, x = the SwiGLU output that enters the block's justnorm, the maxima over 25 prompts (2,606 positions) of a PyTorch fp32 reference (dory_ref.py) carrying the int4 weights; blocks with k = 0 are not rewritten.",
+ "sum_cap": 16376.0,
+ "x_cap": 128.0
+}

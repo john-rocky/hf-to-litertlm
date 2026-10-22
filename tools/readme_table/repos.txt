@@ -83,3 +83,4 @@ litert-community/Ornith-1.5-9B
 litert-community/Falcon-H1R-7B
 litert-community/Olmo-3-7B-Think
 litert-community/granite-3.0-1b-a400m-instruct
+litert-community/NVIDIA-Nemotron-Labs-Dory1.0-4B

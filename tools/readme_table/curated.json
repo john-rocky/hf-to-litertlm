@@ -415,5 +415,10 @@
     "task": "reasoning",
     "group": 2,
     "recipe": "REPRODUCE.md#olmo-3-7b-think--a-sliding-window-dense-7b-whose-int4-scales-need-a-lower-bound-and-a-gpu-composite-rewrite-that-does-not-apply"
+  },
+  "NVIDIA-Nemotron-Labs-Dory1.0-4B": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#nvidia-nemotron-labs-dory10-4b--a-looped-ngpt-model-the-loop-unrolled-with-a-kv-cache-per-pass-gptq-int4-on-the-data-free-scales-an-mlp-normalization-that-fits-fp16-and-gpu-composites-in-the-int4-graph"
   }
 }
