@@ -2,6 +2,8 @@
 
 These tools turn a merged Gemma 4 E2B finetune (the 16-bit folder that Unsloth's `model.save_pretrained_merged(...)` writes) into a `.litertlm` file for [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM), then load the file on the CPU and ask it one question. They were written for LiteRT-LM cells in Unsloth's Gemma 4 E2B text notebook (`Gemma4_(E2B)-Text.ipynb`), which fetch them from this folder at a fixed commit and check each file's sha256 before running it.
 
+The cells are proposed for Unsloth's notebook in [unslothai/notebooks#409](https://github.com/unslothai/notebooks/pull/409).
+
 | File | What it does |
 |---|---|
 | `requirements.txt` | Pins every package of the export environment (Linux x86-64; the pinned packages have wheels for Python 3.12 and 3.13). |
