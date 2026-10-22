@@ -3559,3 +3559,40 @@ Env (`scripts/requirements-venv-*.txt`, every package pinned): `.venv-ref` = tor
 **Masks as float arithmetic.** The encoder takes the mel graph's `mel_mask` and builds the subsampling masks by strided slices and MUL, the attention key bias as (mask − 1) × 30,000, so the graph has no SELECT_V2 and no integer op; the rank-3 attention BATCH_MATMULs are lifted to rank 4 in the flatbuffer (`r2_fb.py lift`) because the converter folds a batch-1 rank-4 matmul back to rank 3.
 
 **Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats ("1966" → "196").
+
+## iris-3b Turbo (speridlabs) — text-to-image as 20 LiteRT graphs: a 3B pixel-space DiT and the Qwen3-VL-4B text encoder with float16 weights and float32 activations, every graph on the phone's GPU at FP32 (2026-10-22)
+
+[`iris3b_work/`](iris3b_work/) converts [speridlabs/iris-3b](https://huggingface.co/speridlabs/iris-3b) Turbo (Apache-2.0; 4 steps, no classifier-free guidance, no VAE) and the language stack of [Qwen/Qwen3-VL-4B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct) into the files of [litert-community/iris-3b-Turbo-LiteRT](https://huggingface.co/litert-community/iris-3b-Turbo-LiteRT) for 768 × 768 images: 12 text-encoder graphs (one per hidden state the DiT reads), the text adapter, 6 trunk chunks and the pixel stage, 12,869,097,872 bytes with every FULLY_CONNECTED weight float16 behind a DEQUANTIZE, plus the tokenizer files, the bfloat16 embedding table and the host tensors. The Android app that runs them on the phone's GPU with LiteRT 2.2.0: [LiteRT-Models `iris3b/`](https://github.com/john-rocky/LiteRT-Models/tree/main/iris3b).
+
+```sh
+cd iris3b_work
+OUT=out   # every file goes under OUT: about 55 GB (checkpoints 15 GB, float32 graphs 25.7 GB, the model folder 13.7 GB)
+# Python 3.12.11 with every package pinned (macOS arm64)
+uv venv -p 3.12.11 .venv && uv pip install -p .venv -r requirements.txt
+# inputs at pinned revisions: the checkpoint, the text encoder, the model repo's run configuration and sums, the upstream code
+.venv/bin/hf download speridlabs/iris-3b turbo/config.yaml turbo/distill.yaml turbo/model.safetensors --revision adc05b909fb05d4276d26aae5a52b36406b2ef26 --local-dir "$OUT/weights/iris-3b"
+.venv/bin/hf download Qwen/Qwen3-VL-4B-Instruct --include "*.json" --include "*.txt" --include "*.safetensors" --revision ebb281ec70b05090aa6165b016eac8ec08e71b17 --local-dir "$OUT/weights/Qwen3-VL-4B-Instruct"
+.venv/bin/hf download litert-community/iris-3b-Turbo-LiteRT model/iris3b_config.json model/SHA256SUMS --revision 743fd20acefd7f9ddcf3585f88bcda3257f7213a --local-dir "$OUT/published"
+git clone -q https://github.com/speridlabs/iris-3b "$OUT/upstream" && git -C "$OUT/upstream" checkout -q 13fcf6a4f7fcb36561eac3daa5ad30d0b0a1822e
+(cd "$OUT/weights" && shasum -a 256 -c) < inputs.sha256
+# float32 graphs (text encoder, DiT), checked against SHA256SUMS.fp32, and the DiT's host tables
+.venv/bin/python export_te.py --out "$OUT"
+.venv/bin/python export_dit.py --out "$OUT"
+(cd "$OUT/fp32" && shasum -a 256 -c) < SHA256SUMS.fp32
+# float16 weights, the host files and the run configuration -> OUT/model, checked against the model repo's sums
+.venv/bin/python fp16_weights.py --out "$OUT"
+.venv/bin/python make_assets.py --out "$OUT"
+(cd "$OUT/model" && shasum -a 256 -c SHA256SUMS)
+```
+
+Run as printed on 2026-10-22 (macOS 27.0 on an Apple M4 Max with 128 GB, OUT on an external USB disk): the 23 files the scripts write came out byte for byte (sha256 equal to the model repo's `SHA256SUMS`; `iris3b_config.json` is copied from it), and the 20 float32 graphs matched `SHA256SUMS.fp32` (16 lines from the original conversion; those for the four 1.8 GB DiT graphs, whose float32 bytes depend on the process, from three earlier processes of `export_dit.py`). The commands after the environment took 1,162 s (downloads 396 s, conversion 645 s, checks 121 s), and `export_dit.py` peaked at 22.7 GB of memory.
+
+The non-obvious parts (more in [`iris3b_work/README.md`](iris3b_work/README.md)):
+
+- **The tensor names carry the Python module and class names** (`te_modules.TEChunk/te_modules.TELayer_0`, `dit_modules.DualChunk/...`): renaming a module file, a class or a submodule attribute changes the bytes, not the computation, and so does the order of operations in `forward` (normalizing and transposing q, then k, against normalizing both first: the same numbers, two different files). The trace values do not enter the file: zeros here, the activations of a real prompt in the published export, the same bytes.
+- **The DiT is re-authored as chunk modules whose every op the GPU delegate takes**, each rewrite exact in real arithmetic: the interleaved RoPE as a half-split rotation with the de-interleave baked into the q / k rows, the 20 / 5 GQA heads reordered into plain 5-head attentions, max-normalized RMSNorm, unfold / fold as host permutations. What depends only on t (the timestep embedding, every block's adaLN rows at the four fixed sigmas) is a host table, and the text adapter runs once per prompt.
+- **Float16 weights, float32 activations.** Float16 holds the bfloat16 weights exactly except values below 2^-17 in magnitude (largest change 2.98e-8) and the text adapter's attention-query rows, which carry the folded softmax scale (largest change 1.50e-5); the graphs are half of float32 (12,869,097,872 against 25,733,449,508 bytes). In the conversion, int8 weights in either trunk group and float16 compute in any one group of trunk or pixel graphs missed 35 dB PSNR / 0.98 SSIM against the all-float32 PyTorch image on a prompt with numbers and punctuation (upstream's own bfloat16 text encoder: 30.3 dB), so the weights are float16 and the graphs run at FP32 precision.
+- **litert-torch 0.9.4 lowers the text adapter's attention output projections to a rank-2 FULLY_CONNECTED and a mixed-rank ADD** (`[1, 1, 3600, 2560] + [3600, 2560]`), with or without their bias (its MLP output projections, which also feed a lone ADD, stay rank 4); with int8 weights the GPU delegate of LiteRT 2.2.0 refused the adapter (`Unable to parse bc coord for BATCH axis`, on a Mac GPU and a Galaxy S26).
+- **The run configuration is copied from the model repo, not generated**: its `source` / `source_sha256` fields record the files of the original conversion, and neither the app nor the Python host reads them; `make_assets.py` checks its host offsets and shapes against the `iris_host.f32` it writes and its graph signatures against the graph files in `OUT/model`.
+
+Measured on the phones and published in [LiteRT-Models `iris3b/README.md`](https://github.com/john-rocky/LiteRT-Models/tree/main/iris3b) (the app's first image after the install, GPU at FP32, 768 × 768): Galaxy S26 212.6 s, Pixel 8a 468.8 s; 70.92 to 106.84 dB PSNR against the all-float32 PyTorch pipeline with the same noise on three prompts.
