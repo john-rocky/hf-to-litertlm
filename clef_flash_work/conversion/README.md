@@ -80,7 +80,7 @@ TMPDIR=K/tmp $EXP scripts/r3_e2e.py --tag L2048 --L 2048 --row out/r2/clef_rowpr
 $REF scripts/r3_score.py --tag L2048
 ```
 
-`r3_metal_bisect.py` found that ai-edge-litert 2.2.0 on Metal computes a FULLY_CONNECTED output plus a same-shape constant (the tower's position rows) wrongly while it delegates every node; the shipped towers take the position rows as their second input `pos` (`../tables/vision_pos_g{256,448}.safetensors`). `r3_tower_tfl.py` converts with litert-torch's default path and applies the same fp16 FC recipe as step 3. It also runs a rank-3 prelint tool that is not published; without it the step records the tool's exit code and goes on (its warnings were only recorded).
+`r3_metal_bisect.py` found that ai-edge-litert 2.2.0 on Metal computes a FULLY_CONNECTED output plus a constant (the tower's position rows) wrongly while it delegates every node; the shipped towers take the position rows as their second input `pos` (`../tables/vision_pos_g{256,448}.safetensors`). `r3_tower_tfl.py` converts with litert-torch's default path and applies the same fp16 FC recipe as step 3. It also runs a rank-3 prelint tool that is not published; without it the step records the tool's exit code and goes on (its warnings were only recorded).
 
 ## 5. The host
 
