@@ -401,6 +401,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#2026-10-16--qwen35-9b-the-9b-hybrid-recipe-the-repos-tokenizerjson-in-the-tokenizer-section-the-qwen35-4b-thinking-switch-in-the-metadata"
   },
+  "Qwen3.8-27B": {
+    "task": "chat",
+    "group": 1,
+    "recipe": "REPRODUCE.md#2026-10-22--qwen38-27b-the-9b-hybrid-recipe-at-27b-exported-from-an-f32-copy-of-the-checkpoint-and-quantized-from-the-float-tflite-without-a-float-litertlm"
+  },
   "Ornith-1.5-9B": {
     "task": "agentic coding",
     "group": 1,
