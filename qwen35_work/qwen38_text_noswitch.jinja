@@ -1,0 +1,86 @@
+{%- macro format_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is sequence -%}
+        {%- for item in content -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif item['type'] == 'tool_response' -%}
+                {%- if item['response'] is mapping or item['response'] is sequence -%}
+                    {{- item['response'] | tojson -}}
+                {%- else -%}
+                    {{- item['response'] | string -}}
+                {%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- set reasoning_instructions = '' -%}
+
+{%- set is_first_system = messages[0]['role'] == 'system' -%}
+{%- set loop_messages = messages[1:] if is_first_system else messages -%}
+{%- set system_content = (format_content(messages[0]['content']) | trim) if is_first_system else '' -%}
+{#- Handle System/Tool Definitions Block -#}
+{%- if tools -%}
+    {{- '<|im_start|>system\n' -}}
+    {%- if reasoning_instructions -%}
+        {{- reasoning_instructions + '\n\n' -}}
+    {%- endif -%}
+    {{- "# Tools\n\nYou have access to the following functions:\n\n<tools>" -}}
+    {%- for tool in tools -%}
+        {{- '\n' + tool | tojson -}}
+    {%- endfor -%}
+    {{- "\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT>" -}}
+    {%- if system_content -%}
+        {{- '\n\n' + system_content -}}
+    {%- endif -%}
+    {{- '<|im_end|>\n' -}}
+{%- elif system_content -%}
+    {{- '<|im_start|>system\n' + (reasoning_instructions + '\n\n' if reasoning_instructions else '') + system_content + '<|im_end|>\n' -}}
+{%- elif reasoning_instructions -%}
+    {{- '<|im_start|>system\n' + reasoning_instructions + '<|im_end|>\n' -}}
+{%- endif -%}
+
+{%- for message in loop_messages -%}
+    {%- set content = format_content(message['content']) | trim -%}
+    {%- if message['role'] == 'user' or message['role'] == 'system' -%}
+        {{- '<|im_start|>' + message['role'] + '\n' + content + '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'assistant' -%}
+        {%- set reasoning = (message['reasoning_content'] if message['reasoning_content'] is string else '') | trim -%}
+        {{- '<|im_start|>assistant\n<think>\n' + reasoning + '\n</think>\n\n' + content -}}
+        {%- if message['tool_calls'] -%}
+            {%- for tool_call in message['tool_calls'] -%}
+                {%- set function = tool_call['function'] if 'function' in tool_call else tool_call -%}
+                {%- if not loop.first -%}
+                    {{- '\n<tool_call>\n<function=' + function['name'] + '>\n' -}}
+                {%- elif content -%}
+                    {{- '\n\n<tool_call>\n<function=' + function['name'] + '>\n' -}}
+                {%- else -%}
+                    {{- '<tool_call>\n<function=' + function['name'] + '>\n' -}}
+                {%- endif -%}
+                {%- if function['arguments'] is mapping -%}
+                    {%- for name, value in function['arguments'] | items -%}
+                        {%- set val_str = value if value is string else value | tojson -%}
+                        {{- '<parameter=' + name + '>\n' + val_str + '\n</parameter>\n' -}}
+                    {%- endfor -%}
+                {%- endif -%}
+                {{- '</function>\n</tool_call>' -}}
+            {%- endfor -%}
+        {%- endif -%}
+        {{- '<|im_end|>\n' -}}
+    {%- elif message['role'] == 'tool' -%}
+        {%- if loop.first or loop_messages[loop.index0 - 1]['role'] != 'tool' -%}
+            {{- '<|im_start|>user' -}}
+        {%- endif -%}
+        {{- '\n<tool_response>\n' + content + '\n</tool_response>' -}}
+        {%- if loop.last or loop_messages[loop.index0 + 1]['role'] != 'tool' -%}
+            {{- '<|im_end|>\n' -}}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- if add_generation_prompt -%}
+    {{- '<|im_start|>assistant\n' -}}
+    {{- '<think>\n\n</think>\n\n' -}}
+{%- endif -%}

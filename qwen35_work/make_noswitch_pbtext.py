@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""make_noswitch_pbtext.py ORIG_META_DIR TEMPLATE.jinja OUT.pbtext - the thinking-off-only LlmMetadata for a bundle that carries the
+thinking switch of make_new_pbtext.py (Qwen3.8-27B: thinking on is not offered, see REPRODUCE.md).
+
+Starts from the bundle's LlmMetadata section bytes (ORIG_META_DIR/LlmMetadataProto.bin, written by dump_llm_metadata.py) and changes
+exactly three fields:
+  jinja_prompt_template  = TEMPLATE.jinja, byte for byte (qwen38_text_noswitch.jinja: the thinking-off branch of the switch template)
+  channels               = none (the `thought` channel removed)
+  supports_thinking      = false
+Everything else (stop_tokens, max_num_tokens, llm_model_type, supports_function_calling, prompt_templates, sampler_params, ...) is
+kept. Writes OUT.pbtext (text_format, utf-8) and OUT.pbtext.check.json (changed fields, template sha256, parse-back equality,
+status PASS / FAIL). Never overwrites. Needs litert-lm-builder (0.18.x).
+"""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+from google.protobuf import text_format
+from litert_lm_builder.runtime.proto import llm_metadata_pb2
+
+EXPECTED = ['jinja_prompt_template', 'channels', 'supports_thinking']
+
+
+def state(msg, field):
+    value = getattr(msg, field.name)
+    if field.is_repeated:
+        return [v.SerializeToString(deterministic=True) if hasattr(v, 'SerializeToString') else v for v in value]
+    present = msg.HasField(field.name) if field.has_presence else None
+    if field.message_type is not None:
+        return (present, value.SerializeToString(deterministic=True) if present else None)
+    return (present, value)
+
+
+def main():
+    if len(sys.argv) != 4:
+        print(__doc__, file=sys.stderr)
+        return 2
+    orig_dir, tmpl_path, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+    check = out.with_name(out.name + '.check.json')
+    for p in (out, check):
+        if p.exists():
+            print(f'refusing to overwrite {p}', file=sys.stderr)
+            return 2
+    raw = (orig_dir / 'LlmMetadataProto.bin').read_bytes()
+    orig = llm_metadata_pb2.LlmMetadata()
+    orig.ParseFromString(raw)
+    tmpl_bytes = tmpl_path.read_bytes()
+    new = llm_metadata_pb2.LlmMetadata()
+    new.CopyFrom(orig)
+    new.jinja_prompt_template = tmpl_bytes.decode('utf-8')
+    del new.channels[:]
+    new.supports_thinking = False
+    text = text_format.MessageToString(new, as_utf8=True)
+    back = text_format.Parse(text, llm_metadata_pb2.LlmMetadata())
+    changed = [f.name for f in sorted(llm_metadata_pb2.LlmMetadata.DESCRIPTOR.fields, key=lambda f: f.number)
+               if state(orig, f) != state(new, f)]
+    rec = {'orig_meta_dir': str(orig_dir), 'orig_llm_metadata_sha256': hashlib.sha256(raw).hexdigest(),
+           'template': str(tmpl_path), 'template_bytes': len(tmpl_bytes),
+           'template_sha256': hashlib.sha256(tmpl_bytes).hexdigest(),
+           'template_in_message_identical': back.jinja_prompt_template.encode('utf-8') == tmpl_bytes,
+           'parse_back_identical': back.SerializeToString(deterministic=True) == new.SerializeToString(deterministic=True),
+           'changed_fields': changed, 'changed_fields_equal_expected': sorted(changed) == sorted(EXPECTED),
+           'channels_after': len(new.channels), 'supports_thinking_after': new.supports_thinking,
+           'supports_function_calling_after': new.supports_function_calling if new.HasField('supports_function_calling') else 'unset',
+           'kept': {f: text_format.MessageToString(getattr(orig, f), as_one_line=True) if orig.HasField(f) else 'unset'
+                    for f in ('llm_model_type', 'prompt_templates', 'sampler_params', 'start_token')},
+           'stop_tokens': [text_format.MessageToString(t, as_one_line=True) for t in new.stop_tokens],
+           'max_num_tokens': new.max_num_tokens,
+           'new_pbtext_bytes': len(text.encode('utf-8')),
+           'new_pbtext_sha256': hashlib.sha256(text.encode('utf-8')).hexdigest()}
+    rec['status'] = 'PASS' if (rec['template_in_message_identical'] and rec['parse_back_identical']
+                               and rec['changed_fields_equal_expected']) else 'FAIL'
+    out.write_text(text, encoding='utf-8')
+    check.write_text(json.dumps(rec, indent=1) + '\n')
+    print(json.dumps({k: rec[k] for k in ('changed_fields', 'template_sha256', 'channels_after', 'supports_thinking_after',
+                                          'supports_function_calling_after', 'status')}))
+    return 0 if rec['status'] == 'PASS' else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

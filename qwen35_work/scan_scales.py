@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """scan_scales.py X.litertlm [OUT.json] - scan every blockwise tensor of every TFLiteModel section: zero fp16 scales,
 subnormal scales 0 < s < 2^-14, scales at exactly 2^-14, min scale (XNNPACK's check is std::isnormal); a section with no
-blockwise tensor prints `blockwise tensors 0`; sections are found by the bundle header (litertlm_core).
+blockwise tensor prints `blockwise tensors 0`; sections are found by the bundle header (litertlm_core). The file is memory-mapped
+and each section is walked in place (reading the whole file and then copying its section held two copies of a 15 GB file in RAM).
 Exit 0 = every section all normal, 1 = not."""
 import json
+import mmap
 import sys
 
 import numpy as np
@@ -30,13 +32,14 @@ def sections(path):
 
 
 def main(path, out=None):
-    data = open(path, "rb").read()
+    fh = open(path, "rb")
+    data = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     ok_all, rows = True, []
     for idx, typ, b, e in sections(path):
         if typ != "TFLiteModel":
             continue
         view = memoryview(data)[b:e]
-        fb = schema.Model.GetRootAsModel(bytes(view), 0)
+        fb = schema.Model.GetRootAsModel(view, 0)  # in place, no copy of the section
         seen = set()
         n_t = n_zero = n_sub = n_tiny = n_scales = 0
         gmin = None
