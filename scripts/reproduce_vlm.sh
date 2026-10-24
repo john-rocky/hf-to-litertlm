@@ -25,10 +25,12 @@ case "${1:-}" in
   qwen2-vl-2b)           bash scripts/ship_qwen2vl_2b.sh ;;       # static-672 (no GATHER_ND) + Qwen2-1.5B int4
   smolvlm2-500m)         bash scripts/ship_smolvlm2.sh ;;         # SigLIP + SmolLM2 (64 tokens)
   smolvlm2-2.2b)         bash scripts/ship_smolvlm2_22b.sh ;;     # SigLIP + SmolLM2-1.7B (81 tokens)
+  wevisone-vl-2b)        bash scripts/ship_wevisone.sh ;;         # static-512 ViT + 8196-wide DeepStack rows + derived M-RoPE, fp16
   --list|"")
     echo "VLM keys (fast_vlm single-image):"
     printf '  %s\n' granite-docling-258m internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
-      llava-onevision-0.5b north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b
+      llava-onevision-0.5b north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b \
+      wevisone-vl-2b
     echo; echo "each -> out/*-bundle/<Model>.litertlm ; details in cards/*-litert.md" ;;
   *) echo "unknown VLM key: '$1' (run --list)"; exit 2 ;;
 esac

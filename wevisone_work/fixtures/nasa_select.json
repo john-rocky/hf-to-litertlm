@@ -1,0 +1,62 @@
+{
+ "rule": "Rule (2026-10-24): for each query term, search\n`https://images-api.nasa.gov/search?q=<term>&media_type=image` and take, in result order,\nthe first image whose original is at least 1024 px wide and whose metadata carries no\ncredit other than NASA (description `Credit:` lines, photographer, secondary creator).\nThe chosen file is `~orig.jpg` (or `~large.jpg` when no original JPEG is listed).",
+ "chosen": [
+  {
+   "term": "astronauts group",
+   "rank": 0,
+   "nasa_id": "S67-34267",
+   "title": "ASTRONAUT GROUP - TRAINING - JUNGLE - PANAMA",
+   "date_created": "1967-06-12T00:00:00Z",
+   "center": "JSC",
+   "photographer": null,
+   "description": "Group of Astronauts during Jungle Survival Training.                JUNGLE SURVIVAL SCHOOL, PANAMA                06/12-16/1967                CN",
+   "url": "https://images-assets.nasa.gov/image/S67-34267/S67-34267~orig.jpg",
+   "width": 3000,
+   "height": 2029,
+   "license": "NASA / public domain"
+  },
+  {
+   "term": "airplane runway",
+   "rank": 0,
+   "nasa_id": "KSC-20170424-PH_SWW01_0007",
+   "title": "Guppy Arrival for Orion EM-1 Crew Module Structural Test Article",
+   "date_created": "2017-04-24T00:00:00Z",
+   "center": "KSC",
+   "photographer": "NASA/Bill White",
+   "description": "NASA's Super Guppy airplane descends toward the runway at the Shuttle Landing Facility at the agency's Kennedy Space Center in Florida. The Orion Exploration Mission-1 (EM-1) structural test article will be loaded in the Super Guppy and transported to Lockheed Martin's Denver facility for testing. The Orion spacecraft will launch atop NASA’s Space Launch System rocket on EM-1, its first deep space mission. ",
+   "url": "https://images-assets.nasa.gov/image/KSC-20170424-PH_SWW01_0007/KSC-20170424-PH_SWW01_0007~orig.JPG",
+   "width": 3744,
+   "height": 5616,
+   "license": "NASA / public domain"
+  },
+  {
+   "term": "launch pad trucks",
+   "rank": 0,
+   "nasa_id": "KSC-08pd3809",
+   "title": "KSC-08pd3809",
+   "date_created": "2008-11-24T00:00:00Z",
+   "center": "KSC",
+   "photographer": null,
+   "description": "CAPE CANAVERAL, Fla. –  Segments of a giant crane arrive by truck to Launch Pad 39B at NASA's Kennedy Space Center in Florida. The crane will be constructed and used to finish erecting the lightning towers on the pad. The crane segments arrived on 125 trucks. Lightning towers are being constructed to hold catenary wires as part of the new lightning protection system for the Constellation Program and Ares/Orion launches.  Photo credit: NASA/Kim Shiflett",
+   "url": "https://images-assets.nasa.gov/image/KSC-08pd3809/KSC-08pd3809~orig.jpg",
+   "width": 3000,
+   "height": 2008,
+   "license": "NASA / public domain"
+  },
+  {
+   "term": "city aerial",
+   "rank": 0,
+   "nasa_id": "PIA12503",
+   "title": "NASA Airborne Radar Captures Its First Images of Post-Quake Haiti",
+   "date_created": "2010-02-02T00:35:50Z",
+   "center": "JPL",
+   "photographer": null,
+   "description": "NASA Uninhabited Aerial Vehicle Synthetic Aperture Radar UAVSAR captured this false-color composite image of the city of Port-au-Prince, Haiti, and the surrounding region on Jan. 27, 2010.",
+   "url": "https://images-assets.nasa.gov/image/PIA12503/PIA12503~orig.jpg",
+   "width": 6662,
+   "height": 5139,
+   "license": "NASA / public domain"
+  }
+ ],
+ "skipped": []
+}
