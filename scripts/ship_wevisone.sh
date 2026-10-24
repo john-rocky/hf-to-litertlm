@@ -16,6 +16,7 @@
 #   LITERT_LM  the litert-lm 0.18.1 CLI (describe / unpack / pack)
 #
 #   bash scripts/ship_wevisone.sh      # -> wevisone_work/out/r2/bundle/WeVisOne-VL-2B_f16.litertlm
+#   FP32=1 bash scripts/ship_wevisone.sh   # also WeVisOne-VL-2B_fp32.litertlm, the float32 form for desktop CPUs
 set -euo pipefail
 cd "$(dirname "$0")/../wevisone_work"
 : "${PY_REF:?}" "${PY_EXPORT:?}" "${LITERT_LM:?}"
@@ -53,3 +54,17 @@ python3 ../scripts/add_executor_metadata.py out/r2/bundle/${NAME}_noexec.litertl
 LITERT_LM="$LITERT_LM" "$PY_EXPORT" -I tools/wv_bundle_check.py $NAME
 rm -f out/r2/bundle/${NAME}_noexec.litertlm
 ls -l out/r2/bundle/$NAME.litertlm
+
+if [ "${FP32:-0}" = 1 ]; then
+  echo "### 6. (FP32=1) the float32 form: the fp32 graphs of steps 3 and 4, PREFILL_DECODE declared fp32"
+  F=WeVisOne-VL-2B_fp32
+  "$PY_EXPORT" -I tools/build_wv_bundle.py --build --name $F \
+    --decoder out/r2/dec_fp32/model.tflite --embedder out/r2/dec_fp32/embedder.tflite \
+    --encoder out/r2/vision/vision_encoder_fp32.tflite --adapter out/r2/vision/vision_adapter_fp32.tflite \
+    --act fp32 --image-size 512
+  python3 ../scripts/add_executor_metadata.py out/r2/bundle/${F}_noexec.litertlm out/r2/bundle/$F.litertlm \
+    --litert-lm "$LITERT_LM" --python "$PY_EXPORT"
+  LITERT_LM="$LITERT_LM" "$PY_EXPORT" -I tools/wv_bundle_check.py $F
+  rm -f out/r2/bundle/${F}_noexec.litertlm
+  ls -l out/r2/bundle/$F.litertlm
+fi
