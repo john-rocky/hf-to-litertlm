@@ -49,7 +49,7 @@ The decoder computes Qwen3-VL's positions in the graph from the runtime's positi
 - image token (f = 1): (t, h, w) = (P, P + ⌊(p − P) / G⌋, P + (p − P) mod G)
 - text token (f = 0): t = h = w = p − D · [p ≥ P + N]
 
-P = 15 (the fixed system turn, `user\n` and `<|vision_start|>`), G = 16 (the merged grid side at 512 px), N = G² = 256, D = N − G = 240. The steps are `relu(x) − relu(x − 1)` on integer-valued floats, because the GPU delegates refuse the clamp (`RELU_0_TO_1`); the division by G is a sum of G − 1 steps. The cos / sin of these positions equal transformers' `Qwen3VLModel.get_rope_index` bit for bit on 85,542 positions (29 picture questions at 512 and at 768).
+P = 15 (the fixed system turn, `user\n` and `<|vision_start|>`), G = 16 (the merged grid side at 512 px), N = G² = 256, D = N − G = 240. The steps are `relu(x) − relu(x − 1)` on integer-valued floats, so no clamp (`RELU_0_TO_1`, which LiteRT-LM's WebGPU delegate refused in an earlier conversion: [decider2bv_work/FINDINGS.md](../decider2bv_work/FINDINGS.md) §4) reaches the GPU delegates; the division by G is a sum of G − 1 steps. The cos / sin of these positions equal transformers' `Qwen3VLModel.get_rope_index` bit for bit on 85,542 positions (29 picture questions at 512 and at 768).
 
 The flag is needed. Positions from p alone put a text-only prompt's tokens P … P + N − 1 on the image grid: that model answered 2 of 10 text questions correctly, against 8 with plain positions.
 
