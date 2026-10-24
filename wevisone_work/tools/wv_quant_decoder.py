@@ -95,7 +95,7 @@ FP16_CFG = {"weight_tensor_config": {"num_bits": 16, "symmetric": True, "granula
 
 
 def recipe_of(name):
-    """Named aeq recipes plus the round-2 mixes (supervisor 20:3x, quant lever (a) / (b)):
+    """Named aeq recipes plus the round-2 mixes (quant lever (a) / (b)):
       fp16_all     float casting (fp16 weights) on every supported op (the vision fp16 recipe of northmv / r2)
       wi8_head32   dynamic_wi8_afp32, then the lm_head FULLY_CONNECTED left float32 (no_quantize)
       wi8_head16   dynamic_wi8_afp32, then the lm_head FULLY_CONNECTED as fp16 weights (float casting)

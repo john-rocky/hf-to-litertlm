@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""WeVisOne-VL-2B round 1: fp32 CPU reference arms on the lane fixtures (LANE.md §1.1).
+"""WeVisOne-VL-2B round 1: fp32 CPU reference arms on the fixtures.
 
 Arms (all fp32, CPU, one thread, greedy, max_new_tokens 1024, the checkpoint template + the package's system turn):
   A0  the package's WeVisOneVL.predict() as shipped (engine min/max pixels, repetition_penalty 1.05, masks on <OBJ>)

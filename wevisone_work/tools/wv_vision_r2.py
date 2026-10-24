@@ -83,7 +83,7 @@ class VisionTapsBarrier(VT.VisionTaps):
 
 
 def mode_barrier():
-    """One try (supervisor 20:3x): the barrier encoder fp32 + its int8 dynamic form, parity on the 17 images."""
+    """One try: the barrier encoder fp32 + its int8 dynamic form, parity on the 17 images."""
     import litert_torch
     from ai_edge_quantizer import quantizer
     torch.set_num_threads(int(os.environ.get("OMP_NUM_THREADS", "1")))

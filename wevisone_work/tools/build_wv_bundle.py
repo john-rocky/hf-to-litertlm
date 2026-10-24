@@ -11,7 +11,7 @@ template form = minicpmv47_work/scripts/build_mv47_bundle.py's dual jinja).
                    stop = <|im_end|> 151645 and <|endoftext|> 151643, STRUCTURED prompt_templates present and empty
                    (memory vlm-fastvlm-ride: jinja-only metadata gives a null conversation), the jinja below.
 
-Template contract (LANE.md §1-10): the system turn is always "You are a helpful assistant." (a passed system message is
+Template contract: the system turn is always "You are a helpful assistant." (a passed system message is
 not rendered: the derived image positions start at P = 15); the image of the FIRST user turn, its first image item,
 renders first as <|vision_start|><image_soft_token><|vision_end|> (the runtime splits on <image_soft_token> and
 injects the adapter's 256 rows); any other image item is not rendered, and the runtime then refuses the request

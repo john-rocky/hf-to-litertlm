@@ -75,7 +75,7 @@ def main():
             print(rid, rec, flush=True)
     out["summary"] = {"prompts": len(prompts), "positions": sum(p["positions"] for p in out["prompts"]),
                       "argmax_all_agree": bool(agree_all), "max_abs_delta": worst,
-                      "line4": "argmax all positions equal; max |delta| recorded, > 1e-3 -> message the supervisor",
+                      "line4": "argmax all positions equal; max |delta| recorded, > 1e-3 -> stop and report",
                       "wall_s": round(time.time() - t0, 1)}
     (K / "ref" / "text_ckpt_prove.json").write_text(json.dumps(out, indent=1) + "\n")
     print(json.dumps(out["summary"]))
