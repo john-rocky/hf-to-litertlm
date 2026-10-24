@@ -12,9 +12,23 @@ that takes big appended-buffer models) can run in different venvs:
   python scripts/parity_logits_bigmodel.py lt --tflite model.tflite --ids pt.npz --out lt.npz
   # 3. anywhere with numpy: the parity_logits.py report
   python scripts/parity_logits_bigmodel.py cmp --pt pt.npz --lt lt.npz
+
+`lt --xnn-cache FILE` keeps the same CPU options (one thread) and adds an
+XNNPACK weight cache in FILE. Without it the CompiledModel packs the weights
+once for every signature in the file, although the walk runs only `decode`:
+on a 7-signature 16.5 GB int4 TFLite of Qwen3.8-27B the walk peaked at a
+101.8 GB memory footprint without the cache and 5.2 GB with it, and the
+logits were bit-identical. The option takes a file path (ai-edge-litert's
+docstring says a directory). Given a directory, or a file in a missing or
+read-only directory, ai-edge-litert 2.2.0 and 2.3.0 print an ERROR line
+("XNNPack weight cache could neither be loaded from or saved to ..."), raise
+nothing and run without the cache. So `lt` stops on a directory or a missing
+directory, and when no cache file is there after the model loads.
 """
 import argparse
 import json
+import os
+import sys
 
 import numpy as np
 
@@ -45,8 +59,24 @@ def cmd_lt(a):
     from ai_edge_litert.compiled_model import CompiledModel
     from ai_edge_litert.hardware_accelerator import HardwareAccelerator
     ids = np.load(a.ids)["ids"]
-    model = CompiledModel.from_file(a.tflite,
-                                    hardware_accel=HardwareAccelerator.CPU)
+    cache = getattr(a, "xnn_cache", "")  # callers may pass their own args
+    if cache:
+        if os.path.isdir(cache):
+            sys.exit(f"--xnn-cache {cache} is a directory: pass a file path "
+                     "(the runtime ignores a directory and caches nothing)")
+        if not os.path.isdir(os.path.dirname(os.path.abspath(cache))):
+            sys.exit(f"--xnn-cache {cache}: its directory does not exist")
+        from ai_edge_litert.options import CpuOptions, Options
+        opts = Options(hardware_accelerators=HardwareAccelerator.CPU,
+                       cpu_options=CpuOptions(
+                           num_threads=1, xnnpack_weight_cache_path=cache))
+        model = CompiledModel.from_file(a.tflite, options=opts)
+        if not os.path.isfile(cache):
+            sys.exit(f"--xnn-cache {cache}: the runtime wrote no cache file "
+                     "(is its directory writable?)")
+    else:
+        model = CompiledModel.from_file(a.tflite,
+                                        hardware_accel=HardwareAccelerator.CPU)
     in_det = model.get_input_tensor_details("decode")
     out_det = model.get_output_tensor_details("decode")
     states = {n: np.zeros(in_det[n]["shape"], np.float32)
@@ -123,6 +153,8 @@ def main():
     p.add_argument("--tflite", required=True)
     p.add_argument("--ids", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument("--xnn-cache", default="",
+                   help="XNNPACK weight cache file (not a directory)")
     p.set_defaults(fn=cmd_lt)
     p = sub.add_parser("cmp")
     p.add_argument("--pt", required=True)
