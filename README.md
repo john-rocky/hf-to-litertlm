@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 87 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 88 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -181,6 +181,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Qwen2-VL-2B](https://huggingface.co/litert-community/Qwen2-VL-2B) | 2B | chat + image | Galaxy S26 GPU 36.7 | M4 Max GPU 139.1 | [card](cards/qwen2-vl-2b-litert.md) |
 | [SmolVLM2-2.2B](https://huggingface.co/litert-community/SmolVLM2-2.2B) | 2.2B | chat + image | Galaxy S26 GPU 21.4 | M4 Max GPU 134.7 | [card](cards/smolvlm2-2.2b-litert.md) |
 | [Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) | 2.27B | chat; separate image file | iPhone 17 Pro GPU 33.9 | M4 Max GPU 114.3 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
+| [WeVisOne-VL-2B](https://huggingface.co/litert-community/WeVisOne-VL-2B) | 2.44B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 13.9 | M4 Max GPU 83.0 | [recipe](REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-weights-2026-10-25) |
 | [North-Micro-Vision-Instruct](https://huggingface.co/litert-community/North-Micro-Vision-Instruct) | 2.48B | chat + image, 11 languages | Galaxy S26 GPU 13.3 | M4 Max GPU 80.6 | [card](cards/north-micro-vision-instruct-litert.md) |
 | [LFM2.5-VL-3B](https://huggingface.co/litert-community/LFM2.5-VL-3B) | 3B | chat + image | Galaxy S26 GPU 27.0 | M4 Max GPU 143.2 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
 | [InternVL3_5-4B](https://huggingface.co/litert-community/InternVL3_5-4B) | 4B | chat + image | Galaxy S26 GPU 13.3 | M4 Max GPU 86.5 | [card](cards/internvl3_5-4b-litert.md) |

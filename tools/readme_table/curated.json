@@ -425,5 +425,10 @@
     "task": "reasoning",
     "group": 2,
     "recipe": "REPRODUCE.md#nvidia-nemotron-labs-dory10-4b--a-looped-ngpt-model-the-loop-unrolled-with-a-kv-cache-per-pass-gptq-int4-on-the-data-free-scales-an-mlp-normalization-that-fits-fp16-and-gpu-composites-in-the-int4-graph"
+  },
+  "WeVisOne-VL-2B": {
+    "task": "boxes, points, counts and OCR on an image",
+    "group": 3,
+    "recipe": "REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-weights-2026-10-25"
   }
 }
