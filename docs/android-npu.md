@@ -5,6 +5,9 @@ compiled **on the device (JIT)**. No precompiled NPU artifact is needed — you 
 normal model file plus a set of runtime libraries in your APK, and the first load compiles
 the model for whatever SoC it lands on.
 
+For a 4B-class LLM the on-device compile did not fit a 12 GB phone (measured on one model);
+§4b compiles ahead of time for one SoC.
+
 **Verified on:** Galaxy S26 (SM8850, Hexagon **v81**), QAIRT 2.47.0, with LiteRT 2.2.0
 (the Android AAR) for classic `.tflite` models and a LiteRT-LM 0.16-line runtime for LLM
 bundles. Other SoCs, other Hexagon generations, and other runtime versions are
@@ -170,6 +173,42 @@ produces garbage on **both** the AOT and JIT paths (a pipeline quality issue, no
 one) and is withheld.
 
 ---
+
+## 4b. 4B-class models: ahead-of-time per SoC
+
+Measured on NVIDIA-Nemotron-3.5-Bolt-E4B (the Gemma 4 E4B architecture: 42 layers, 8 query and 2 KV heads) on a Galaxy S26
+(SM8850, 12 GB), 2026-10-26.
+
+- **The on-device compile did not fit.** For a 4B-class static-range graph the Qualcomm compiler plugin takes every op, then
+  the QNN graph composition runs the phone's free memory from 6.93 to 0.92 GB in 9 s (NVIDIA-Nemotron-Labs-Dory1.0-4B); int4
+  weights do not shrink it, because the plugin unpacks them into int8 copies (read in the plugin's source, not measured). Compile ahead of time instead (npu_export's
+  stage 4, here ai-edge-litert 2.2.0 with QAIRT 2.47.0.260601114230 for SM8850, the auxiliary graph left uncompiled). The file
+  is for that SoC only, and the runtime checks the context's SDK version against the phone-side QNN libraries: with
+  the 2.47 libraries it prints `Context binary SDK version matches current SDK: 2.47.0` (other library versions were not
+  tested with this file).
+- **Concatenate the decode mask when there are two or more KV heads.** The plugin's "MHA optimization (fast vlm decode)" pass
+  matches a sequence of op types in every graph. With the mask broadcast over the query heads in decode (RESHAPE – ADD –
+  RESHAPE around the mask), it divides the query count it reads on axis 1 (1 in decode) by the KV heads (2) and stops with
+  SIGFPE (`apply_plugin` exit −8, the verbose log ending at `[G2G] MHA optimization (fast vlm decode)`). Broadcast in prefill,
+  concatenate in decode: then decode's 2,180 ops compile in one partition.
+- **One HTP graph must stay under 3,670,016 KB of estimated allocation.** With every fully connected weight in 8 bits, Bolt's
+  decode graph needed 4,695,648 KB: `graph requires estimated allocation of 4695648 KB, limit is 3670016 KB`. The per-graph
+  estimates appear only with `--qualcomm_log_level=verbose` (`alloca_est_total`). Splitting decode into two graphs passed the
+  compile, but the 4.71 GB context of the three graphs did not load on the S26 (`Failed to create QNN context: 1002`); contexts
+  of 3.28 GB and 2.68 GB loaded. Ops inserted for the split (EXPAND_DIMS, SQUEEZE) stay on the CPU: the plugin reports them
+  `not supported in Qualcomm Compiler`.
+- **The static-range path has channelwise int4 only.** With the MLP projections, the per-layer-embedding projections and the
+  final vocabulary projection (lm_head) in channelwise int4 (attention in 8 bits), GSM8K on the phone fell to 13 of 27 questions (the BF16 model
+  27 of 27). Bolt's NPU file keeps 4 bits only on the MLP gate and up projections and the final vocabulary projection (lm_head), 8 bits on every
+  other fully connected layer, int16 activations: 92 of 99 (the BF16 model 92 of 99), 5.04 GB, one decode graph estimated at
+  3,371,794,432 bytes, a 3.28 GB context, decode 12.2 and prefill 742 tokens/s (1,024 / 256 tokens, two runs). The context keeps
+  the weights' widths (2.68 GB for the 4-bit-heavy form, 3.28 GB for this one), so moving weights from 4 to 8 bits costs
+  decode speed: 12.2 against 14.6 tokens/s.
+- **Runtime.** The file ran on a LiteRT-LM build from the main branch (commit `3dbb23e1`, 2026-10-02, in no release up to
+  v0.18.1) with the dispatch library of that build, the QAIRT 2.47 libraries, no compiler plugin on the phone, and
+  `--use_hw_cache_update_for_npu=true`. Two prefill inputs that no op reads (`kv_cache_k_23`, `kv_cache_v_23`) are renamed so
+  the runtime creates that layer's cache from the decode signature; the runtime then prints `Failed to get buffer
+  requirements for tensor 'dangling_k_23'` once per process, which does not change the answers.
 
 ## 5. License note on the `.so` files — summary, not legal advice
 
