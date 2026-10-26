@@ -430,5 +430,10 @@
     "task": "boxes, points, counts and OCR on an image",
     "group": 3,
     "recipe": "REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-weights-2026-10-25"
+  },
+  "NVIDIA-Nemotron-3.5-Bolt-E4B": {
+    "task": "chat, optional thinking",
+    "group": 2,
+    "recipe": "REPRODUCE.md#nvidia-nemotron-35-bolt-e4b--nvidias-post-trained-gemma-4-e4b-as-a-text-only-int4-file-with-a-2048-token-cache-and-prefill-signatures-of-128-512-and-1024-tokens-int4-block-scales-floored-at-2-14-gpu-composites-with-the-options-that-flag-would-add-passed-off-and-a-snapdragon-sm8850-npu-file-2026-10-26"
   }
 }

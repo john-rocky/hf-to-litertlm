@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 88 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 89 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -163,6 +163,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [DeepSeek-R1-Distill-Qwen-7B](https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-7B) | 7B | reasoning | Galaxy S26 GPU 8.5–10.3 | M4 Max GPU 79.1 | [card](cards/r1-distill-qwen-7b-litert.md) |
 | [Olmo-3-7B-Think](https://huggingface.co/litert-community/Olmo-3-7B-Think) | 7.3B | reasoning | Galaxy S26 GPU 7.0 | M4 Max GPU 46.6 | [recipe](REPRODUCE.md#olmo-3-7b-think--a-sliding-window-dense-7b-whose-int4-scales-need-a-lower-bound-and-a-gpu-composite-rewrite-that-does-not-apply) |
 | [Falcon-H1R-7B](https://huggingface.co/litert-community/Falcon-H1R-7B) | 7.59B | reasoning | — | M4 Max GPU 39.7 | [recipe](REPRODUCE.md#2026-10-15--falcon-h1r-7b-the-familys-reasoning-7b-on-the-same-patch-a-lightweight-export-and-int4-scales-clamped-before-quantizing) |
+| [NVIDIA-Nemotron-3.5-Bolt-E4B](https://huggingface.co/litert-community/NVIDIA-Nemotron-3.5-Bolt-E4B) | 8B | chat, optional thinking | Galaxy S26 GPU 15.2 | M4 Max GPU 89.2 | [recipe](REPRODUCE.md#nvidia-nemotron-35-bolt-e4b--nvidias-post-trained-gemma-4-e4b-as-a-text-only-int4-file-with-a-2048-token-cache-and-prefill-signatures-of-128-512-and-1024-tokens-int4-block-scales-floored-at-2-14-gpu-composites-with-the-options-that-flag-would-add-passed-off-and-a-snapdragon-sm8850-npu-file-2026-10-26) |
 | [NVIDIA-Nemotron-Nano-9B-v2](https://huggingface.co/litert-community/NVIDIA-Nemotron-Nano-9B-v2) | 8.89B | reasoning | — | M4 Max GPU 45.5 | [recipe](REPRODUCE.md#nvidia-nemotron-nano-9b-v2--the-9b-on-the-nemotron-h-rail-nvidias-dt-limit-instead-of-transformers-lower-clamp-and-a-template-litert-lm-018-can-parse) |
 | [granite-docling-258M](https://huggingface.co/litert-community/granite-docling-258M) | 0.26B | document to DocTags | Galaxy S26 CPU 28.6–33.5 | M4 Max CPU 64.0 | [card](cards/granite-docling-258m-litert.md) |
 | [LFM2.5-VL-450M](https://huggingface.co/litert-community/LFM2.5-VL-450M) | 0.45B | chat + image | Galaxy S26 GPU 103.1 | M4 Max GPU 360.0 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |

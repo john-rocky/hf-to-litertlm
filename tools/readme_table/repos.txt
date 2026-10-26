@@ -86,3 +86,4 @@ litert-community/granite-3.0-1b-a400m-instruct
 litert-community/NVIDIA-Nemotron-Labs-Dory1.0-4B
 litert-community/Qwen3.8-27B
 litert-community/WeVisOne-VL-2B
+litert-community/NVIDIA-Nemotron-3.5-Bolt-E4B
