@@ -86,13 +86,16 @@ module. `PACK_README.md` inside the output is the runbook: fetch files → `grad
 `./gradlew :app:bundleRelease` → bundletool `--local-testing` on a USB device → Play internal test
 track. Without `--host-app`, `snippets/` holds the three lines to add to an existing project.
 
-Facts the generated project depends on, read from the Play doc dated 2026-08-14: AI packs need
+Facts the generated project depends on, read from the Play doc dated 2026-08-14; each is still on the
+page dated 2026-10-23 (checked 2026-10-26): AI packs need
 AGP ≥ 8.8; device targeting needs AGP ≥ 8.10 and
 `android.experimental.enableDeviceTargetingConfigApi=true`; AI packs hold models only; fast-follow
 and on-demand packs land as files under `AiPackLocation.assetsPath()` (LiteRT-LM needs a file path,
 so those are the delivery modes to use for `.litertlm`; an install-time pack sits inside an APK and
 would have to be copied out first); bundletool ≥ 1.18.0 with `--device-groups` for local testing;
-selector strings are evaluated only by Play itself, so a local install cannot validate them.
+selector strings are evaluated only by Play itself, so a local install cannot validate them. The
+page's dependency line still shows AI Delivery 0.1.1-alpha01; 0.2.0-beta01, which the host app
+uses, is the newest version on Google Maven (published 2026-08-06).
 
 ## Verified run (2026-09-02)
 
@@ -113,7 +116,8 @@ sidecar, verified the sha256, loaded the file on CPU in 12.3 s and answered in 1
 
 **Second device through Google Play (2026-09-05, Pixel 8a).** The same internal-testing release,
 installed from the Play Store on a Pixel 8a (Google Tensor G3, 7.75 GB RAM, Android 16). Play matched
-the phone to the same `baseline` group (RAM floor 6.8 GB, below the phone's 7.75 GB) and delivered the
+the phone to the same `baseline` group (its selectors are the 6.8 GB RAM floor or the device id
+`google/akita`; the phone meets both, so this run does not show which one Play used) and delivered the
 fast-follow pack within about 40 s of the install; the app read the sidecar (`group baseline`,
 `Qwen3.5-0.8B_int8.litertlm`, backend cpu), verified the sha256, loaded the file on CPU in 34.2 s (no
 compile cache) and answered in 2.0 s. Two phones, one release, the group chosen by Play on each.
@@ -148,8 +152,8 @@ every choice made by Play from the manifest's recommendations.
 
 ## Limits worth knowing
 
-- Play states that models delivered this way are for the delivering app only; an AI pack does not
-  share one model across apps.
+- Play states that models it delivers "should only be used by your apps" and "shouldn't be offered
+  to other apps".
 - The doc names LiteRT and MediaPipe as usable with AI packs; it does not mention the `.litertlm`
   container. A `.litertlm` is an ordinary asset file to Play.
 - Which RAM value Play compares `device_ram` against is not specified; the 15 % margin keeps a
@@ -158,3 +162,18 @@ every choice made by Play from the manifest's recommendations.
 - A pack is only as good as its manifest: a variant without an Android recommendation, or a file
   over 1.5 GB, cannot be packed. `plan` over every shipped manifest is the quickest way to see
   where curation is still missing.
+- Every file in the runs above is over 200 MB. On mobile data, Play does not start (or pauses) a
+  download that large until the app calls `showConfirmationDialog()` and the user accepts; without
+  that call the pack waits for Wi-Fi (state `WAITING_FOR_WIFI`). The host app makes the call; an
+  app built from `snippets/` has to add it. Local testing does not cover the wait-for-Wi-Fi case,
+  and the runs recorded above do not include it.
+- The AI Delivery library depends on `com.google.android.play:asset-delivery` 2.3.0, whose manifest
+  merges `ExtractionForegroundService` (`foregroundServiceType="dataSync"`) and the
+  `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_DATA_SYNC` permissions into the app; the release-2
+  bundle above carries them. Play Console Help says an app that targets Android 14 or later declares
+  the foreground service types it uses on the
+  [App content](https://support.google.com/googleplay/android-developer/answer/13392821) page; the
+  runs above did not go through that form. Play's
+  [Device and Network Abuse policy](https://support.google.com/googleplay/android-developer/answer/16559646)
+  exempts "foreground service type dataSync only when using Play Asset Delivery features" from its
+  foreground-service criteria.
