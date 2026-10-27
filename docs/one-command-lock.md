@@ -147,7 +147,14 @@ never deleted (they are the record of what a toolchain produced). One shim rides
 0.9.4's gemma4 metadata builder sets `use_template_for_fc_format`, which litert-lm-builder 0.18.0's `Gemma4` message no
 longer has, so every gemma4 export of the pair dies at packaging (google-ai-edge/litert-torch#1329, fixed on main by
 #1241); `convert.py` skips that one assignment only when both hold, as main does, and records it in `recipe.compat`. The
-CHANGELOG's compat column shows when a raise has made it a no-op. The reference models: `Qwen/Qwen3-1.7B`
+CHANGELOG's compat column shows when a raise has made it a no-op. A second shim rides on the pinned transformers: Gemma 4
+configs written by newer transformers (5.17.0 for rizhsh/gemma-4-E2B-patent-claim-revision) give the full-attention
+layers' head size as `text_config.per_layer_config` and name the vision tower's rotary `axial`; 5.14.1 stops on the
+first while it validates the config (`AmbiguousGlobalPerLayerAttributeError`) and has no rotary of the second name
+(`KeyError: 'axial'`). `convert.py` reads both, in its own process, as the fields 5.14.1 has (`global_head_dim`, rotary
+`default`: the same values), only when the config has exactly that newer form, and records each rewrite in
+`recipe.compat`; the files the lock hashes stay the Hub's. The reference models do not have that form, so their locks
+carry only the first shim. The reference models: `Qwen/Qwen3-1.7B`
 (the qwen3 export path), `HuggingFaceTB/SmolLM2-1.7B-Instruct` (llama, the generic path) and `google/gemma-4-E2B-it`
 (the gemma4 export path): one model per export path a new finetune of a small model takes.
 

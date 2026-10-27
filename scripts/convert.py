@@ -958,6 +958,99 @@ def builder_compat(report):
     mod.build_llm_metadata = build_llm_metadata
 
 
+# Gemma 4 configs written by newer transformers carry the full-attention layers' head size per
+# layer: text_config.per_layer_config {"04": {"head_dim": 512}, ...} and no global_head_dim
+# (rizhsh/gemma-4-E2B-patent-claim-revision, saved by 5.17.0). That is what 5.19.0's
+# Gemma4TextConfig.__post_init__ makes of global_head_dim (and of num_global_key_value_heads when
+# attention_k_eq_v is set): one override per full_attention layer. The pinned 5.14.1 reads
+# global_head_dim (modeling_gemma4.py l.1194) and stops while it validates such a config:
+# validate_architecture's hasattr(self, "head_dim") meets the heterogeneity mixin, which raises
+# AmbiguousGlobalPerLayerAttributeError (the nightly probe's FAIL fetch on one E2B and two E4B
+# finetunes, 2026-10-23 to 10-26).
+# The same configs name the vision tower's rotary type "axial": 5.19.0's Gemma4VisionConfig has
+# default_rope_type "axial" and renames a saved "default" to it; 5.14.1 has no "axial" (KeyError when
+# the vision tower is built, 2026-10-27) and computes the same inverse frequencies under "default"
+# (Gemma4VisionRotaryEmbedding.compute_default_rope_parameters = 5.19.0's
+# compute_axial_rope_parameters).
+GEMMA4_PER_LAYER_FIELDS = {"head_dim": "global_head_dim",
+                           "num_key_value_heads": "num_global_key_value_heads"}
+
+
+def gemma4_per_layer_fields(text_config):
+    """The global fields of the pinned transformers that a Gemma 4 text config's per_layer_config
+    stands for ({"global_head_dim": 512}), or None when it is not exactly the newer form: one
+    identical override on every full_attention layer and on no other, of head_dim (and of
+    num_key_value_heads only when attention_k_eq_v is set), with no global field already set."""
+    plc, types = text_config.get("per_layer_config"), text_config.get("layer_types")
+    if not isinstance(plc, dict) or not plc or not isinstance(types, list):
+        return None
+    try:
+        layers = {int(k): v for k, v in plc.items()}
+    except (TypeError, ValueError):
+        return None
+    full = {i for i, t in enumerate(types) if t == "full_attention"}
+    overrides = list(layers.values())
+    if set(layers) != full or not all(isinstance(o, dict) and o == overrides[0] for o in overrides):
+        return None
+    keys = set(overrides[0])
+    if "head_dim" not in keys or not keys <= set(GEMMA4_PER_LAYER_FIELDS):
+        return None
+    if "num_key_value_heads" in keys and text_config.get("attention_k_eq_v") is not True:
+        return None
+    fields = {GEMMA4_PER_LAYER_FIELDS[k]: v for k, v in overrides[0].items()}
+    if any(f in text_config for f in fields):
+        return None
+    return fields
+
+
+def gemma4_config_compat(report):
+    """Load configs in this process with the newer Gemma 4 forms turned back into what the pinned
+    transformers has: a per_layer_config into the global fields (gemma4_per_layer_fields) and the
+    vision rotary type "axial" into "default", so the source loads as google/gemma-4-E2B-it's own
+    config does. The files on disk stay as the Hub has them (the lock's source hashes hold); the
+    report and the lock record each rewrite when it happens, so only such a lock carries it. Any
+    other per_layer_config or rotary type is left for transformers to judge."""
+    from transformers import configuration_utils, modeling_rope_utils
+    from transformers.models.gemma4 import configuration_gemma4
+    pinned = configuration_gemma4.Gemma4TextConfig.__dataclass_fields__
+    per_layer = all(f in pinned for f in GEMMA4_PER_LAYER_FIELDS.values())
+    axial = ("axial" not in modeling_rope_utils.ROPE_INIT_FUNCTIONS and getattr(
+        configuration_gemma4.Gemma4VisionConfig, "default_rope_type", "default") != "axial")
+    if not (per_layer or axial):
+        return
+    base = configuration_utils.PreTrainedConfig
+    get_config_dict = base.get_config_dict.__func__
+
+    def record(label):
+        compat = report["decisions"].setdefault("compat", [])
+        if label not in compat:
+            compat.append(label)
+            print(f"NOTE: {label}")
+
+    def compat_get_config_dict(cls, *args, **kwargs):
+        config_dict, rest = get_config_dict(cls, *args, **kwargs)
+        model_type, version = config_dict.get("model_type"), config_dict.get("transformers_version")
+        text_config = {"gemma4": config_dict.get("text_config"),
+                       "gemma4_text": config_dict}.get(model_type)
+        vision_config = {"gemma4": config_dict.get("vision_config"),
+                         "gemma4_vision": config_dict}.get(model_type)
+        fields = (gemma4_per_layer_fields(text_config)
+                  if per_layer and isinstance(text_config, dict) else None)
+        if fields:
+            layers = sorted(int(k) for k in text_config.pop("per_layer_config"))
+            text_config.update(fields)
+            record(f"gemma4-per_layer_config {fields} on layers {layers} (written by transformers "
+                   f"{version}; read as global fields)")
+        rope = vision_config.get("rope_parameters") if isinstance(vision_config, dict) else None
+        if axial and isinstance(rope, dict) and rope.get("rope_type") == "axial":
+            rope["rope_type"] = "default"
+            record(f"gemma4-vision rope_type axial (written by transformers {version}; read as "
+                   "default, the pinned name of the same rotary)")
+        return config_dict, rest
+
+    base.get_config_dict = classmethod(compat_get_config_dict)
+
+
 class StageTracker:
     """Which stage the stock export is in — load, trace, convert, quantize,
     bundle — written to convert_report.json when it changes, so a failure or a
@@ -1366,6 +1459,8 @@ def main():
         export_src = snap
     else:
         export_src = merged_dir or normalized_dir or args.model
+    # every config load below (template, export, runtime check) goes through it
+    gemma4_config_compat(report)
 
     # ---------------- template lint (warn only) ----------------
     template = get_chat_template(export_src, sha)
