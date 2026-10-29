@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 91 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 92 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -193,6 +193,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [S1-mini](https://huggingface.co/mlboydaisuke/S1-mini-LiteRT) | 0.6B | ASR transcript normalization | iPhone 17 Pro GPU 32.0 | M4 Max GPU 144.6 | [card](cards/s1-mini-litert.md) |
 | [decider-0.8b](https://huggingface.co/litert-community/decider-0.8b-LiteRT) | 0.752393B | typed decisions with calibrated probabilities (System One) | Galaxy S26 CPU 36.9 | M4 Max CPU 42.5 | [recipe](REPRODUCE.md#decider-08b-mapika--a-system-one-decision-model-on-the-qwen35-08b-hybrid-rail-the-readout-is-the-recipe-2026-09-23) |
 | [Fun-ASR-Nano-2512](https://huggingface.co/litert-community/Fun-ASR-Nano-2512) | 0.83B | speech to text (zh / en / ja) | Galaxy S26 CPU 31.6 | M4 Max GPU 143.0 | [card](cards/fun-asr-nano-2512-litert.md) |
+| [LFM3-Audio-2B](https://huggingface.co/litert-community/LFM3-Audio-2B-LiteRT) | 2B | speech to text, questions about audio (en); speech output through LiteRT graphs | Galaxy S26 GPU 40.6 | M4 Max GPU 167.9 | [recipe](REPRODUCE.md#lfm3-audio-2b--speech-and-text-in-text-out-through-one-generic_model-litertlm-file-int4-decoder-audio-encoder-with-fp16-weights-and-speech-out-as-litert-graphs-for-a-host-loop-with-a-galaxy-s26-npu-file-for-the-depth-decoder-2026-10-29) |
 | [Confucius4-R2T2](https://huggingface.co/mlboydaisuke/Confucius4-R2T2-LiteRT) | 2.04B | streaming speech to text (zh / en / ja) | — | — | [card](cards/confucius4-r2t2-litert.md) |
 | [Hy-MT2-1.8B](https://huggingface.co/litert-community/Hy-MT2-1.8B) | 2.04B | translation, 33 languages | Galaxy S26 GPU 26.3–27.5 | M4 Max GPU 150.7 | [recipe](REPRODUCE.md#2026-08-27--hy-mt2-18b-intake-one-config-bake-closes-the-sweeps-real-gap-and-the-engines-start_token-prepend-gets-proven) |
 | [Qwen3-ASR-1.7B](https://huggingface.co/litert-community/Qwen3-ASR-1.7B) | 2.04B | speech to text (scored on zh / en / ja) | Galaxy S26 CPU 25.3 | — | [card](cards/qwen3-asr-1.7b-litert.md) |

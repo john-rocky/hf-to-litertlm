@@ -144,6 +144,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29"
   },
+  "LFM3-Audio-2B": {
+    "task": "speech to text, questions about audio (en); speech output through LiteRT graphs",
+    "group": 4,
+    "recipe": "REPRODUCE.md#lfm3-audio-2b--speech-and-text-in-text-out-through-one-generic_model-litertlm-file-int4-decoder-audio-encoder-with-fp16-weights-and-speech-out-as-litert-graphs-for-a-host-loop-with-a-galaxy-s26-npu-file-for-the-depth-decoder-2026-10-29"
+  },
   "LLaVA-OneVision-0.5B": {
     "task": "chat + image",
     "group": 3,
