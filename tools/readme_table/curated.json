@@ -139,6 +139,11 @@
     "group": 3,
     "recipe": "REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support"
   },
+  "LFM3-1.7B": {
+    "task": "local agents, tool calls (XML), optional thinking",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29"
+  },
   "LLaVA-OneVision-0.5B": {
     "task": "chat + image",
     "group": 3,

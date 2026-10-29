@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 89 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 90 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -125,6 +125,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct) | 1.5B | chat | Galaxy S26 CPU 11.3–12.0 | M4 Max GPU 51.7 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct) | 1.5B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 102.9 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct) | 1.54B | code | Galaxy S26 CPU 27.0–29.7 | M4 Max GPU 137.8 | [recipe](REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe) |
+| [LFM3-1.7B](https://huggingface.co/litert-community/LFM3-1.7B-LiteRT) | 1.7288B | local agents, tool calls (XML), optional thinking | Galaxy S26 CPU 35.5 | — | [recipe](REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29) |
 | [LFM2-2.6B](https://huggingface.co/litert-community/LFM2-2.6B) | 2.57B | chat | Galaxy S26 GPU 27.8 | M4 Max GPU 163.8 | [recipe](REPRODUCE.md#lfm2-26b--a-model-that-reasons-when-it-chooses-a-thought-channel-kept-on-and-an-int4-zero-scale-fix-that-has-to-clear-the-blocks-too) |
 | [LFM2-2.6B-Exp](https://huggingface.co/litert-community/LFM2-2.6B-Exp) | 2.57B | chat | Galaxy S26 GPU 27.6 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#lfm2-26b-exp--lfm2-26bs-recipe-unchanged-for-a-checkpoint-that-reasons-although-its-card-does-not-say-so) |
 | [G9v3-3B](https://huggingface.co/litert-community/G9v3-3B) | 2.99B | chat | Galaxy S26 GPU 18.5 | M4 Max GPU 84.2 | [recipe](REPRODUCE.md#g9v3-3b--a-dense-3b-with-a-thinking-switch-gptq-calibrated-int4-on-a-mac-and-a-gpu-activation-type-declared-per-file) |
