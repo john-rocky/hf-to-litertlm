@@ -371,6 +371,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#g9v3-3b--a-dense-3b-with-a-thinking-switch-gptq-calibrated-int4-on-a-mac-and-a-gpu-activation-type-declared-per-file"
   },
+  "MiniCPM-OCR-1.0": {
+    "task": "OCR: text, tables, formulas, fields",
+    "group": 3,
+    "recipe": "REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-and-page-tiles-through-one-extra-context-variable-2026-10-29"
+  },
   "MiniCPM-V-4.7-1B": {
     "task": "chat + image",
     "group": 3,
