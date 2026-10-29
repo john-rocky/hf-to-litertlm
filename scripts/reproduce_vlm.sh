@@ -18,6 +18,7 @@ case "${1:-}" in
   internvl3.5-4b)        bash scripts/ship_internvl3_5_4b.sh ;;   # InternViT + Qwen3-4B
   llava-onevision-0.5b)  bash scripts/ship_llavaov.sh ;;          # SigLIP + Qwen2-0.5B (730 tokens)
   mage-vl)               bash scripts/ship_magevl.sh ;;           # static-448 (no GATHER_ND) + Qwen3-4B int4-b128
+  minicpm-ocr-1.0)       bash scripts/ship_minicpm_ocr_1_0.sh ;;  # static-448 4x ViT (256 tokens) + Qwen3.5-text hybrid int8
   minicpm-v-4.7-1b)      bash scripts/ship_minicpmv47_1b.sh ;;    # static-448 window-merger ViT + Qwen3.5-text hybrid int8 (3 files)
   north-micro-vision)    bash scripts/ship_northmv.sh ;;          # static-512 deepstack-fold + Cohere2-rehost int8 (fp32_fp16 hint)
   ovis2.5-2b)            bash scripts/ship_ovis_2b.sh ;;          # static-NaViT + Qwen3-1.7B (structural embed)
@@ -29,7 +30,7 @@ case "${1:-}" in
   --list|"")
     echo "VLM keys (fast_vlm single-image):"
     printf '  %s\n' granite-docling-258m internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
-      llava-onevision-0.5b north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b \
+      llava-onevision-0.5b minicpm-ocr-1.0 north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b \
       wevisone-vl-2b
     echo; echo "each -> out/*-bundle/<Model>.litertlm ; details in cards/*-litert.md" ;;
   *) echo "unknown VLM key: '$1' (run --list)"; exit 2 ;;

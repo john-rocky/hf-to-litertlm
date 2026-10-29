@@ -1,0 +1,31 @@
+{%- set ns = namespace(img=0, nl=false) -%}
+{%- set cols = slice_cols|int if (slice_cols is defined and slice_cols) else 0 -%}
+{%- for message in messages -%}
+{%- set role = message['role'] -%}
+{%- if role == 'user' or role == 'assistant' or role == 'model' or (role == 'system' and loop.first) -%}
+{%- if ns.nl -%}{{- '\n' -}}{%- set ns.nl = false -%}{%- endif -%}
+{%- if role == 'user' -%}{{- '<|im_start|>user\n' -}}{%- elif role == 'system' -%}{{- '<|im_start|>system\n' -}}{%- else -%}{{- '<|im_start|>assistant\n<think>\n\n</think>\n\n' -}}{%- endif -%}
+{%- if message['content'] is string -%}{{- message['content'] -}}
+{%- elif message['content'] is sequence -%}
+{%- set parts = namespace(n=0, k=0) -%}
+{%- for item in message['content'] -%}
+{%- if item['type'] == 'image' -%}
+{%- if cols > 0 and parts.k > 0 -%}
+{%- if parts.k > 1 and (parts.k - 1) % cols == 0 -%}{{- '\n' -}}{%- endif -%}
+{{- '<slice><image_soft_token></slice>' -}}
+{%- else -%}
+{%- if parts.n > 0 -%}{{- '\n' -}}{%- endif -%}
+{{- '<image_id>' -}}{{- ns.img -}}{{- '</image_id><image><image_soft_token></image>' -}}
+{%- set ns.img = ns.img + 1 -%}
+{%- endif -%}
+{%- set parts.k = parts.k + 1 -%}
+{%- set parts.n = parts.n + 1 -%}
+{%- elif item['type'] == 'text' -%}
+{%- if parts.n > 0 -%}{{- '\n' -}}{%- endif -%}{{- item['text'] -}}{%- set parts.n = parts.n + 1 -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- if role == 'user' or role == 'system' -%}{{- '<|im_end|>\n' -}}{%- else -%}{{- '<|im_end|>' -}}{%- set ns.nl = true -%}{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}{%- if ns.nl -%}{{- '\n' -}}{%- endif -%}{{- '<|im_start|>assistant\n<think>\n\n</think>\n\n' -}}{%- endif -%}
