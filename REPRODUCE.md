@@ -3916,3 +3916,27 @@ They took 405 s and 26 s on a 128 GB Mac with the int4 file on a USB disk (peak 
 - **The cache rewrite** (`cache_variant.py`) starts from the cache dimension of the `kv_cache_k_*` / `kv_cache_v_*` inputs, the mask, and the constant that lists the cache positions (litert-torch's sliding-window mask builder), and rewrites every tensor shape and every RESHAPE / SLICE constant that carries the cache length; a number that only happens to equal it is left alone. Every weight buffer is copied byte for byte and checked. It stops on STABLEHLO_COMPOSITE ops and on a fixed SLICE window of the cache larger than the new length. The real weights cut to 4 layers (3 sliding-window, 1 global), exported with a 2,048-token cache and rewritten to 1,024, gave the original file's logits bit for bit (160 decode positions, and 32 after a 128-token prefill).
 - **The prefill clone** needed one more rule for this graph: a CONCATENATION that stacks copies of one tensor along the prefill length (the grouped-query mask repeat `[1,1,T,C] × g → [1,1,g·T,C]`) is now followed instead of stopping the tool. The rule only replaces a stop, so a graph the previous version accepted goes through the same code as before.
 - Speeds, answers and the demo, measured on a Mac: the model card.
+
+## Qwen2.5-VL-72B-Instruct — the 80-layer text decoder written with the LiteRT Tensor API one tensor at a time (int4, a 2,048-token cache, prefill 32 / 128 / 1,024), and the vision tower re-authored for one 448 × 448 picture and lifted to rank 4 for the GPU (2026-10-31)
+
+The steps are in [john-rocky/tensor-api-harness: models/qwen2.5-vl-72b](https://github.com/john-rocky/tensor-api-harness/tree/main/models/qwen2.5-vl-72b). They convert [Qwen/Qwen2.5-VL-72B-Instruct](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct) at revision `89c86200` — Qwen's vision-language model under the Qwen LICENSE AGREEMENT; an 80-layer Qwen2 text decoder and a 32-layer vision encoder — into `Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm` (44,789,536,688 B) of [litert-community/Qwen2.5-VL-72B-Instruct-LiteRT](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT). The text decoder is written with the LiteRT Tensor API because the converter quantizes after it has written the whole fp32 graph, about 290 GB for this model; the writer quantizes one tensor at a time and never holds that graph. The vision encoder's GPU rewrite is [`tools/gpu_graph/tfl_rank4.py`](tools/gpu_graph/tfl_rank4.py). The harness README says how each part was checked.
+
+| section | bytes | sha256 |
+|---|---|---|
+| LlmMetadataProto | 1,496 | `27bbe45b28b6617e5f46f385993445cf889ed667187ec588d78303a5ad260d5f` |
+| HF_Tokenizer_Zlib | 1,968,066 | `fd77bdd170472306cd229e0961815ae0482e6934137cb6b4336a9caa1a6bdd0e` |
+| TFLiteModel (tf_lite_embedder) | 1,247,534,800 | `2d57e3ab0f571c1706379a72d3245d34fd0953f91cfd5723b9add4bff07e7869` |
+| TFLiteModel (tf_lite_prefill_decode) | 40,713,491,328 | `7100b1e61726f285714797ecec9e84f5f6784f34a21a4e66ae88c9c1d370464e` |
+| TFLiteModel (tf_lite_vision_encoder) | 2,553,783,680 | `571792dcd2e980e10e7a92fbbad7d9eaa4a48ae622f891a8435c3dfd37236f2f` |
+| TFLiteModel (tf_lite_vision_adapter) | 272,684,976 | `fbc056d882ff076451b75c2e12c829369ae3213abc701709212de8412cb5dcea` |
+
+Run on 2026-10-31, the writer of that directory, built in a LiteRT checkout at `dcb657e8` (`bazel build -c opt`; the action cache already held a binary built from the same source bytes) and run as its step 3 on the packed weights, gave the decoder section above byte for byte:
+
+```bash
+qwen2_writer --weights_dir=PACK --out=PACK/model_p32c2048.tflite --prefill=32,128,1024 --cache=2048
+```
+
+It took 1,911 s on a 128 GB Mac, reading the packed weights (38.6 GB) from a USB disk that another job was reading at the same time (986 s on 2026-10-30 without it), with a peak memory of 6.7 GB. The weight pack (about 1.6 h), the token table, the vision tower and the bundle were run for the conversion and not again for this entry.
+
+- Image tokens take 1-D positions (the source model: M-RoPE, three position axes). On three picture questions, Transformers with the bf16 weights chose the same next token as the replies at 83 of 84 positions under either scheme (the replies of an earlier build with a 4,096-token cache; this file gives the same three replies word for word).
+- Speeds, answers and the demo, measured on a Mac: the model card.
