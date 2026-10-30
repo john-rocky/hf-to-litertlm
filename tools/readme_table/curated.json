@@ -449,7 +449,7 @@
   "WeVisOne-VL-2B": {
     "task": "boxes, points, counts and OCR on an image",
     "group": 3,
-    "recipe": "REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-weights-2026-10-25"
+    "recipe": "REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25"
   },
   "NVIDIA-Nemotron-3.5-Bolt-E4B": {
     "task": "chat, optional thinking",

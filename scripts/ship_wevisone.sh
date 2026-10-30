@@ -17,6 +17,9 @@
 #
 #   bash scripts/ship_wevisone.sh      # -> wevisone_work/out/r2/bundle/WeVisOne-VL-2B_f16.litertlm
 #   FP32=1 bash scripts/ship_wevisone.sh   # also WeVisOne-VL-2B_fp32.litertlm, the float32 form for desktop CPUs
+#   INT8=1 bash scripts/ship_wevisone.sh   # also WeVisOne-VL-2B_int8.litertlm: int8 weights in the decoder and the
+#                                          #   token embedder, the same float16 vision graphs, no activation type declared
+#   F16=0 INT8=1 bash scripts/ship_wevisone.sh   # the int8 file only (skips the float16 decoder and its file)
 set -euo pipefail
 cd "$(dirname "$0")/../wevisone_work"
 : "${PY_REF:?}" "${PY_EXPORT:?}" "${LITERT_LM:?}"
@@ -42,8 +45,11 @@ export LN_SCALES="$(pwd)/ln_scales_512.json"
 
 echo "### 4. decoder: fp32 export (wide input, image flag, derived M-RoPE), then fp16 weights"
 PYTHONHASHSEED=0 "$PY_EXPORT" -I tools/wv_export_decoder.py --out out/r2/dec_fp32
-"$PY_EXPORT" -I tools/wv_quant_decoder.py fp16 --src out/r2/dec_fp32 --dst out/r2/dec_fp16
+if [ "${F16:-1}" = 1 ]; then
+  "$PY_EXPORT" -I tools/wv_quant_decoder.py fp16 --src out/r2/dec_fp32 --dst out/r2/dec_fp16
+fi
 
+if [ "${F16:-1}" = 1 ]; then
 echo "### 5. the .litertlm, its executor metadata, the section check"
 "$PY_EXPORT" -I tools/build_wv_bundle.py --build --name $NAME \
   --decoder out/r2/dec_fp16/prefill_decode_fp16.tflite --embedder out/r2/dec_fp16/embedder_fp16.tflite \
@@ -54,6 +60,7 @@ python3 ../scripts/add_executor_metadata.py out/r2/bundle/${NAME}_noexec.litertl
 LITERT_LM="$LITERT_LM" "$PY_EXPORT" -I tools/wv_bundle_check.py $NAME
 rm -f out/r2/bundle/${NAME}_noexec.litertlm
 ls -l out/r2/bundle/$NAME.litertlm
+fi
 
 if [ "${FP32:-0}" = 1 ]; then
   echo "### 6. (FP32=1) the float32 form: the fp32 graphs of steps 3 and 4, PREFILL_DECODE declared fp32"
@@ -67,4 +74,20 @@ if [ "${FP32:-0}" = 1 ]; then
   LITERT_LM="$LITERT_LM" "$PY_EXPORT" -I tools/wv_bundle_check.py $F
   rm -f out/r2/bundle/${F}_noexec.litertlm
   ls -l out/r2/bundle/$F.litertlm
+fi
+
+if [ "${INT8:-0}" = 1 ]; then
+  echo "### 7. (INT8=1) the int8 form: step 4's fp32 export with int8 weights (dynamic_wi8_afp32) in the decoder and"
+  echo "###    the token embedder, the float16 vision graphs of step 3, no activation type declared"
+  I=WeVisOne-VL-2B_int8
+  "$PY_EXPORT" -I tools/wv_quant_decoder.py wi8 --src out/r2/dec_fp32 --dst out/r2/dec_wi8
+  "$PY_EXPORT" -I tools/build_wv_bundle.py --build --name $I \
+    --decoder out/r2/dec_wi8/prefill_decode_wi8.tflite --embedder out/r2/dec_wi8/embedder_wi8.tflite \
+    --encoder out/r2/vision/vision_encoder_fp16.tflite --adapter out/r2/vision/vision_adapter_fp16.tflite \
+    --act "" --image-size 512
+  python3 ../scripts/add_executor_metadata.py out/r2/bundle/${I}_noexec.litertlm out/r2/bundle/$I.litertlm \
+    --litert-lm "$LITERT_LM" --python "$PY_EXPORT"
+  LITERT_LM="$LITERT_LM" "$PY_EXPORT" -I tools/wv_bundle_check.py $I
+  rm -f out/r2/bundle/${I}_noexec.litertlm
+  ls -l out/r2/bundle/$I.litertlm
 fi
