@@ -185,7 +185,7 @@ Checked on 2026-10-15 on a Mac with litert-lm 0.18.0: run as printed from the so
 
 ## External weights (2026-10)
 
-A first published `.litertlm` is re-packed so that the weights of its TFLiteModel section sit in a TFLiteWeights section at the end of the file, with LiteRT's `externalize_tflite_flatbuffer.py` and `externalize_litertlm_sections.py` (commit `c5c0d28f`) and litert-lm-builder 0.18.0 (Hub PR https://huggingface.co/litert-community/Qwen3-0.6B/discussions/13, open). The Android GPU path of a LiteRT-LM build at tag v0.18.0 crashes on such a file (google-ai-edge/LiteRT-LM#3986); a build at or after b7c40ea81 runs it. Every other section is byte-identical to the file it was built from; `tools/externalize/README.md` lists the checks each file passed.
+A first published `.litertlm` is re-packed so that the weights of its TFLiteModel section sit in a TFLiteWeights section at the end of the file, with LiteRT's `externalize_tflite_flatbuffer.py` and `externalize_litertlm_sections.py` (commit `c5c0d28f`; `tools/externalize` pins `8761012b` since 2026-10-30, which gives the same sections) and litert-lm-builder 0.18.0 (Hub PR https://huggingface.co/litert-community/Qwen3-0.6B/discussions/13, open). The Android GPU path of the LiteRT-LM v0.18.0 and v0.18.1 builds crashes on such a file (google-ai-edge/LiteRT-LM#3986); LiteRT-LM 0.19.0 runs it. Every other section is byte-identical to the file it was built from; `tools/externalize/README.md` lists the checks each file passed.
 
 | repo | file | built from (Hub commit) | source sha256 (first 16) | TFLiteModel / TFLiteWeights sections | result sha256 (first 16) | Hub commit of the result |
 |---|---|---|---|---|---|---|
@@ -194,12 +194,12 @@ A first published `.litertlm` is re-packed so that the weights of its TFLiteMode
 Rebuild a row from the repository root, after the `pip install` line and `fetch_tools.sh` in `tools/externalize/README.md`:
 
 ```sh
-export XR_TOOLS_PATH=$HOME/.cache/litert-externalize/c5c0d28f27abddec81bcc14bbd05bdb84eb5c556
+export XR_TOOLS_PATH=$HOME/.cache/litert-externalize/8761012bb42439f0ac1df55f144d6ace47c2b35c
 bash tools/externalize/externalize_repo.sh litert-community/Qwen3-0.6B Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm \
   --revision a3c5d805ae362dff7f580bc25f2dfb9a5a7eaa76
 ```
 
-The builder writes a new uuid and creation timestamp into the container header, so a rebuilt file's sha256 differs from the table. Compare it with the published file section by section: `python scripts/section_identity.py <published> externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm` prints SAME for every section. The run's report (`externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm.REPORT.md`) gives the raw sha256 of each section: TFLiteModel `dcb1e3d69326af0d…`, TFLiteWeights `21011d25361c728d…`.
+The builder writes a new uuid and creation timestamp into the container header, so a rebuilt file's sha256 differs from the table. Compare it with the published file section by section: `python scripts/section_identity.py <published> externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm` prints SAME for every section. The run's report (`externalize_staging/litert-community__Qwen3-0.6B/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm.REPORT.md`) gives the raw sha256 of each section: TFLiteModel `dcb1e3d69326af0d…`, TFLiteWeights `21011d25361c728d…`. Run as written on 2026-10-30 with the tools at `8761012b`: SAME for all five sections against the published file.
 
 
 ## 2026-10-12 — metadata re-ship to the official LiteRT-LM configuration, second batch (3 files, weights unchanged)

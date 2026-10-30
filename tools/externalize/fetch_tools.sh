@@ -10,8 +10,8 @@
 # Then checks that the Python in XR_PY (default python3) imports it with the ExternalBuffer types, and prints the
 # line to export for externalize_repo.sh.
 set -euo pipefail
-COMMIT=c5c0d28f27abddec81bcc14bbd05bdb84eb5c556
-PIN_FLATBUFFER=be0630c5d47325f36107247ac5e7c65380a38757b7a122df1534015f99fc6a9b
+COMMIT=8761012bb42439f0ac1df55f144d6ace47c2b35c
+PIN_FLATBUFFER=5fa96fa600131b3964221dad0ff823358f2794e51084a70baf660b441dd4762c
 PIN_SECTIONS=0aa2b9e1eba0427a127a1b22916fb98ae440bd9a8376dc50ed15d65261b6c367
 DIR=${1:-$HOME/.cache/litert-externalize/$COMMIT}
 PY=${XR_PY:-python3}

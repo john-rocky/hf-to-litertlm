@@ -65,13 +65,17 @@ def main():
           "- The builder writes a new uuid and creation_timestamp into the container header at every pack, so the file's "
           "sha256 changes from build to build; the section table below says which sections equal the original's bytes.",
           ""]
-    L += ["## Input", "",
-          f"- Hub: `{g('repo')}` revision `{g('revision')}` (asked: `{g('revision_asked', 'main')}`), `{g('file')}`: size {g('hub_size')}, LFS size "
-          f"{g('hub_lfs_size')}, LFS sha256 `{g('hub_sha256')}` (model info `{g('api_json')}`, read {g('api_read_at')}).",
+    hub = (f"- Hub: {g('hub')}." if g("hub") else
+           f"- Hub: `{g('repo')}` revision `{g('revision')}` (asked: `{g('revision_asked', 'main')}`), `{g('file')}`: size {g('hub_size')}, LFS size "
+           f"{g('hub_lfs_size')}, LFS sha256 `{g('hub_sha256')}` (model info `{g('api_json')}`, read {g('api_read_at')}).")
+    ths = [(k[len("threshold_"):], v) for k, v in R.items() if k.startswith("threshold_")]
+    L += ["## Input", "", hub,
           f"- Local: `{g('int_path')}` ({g('source_kind')}): {int(g('int_size', 0) or 0):,} B, sha256 `{g('int_sha256')}` → "
           f"{g('input_check', 'not checked')}.",
           f"- Options: keep inline at or under {g('keep_inline_under_mib', '0')} MiB; executor metadata "
-          f"{g('executor_metadata', 'off')}; smoke {g('smoke_mode', '?')}.", ""]
+          f"{g('executor_metadata', 'off')}; num_elements_threshold {g('num_elements_threshold', '256')}; smoke "
+          f"{g('smoke_mode', '?')}."]
+    L += [f"  - threshold for {mt}: {v}" for mt, v in ths] + [""]
     if sec:
         I, X = sec["orig"], sec["new"]
         orig_sha = {s["sha"]: s["i"] for s in I["secs"]}
@@ -106,7 +110,9 @@ def main():
                 c = ", ".join(f"{k} ({n})" for k, n in v["consumers"].items())
                 L.append(f"| {r['model_type']} | {d} | {v['tensors']:,} | {v['unique_bytes']:,} | {mib(v['unique_bytes'])} | {c} |")
         fl = [(r["model_type"], f) for r in brk["sections"] for f in r["float_ext"]]
-        L += ["", f"- FLOAT_EXTERNAL={'yes' if brk['float_external'] else 'no'}"
+        L += ["", f"- DW_INT8_EXTERNAL={brk.get('dw_int8_external', 'not checked')} (INT8 per-channel DEPTHWISE_CONV_2D "
+              "filters in a weights section; LiteRT's GPU delegate refuses them, so any count above 0 fails the tensor check)"]
+        L += [f"- FLOAT_EXTERNAL={'yes' if brk['float_external'] else 'no'}"
               + (" — float tensors in a weights section (WebGPU's streamed loading takes INT8 / INT4 / INT2 external "
                  "weights only):" if fl else "")]
         agg = {}

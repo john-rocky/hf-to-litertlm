@@ -8,10 +8,16 @@
 #   externalize_repo.sh <org/repo> <file.litertlm> [options]
 #     --source PATH               use this local copy instead of downloading; size / sha256 are still checked against
 #                                 the Hub
+#     --no-hub                    the --source file is new and not on the Hub (a fresh export): no model info, no Hub
+#                                 comparison; <org/repo> only names the staging directory and the report
 #     --revision REV              the Hub revision (branch or commit) whose file is the input; default main
 #     --api-json PATH             read the Hub model info (/api/models/<repo>/revision/<REV>?blobs=true) from this file
 #     --keep-inline-under-mb N    TFLiteModel sections of N MiB or less stay inline (results row with an empty weights
 #                                 path); default 0 = every TFLiteModel section is externalized
+#     --num-elements-threshold N  the tool's --num_elements_threshold: tensors of N elements or fewer stay in the graph;
+#                                 default 256 (the tool's own). Per section it is raised to the largest INT8 / UINT8
+#                                 per-channel DEPTHWISE_CONV_2D filter (lib/dw_floor.py): LiteRT's GPU delegate refuses
+#                                 such a filter as an external buffer, and the file would get no GPU engine
 #     --executor-metadata auto|off  auto = a bundle with a prefill_decode section and no ExecutorMetadata section gets
 #                                 one generated from the signatures (lib/executor_skeleton.py); default off
 #     --smoke-attachment PNG      the smoke asks about this image instead of the text question (vision bundles)
@@ -29,7 +35,7 @@
 #     (hf), XR_TOOLS_PATH (the directory fetch_tools.sh printed), XR_TOOLS_COMMIT override the defaults below;
 #     HF_TOKEN reaches the Hub (never written); XR_ALLOW_UNPINNED_TOOLS=1 accepts tool files whose sha256 differ from
 #     the pins (recorded); XR_SMOKE_TIMEOUT (s, default 600); XR_FAULT=section|weights plants one fault before the
-#     checks (self-test of exit 5 only).
+#     checks, XR_FAULT=depthwise skips the depthwise raise above (self-tests of exit 5 only).
 set -uo pipefail
 LIB=$(cd "$(dirname "$0")" && pwd)/lib
 PY=${XR_PY:-python3}
@@ -37,11 +43,11 @@ CLI=${XR_LITERT_LM:-litert-lm}
 BUILDER=${XR_BUILDER:-litert-lm-builder}
 PEEK=${XR_PEEK:-litert-lm-peek}
 HF=${XR_HF:-hf}
-TOOLS_COMMIT=${XR_TOOLS_COMMIT:-c5c0d28f27abddec81bcc14bbd05bdb84eb5c556}
+TOOLS_COMMIT=${XR_TOOLS_COMMIT:-8761012bb42439f0ac1df55f144d6ace47c2b35c}
 TOOLS_PATH=${XR_TOOLS_PATH:-$HOME/.cache/litert-externalize/$TOOLS_COMMIT}
 WORK_ROOT=${XR_WORK_ROOT:-$PWD/externalize_work}
 STAGING_ROOT=${XR_STAGING_ROOT:-$PWD/externalize_staging}
-PIN_FLATBUFFER=be0630c5d47325f36107247ac5e7c65380a38757b7a122df1534015f99fc6a9b
+PIN_FLATBUFFER=5fa96fa600131b3964221dad0ff823358f2794e51084a70baf660b441dd4762c
 PIN_SECTIONS=0aa2b9e1eba0427a127a1b22916fb98ae440bd9a8376dc50ed15d65261b6c367
 SMOKE_TIMEOUT=${XR_SMOKE_TIMEOUT:-600}
 FAULT=${XR_FAULT:-}
@@ -51,11 +57,13 @@ usage() { awk 'NR >= 7 && /^#/ { sub(/^# ?/, ""); print; next } NR >= 7 { exit }
 REPO=$1
 FILE=$2
 shift 2
-SOURCE= API_JSON= REVISION=main KEEP_MB=0 EXECMD=off ATTACH= NO_SMOKE=0 SMOKE_ONLY=0 W= S= KEEP_WORK=0
+SOURCE= API_JSON= REVISION=main KEEP_MB=0 EXECMD=off ATTACH= NO_SMOKE=0 SMOKE_ONLY=0 W= S= KEEP_WORK=0 NO_HUB=0 THRESH=256
 need() { [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a value"; exit 2; }; }
 while [ $# -gt 0 ]; do
   case $1 in
     --source) need "$@"; SOURCE=$2; shift 2 ;;
+    --no-hub) NO_HUB=1; shift ;;
+    --num-elements-threshold) need "$@"; THRESH=$2; shift 2 ;;
     --api-json) need "$@"; API_JSON=$2; shift 2 ;;
     --revision) need "$@"; REVISION=$2; shift 2 ;;
     --keep-inline-under-mb) need "$@"; KEEP_MB=$2; shift 2 ;;
@@ -73,6 +81,9 @@ done
 echo "$REPO" | grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' || { echo "repo must be <org>/<name>: $REPO"; exit 2; }
 case $FILE in *.litertlm) ;; *) echo "file must end in .litertlm: $FILE"; exit 2 ;; esac
 echo "$KEEP_MB" | grep -Eq '^[0-9]+([.][0-9]+)?$' || { echo "--keep-inline-under-mb takes a number: $KEEP_MB"; exit 2; }
+echo "$THRESH" | grep -Eq '^[0-9]+$' || { echo "--num-elements-threshold takes a whole number: $THRESH"; exit 2; }
+[ $NO_HUB = 1 ] && [ -z "$SOURCE" ] && [ $SMOKE_ONLY = 0 ] && { echo "--no-hub needs --source (the new file)"; exit 2; }
+[ $NO_HUB = 1 ] && [ -n "$API_JSON" ] && { echo "--no-hub and --api-json exclude each other"; exit 2; }
 echo "$REVISION" | grep -Eq '^[A-Za-z0-9._-]+$' || { echo "--revision takes a branch name or a commit: $REVISION"; exit 2; }
 case $EXECMD in auto|off) ;; *) echo "--executor-metadata takes auto or off: $EXECMD"; exit 2 ;; esac
 [ $NO_SMOKE = 1 ] && [ $SMOKE_ONLY = 1 ] && { echo "--no-smoke and --smoke-only exclude each other"; exit 2; }
@@ -91,7 +102,7 @@ RP=$W/report
 LG=$W/logs
 KEEP_BYTES=$(awk -v n="$KEEP_MB" 'BEGIN { printf "%d", n * 1048576 }')
 
-fsize() { stat -f %z "$1" 2>/dev/null || stat -c %s "$1"; }
+fsize() { stat -L -f %z "$1" 2>/dev/null || stat -L -c %s "$1"; }   # -L: a --source symlink is measured through the link
 sha() { if command -v shasum > /dev/null; then shasum -a 256 "$1" | cut -d' ' -f1; else sha256sum "$1" | cut -d' ' -f1; fi; }
 log() { echo "[$(date '+%F %T')] $*" | tee -a "$RP/run.log"; }
 kv() { printf '%s\t%s\n' "$1" "$2" >> "$RP/run.tsv"; }
@@ -170,7 +181,7 @@ mkdir -p "$RP" "$LG" "$B" "$E" || exit 2
 log "start: $REPO $FILE → work $W, staging $S"
 kv repo "$REPO"; kv file "$FILE"; kv out_name "$BASE"; kv started "$(date '+%F %T %Z')"; kv revision_asked "$REVISION"
 kv host "$(uname -sm) $(sw_vers -productVersion 2>/dev/null || true)"
-kv keep_inline_under_mib "$KEEP_MB"; kv executor_metadata "$EXECMD"
+kv keep_inline_under_mib "$KEEP_MB"; kv executor_metadata "$EXECMD"; kv num_elements_threshold "$THRESH"
 if [ $NO_SMOKE = 1 ]; then kv smoke_mode "skipped (--no-smoke)"; else kv smoke_mode "cpu, in this run"; fi
 for x in "$PY" "$CLI" "$BUILDER" "$PEEK"; do command -v "$x" > /dev/null || fail 2 "not found: $x"; done
 [ -z "$SOURCE" ] && { command -v "$HF" > /dev/null || fail 2 "not found: $HF (needed to download; or give --source)"; }
@@ -212,6 +223,7 @@ hub_meta() {  # model info → HUB_SIZE HUB_LFS_SIZE HUB_SHA REV
 
 # --- 0 size + disk guard -------------------------------------------------------------------------------------------
 HUB_READ=0
+[ $NO_HUB = 1 ] && kv hub "not read (--no-hub: a new file, not on the Hub)"
 if [ -n "$SOURCE" ]; then SIZE=$(fsize "$SOURCE")
 else hub_meta || fail 4 "cannot read the Hub model info for $REPO / $FILE"; HUB_READ=1; SIZE=$HUB_SIZE; fi
 needb=$(( SIZE * 4 ))
@@ -228,7 +240,7 @@ DOWNLOADED=0
 if [ -n "$SOURCE" ]; then
   INT=$SOURCE
   kv source_kind "local copy (--source)"
-  [ $HUB_READ = 1 ] || hub_meta || fail 4 "cannot read the Hub model info for $REPO / $FILE"
+  [ $HUB_READ = 1 ] || [ $NO_HUB = 1 ] || hub_meta || fail 4 "cannot read the Hub model info for $REPO / $FILE"
 else
   INT=$W/int/$FILE
   run "$LG/download.log" env HF_HUB_DISABLE_XET=1 "$HF" download "$REPO" "$FILE" --revision "$REV" --local-dir "$W/int" \
@@ -239,7 +251,9 @@ else
 fi
 isz=$(fsize "$INT"); ish=$(sha "$INT")
 kv int_path "$INT"; kv int_size "$isz"; kv int_sha256 "$ish"
-if [ "$isz" = "$HUB_SIZE" ] && [ "$isz" = "$HUB_LFS_SIZE" ] && [ "$ish" = "$HUB_SHA" ]; then
+if [ $NO_HUB = 1 ]; then
+  kv input_check "not compared (--no-hub: a new file)"; log "input: $isz B sha256 $ish (--no-hub: not compared with the Hub)"
+elif [ "$isz" = "$HUB_SIZE" ] && [ "$isz" = "$HUB_LFS_SIZE" ] && [ "$ish" = "$HUB_SHA" ]; then
   kv input_check "PASS (size and sha256 = the Hub's)"; log "input: $isz B sha256 $ish = Hub"
 else
   kv input_check "FAIL (local $isz B $ish vs Hub $HUB_SIZE B $HUB_SHA)"
@@ -271,8 +285,18 @@ while IFS=$'\t' read -r idx mt inp; do
     continue
   fi
   od=$E/$mt
+  th=$THRESH
+  fl=$("$PY" -I "$LIB/dw_floor.py" "$inp" 2> "$LG/dw_floor_$mt.err") || fail 1 "dw_floor.py failed on $mt ($LG/dw_floor_$mt.err)"
+  fmax=$(echo "$fl" | cut -f1); fn=$(echo "$fl" | cut -f2)
+  if [ "$FAULT" = depthwise ]; then
+    log "XR_FAULT=depthwise: $fn INT8 per-channel DEPTHWISE_CONV_2D filters, threshold left at $th (dry run of exit 5)"
+  elif [ "$fmax" -gt "$th" ]; then
+    th=$fmax
+    log "section $idx $mt: $fn INT8 per-channel DEPTHWISE_CONV_2D filters (largest $fmax elements): threshold $THRESH -> $th, they stay in the graph"
+  fi
+  kv "threshold_$mt" "$th (asked $THRESH; INT8 per-channel DEPTHWISE_CONV_2D filters: $fn, largest $fmax elements)"
   pytool "$LG/externalize_$mt.log" litert.tools.externalize_tflite_flatbuffer --input_model "$inp" --output_dir "$od" \
-    --group_name tflite_weights --num_elements_threshold 256 || fail 1 "the tool failed on $mt ($LG/externalize_$mt.log)"
+    --group_name tflite_weights --num_elements_threshold "$th" || fail 1 "the tool failed on $mt ($LG/externalize_$mt.log)"
   if [ -s "$od/tflite_weights" ]; then
     if [ "$FAULT" = weights ]; then
       p=$(( $(fsize "$od/tflite_weights") / 2 ))
@@ -337,8 +361,9 @@ pyrun "$LG/breakdown.log" tflite_breakdown.py "${bargs[@]}" --out "$RP/breakdown
 rc2=$?
 kv breakdown "$(grep -E '^VERDICT|^ERROR' "$LG/breakdown.log" | head -1 | sed 's/^VERDICT: //')"
 kv float_external "$(sed -n 's/^FLOAT_EXTERNAL=//p' "$LG/breakdown.log")"
+kv dw_int8_external "$(sed -n 's/^DW_INT8_EXTERNAL=//p' "$LG/breakdown.log")"
 kv graph_over_50mib "$(sed -n 's/^GRAPH_OVER_MARK=//p' "$LG/breakdown.log")"
-log "checks: sections rc $rc1, tensors rc $rc2, $(grep -E '^FLOAT_EXTERNAL|^GRAPH_OVER' "$LG/breakdown.log" | tr '\n' ' ')"
+log "checks: sections rc $rc1, tensors rc $rc2, $(grep -E '^FLOAT_EXTERNAL|^DW_INT8_EXTERNAL|^GRAPH_OVER' "$LG/breakdown.log" | tr '\n' ' ')"
 grep -q '^### exit: 0' "$LG/verify_peek.log" && [ $rc1 = 0 ] && [ $rc2 = 0 ] \
   || fail 5 "a check failed: verify-peek $(grep '^### exit' "$LG/verify_peek.log"), sections rc $rc1, tensors rc $rc2"
 

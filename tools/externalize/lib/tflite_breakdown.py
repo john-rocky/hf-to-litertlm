@@ -13,7 +13,10 @@ A model type given with --ext and --blob is an externalized section; these are c
   * every external tensor has no buffer, and BLOB[offset, offset + length) is byte-equal to the ORIG buffer it used;
   * payload: ORIG buffer bytes = NEW buffer bytes kept + bytes of the buffers the tool cleared;
   * every external buffer belongs to the group `tflite_weights` (the name LiteRT-LM binds the TFLiteWeights section
-    to), starts 64-byte aligned and ends inside BLOB; BLOB size = the highest offset + length.
+    to), starts 64-byte aligned and ends inside BLOB; BLOB size = the highest offset + length;
+  * no DEPTHWISE_CONV_2D filter (input 1) that is INT8 / UINT8 with per-channel scales is in BLOB: LiteRT's GPU
+    delegate refuses such a filter as an external buffer ("Unsupported quantization scale size"), so the file would get
+    no GPU engine (DW_INT8_EXTERNAL=<count> is printed either way).
 Written, not checked: externalized tensors by dtype (FLOAT_EXTERNAL=yes when a float dtype went to the blob; the
 WebGPU streamed loading path takes INT8 / INT4 / INT2 external weights only), the NEW graph size with a mark above
 --graph-mark-mib, the largest payloads still in the graph, buffers >= --min-mib. A model type given with --orig only
@@ -34,6 +37,7 @@ GROUP = "tflite_weights"
 ALIGN = 64
 FLOATS = {"FLOAT32", "FLOAT16", "BFLOAT16", "FLOAT64"}
 STREAMED = {"INT8", "INT4", "INT2"}
+INT8S = {"INT8", "UINT8"}
 
 
 def enum_names(cls):
@@ -199,6 +203,7 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
     first_bad = []
     by_dtype = collections.defaultdict(lambda: [0, 0, set(), collections.Counter()])
     float_ext = []
+    dw_int8 = []
 
     def bad(kind, where):
         bad_t[kind] += 1
@@ -242,6 +247,12 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
                 tc = cons.get((sg_i, t_i), [])
                 for c in tc:
                     r[3][c] += 1
+                q = tx.Quantization()
+                if "DEPTHWISE_CONV_2D@1" in tc and dtype in INT8S and q is not None and q.ScaleLength() > 1:
+                    n_el = 1
+                    for d in shape_of(tx):
+                        n_el *= max(d, 0)
+                    dw_int8.append(n_el)
                 if dtype in FLOATS:
                     float_ext.append(dict(name=(tx.Name() or b"").decode(errors="replace"), dtype=dtype,
                                           shape=shape_of(tx), consumers=sorted(set(tc)), bytes=ln, offset=off,
@@ -252,6 +263,10 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
                 elif bi in cleared:
                     bad("tensor lost its data (buffer cleared)", f"sg{sg_i}:t{t_i}")
     n_ext = sum(v[0] for v in by_dtype.values())
+    if dw_int8:
+        why.append(f"{len(dw_int8)} INT8 per-channel DEPTHWISE_CONV_2D filters in the weights blob (largest "
+                   f"{max(dw_int8):,} elements): LiteRT's GPU delegate refuses them as external buffers, no GPU engine; "
+                   f"keep them inline with --num_elements_threshold >= {max(dw_int8)}")
     if bad_t:
         why.append("tensors: " + ", ".join(f"{k} {n}" for k, n in bad_t.items()) + f" (first: {'; '.join(first_bad)})")
     if bm:
@@ -266,7 +281,8 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
                 packing=dict(collections.Counter(v[3] for v in ext.values())),
                 by_dtype={d: dict(tensors=v[0], tensor_bytes=v[1], unique_bytes=sum(ln for _, ln in v[2]),
                                   consumers=dict(v[3].most_common())) for d, v in by_dtype.items()},
-                float_ext=float_ext, graph_over_mark=gbytes > mark_bytes, kept_by=agg, big=big, reasons=why)
+                float_ext=float_ext, dw_int8_external=len(dw_int8), dw_int8_external_max=max(dw_int8, default=0),
+                graph_over_mark=gbytes > mark_bytes, kept_by=agg, big=big, reasons=why)
 
 
 def describe_inline(mt, orig, min_bytes, mark_bytes):
@@ -275,7 +291,8 @@ def describe_inline(mt, orig, min_bytes, mark_bytes):
     gbytes = os.path.getsize(orig)
     return dict(model_type=mt, form="kept_inline", orig=orig, orig_bytes=gbytes, new_graph_bytes=gbytes, blob_bytes=0,
                 ext_tensors=0, ext_buffers=0, unique_bytes=0, orig_payload=total, kept_payload=total, cleared_payload=0,
-                by_dtype={}, float_ext=[], graph_over_mark=gbytes > mark_bytes, kept_by=agg, big=big, reasons=[])
+                by_dtype={}, float_ext=[], dw_int8_external=0, dw_int8_external_max=0,
+                graph_over_mark=gbytes > mark_bytes, kept_by=agg, big=big, reasons=[])
 
 
 def kv(specs):
@@ -312,6 +329,7 @@ def main():
             return 2
     reasons = [f"{r['model_type']}: {w}" for r in res for w in r["reasons"]]
     float_any = any(r["float_ext"] for r in res)
+    dw_any = sum(r["dw_int8_external"] for r in res)
     over = [r["model_type"] for r in res if r["graph_over_mark"]]
     L = ["# TFLite sections: what moved to the weights blob (`tflite_breakdown.py`; flatbuffer accessors only)", "",
          "## Checks per section", "",
@@ -387,10 +405,12 @@ def main():
             r2["big_buffers"] = len(r["big"])
             out.append(r2)
         with open(a.json, "w", encoding="utf-8") as fo:
-            json.dump(dict(sections=out, float_external=float_any, graph_mark_bytes=mark, graph_over_mark=over,
+            json.dump(dict(sections=out, float_external=float_any, dw_int8_external=dw_any, graph_mark_bytes=mark,
+                           graph_over_mark=over,
                            verdict="PASS" if not reasons else "FAIL", reasons=reasons), fo, indent=1)
     print(verdict)
     print(f"FLOAT_EXTERNAL={'yes' if float_any else 'no'}")
+    print(f"DW_INT8_EXTERNAL={dw_any}")
     print(f"GRAPH_OVER_MARK={','.join(over) or 'none'}")
     return 0 if not reasons else 1
 
