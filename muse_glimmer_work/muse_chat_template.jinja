@@ -1,0 +1,67 @@
+{#- Muse-Glimmer-30B chat template for the LiteRT-LM bundle (fast_vlm, one image = one soft-token run).
+    Derived from the checkpoint's chat_template.jinja (ATEM). Same strings for system / user / assistant
+    turns without tools. Changes: no bos_token (the bundle's start_token adds <|begin_of_text|> once);
+    an image part renders <|image_start|><image_soft_token><|image_end|> (the processor's expansion of
+    <|patch|>, with the runtime filling the soft token); no Python methods (the runtime's minijinja has no
+    pycompat); messages may be empty; only a first-position system message is read; tools and tool turns
+    are not rendered. reasoning_strength (extra context) defaults to "high" as in the vendor template; the
+    current-date line is the vendor's (current_date, else strftime_now, which the runtime provides). -#}
+{%- macro render_content(content) -%}
+    {%- if content is string -%}
+        {{- content -}}
+    {%- elif content is not none -%}
+        {%- for part in content -%}
+            {%- if part['type'] == 'image' -%}
+                {{- '<|image_start|><image_soft_token><|image_end|>' -}}
+            {%- elif part['type'] == 'text' -%}
+                {{- part['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+{%- set rs = reasoning_strength if reasoning_strength is defined and reasoning_strength else 'high' -%}
+{%- set has_system = messages and messages[0]['role'] == 'system' -%}
+{%- if not has_system -%}
+    {{- '<|start|>system<|message|>You are a helpful AI assistant.' -}}
+    {%- set kc = knowledge_cutoff if knowledge_cutoff is defined and knowledge_cutoff else '2026-01-04' -%}
+    {{- '\nKnowledge cutoff: ' + kc + '.' -}}
+    {%- if current_date is defined and current_date -%}
+        {{- '\nCurrent date: ' + current_date + '.' -}}
+    {%- elif strftime_now is defined -%}
+        {{- '\nCurrent date: ' + strftime_now('%Y-%m-%d') + '.' -}}
+    {%- endif -%}
+    {{- '\n\nReasoning strength: ' + rs + '.' -}}
+    {{- '\n\n# Valid recipients: "self", "user".' -}}
+    {{- '<|eot|>' -}}
+{%- endif -%}
+{%- for message in messages -%}
+    {%- set role = message['role'] -%}
+    {%- if role == 'system' and loop.first -%}
+        {%- set sys_text = render_content(message['content'])
+              | replace('Reasoning effort', 'Reasoning strength')
+              | replace('Reasoning Effort', 'Reasoning Strength')
+              | replace('reasoning effort', 'reasoning strength')
+              | replace('REASONING EFFORT', 'REASONING STRENGTH') -%}
+        {{- '<|start|>system<|message|>' -}}
+        {{- sys_text -}}
+        {%- if 'reasoning strength' not in (sys_text | lower) -%}
+            {{- '\n\nReasoning strength: ' + rs + '.' -}}
+        {%- endif -%}
+        {{- '\n\n# Valid recipients: "self", "user".' -}}
+        {{- '<|eot|>' -}}
+    {%- elif role == 'user' -%}
+        {{- '<|start|>user<|message|>' -}}
+        {{- render_content(message['content']) -}}
+        {{- '<|eot|>' -}}
+    {%- elif role == 'assistant' -%}
+        {%- if message['reasoning_content'] is defined and message['reasoning_content'] -%}
+            {{- '<|start|>assistant to=self<|message|>' + message['reasoning_content'] + '<|eom|>' -}}
+        {%- endif -%}
+        {{- '<|start|>assistant to=user<|message|>' -}}
+        {{- render_content(message['content']) -}}
+        {{- '<|eot|>' -}}
+    {%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{- '<|start|>assistant' -}}
+{%- endif -%}
