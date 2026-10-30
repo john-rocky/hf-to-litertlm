@@ -58,6 +58,7 @@ from ai_edge_litert import schema_py_generated as fb  # noqa: E402
 
 OP = fb.BuiltinOperator
 TT = fb.TensorType
+ALLOW_CONTRACT = False  # cache_variant.py sets it: a contraction over the cache length is the attention
 BN = R.BN
 name_of = R.name_of
 
@@ -350,10 +351,15 @@ class Propagation:
     st = None
     if carriers:
       if any(s[0] == a for s in carriers):
-        self.fail(oi, "CONCATENATION along the T dim is not handled")
-      if len(carriers) != len(sts) or any(s != carriers[0] for s in carriers):
-        self.fail(oi, "CONCATENATION inputs disagree on T")
-      st = carriers[0]
+        # 2026-10-31, Muse-Glimmer-30B: copies of one T-carrying tensor stacked along the T dim (the GQA
+        # mask repeat [1,1,T,C] x g -> [1,1,g*T,C]) = outer multiplicities add up; anything else still stops
+        if len(carriers) != len(sts) or any(s[0] != a or s[2] != carriers[0][2] for s in carriers):
+          self.fail(oi, "CONCATENATION along the T dim with inputs that do not all carry T with the same inner stride")
+        st = (a, sum(s[1] for s in carriers), carriers[0][2])
+      else:
+        if len(carriers) != len(sts) or any(s != carriers[0] for s in carriers):
+          self.fail(oi, "CONCATENATION inputs disagree on T")
+        st = carriers[0]
     out = list(shp(sg, ins[0]))
     out[a] = sum(shp(sg, t)[a] for t in ins)
     self.check(oi, op.outputs[0], st, out)
@@ -454,6 +460,17 @@ class Propagation:
         other = (bb, ba)[side][pos]
         if (sts[1 - side] is None or sts[1 - side][0] + (rank - len((a, b)[1 - side])) != pos) and other != 1:
           self.fail(oi, "BATCH_MATMUL: T in a batch dim against a T-free size != 1")
+    if ALLOW_CONTRACT:
+      # 2026-10-31, cache_variant.py (ALLOW_CONTRACT): a contraction over the symbol is allowed when both operands carry it in
+      # their contracted dims with the same structure (attention probs [.., C] x V [.., hd, C]): the output is free of it
+      ja = None if sts[0] is None else (sts[0][0] == len(a) - (2 if adjx else 1))
+      jb = None if sts[1] is None else (sts[1][0] == len(b) - (1 if adjy else 2))
+      if ja or jb:
+        if not (ja and jb and sts[0][1:] == sts[1][1:]):
+          self.fail(oi, "BATCH_MATMUL contracts over the symbol on one side only or with different structures")
+        self.check(oi, op.outputs[0], None, out)
+        self.notes["BATCH_MATMUL"] += 1
+        return
     for side, s, shape_, adj in ((0, sts[0], a, adjx), (1, sts[1], b, adjy)):
       if s is None:
         continue

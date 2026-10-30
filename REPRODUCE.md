@@ -3890,3 +3890,29 @@ Run as published on 2026-10-29 with `MODEL_DIR` set (the 21 files checked agains
 - **Speech out** is not in the `.litertlm` file: in speech mode each 80 ms frame is one decoder step whose input is the sum of the previous frame's 12 codebook embeddings (`frame_embed`, not a token id), and the step's `hidden` feeds the depth decoder: `depth_proj` once and `depth_pass` three times, each pass revealing 4 of the 12 codebooks (MaskGIT order). The codec decoder (`codec_decoder_f12`, with its streaming state as inputs and outputs) turns 12 frames (0.96 s) per call into 72 windowed frames of 1,280 samples, which the host overlap-adds (hop 320) into 24 kHz audio. The sampling, the text / speech mode switching and the overlap-add run on the host. The module names `r1b_graphs`, `r4b_parts` and `r1a_audio_section` appear in these graphs' tensor names, so the scripts keep those names.
 - **The NPU file** (`scripts/export_parts.py --part depth_npu`, then `npu/aot_compile_sm8850.py` in the image of `npu/Dockerfile`): the depth decoder's pass compiled ahead of time for the Hexagon NPU of the Qualcomm SM8850 (Galaxy S26). The NPU runs float graphs in fp16; for it, the graph is traced with SiLU written as x · s(x) and the sigmoid as s(x), s(x) = exp(min(x, 0)) / (1 + exp(−|x|)), and with exp / cos / sin / log10 / GELU reading their input through a split and a concatenation, so that no such function reads a fully connected layer's output directly (the same values in float32). In the depth pass this rewrites 3 sigmoids and 3 SiLUs.
 - Measured on the phones and a Mac: the model card.
+
+## Muse-Glimmer-30B — a dense 52-layer decoder through `export_hf` behind a text-only wrapper, int4 with its KV cache shortened to 2,048 tokens in the int4 file, and a vision tower re-authored for one 448 × 448 picture and lifted to rank 4 for the GPU (2026-10-31)
+
+[`muse_glimmer_work/`](muse_glimmer_work/) converts [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B) at revision `cec94fcf` — Meta's vision-language model, Apache License 2.0; a 52-layer dense text decoder (three sliding-window layers, then one global layer, repeating) and a 50-layer vision encoder — into `Muse-Glimmer-30B_q4_ekv2048.litertlm` (23,393,996,524 B) of [litert-community/Muse-Glimmer-30B-LiteRT](https://huggingface.co/litert-community/Muse-Glimmer-30B-LiteRT). [muse_glimmer_work/README.md](muse_glimmer_work/README.md) has the steps, what had to change and how each change was checked. The KV-cache rewrite and the prefill clone are [`tools/gpu_graph/cache_variant.py`](tools/gpu_graph/cache_variant.py) and [`tools/gpu_graph/prefill_bucket_clone.py`](tools/gpu_graph/prefill_bucket_clone.py); the vision encoder's GPU rewrite is [`tools/gpu_graph/tfl_rank4.py`](tools/gpu_graph/tfl_rank4.py).
+
+| section | bytes | sha256 |
+|---|---|---|
+| LlmMetadataProto | 3,669 | `a92f7a7e4ebe6aa7805f066dbc02b1d6f0a8f4d037ee5f1839b6414e194ac2f6` |
+| HF_Tokenizer_Zlib | 4,587,218 | `533740a6ccd9fda4a21ccd1e1a968a484c2c652c05fd873385e2d0cda139300a` |
+| TFLiteModel (tf_lite_embedder) | 1,347,261,568 | `09b551b8fd6915938a607457305d4d6e712f4e667fe9d81f4d1b071adc6c1cd8` |
+| TFLiteModel (tf_lite_prefill_decode) | 14,345,874,736 | `2f06229afa0061a964aeb18399e12cb2aec8e316eff7163d46f4b81a8963e51b` |
+| TFLiteModel (tf_lite_vision_encoder) | 7,419,391,744 | `71cc2eddfcd7e12921c97cf041f22c93dda32ee68445d55bdd564394fc5a7ff0` |
+| TFLiteModel (tf_lite_vision_adapter) | 276,827,884 | `c09d29e3f9c4afb88b22670622fdc42e17c67abfa48d3fb3ece6761003741898` |
+
+Run on 2026-10-31 from this repository's files, with Python 3.12, ai-edge-litert 2.3.0 and flatbuffers 25.12.19 (the environment of the conversion), the two steps that turn the int4 export (a 4,096-token cache, prefill 128 and 1,024) into the published decoder gave its section above byte for byte:
+
+```bash
+python tools/gpu_graph/cache_variant.py model_wi4b128_wi8.tflite model_c2048.tflite --cache 2048 --report cache_variant.json
+python tools/gpu_graph/prefill_bucket_clone.py tflite model_c2048.tflite model_p32c2048.tflite --lengths 32 --source prefill_128 --report clone.json
+```
+
+They took 405 s and 26 s on a 128 GB Mac with the int4 file on a USB disk (peak memory 0.33 and 0.56 GB). The steps before them (the fp32 copy, the export of about 3 h, the quantization, the vision tower) and the bundle were run for the conversion and not again for this entry.
+
+- **The cache rewrite** (`cache_variant.py`) starts from the cache dimension of the `kv_cache_k_*` / `kv_cache_v_*` inputs, the mask, and the constant that lists the cache positions (litert-torch's sliding-window mask builder), and rewrites every tensor shape and every RESHAPE / SLICE constant that carries the cache length; a number that only happens to equal it is left alone. Every weight buffer is copied byte for byte and checked. It stops on STABLEHLO_COMPOSITE ops and on a fixed SLICE window of the cache larger than the new length. The real weights cut to 4 layers (3 sliding-window, 1 global), exported with a 2,048-token cache and rewritten to 1,024, gave the original file's logits bit for bit (160 decode positions, and 32 after a 128-token prefill).
+- **The prefill clone** needed one more rule for this graph: a CONCATENATION that stacks copies of one tensor along the prefill length (the grouped-query mask repeat `[1,1,T,C] × g → [1,1,g·T,C]`) is now followed instead of stopping the tool. The rule only replaces a stop, so a graph the previous version accepted goes through the same code as before.
+- Speeds, answers and the demo, measured on a Mac: the model card.
