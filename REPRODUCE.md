@@ -3599,6 +3599,61 @@ Env (`scripts/requirements-venv-*.txt`, every package pinned): `.venv-ref` = tor
 
 **Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats ("1966" → "196").
 
+## parakeet-ultra (TDT speech recognition, dense float16 checkpoint → LiteRT: fp16 for the GPU and the NPU, int8 for the CPU)
+
+[`parakeet_ultra_work/`](parakeet_ultra_work/) converts [moondream/parakeet-ultra](https://huggingface.co/moondream/parakeet-ultra) (a post-trained NVIDIA parakeet-tdt-0.6b-v3) into plain LiteRT `.tflite` graphs: a log-mel front end and an encoder for each window length (10, 20 and 30 s) and one TDT decoder (`predict` / `joint`), with the greedy TDT loop on the host. The graphs are the ones of the parakeet-redux entry above (`parakeet_redux_work/scripts/r2_graphs.py`, `r4_graphs.py`, copied unchanged); the weights are parakeet-ultra's. No NeMo: the reference is transformers' `ParakeetForTDT` with the checkpoint's float16 weights raised to float32. Published: [litert-community/parakeet-ultra](https://huggingface.co/litert-community/parakeet-ultra) (GPU / NPU set 3.68 GB, CPU set 1.95 GB, with an Android runner).
+
+```sh
+cd parakeet_ultra_work
+# three Python 3.12.11 environments at the versions that made the published files (scripts/requirements-venv-*.txt = uv pip freeze, macOS arm64)
+uv venv -p 3.12.11 .venv-ref && uv pip install -p .venv-ref -r scripts/requirements-venv-ref.txt
+uv venv -p 3.12.11 .venv-lt && uv pip install -p .venv-lt -r scripts/requirements-venv-lt.txt
+uv venv -p 3.12.11 .venv-q && uv pip install -p .venv-q -r scripts/requirements-venv-q.txt
+# inputs at pinned revisions (scripts/dl_targets.tsv: URL, local path, bytes, sha256 of the weights and the test set)
+.venv-ref/bin/hf download moondream/parakeet-ultra --revision 73175eb7aeb0d82f1e2a6b53b3aabc10a90bcd0b --local-dir hf/ultra
+.venv-ref/bin/hf download nvidia/parakeet-tdt-0.6b-v3 --revision 541d1f99c6b0c3cd0b11a95167540bb8edefd82b --include "*.json" --local-dir hf/orig
+curl --create-dirs -L -o data/librispeech/test.clean-00000-of-00001.parquet \
+  https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/de79e57adf9983993bcc72586d7313460825f5eb/librispeech/test.clean-00000-of-00001.parquet
+.venv-ref/bin/python scripts/prep_librispeech.py data/librispeech/test.clean-00000-of-00001.parquet data/sets/librispeech-test-clean
+.venv-ref/bin/python scripts/make_subset.py data/sets/librispeech-test-clean --every 32     # S32: 82 utterances
+# the PyTorch reference on S32: 30 s windows + valid-length mask (out/s32_ii/*.npz: mel, encoder output, tokens)
+.venv-ref/bin/python scripts/u1_s32.py --threads 6
+# graphs (litert-torch 0.9.4): mel30 / mel10 / mel20, the decoder, the float32 encoders of the three windows; then the rank-3 attention matmuls lifted to rank 4
+.venv-lt/bin/python scripts/u1_build.py --only mel30,mel10,mel20,dec,enc30_fp32,enc20_fp32,enc10_fp32
+for n in enc30_fp32 enc20_fp32 enc10_fp32; do
+  .venv-q/bin/python scripts/r2_fb.py lift out/r1/${n}_raw.tflite out/r1/$n.tflite --json results/r1/lift_$n.json && rm out/r1/${n}_raw.tflite
+done
+# the LayerNorm-rescaled encoders (results/r1/fix.json, shipped here: the k of each of the 120 LayerNorms, x · 2^-k; scripts/u1_diag.py makes it from a range pass) and their float16 forms
+.venv-lt/bin/python scripts/u1_build.py --only enc30_fp32s,enc20_fp32s,enc10_fp32s
+for n in enc30_fp32s enc20_fp32s enc10_fp32s; do
+  .venv-q/bin/python scripts/r2_fb.py lift out/r1/${n}_raw.tflite out/r1/$n.tflite --json results/r1/lift_$n.json && rm out/r1/${n}_raw.tflite
+done
+for b in 30 20 10; do .venv-q/bin/python scripts/r2_half.py out/r1/enc${b}_fp32s.tflite out/r1/enc${b}_fp16ws.tflite --json results/r1/fp16ws_$b.json; done
+# the decoder with int8 weights (ai-edge-quantizer dynamic_wi8_afp32)
+.venv-q/bin/python scripts/u1_dec8.py make
+# the token check on S32 (float32 encoders of the three windows + the float32 decoder: every window equal to the reference)
+.venv-q/bin/python scripts/u1_p0.py --form fp32 --buckets 10,20,30
+# the CPU encoders: int8 weights per output channel on the linear layers and the two 1x1 convolutions of the subsampling, int8 activations at run time (ai-edge-quantizer dynamic_wi8_afp32's op config on FULLY_CONNECTED and CONV_2D only: the depthwise convolutions and the position tables stay float32)
+for b in 30 20 10; do .venv-q/bin/python scripts/u4_quant.py int8f out/r1/enc${b}_fp32.tflite out/r1/enc${b}_int8.tflite --ops FULLY_CONNECTED,CONV_2D --json results/r1/quant_int8_$b.json; done
+# signatures read back from the files, then bytes and sha256 of every file (results/r1/files.sha256)
+for n in mel10 mel20 mel30 dec dec_int8 enc10_fp32 enc20_fp32 enc30_fp32 enc10_fp32s enc20_fp32s enc30_fp32s enc10_fp16ws enc20_fp16ws enc30_fp16ws enc10_int8 enc20_int8 enc30_int8; do
+  .venv-q/bin/python scripts/r2_fb.py census out/r1/$n.tflite --json results/r1/census_$n.json
+done
+.venv-q/bin/python scripts/u1_contract.py
+```
+
+Run as printed in a clean checkout on 2026-10-31 (macOS 27 on an Apple M4 Max, the three environments made with uv from `scripts/requirements-venv-*.txt`): the export steps gave float32 and LayerNorm-rescaled encoders byte for byte equal to our own build, and the ten published `.tflite` files (the mel graphs, the `f16` and `i8` encoders and the int8 decoder) came out byte for byte the published ones (sha256); `tokenizer.json` is the original's file.
+
+Published names: `out/r1/enc{10,20,30}_fp16ws` → `parakeet_ultra_encoder_{10,20,30}s_f16.tflite`, `out/r1/enc{10,20,30}_int8` → `parakeet_ultra_encoder_{10,20,30}s_i8.tflite`, `out/r1/mel{10,20,30}` → `parakeet_ultra_mel_{10,20,30}s.tflite` (no weights: the same bytes as parakeet-redux's mel files), `out/r1/dec_int8` → `parakeet_ultra_decoder_i8.tflite`; `tokenizer.json` is the original's. The Android runner (`runner/ultra_asr_runner_p.cc`, `runner/build_android.sh`, `runner/tdt_text.py`) is the parakeet-redux one with `--pipeline` added (with `--pipeline 1` a second thread runs the mel front end and the encoder of the next windows while the current window decodes; the tokens are the same as with `--pipeline 0`); it reads the model files from its arguments, and with NDK 29.0.13113456 on macOS `build_android.sh` gives a binary of sha256 4354962b90da5592209c9ef4f14113d8478017ffcba08fc5cd1487144d996ebd. The docstring of `scripts/u1_build.py` names a helper that is not in this copy (`u1_post.sh`); the `r2_fb.py lift` lines above do that step.
+
+Env (`scripts/requirements-venv-*.txt`, every package pinned, the same files as parakeet-redux's): `.venv-ref` = torch 2.14.1 + transformers 5.20.2 + tokenizers 0.23.3 + pyarrow + soundfile; `.venv-lt` = litert-torch 0.9.4 + torch 2.13.0 + transformers 5.20.2 + litert-converter 0.4.0; `.venv-q` = ai-edge-litert 2.3.0 + ai-edge-quantizer 0.10.0 + soundfile. Python 3.12.11, uv.
+
+**Float16 needs a LayerNorm rescale.** In parakeet-ultra's encoder the squared deviation inside the first LayerNorm reaches 105,534,752 over the 95 windows of the range pass, beyond fp16's largest value 65,504. Each of the 120 LayerNorms takes x · 2^-k and eps · 4^-k (k = 3–9, `u1_diag.py` → `results/r1/fix.json`, drawn again from this checkpoint's activations rather than taken from parakeet-redux); in float32 the output is bit-identical to the unscaled norm's, and every square stays under 65,504 (1,022.5 at most over the same windows). The float16 weights are the checkpoint's own values behind DEQUANTIZE (the 48 FFN second linears at exactly ½ and the 24 `k_proj` times the folded attention scale, rounded to fp16).
+
+**The CPU form is lossy.** The checkpoint is float16, not ternary, so unlike parakeet-redux's int4 its int8 encoders do not carry the weights exactly; their word error rate is at most 0.164 points above the float32 reference's on LibriSpeech test-clean and FLEURS German, French and Russian (the largest gap: FLEURS Russian). Their depthwise convolutions stay float32 so that XNNPACK runs them: with int8 depthwise filters (dynamic range) LiteRT 2.3.0 left those 27 nodes to TFLite's own kernels, 3,360 of the encoder's 3,390 nodes in XNNPACK (55 partitions) against 3,387 (3) as published.
+
+**Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats.
+
 ## iris-3b Turbo (speridlabs) — text-to-image as 20 LiteRT graphs: a 3B pixel-space DiT and the Qwen3-VL-4B text encoder with float16 weights and float32 activations, every graph on the phone's GPU at FP32 (2026-10-22)
 
 [`iris3b_work/`](iris3b_work/) converts [speridlabs/iris-3b](https://huggingface.co/speridlabs/iris-3b) Turbo (Apache-2.0; 4 steps, no classifier-free guidance, no VAE) and the language stack of [Qwen/Qwen3-VL-4B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct) into the files of [litert-community/iris-3b-Turbo-LiteRT](https://huggingface.co/litert-community/iris-3b-Turbo-LiteRT) for 768 × 768 images: 12 text-encoder graphs (one per hidden state the DiT reads), the text adapter, 6 trunk chunks and the pixel stage, 12,869,097,872 bytes with every FULLY_CONNECTED weight float16 behind a DEQUANTIZE, plus the tokenizer files, the bfloat16 embedding table and the host tensors. The Android app that runs them on the phone's GPU with LiteRT 2.2.0: [LiteRT-Models `iris3b/`](https://github.com/john-rocky/LiteRT-Models/tree/main/iris3b).
