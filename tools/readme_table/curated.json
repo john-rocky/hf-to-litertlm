@@ -309,6 +309,16 @@
     "group": 2,
     "recipe": "REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it"
   },
+  "Spark-X2.6-1.7B": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#spark-x26-17b--4b-sparkllm-team-thinking--the-x25-recipe-on-new-weights-a-mixed-int4-17b-file-and-a-gpu-graph-rewrite"
+  },
+  "Spark-X2.6-4B": {
+    "task": "reasoning",
+    "group": 2,
+    "recipe": "REPRODUCE.md#spark-x26-17b--4b-sparkllm-team-thinking--the-x25-recipe-on-new-weights-a-mixed-int4-17b-file-and-a-gpu-graph-rewrite"
+  },
   "Tashkeel-350M-v2": {
     "task": "Arabic diacritization",
     "group": 4,

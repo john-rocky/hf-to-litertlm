@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 95 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 97 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -145,6 +145,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Falcon-H1-Tiny-R-0.6B](https://huggingface.co/litert-community/Falcon-H1-Tiny-R-0.6B) | 0.62B | reasoning | iPhone 17 Pro CPU 29.4 | M4 Max GPU 97.8 | [recipe](REPRODUCE.md#2026-09-01--falcon-h1-tiny-r-06b-the-familys-first-reasoning-ship-and-the-size-where-two-family-assumptions-break) |
 | [LFM2.5-1.2B-Thinking](https://huggingface.co/litert-community/LFM2.5-1.2B-Thinking) | 1.2B | reasoning | iPhone 17 Pro GPU 69.7 | M4 Max GPU 317.9 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
 | [Spark-X2.5-1.7B](https://huggingface.co/litert-community/Spark-X2.5-1.7B) | 1.71B | reasoning | Galaxy S26 GPU 17.4–17.8 | M4 Max GPU 103.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |
+| [Spark-X2.6-1.7B](https://huggingface.co/litert-community/Spark-X2.6-1.7B) | 1.71B | reasoning | iPhone 18 Pro GPU 51.5 | M4 Max GPU 151.5 | [recipe](REPRODUCE.md#spark-x26-17b--4b-sparkllm-team-thinking--the-x25-recipe-on-new-weights-a-mixed-int4-17b-file-and-a-gpu-graph-rewrite) |
 | [MiniCPM5-2B](https://huggingface.co/mlboydaisuke/MiniCPM5-2B-LiteRT) | 2.52B | chat, hybrid thinking | Galaxy S26 GPU 16.1–18.6 | M4 Max GPU 92.8 | [card](cards/minicpm5-2b-litert.md) |
 | [LFM2.5-2.6B](https://huggingface.co/litert-community/LFM2.5-2.6B) | 2.6B | reasoning | Galaxy S26 GPU 20.9 | M4 Max GPU 161.6 | [recipe](REPRODUCE.md#lfm25-26b-the-thinking-flagship) |
 | [Ministral-3-3B-Reasoning-2512](https://huggingface.co/litert-community/Ministral-3-3B-Reasoning-2512) | 3B | reasoning | Galaxy S26 GPU 13.8 | M4 Max GPU 95.8 | [card](cards/ministral3-3b-reasoning-litert.md) |
@@ -161,6 +162,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Polaris-4B-Preview](https://huggingface.co/litert-community/Polaris-4B-Preview) | 4B | reasoning | Galaxy S26 GPU 9.2 | M4 Max GPU 69.1 | [card](cards/polaris-4b-litert.md) |
 | [Qwen3-4B-Thinking-2507](https://huggingface.co/litert-community/Qwen3-4B-Thinking-2507) | 4B | reasoning | Galaxy S26 GPU 15.3 | M4 Max GPU 92.1 | [card](cards/qwen3-4b-thinking-litert.md) |
 | [Spark-X2.5-4B](https://huggingface.co/litert-community/Spark-X2.5-4B) | 4.11B | reasoning | Galaxy S26 CPU 5.5–5.6 | M4 Max GPU 53.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |
+| [Spark-X2.6-4B](https://huggingface.co/litert-community/Spark-X2.6-4B) | 4.11B | reasoning | Galaxy S26 CPU 5.3 | M4 Max GPU 91.2 | [recipe](REPRODUCE.md#spark-x26-17b--4b-sparkllm-team-thinking--the-x25-recipe-on-new-weights-a-mixed-int4-17b-file-and-a-gpu-graph-rewrite) |
 | [DeepSeek-R1-Distill-Qwen-7B](https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-7B) | 7B | reasoning | Galaxy S26 GPU 8.5–10.3 | M4 Max GPU 79.1 | [card](cards/r1-distill-qwen-7b-litert.md) |
 | [Olmo-3-7B-Think](https://huggingface.co/litert-community/Olmo-3-7B-Think) | 7.3B | reasoning | Galaxy S26 GPU 7.0 | M4 Max GPU 46.6 | [recipe](REPRODUCE.md#olmo-3-7b-think--a-sliding-window-dense-7b-whose-int4-scales-need-a-lower-bound-and-a-gpu-composite-rewrite-that-does-not-apply) |
 | [Falcon-H1R-7B](https://huggingface.co/litert-community/Falcon-H1R-7B) | 7.59B | reasoning | — | M4 Max GPU 39.7 | [recipe](REPRODUCE.md#2026-10-15--falcon-h1r-7b-the-familys-reasoning-7b-on-the-same-patch-a-lightweight-export-and-int4-scales-clamped-before-quantizing) |

@@ -52,6 +52,8 @@ litert-community/SmolVLM2-2.2B
 litert-community/SmolVLM2-500M
 litert-community/Spark-X2.5-1.7B
 litert-community/Spark-X2.5-4B
+litert-community/Spark-X2.6-1.7B
+litert-community/Spark-X2.6-4B
 litert-community/VibeThinker-3B
 litert-community/VibeVoice-ASR-BitNet
 litert-community/Zamba2-1.2B-instruct
