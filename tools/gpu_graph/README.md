@@ -60,3 +60,13 @@ It was used on the vision encoders of Muse-Glimmer-30B ([`muse_glimmer_work/`](.
 python tools/gpu_graph/tfl_rank4.py rewrite vision_encoder.tflite vision_encoder_r4.tflite --report r4.json
 python tools/gpu_graph/tfl_census.py vision_encoder.tflite
 ```
+
+## Int8 weights for a vision encoder in a published bundle: `tfl_unique_names.py` (with `tfl_same_fn.py`), `tfl_int8_weights.py`, `litertlm_vision_swap.py`
+
+Qwen2.5-VL-72B-Instruct's vision encoder (after `tfl_rank4.py`) was 2,553,783,680 bytes in fp32, over the 2 GiB that LiteRT-LM 0.19.0's capability check (`litert_lm_loaded_file_create` in the C API, `litert_lm.ModelInfo` in Python) accepts for a vision encoder section; with int8 weights it is 653,432,240 bytes. The weights were changed in the published bundle, in three steps:
+
+1. `tfl_unique_names.py IN OUT --report R.json` gives every tensor a unique name and changes nothing else. ai-edge-quantizer 0.10.0 refuses a graph with repeated tensor names, and `tfl_rank4.py` repeats the names of some tensors it adds. `tfl_same_fn.py IN OUT` checks the result: the same operators, tensors, buffers and graph inputs and outputs, and the same CPU output for a seeded random input (largest difference 0).
+2. `tfl_int8_weights.py IN OUT` quantizes the weights of FULLY_CONNECTED and CONV_2D to int8 per output channel with ai-edge-quantizer 0.10.0 (dynamic range, symmetric); the activations stay float32. For the 72B, on LiteRT's Metal GPU delegate at fp32, the image embeddings were then at a relative L2 of 0.050 and 0.053 from the embeddings Transformers computes in fp32, on two pictures. On the CPU, XNNPACK also quantizes the activations to int8 at run time, and the same two numbers were 0.18 and 0.20.
+3. `litertlm_vision_swap.py OLD.litertlm NEW.litertlm --venc ENC.tflite --vadp ADP.tflite [--clone]` writes the bundle with only its two vision sections replaced; every other section is copied byte for byte, and every section of both files is hashed afterwards (`SWAP_OK`). The header gets a new uuid and creation time, so compare two builds section by section, not by the whole file's sha256.
+
+The 72B's commands are the last step of its entry in [REPRODUCE.md](../../REPRODUCE.md).

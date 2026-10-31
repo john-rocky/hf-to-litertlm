@@ -4104,7 +4104,7 @@ They took 405 s and 26 s on a 128 GB Mac with the int4 file on a USB disk (peak 
 
 ## Qwen2.5-VL-72B-Instruct — the 80-layer text decoder written with the LiteRT Tensor API one tensor at a time (int4, a 2,048-token cache, prefill 32 / 128 / 1,024), and the vision tower re-authored for one 448 × 448 picture and lifted to rank 4 for the GPU (2026-10-31)
 
-The steps are in [john-rocky/tensor-api-harness: models/qwen2.5-vl-72b](https://github.com/john-rocky/tensor-api-harness/tree/main/models/qwen2.5-vl-72b). They convert [Qwen/Qwen2.5-VL-72B-Instruct](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct) at revision `89c86200` — Qwen's vision-language model under the Qwen LICENSE AGREEMENT; an 80-layer Qwen2 text decoder and a 32-layer vision encoder — into `Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm` (44,789,536,688 B) of [litert-community/Qwen2.5-VL-72B-Instruct-LiteRT](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT). The text decoder is written with the LiteRT Tensor API because the converter quantizes after it has written the whole fp32 graph, about 290 GB for this model; the writer quantizes one tensor at a time and never holds that graph. The vision encoder's GPU rewrite is [`tools/gpu_graph/tfl_rank4.py`](tools/gpu_graph/tfl_rank4.py). The harness README says how each part was checked.
+The steps are in [john-rocky/tensor-api-harness: models/qwen2.5-vl-72b](https://github.com/john-rocky/tensor-api-harness/tree/main/models/qwen2.5-vl-72b). They convert [Qwen/Qwen2.5-VL-72B-Instruct](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct) at revision `89c86200` — Qwen's vision-language model under the Qwen LICENSE AGREEMENT; an 80-layer Qwen2 text decoder and a 32-layer vision encoder — into `Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm` (44,789,536,688 B, as first published at commit `9ac47fea`; the int8 vision weights of the file now on the main branch are the last step below) of [litert-community/Qwen2.5-VL-72B-Instruct-LiteRT](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT). The text decoder is written with the LiteRT Tensor API because the converter quantizes after it has written the whole fp32 graph, about 290 GB for this model; the writer quantizes one tensor at a time and never holds that graph. The vision encoder's GPU rewrite is [`tools/gpu_graph/tfl_rank4.py`](tools/gpu_graph/tfl_rank4.py). The harness README says how each part was checked.
 
 | section | bytes | sha256 |
 |---|---|---|
@@ -4125,3 +4125,37 @@ It took 1,911 s on a 128 GB Mac, reading the packed weights (38.6 GB) from a USB
 
 - Image tokens take 1-D positions (the source model: M-RoPE, three position axes). On three picture questions, Transformers with the bf16 weights chose the same next token as the replies at 83 of 84 positions under either scheme (the replies of an earlier build with a 4,096-token cache; this file gives the same three replies word for word).
 - Speeds, answers and the demo, measured on a Mac: the model card.
+
+### The int8 vision weights (the file on the main branch)
+
+The file on the main branch of [litert-community/Qwen2.5-VL-72B-Instruct-LiteRT](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT) is the file above, first published at commit [`9ac47fea`](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT/tree/9ac47fea16b1e7816ce59e6bc6c7837f682a92e5), with the weights of its two vision sections in int8: the encoder's 160 FULLY_CONNECTED layers and its one CONV_2D (the patch convolution), and the adapter's two FULLY_CONNECTED layers, per output channel (symmetric, ai-edge-quantizer 0.10.0's dynamic int8; the activations stay fp32). Its other four sections are unchanged (the first four rows above). The inputs are the fp32 vision files of the harness's step 5 (`VISION/vision_encoder_g448_fp32_r4.tflite`, sha256 `571792dcd2e980e10e7a92fbbad7d9eaa4a48ae622f891a8435c3dfd37236f2f`, and `VISION/vision_adapter_g448_fp32.tflite`, `fbc056d882ff076451b75c2e12c829369ae3213abc701709212de8412cb5dcea`: the two vision rows of the table above) and the file of commit `9ac47fea`:
+
+```bash
+python3 -m venv .venv-vi8 && .venv-vi8/bin/pip install ai-edge-quantizer==0.10.0 litert-lm-builder==0.19.0
+hf download litert-community/Qwen2.5-VL-72B-Instruct-LiteRT Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm \
+  --revision 9ac47fea16b1e7816ce59e6bc6c7837f682a92e5 --local-dir old
+P=.venv-vi8/bin/python
+$P tools/gpu_graph/tfl_unique_names.py VISION/vision_encoder_g448_fp32_r4.tflite VISION/vision_encoder_g448_fp32_r4u.tflite --report uniq.json
+$P tools/gpu_graph/tfl_same_fn.py VISION/vision_encoder_g448_fp32_r4.tflite VISION/vision_encoder_g448_fp32_r4u.tflite --out same_fn.json
+$P tools/gpu_graph/tfl_int8_weights.py VISION/vision_encoder_g448_fp32_r4u.tflite VISION/vision_encoder_g448_r4_vi8.tflite --json quant_encoder.json
+$P tools/gpu_graph/tfl_int8_weights.py VISION/vision_adapter_g448_fp32.tflite VISION/vision_adapter_g448_vi8.tflite --json quant_adapter.json
+$P tools/gpu_graph/litertlm_vision_swap.py old/Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm Qwen2.5-VL-72B-Instruct_q4_ekv2048.litertlm \
+  --venc VISION/vision_encoder_g448_r4_vi8.tflite --vadp VISION/vision_adapter_g448_vi8.tflite --clone --json swap.json
+```
+
+- `tfl_unique_names.py`: ai-edge-quantizer 0.10.0 refuses a graph with repeated tensor names, and `tfl_rank4.py` repeats the names of some tensors it adds (17 of the encoder's 3,478 tensors renamed here). `tfl_same_fn.py` checks the renamed file: the same operators, tensors, buffers and graph inputs and outputs, and the same CPU output for one input (a seeded random 448 × 448 picture: the `[1, 256, 5120]` image embeddings with a largest difference of 0).
+- `tfl_int8_weights.py` quantizes the weights of FULLY_CONNECTED and CONV_2D only; ai-edge-quantizer's ALL_SUPPORTED recipe would also take constant tables of other ops.
+- `litertlm_vision_swap.py` writes the two vision sections into the file of commit `9ac47fea` and keeps every other section in place; it hashes every section of both files afterwards and prints `SWAP_OK` when the kept ones are unchanged and the vision ones are the new files. `--clone` (APFS, macOS) starts the new file as a clone of the old one, so it takes about the new vision bytes of extra disk (0.7 GB); without it the tool writes the whole file.
+- Run on 2026-11-01 from this repository's tree as written above, with Python 3.14.6 on a 128 GB Mac (macOS 27.0), except that the file of commit `9ac47fea` was a local copy of the same bytes (sha256 `6feca2058cac144ad425bad6ce0ebf1f60b168e8aaf48be421ccc753abfe8dac`) instead of the 44.8 GB download: 806 s in all, the int8 step 13.5 s for the encoder and 9.5 s for the adapter, a largest resident size of 5.3 GB. The rebuilt file has every section of the table below, byte for byte.
+
+| section | bytes | sha256 |
+|---|---|---|
+| LlmMetadataProto | 1,496 | `27bbe45b28b6617e5f46f385993445cf889ed667187ec588d78303a5ad260d5f` |
+| HF_Tokenizer_Zlib | 1,968,066 | `fd77bdd170472306cd229e0961815ae0482e6934137cb6b4336a9caa1a6bdd0e` |
+| TFLiteModel (tf_lite_embedder) | 1,247,534,800 | `2d57e3ab0f571c1706379a72d3245d34fd0953f91cfd5723b9add4bff07e7869` |
+| TFLiteModel (tf_lite_prefill_decode) | 40,713,491,328 | `7100b1e61726f285714797ecec9e84f5f6784f34a21a4e66ae88c9c1d370464e` |
+| TFLiteModel (tf_lite_vision_encoder) | 653,432,240 | `b8a866f0963460dbde220c7999b9d190f50c64abf6b14d4b7bb955f700621558` |
+| TFLiteModel (tf_lite_vision_adapter) | 68,372,544 | `00fbf758c241b87e019ab15f5d974e6e0194f1956f207506986b280462741d1d` |
+
+- The file of these sections: 42,684,876,864 B, sha256 `8a37fff5fddad64e214b0b491a4a07d011a6a628e500f35b2c1f69dded1fe90a` on the Hub. The container header carries a new uuid and creation time at every run, so a rebuild's whole-file sha256 differs from it while every section is the same.
+- With the int8 weights the replies to the model card's 23 questions (three picture questions and 20 MMStar questions) are word for word those of the file of commit `9ac47fea`, on the Mac GPU. Speeds and the image-embedding error: the model card.
