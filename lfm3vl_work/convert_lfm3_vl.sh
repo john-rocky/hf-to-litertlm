@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # convert_lfm3_vl.sh OUTDIR [STEP...] - LiquidAI/LFM3-VL-2B (pinned f83d2b0a2296aaa277f394990a9b8b949ddf9691, LFM Open
-# License v1.0) -> the two files of litert-community/LFM3-VL-2B-LiteRT, text and one 512 x 512 picture in / text out,
+# License v1.0) -> the files of litert-community/LFM3-VL-2B-LiteRT, text and one 512 x 512 picture in / text out,
 # LiteRT-LM 0.18.1, model type fast_vlm:
 #   OUTDIR/LFM3-VL-2B_int4.litertlm  text decoder int4 blockwise-32 (the tied lm_head int8 per channel), token embedder int8
 #   OUTDIR/LFM3-VL-2B_f16.litertlm   text decoder with every fully connected weight cast to fp16, token embedder int8
-# Both: prefill signatures 1024 / 256 / 64 / 16 / 4 / 1 over a 2,048-token cache, the vision encoder with fp32 weights
-# and the projector with fp16 weights (both declared fp32 activations; the same two graphs in both files), the source
-# tokenizer.json, the chat template of tools/vl_template.py, no sampler, no activation type declared for the decoder.
+#   OUTDIR/LFM3-VL-2B_int4_ctx4096.litertlm  (CTX=4096 FORMS=int4) the int4 file's text decoder exported over a
+#                                    4,096-token cache, for replies that think longer
+# All: prefill signatures 1024 / 256 / 64 / 16 / 4 / 1 over a CTX-token cache (default 2,048), the vision encoder with
+# fp32 weights and the projector with fp16 weights (both declared fp32 activations; the same two graphs in every file),
+# the source tokenizer.json, the chat template of tools/vl_template.py, no sampler, no activation type declared for the
+# decoder.
+# Settings (env): CTX = the decoder's cache length (default 2048; it is also the file's max_num_tokens and the KV
+# entries' maximum_sequence_length; another length adds _ctx<CTX> to the file names); FORMS = the text decoder forms to
+# build and pack (default "int4 f16"; the token embedder int8 is built for every form).
 # Steps (in order; a finished step leaves OUTDIR/.done/<step> and is skipped on a re-run; name steps to run only those):
 #   fetch     the source files, curl into OUTDIR/hf_cache (dory_work/fetch_pinned.sh), checked against the Hub's record
 #             of the commit (dory_work/verify_pinned.py: sha256 for LFS files, git blob sha1 for the others), then the
@@ -26,9 +32,10 @@
 #               0.10.0.dev20261023 (the decoder: float, quant)
 #   PY_EXPORT = Python 3.12 with litert-torch 0.10.0, litert-converter 0.5.0, ai-edge-litert 2.3.0, ai-edge-quantizer
 #               0.10.0, torch 2.14.1, litert-lm-builder 0.18.1, tokenizers (vision, pack, sections)
-# Memory: the float export peaked at 23.8 GB resident, the quantization at 34.1 GB (2026-10-31). Disk: about 40 GB at
-# the pack step (the source 3.8 GB, the float export 16 GB and a temporary copy of its graphs, the quantized and vision
-# graphs 6 GB, the two files 6.5 GB); the float export goes after the pack unless KEEP_FLOAT=1.
+# Memory: the float export peaked at 23.8 GB resident, the quantization at 34.1 GB (2026-10-31; with FORMS=int4 the
+# quantization peaked at 12.1 GB, 2026-11-01). Disk: about 40 GB at the pack step (the source 3.8 GB, the float export
+# 16 GB and a temporary copy of its graphs, the quantized and vision graphs 6 GB, the two files 6.5 GB); the float export
+# goes after the pack unless KEEP_FLOAT=1.
 set -euo pipefail
 W=$(cd "$(dirname "$0")" && pwd); R=$(cd "$W/.." && pwd)
 [ $# -ge 1 ] || { echo "usage: $0 OUTDIR [STEP...]"; exit 2; }
@@ -42,6 +49,12 @@ FILES=(LICENSE README.md chat_template.jinja config.json configuration_lfm3.py c
   processing_lfm3_vl.py processor_config.json tokenizer.json tokenizer_config.json video_processing_lfm3_vl.py
   model.safetensors)
 NAME=LFM3-VL-2B
+CTX=${CTX:-2048}
+FORMS=(${FORMS:-int4 f16})
+SUF=""; [ "$CTX" = 2048 ] || SUF=_ctx$CTX
+for form in "${FORMS[@]}"; do
+  case $form in int4|f16) ;; *) echo "FORMS: int4 and f16 only (got $form)"; exit 2 ;; esac
+done
 SRC=$OUT/src
 SNAP=$OUT/hf_cache/models--${REPO//\//--}/snapshots/$REV
 TEMPLATE=$OUT/vl_template.jinja
@@ -92,24 +105,26 @@ for step in "${STEPS[@]}"; do
       ;;
     float)
       rm -rf "$DEC/float"
-      run "$PY" -B "$W/tools/vl_decoder.py" float --src "$SRC" --template "$TEMPLATE" --out "$DEC" --ctx 2048
+      run "$PY" -B "$W/tools/vl_decoder.py" float --src "$SRC" --template "$TEMPLATE" --out "$DEC" --ctx "$CTX"
       [ -f "$DEC/float/model.tflite" ] && [ -f "$DEC/float/embedder.tflite" ] && [ -f "$DEC/float/model.litertlm" ] \
         || { echo "the float export is incomplete in $DEC/float"; exit 1; }
       ;;
     quant)
-      for form in emb_wi8 int4 f16; do
+      for form in emb_wi8 "${FORMS[@]}"; do
         rm -f "$DEC/$form.tflite"
-        run "$PY" -B "$W/tools/vl_decoder.py" quant --form "$form" --out "$DEC" --ctx 2048
+        run "$PY" -B "$W/tools/vl_decoder.py" quant --form "$form" --out "$DEC" --ctx "$CTX"
       done
       ;;
     pack)
-      pack "${NAME}_int4" "$DEC/int4.tflite"
-      pack "${NAME}_f16" "$DEC/f16.tflite"
-      ls -l "$OUT/${NAME}_int4.litertlm" "$OUT/${NAME}_f16.litertlm" | tee -a "$LOG"
+      for form in "${FORMS[@]}"; do
+        pack "${NAME}_$form$SUF" "$DEC/$form.tflite"
+        ls -l "$OUT/${NAME}_$form$SUF.litertlm" | tee -a "$LOG"
+      done
       [ -n "${KEEP_FLOAT:-}" ] || rm -rf "$DEC/float"
       ;;
     sections)
-      for f in "${NAME}_int4" "${NAME}_f16"; do
+      for form in "${FORMS[@]}"; do
+        f=${NAME}_$form$SUF
         if [ -n "${REF_DIR:-}" ]; then
           run "$PY_EXPORT" -B "$R/nemotron_bolt_work/sections.py" "$OUT/$f.litertlm" "$REF_DIR/$f.litertlm"
         else
