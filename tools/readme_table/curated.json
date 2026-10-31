@@ -455,5 +455,10 @@
     "task": "chat + image (one picture at 448 × 448)",
     "group": 3,
     "recipe": "REPRODUCE.md#muse-glimmer-30b--a-dense-52-layer-decoder-through-export_hf-behind-a-text-only-wrapper-int4-with-its-kv-cache-shortened-to-2048-tokens-in-the-int4-file-and-a-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31"
+  },
+  "Qwen2.5-VL-72B-Instruct": {
+    "task": "chat + image (one picture at 448 × 448)",
+    "group": 3,
+    "recipe": "REPRODUCE.md#qwen25-vl-72b-instruct--the-80-layer-text-decoder-written-with-the-litert-tensor-api-one-tensor-at-a-time-int4-a-2048-token-cache-prefill-32--128--1024-and-the-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31"
   }
 }
