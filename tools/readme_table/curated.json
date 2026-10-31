@@ -149,6 +149,11 @@
     "group": 4,
     "recipe": "REPRODUCE.md#lfm3-audio-2b--speech-and-text-in-text-out-through-one-generic_model-litertlm-file-int4-decoder-audio-encoder-with-fp16-weights-and-speech-out-as-litert-graphs-for-a-host-loop-with-a-galaxy-s26-npu-file-for-the-depth-decoder-2026-10-29"
   },
+  "LFM3-VL-2B": {
+    "task": "questions about an image (en), optional thinking",
+    "group": 3,
+    "recipe": "REPRODUCE.md#lfm3-vl-2b--a-hybrid-vlm-as-a-fast_vlm-file-the-vision-tower-re-written-for-one-512--512-picture-with-the-runtimes-u8-input-taken-back-exactly-and-the-text-decoder-with-int4-or-fp16-weights-2026-10-29"
+  },
   "LLaVA-OneVision-0.5B": {
     "task": "chat + image",
     "group": 3,

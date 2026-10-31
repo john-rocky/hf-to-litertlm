@@ -90,5 +90,6 @@ litert-community/NVIDIA-Nemotron-3.5-Bolt-E4B
 litert-community/LFM3-1.7B-LiteRT
 litert-community/MiniCPM-OCR-1.0
 litert-community/LFM3-Audio-2B-LiteRT
+litert-community/LFM3-VL-2B-LiteRT
 litert-community/Muse-Glimmer-30B-LiteRT
 litert-community/Qwen2.5-VL-72B-Instruct-LiteRT
