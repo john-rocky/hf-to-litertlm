@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # convert_lfm3_audio.sh OUTDIR [STEP...] - LiquidAI/LFM3-Audio-2B (pinned 9d49701c372d6011d900f6abb40c6b296fb706dd, LFM
-# Open License v1.0) -> the six files of litert-community/LFM3-Audio-2B-LiteRT:
+# Open License v1.0) -> the seven files of litert-community/LFM3-Audio-2B-LiteRT:
 #   OUTDIR/lfm3-audio-2b_int4_b128_c2048_h30.litertlm   text and audio in, text out (LiteRT-LM 0.18.1): the decoder in
 #       int4 (blockwise 128; its tied output head and the embedder int8), a 2,048-token KV cache, the audio encoder
 #       with fp16 weights, the source tokenizer.json and the chat template of make_template.py
 #   OUTDIR/lfm3_audio_depth_proj_r4b.tflite             speech out: the depth decoder's per-frame projection (fp32)
 #   OUTDIR/lfm3_audio_depth_pass_r4b.tflite             speech out: one depth-decoder pass, 3 per frame (fp32)
+#   OUTDIR/lfm3_audio_depth_pass_r4b_int8.tflite        speech out: the same pass with int8 weights (dynamic int8:
+#       int8 per-channel weights, float32 activations)
 #   OUTDIR/lfm3_audio_frame_embed_f32.tflite            speech out: the 12 codes of a frame -> the next decoder input
 #   OUTDIR/lfm3_audio_codec_decoder_f12_r4b2.tflite     speech out: the codec decoder, 12 frames (0.96 s) per call
 #   OUTDIR/lfm3_audio_depth_pass_r5b_aot.tflite         speech out: the depth-decoder pass compiled ahead of time for
@@ -29,6 +31,8 @@
 #             fully connected weights cast to fp16 (scripts/quant_fp16w.py)
 #   bundle    build_bundle.py: the .litertlm file
 #   parts     the speech-out graphs (scripts/export_parts.py --part frame / depth / codec12)
+#   int8      the depth-decoder pass with int8 weights: scripts/quant_int8.py (ai-edge-quantizer's dynamic_wi8_afp32)
+#             on the float32 pass of the parts step
 #   npu       the NPU file: the depth-decoder pass traced with the HTP rewrites (scripts/export_parts.py --part
 #             depth_npu), compiled ahead of time for SM8850 in the image of npu/Dockerfile (docker, linux/amd64)
 #   sections  sha256 of every file; the .litertlm by section (nemotron_bolt_work/sections.py). With REF_DIR set (a
@@ -41,7 +45,7 @@
 #              litert-lm-builder 0.18.1, numpy 2.5.4, safetensors 0.8.0, tokenizers 0.23.3 (steps fetch, template, lm,
 #              quant, bundle, sections)
 #   PY_PARTS = Python 3.12 with litert-torch 0.10.0, litert-converter 0.5.0, ai-edge-litert 2.3.0, ai-edge-quantizer
-#              0.10.0, torch 2.14.0, transformers 5.20.2, numpy 2.5.4, safetensors 0.8.0 (steps audio, parts, npu)
+#              0.10.0, torch 2.14.0, transformers 5.20.2, numpy 2.5.4, safetensors 0.8.0 (steps audio, parts, int8, npu)
 #   AOT_IMAGE (default npu-aot-qc:2.2.0-full) = the image built from npu/Dockerfile (step npu)
 set -euo pipefail
 W=$(cd "$(dirname "$0")" && pwd); R=$(cd "$W/.." && pwd)
@@ -62,10 +66,10 @@ FLOAT=$OUT/lm_f32_c2048
 LM=$OUT/lm_int4_b128
 PARTS=$OUT/parts
 BUNDLE=lfm3-audio-2b_int4_b128_c2048_h30.litertlm
-GRAPHS=(lfm3_audio_depth_proj_r4b.tflite lfm3_audio_depth_pass_r4b.tflite lfm3_audio_frame_embed_f32.tflite
-  lfm3_audio_codec_decoder_f12_r4b2.tflite lfm3_audio_depth_pass_r5b_aot.tflite)
+GRAPHS=(lfm3_audio_depth_proj_r4b.tflite lfm3_audio_depth_pass_r4b.tflite lfm3_audio_depth_pass_r4b_int8.tflite
+  lfm3_audio_frame_embed_f32.tflite lfm3_audio_codec_decoder_f12_r4b2.tflite lfm3_audio_depth_pass_r5b_aot.tflite)
 AOT_IMAGE=${AOT_IMAGE:-npu-aot-qc:2.2.0-full}
-STEPS=("$@"); [ ${#STEPS[@]} -gt 0 ] || STEPS=(fetch template lm quant audio bundle parts npu sections)
+STEPS=("$@"); [ ${#STEPS[@]} -gt 0 ] || STEPS=(fetch template lm quant audio bundle parts int8 npu sections)
 mkdir -p "$OUT/.done" "$OUT/logs"
 LOG=$OUT/recipe.log
 # run <step> <command...>: the command line to LOG, its output to logs/<step>.log, its result lines to LOG too
@@ -147,6 +151,11 @@ for step in "${STEPS[@]}"; do
       run parts "$PY_PARTS" "$W/scripts/export_parts.py" --part depth --hf "$HF" --out "$OUT/lfm3_audio_depth_proj_r4b.tflite" \
         --out2 "$OUT/lfm3_audio_depth_pass_r4b.tflite"
       run parts "$PY_PARTS" "$W/scripts/export_parts.py" --part codec12 --hf "$HF" --out "$OUT/lfm3_audio_codec_decoder_f12_r4b2.tflite"
+      ;;
+    int8)
+      need PY_PARTS
+      run int8 "$PY_PARTS" "$W/scripts/quant_int8.py" "$OUT/lfm3_audio_depth_pass_r4b.tflite" \
+        "$OUT/lfm3_audio_depth_pass_r4b_int8.tflite"
       ;;
     npu)
       need PY_PARTS
