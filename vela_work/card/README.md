@@ -16,7 +16,9 @@ language:
 
 # Vela-1.0-Encoder-307M-Embedding — LiteRT
 
-LiteRT (`.tflite`) and LiteRT-LM (`.litertlm`) conversions of [vllm-sr/Vela-1.0-Encoder-307M-Embedding](https://huggingface.co/vllm-sr/Vela-1.0-Encoder-307M-Embedding) (revision `290318fd`), a 22-layer ModernBERT sentence embedder (768-d, mean pooling + L2 normalization, Matryoshka 64–768) with the Gemma 256k tokenizer. The graph takes `input_ids` + `attention_mask` and returns the normalized sentence embedding; pooling and normalization are inside the graph, so the output is the same vector sentence-transformers returns for the same text.
+This repository is a conversion of [vllm-sr/Vela-1.0-Encoder-307M-Embedding](https://huggingface.co/vllm-sr/Vela-1.0-Encoder-307M-Embedding) to LiteRT and LiteRT-LM, made with litert-torch 0.10.0 for LiteRT 2.2.0 and LiteRT-LM 0.18.0: on a Galaxy S26 it embeds a text of up to 64 tokens in 6.8 ms on the NPU (2026-10-18), and at the GPU's default precision on the Galaxy S26, the Pixel 8a and a Mac its search results on SciFact stay within 0.003 of the float32 reference's (nDCG@10 0.48633 to 0.48813 against 0.48581; measured 2026-10-30 and 2026-10-31).
+
+LiteRT (`.tflite`) and LiteRT-LM (`.litertlm`) conversions of vllm-sr/Vela-1.0-Encoder-307M-Embedding (revision `290318fd`), a 22-layer ModernBERT sentence embedder (768-d, mean pooling + L2 normalization, Matryoshka 64–768) with the Gemma 256k tokenizer. The graph takes `input_ids` + `attention_mask` and returns the normalized sentence embedding; pooling and normalization are inside the graph, so the output is the same vector sentence-transformers returns for the same text.
 
 ## Files
 
@@ -36,28 +38,43 @@ One file per static window L: a text of n tokens (including `<bos>` and `<eos>`)
 - Two shapes because of the GPU delegate: it does not take a float16 token table inside the graph (`EMBEDDING_LOOKUP: Empty quantization params`), so the one-file form is a CPU form, and the `_embeds_` files take the looked-up rows from the host and run fully on the GPU (Metal: every op accelerated) and on the NPU. The pooling is written as multiply / sum / rsqrt rather than a masked select, which the delegate also refuses (`SELECT_V2` with a broadcast condition).
 - Reference for every number: the publisher's own stack (sentence-transformers 5.1.2, transformers 4.57.6, CPU float32, SDPA math kernel), which reproduces the card's STS-B v2 Spearman (0.811867 vs the card's 0.811864) on the same 1,362 test pairs.
 
-## Parity
+## Accuracy
 
-Bar: cosine ≥ 0.999 to the reference on every text, top-1 retrieval agreement 100 % on non-near-tie queries, Spearman of pair cosines vs the reference ≥ 0.999, the attention mask live (cutting 5 tokens off the longest text moves the vector), every output finite. Check set: PAWS-X test (en 300 pairs, es / ja / zh 100 each), STS-B v2 test (1,362 pairs), plus concatenated PAWS-X sentences for the 128 / 256 / 512 windows — 4,184 texts in all; the rows are referenced by dataset id, revision and index in the conversion record, not copied.
+Agreement with the reference vectors, checked as: cosine ≥ 0.999 to the reference on every text, top-1 retrieval agreement 100 % on non-near-tie queries, Spearman of pair cosines vs the reference ≥ 0.999, the attention mask live (cutting 5 tokens off the longest text moves the vector), every output finite. Check set: PAWS-X test (en 300 pairs, es / ja / zh 100 each), STS-B v2 test (1,362 pairs), plus concatenated PAWS-X sentences for the 128 / 256 / 512 windows — 4,184 texts in all; the rows are referenced by dataset id, revision and index in the conversion record, not copied.
 
-Results on the full check set (Mac CPU, every window): the float16 one-file and host-table files reach cosine ≥ 0.99977 to the reference on every text, top-1 agreement 100 % (1,738–1,873 queries per window), pair Spearman 0.9999995, STS-B v2 Spearman +0.000004 vs the reference; the float32 export sits at 0.99999977 (the converter's noise floor). On the phones the device subsets (140–497 texts per window) pass the same bar on the S26 NPU (cosine ≥ 0.9994), on the S26 and Pixel 8a GPUs at FP32 (≥ 0.99997) and on both CPUs (≥ 0.99997); the LiteRT-LM bundle passes the full set through `EmbeddingEngine` (cosine ≥ 0.99977), and the control with special tokens off fails (0.31), which is the engine inserting `<bos>` / `<eos>` as sentence-transformers does. Int8 weights were tried and rejected (see Conversion).
+Results on the full check set (Mac CPU, every window): the float16 one-file and host-table files reach cosine ≥ 0.99977 to the reference on every text, top-1 agreement 100 % (1,738–1,873 queries per window), pair Spearman 0.9999995, STS-B v2 Spearman +0.000004 vs the reference; the float32 export sits at 0.99999977 (the converter's noise floor). On the phones the device subsets (140–497 texts per window) pass the same checks on the S26 NPU (cosine ≥ 0.9994), on the S26 and Pixel 8a GPUs at FP32 (≥ 0.99997) and on both CPUs (≥ 0.99997); the LiteRT-LM bundle passes the full set through `EmbeddingEngine` (cosine ≥ 0.99977), and the control with special tokens off fails (0.31), which is the engine inserting `<bos>` / `<eos>` as sentence-transformers does. Int8 weights were tried and rejected (see Conversion). GPU fp16 arithmetic (the default precision of Metal, Adreno and Mali) drops the per-row cosine floor to 0.991–0.998 on about 1 % of the texts while every top-1 and the pair ranking hold; at FP32 the floor stays at 0.99977 or above.
+
+What that does to search was measured on a retrieval set with known answers: the SciFact test set (`mteb/scifact` revision `d56462d0`, 300 queries over 5,183 documents with relevance judgments), each text in the smallest window that holds it (none is longer than 512 tokens), the documents ranked by cosine to each query, nDCG@10 and recall@10 averaged over the queries. The reference is the publisher's stack above, run on the same texts. The phones computed the vectors on their GPUs (LiteRT 2.2.0 `CompiledModel`, the `_embeds_fp16` files and the host table) and the Mac scored them. Each row embeds the queries and the documents at its own precision; a mix, such as documents indexed at FP32 and queries at the default precision, was not measured.
+
+| device · GPU precision | nDCG@10 | recall@10 | lowest per-text cosine vs the reference (these 5,483 texts) |
+|---|---|---|---|
+| reference (sentence-transformers, CPU float32) | 0.48581 | 0.60833 | — |
+| Mac M4 Max · Metal, FP32 | 0.48581 | 0.60833 | 0.99985 |
+| Mac M4 Max · Metal, default (FP16 arithmetic) | 0.48633 | 0.60833 | 0.99685 |
+| Galaxy S26 · Adreno, default (FP16 arithmetic) | 0.48813 | 0.60722 | 0.99588 |
+| Pixel 8a · Mali-G715, default (FP16 arithmetic) | 0.48699 | 0.60722 | 0.99557 |
+| Pixel 8a · Mali-G715, FP16_WITH_FP32_ACCUM | 0.48575 | 0.60833 | 0.99877 |
+
+At the default precision every GPU stays within 0.003 of the reference on both measures, so a GPU can run these files at its default precision (Mac 2026-10-30, phones 2026-10-31). The publisher's card gives 48.28 (the card's scores are ×100, i.e. 0.4828) for SciFact from MTEB 2.21.0; its stack run directly, as here, gives 0.48581 on the same dataset revision, and the cause of the 0.003 difference was not found.
 
 ## Performance
 
-One text per call (write the inputs, run, read the 768-d vector back), median of 20 calls after 5 warm-ups, on a rested phone (thermal status 0, no CPU frequency cap). Every file is a static window, so the time is the window's, not the text's: an app picks the smallest window that holds the text.
+One text per call (write the inputs, run, read the 768-d vector back), median of 20 calls after 5 warm-ups, on a rested phone (thermal status 0, no CPU frequency cap) unless the row says otherwise. Every file is a static window, so the time is the window's, not the text's: an app picks the smallest window that holds the text.
 
-| device · backend | file | L64 | L128 | L256 | L512 | parity (cosine floor vs the reference) |
+| device · backend | file | L64 | L128 | L256 | L512 | cosine floor vs the reference |
 |---|---|---|---|---|---|---|
-| Galaxy S26 · NPU (Qualcomm HTP, LiteRT 2.2.0 C-API, JIT) | `_embeds_fp16` + host table | 6.8 ms | 13.1 ms | 28.0 ms | 68.4 ms | ≥ 0.9994 on every window, top-1 100 % |
-| Galaxy S26 · NPU | `_fp16` one file (the HTP takes the fp16 table) | 6.8 ms | 13.1 ms | 29.0 ms | 71.0 ms | the same vectors |
+| Galaxy S26 · NPU (Qualcomm HTP, LiteRT 2.2.0 C-API, JIT) | `_embeds_fp16` + host table | 6.8 ms | 13.1 ms | 28.0 ms | 68.4 ms | ≥ 0.9994 on every window, top-1 100 % (phone not rested) |
+| Galaxy S26 · NPU | `_fp16` one file (the HTP takes the fp16 table) | 6.8 ms | 13.1 ms | 29.0 ms | 71.0 ms | the same vectors (phone not rested) |
 | Galaxy S26 · GPU (Adreno, FP32 arithmetic) | `_embeds_fp16` + host table | 16.5 ms | 24.0 ms | 47 ms | 120 ms | ≥ 0.99997 |
 | Galaxy S26 · CPU (XNNPACK, 4 threads) | `_fp16` one file | 19.8 ms | 39–41 ms | 85–88 ms | 210–237 ms | ≥ 0.99997 |
-| Pixel 8a · GPU (Mali-G715, FP32) | `_embeds_fp16` + host table | 76 ms | 92 ms | 181 ms | 408 ms | ≥ 0.99997 (gate-leg medians, phone not rested) |
-| Pixel 8a · CPU (4 threads) | `_fp16` one file | 181 ms | 473 ms | 936 ms | 2,045 ms | ≥ 0.99997 (gate-leg medians) |
+| Pixel 8a · GPU (Mali-G715, default precision = FP16 arithmetic) | `_embeds_fp16` + host table | 55 ms | 68 ms | 103 ms | 209 ms | ≥ 0.9960 (medians over the accuracy runs, phone not rested) |
+| Pixel 8a · GPU (Mali-G715, FP32) | `_embeds_fp16` + host table | 76 ms | 92 ms | 181 ms | 408 ms | ≥ 0.99997 (medians over the accuracy runs, phone not rested) |
+| Pixel 8a · CPU (4 threads) | `_fp16` one file | 181 ms | 473 ms | 936 ms | 2,045 ms | ≥ 0.99997 (medians over the accuracy runs) |
+| Mac M4 Max · Metal (default precision = FP16 arithmetic) | `_embeds_fp16` + host table | 6.1 ms | 7.7 ms | 10.2 ms | 18.4 ms | 0.9908 on 3,918–4,184 texts |
 | Mac M4 Max · Metal (FP32 arithmetic) | `_embeds_fp16` + host table | 6.1 ms | 7.3 ms | 11.0 ms | 20.2 ms | 0.99977 on 3,918–4,184 texts |
 | Mac M4 Max · CPU (8 threads) | `_fp16` one file | 22 ms | 30 ms | 45 ms | 79 ms | 0.99977 |
 
-NPU JIT compile on the S26: 4–34 s per window on the first run (cache it). GPU fp16 arithmetic (the GPU defaults on Metal, Adreno and Mali) keeps every top-1 and the pair ranking but drops the per-row cosine floor to 0.991–0.998 on about 1 % of the texts, so the GPU numbers above are at FP32; on the S26, FP16_WITH_FP32_ACCUM passes the full bar on L128–L512 at 84 ms (L512) if a 0.9994 floor is enough for you. Int8 weights were tried and rejected (see Conversion).
+NPU JIT compile on the S26: 4–34 s per window on the first run (cache it). A GPU can run the `_embeds_fp16` files at its default precision (float16 arithmetic) with search results within 0.003 of the reference (Accuracy, above). On the Pixel 8a that takes 55–209 ms against 76–408 ms at FP32, and on the Mac 10.2 and 18.4 ms against 11.0 and 20.2 ms at L256 and L512 (the same at L64, slower at L128). On the Galaxy S26 the NPU stays the fastest; its GPU at the default precision took 11.5 ms at L64 against 17.0 ms at FP32 in the small LiteRT C-API program that also produced the NPU rows, in runs that did not wait for a rested phone (the CPU frequency capped, and in the FP32 run the GPU clock limited too), and the other windows were not timed at that precision on a rested phone. FP16_WITH_FP32_ACCUM (float16 arithmetic with float32 accumulation, between the two in agreement with the reference) took 84 ms at L512 on the S26 (FP32: 120 ms). Int8 weights were tried and rejected (see Conversion).
 
 ## Usage
 
