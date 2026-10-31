@@ -1,0 +1,89 @@
+{#- Spark-X2.6 (XHToken; model_type spark2_5; THINKING by default) -- the jinja the
+    .litertlm bundle carries verbatim (USE_JINJA=1 in spark_work/convert_spark.py), made
+    from the X2.6 vendor chat_template.jinja (sha256 480576bd...6f6929) the way
+    templates/spark25_think.jinja was made from the X2.5 one: its plain-chat part
+    (system / user / assistant; no tools branch, no tool role, no tool_calls).
+    Renders byte-identically to the vendor template for those shapes
+    (spark_work/x26_template_check.py: jinja2 and the litert-lm runtime):
+      * X2.6 change: while thinking is on (enable_thinking defaults to true), the default
+        system block carries the vendor's `thinking_effort` paragraph, reasoning_effort
+        high (default) or low; any other value raises, as in the vendor;
+      * content is a string or a list of text blocks (the vendor's render_content macro,
+        kept: litert-lm 0.18+ hands content to the template as typed parts);
+      * every message is wrapped <｜start▁of▁sentence｜> ... <｜end▁of▁sentence｜>
+        (bos id 0 / eos id 1); the export runs NO_START_TOKEN=1
+        ([[bundle-prepends-bos-add-bos-false]]);
+      * generation prompt <|Bot|><think> (thinking on) or <|Bot|></think>
+        (enable_thinking false); the literal <think> declares the `thought` channel
+        ([[thinking-models-need-think-prefill]]);
+      * assistant HISTORY turns render as <|Bot|></think>{content} at every position (the
+        vendor's form for a turn without reasoning_content), so render(history) is a
+        prefix of the next render ([[conversation-prefix-contract]]).
+    Edits to the vendor's plain-chat lines (none changes a non-empty render):
+      (1) the `if not messages: raise` guard is dropped and the first-message test reads
+          `messages and messages[0].role == "system"`: the runtime renders a messageless
+          preface ([[template-empty-messages-guard]]);
+      (2) the assistant branch does not render reasoning_content (as spark25_think.jinja);
+      (3) whitespace control on every tag ({%- -%}), so the output does not depend on the
+          renderer's trim_blocks / lstrip_blocks settings.
+    Stop = <｜end▁of▁sentence｜> (id 1). -#}
+{%- set enable_thinking = enable_thinking | default(true) -%}
+{%- set reasoning_instructions = '' -%}
+{%- if enable_thinking is true -%}
+{%- set resolved_reasoning_effort = reasoning_effort|default('high') -%}
+{%- if resolved_reasoning_effort not in ('high', 'low') -%}
+{{- raise_exception('Unexpected reasoning effort ' ~ reasoning_effort ~ '. Supported types are high (default) and low.') -}}
+{%- endif -%}
+{%- if resolved_reasoning_effort == 'high' -%}
+{%- set reasoning_instructions = '\n`thinking_effort` guides on how much to think in your thinking channel (not including the response channel), supported values include `low` and `high`.\nNow the system is invoked with `thinking_effort=high`.' -%}
+{%- elif resolved_reasoning_effort == 'low' -%}
+{%- set reasoning_instructions = '\n`thinking_effort` guides on how much to think in your thinking channel (not including the response channel), supported values include `low` and `high`.\nNow the system is invoked with `thinking_effort=low`.' -%}
+{%- endif -%}
+{%- endif -%}
+{%- macro render_content(content, context_name) -%}
+{%- if content is string -%}
+{{- content -}}
+{%- elif content is none or content is undefined -%}
+{{- '' -}}
+{%- elif content is iterable and content is not mapping -%}
+{%- for block in content -%}
+{%- if block.type == 'text' -%}
+{{- block.text -}}
+{%- else -%}
+{{- raise_exception('Unsupported ' ~ context_name ~ ' content block type: ' ~ (block.type | string)) -}}
+{%- endif -%}
+{%- endfor -%}
+{%- else -%}
+{{- raise_exception(context_name ~ ' content must be a string or a list of text blocks') -}}
+{%- endif -%}
+{%- endmacro -%}
+{%- set default_system = "you are a helpful assistant." + reasoning_instructions -%}
+{%- set ns = namespace(initial_system='') -%}
+{%- if messages and messages[0].role == "system" -%}
+{%- set ns.initial_system = render_content(messages[0].content, 'system') -%}
+{%- endif -%}
+{{- '<｜start▁of▁sentence｜><|System|>' + '\n' + default_system -}}
+{%- if ns.initial_system -%}
+{{- '\n\n' + ns.initial_system -}}
+{%- endif -%}
+{{- '<｜end▁of▁sentence｜>' -}}
+{%- for message in messages -%}
+{%- if message.role == "system" -%}
+{%- if not loop.first -%}
+{{- '<｜start▁of▁sentence｜><|System|>\n' + render_content(message.content, 'system') + '<｜end▁of▁sentence｜>' -}}
+{%- endif -%}
+{%- elif message.role == "user" -%}
+{{- '<｜start▁of▁sentence｜><|User|>' + render_content(message.content, 'user') + '<｜end▁of▁sentence｜>' -}}
+{%- elif message.role == "assistant" -%}
+{{- '<｜start▁of▁sentence｜><|Bot|></think>' + render_content(message.content, 'assistant') + '<｜end▁of▁sentence｜>' -}}
+{%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+{{- '<｜start▁of▁sentence｜><|Bot|>' -}}
+{%- if enable_thinking is defined and enable_thinking -%}
+{{- '<think>' -}}
+{%- endif -%}
+{%- if enable_thinking is defined and not enable_thinking -%}
+{{- '</think>' -}}
+{%- endif -%}
+{%- endif -%}

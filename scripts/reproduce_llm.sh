@@ -66,6 +66,13 @@ reproduce() {
     python3 spark_work/patch_modeling.py $SM/Spark-X2.5-4B $SM/Spark-X2.5-4B-export
     PREFILL=1024,256,64,16,4,1 $PY spark_work/convert_spark.py $SM/Spark-X2.5-4B-export out/$key-int8 templates/spark25_think.jinja dynamic_wi8_afp32
     PREFILL=1024,256,64,16,4,1 EXTERNALIZE_EMBEDDER=1 $PY spark_work/convert_spark.py $SM/Spark-X2.5-4B-export out/$key templates/spark25_think.jinja BOCTAV4_128 ;;
+  spark-x2.6-1.7b)     # the X2.5 recipe on the X2.6 weights + the X2.6 template; int8 + int4-mlp (attention / MLP down /
+                       # lm_head int8, MLP gate / up int4 b32), fp32 GPU activations, GPU-composite graph (needs PYT and
+                       # LITERT_LM_CLI = the litert-lm 0.19.0 CLI; see REPRODUCE.md). Writes out/Spark-X2.6-1.7B_*.litertlm
+    PY=$PY bash spark_work/x26_build.sh 1.7b; return ;;
+  spark-x2.6-4b)       # same; int8 (the CPU file, no graph rewrite) + int4 b128 (GPU-composite graph), fp32 repack with
+                       # the litert-lm 0.17.0 CLI (LITERT_LM_0170). Writes out/Spark-X2.6-4B_*.litertlm
+    PY=$PY bash spark_work/x26_build.sh 4b; return ;;
   sarashina22-0.5b)    $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-0.5b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;  # int8 ship; int4 ship = same line with BOCTAV4. Wrapper = HF tokenizer.json + NO_START_TOKEN + ladder/4096
   sarashina22-1b)      $PY sarashina_work/convert_sarashina.py sbintuitions/sarashina2.2-1b-instruct-v0.1 out/$key templates/sarashina_simple.jinja dynamic_wi8_afp32 ;;    # same
 
@@ -99,7 +106,7 @@ reproduce() {
 
 KEYS="agents-a1-4b fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-0.6b-wi4b32 qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
-ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b"
+ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b spark-x2.6-1.7b spark-x2.6-4b"
 
 case "${1:-}" in
   --list|"") echo "model keys:"; for k in $KEYS; do echo "  $k"; done;
