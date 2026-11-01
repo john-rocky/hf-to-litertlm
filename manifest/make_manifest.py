@@ -11,6 +11,8 @@ Usage (needs: pip install litert-lm-builder jsonschema jinja2):
     python manifest/make_manifest.py litert-community/LFM2.5-1.2B-Instruct
     ... --public          # strip every private `evidence` pointer for publication
     ... --local-file F    # parse a local bundle instead of range-reading HF
+    ... --no-hub --local-file NAME=PATH [...]   # a repo not on the Hub yet: the files
+                          # are the --local-file ones; nothing is requested from the Hub
 
 """
 import argparse
@@ -343,6 +345,11 @@ def main():
   ap.add_argument("--only-curated", action="store_true",
                   help="describe only the files the curated file lists "
                        "(a repo that also hosts third-party bundles)")
+  ap.add_argument("--no-hub", action="store_true",
+                  help="the repo is not on the Hub yet (a dry run before the "
+                       "first upload): the file list is the --local-file "
+                       "names with the local sizes instead of the Hub tree, "
+                       "and every derived field is read from the local files")
   args = ap.parse_args()
 
   mdir = pathlib.Path(__file__).resolve().parent
@@ -354,7 +361,13 @@ def main():
           file=sys.stderr)
   local = dict(kv.split("=", 1) for kv in args.local_file)
 
-  tree = http_json(f"https://huggingface.co/api/models/{args.repo}/tree/main")
+  if args.no_hub:
+    if not local:
+      sys.exit("--no-hub needs at least one --local-file NAME=PATH")
+    tree = [{"path": n, "type": "file", "size": os.path.getsize(p)}
+            for n, p in local.items()]
+  else:
+    tree = http_json(f"https://huggingface.co/api/models/{args.repo}/tree/main")
   files = {f["path"]: f for f in tree if f["path"].endswith(".litertlm")}
   if not files:
     sys.exit(f"no .litertlm files in {args.repo}")

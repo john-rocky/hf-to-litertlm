@@ -1,0 +1,23 @@
+{
+ "about": "tools/quant_sensitivity/fc_groups.py classes for the LFM3 text decoder (LFM3-VL-2B's language model as exported by tools/vl_decoder.py float): 13 short-convolution layers (in_proj, out_proj), 11 attention layers (q, k, v, an output gate, o), 24 MLPs (w1, w3, w2), the tied output head. Rules are tried in order; the first match wins.",
+ "layer_regex": "Lfm3DecoderLayer_(\\d+)/",
+ "linear_regex": "Linear_(\\w+?)(?=;|$)",
+ "rules": [
+  {"class": "lm_head", "first_name_contains": "decode_logits_output"},
+  {"class": "conv_in", "linear_any": "in_proj"},
+  {"class": "conv_out", "linear_any": "out_proj"},
+  {"class": "w2", "linear_any": "w2"},
+  {"class": "o", "linear_any": "o_proj"},
+  {"class": "gate", "linear_any": "gate_proj"},
+  {"class": "k", "linear_any": "k_proj"},
+  {"class": "v", "linear_any": "v_proj"},
+  {"class": "w3", "linear_first": "w3"},
+  {"class": "w1", "linear_only": ["w1"]},
+  {"class": "q", "linear_only": ["q_proj"]}
+ ],
+ "shapes": {"conv_in": [6144, 2048], "conv_out": [2048, 2048], "q": [2048, 2048], "k": [512, 2048], "v": [512, 2048],
+            "gate": [16, 2048], "o": [2048, 2048], "w1": [7680, 2048], "w3": [7680, 2048], "w2": [2048, 7680],
+            "lm_head": [128000, 2048]},
+ "groups": {"lm_head": ["lm_head"], "conv_in": ["conv_in"], "conv_out": ["conv_out"],
+            "attn": ["q", "k", "v", "gate", "o"], "mlp_w13": ["w1", "w3"], "mlp_w2": ["w2"]}
+}

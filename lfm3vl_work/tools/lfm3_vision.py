@@ -47,8 +47,9 @@ arithmetic: `rms_s` = {norm key: S}, a power-of-two pre-scale 1/S of a RMSNorm i
 every norm input during a forward.
 fp16 precision: the GPU at fp16 precision breaks the default graph at its first op. The
 converter folds the input step's constants into the patch conv (weights W / 127.5, the mean moved into the bias), so
-the conv sums W / 127.5 * u8 and subtracts a bias of the same size: a flat grey patch (u8 128) keeps 1 / 256 of the
-terms' size, below fp16's rounding of the sum (Metal fp16 vs fp32 token cos 0.36 at the patch conv).
+the conv sums W / 127.5 * u8 and subtracts a bias of the same size: a flat grey patch (u8 128) keeps about 1 / 255
+(0.5 / 127.5) of the terms' size, below fp16's rounding of the sum (Metal fp16 vs fp32 token cos 0.36 at the patch
+conv).
 `input_norm="u8c"` centres before the FLOOR, w = floor(x * 255 - 127.5) = u8 - 128 (exact for every u8), then
 (w + 0.5) / 127.5 = the same pixel values bit for bit in torch fp32: the folded bias is then 0.5 * sum(W) / 127.5 and
 the conv sums the centred integers, no cancellation. `ln_s` = S, the same power-of-two pre-scale for the projector

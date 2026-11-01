@@ -211,6 +211,14 @@ Measured on NVIDIA-Nemotron-3.5-Bolt-E4B (the Gemma 4 E4B architecture: 42 layer
   the runtime creates that layer's cache from the decode signature; the runtime then prints `Failed to get buffer
   requirements for tensor 'dangling_k_23'` once per process, which does not change the answers.
 
+## 4c. 16-bit weights on the HTP
+
+Measured on LiquidAI/LFM3-VL-2B and on a tiny random-weight LFM3 (hidden size 64), both compiled ahead of time for SM8850 with QAIRT 2.47; the LFM3-VL-2B file also ran on a Galaxy S26, 2026-10-29.
+
+- **fp16 islands, not int16 weights.** The Qualcomm compiler plugin does not put a fully connected layer with int16 weights on the HTP: it writes quantized int16 tensors as `QNN_DATATYPE_SFIXED_POINT_16`, while the HTP's FullyConnected takes 16-bit weights only as `UFIXED_POINT_16` input and weights with an `SFIXED_POINT_32` bias (`Unsupported input/output datatypes requested for the HTP Op 'FullyConnected'`), so each such layer stays on the CPU. The tiny LFM3 with every fully connected weight in int16 compiled with all 69 of them on the CPU, its two graphs in 33 and 37 partitions. The plugin's `use_qint16_as_quint16` option is a no-op (`litert/c/options/litert_qualcomm_options.h`). The same layers with fp16 weights (stage ③ with float_casting on those fully connected ops only; a DEQUANTIZE / QUANTIZE pair joins each to the int16 graph) compile into one partition per graph, and the HTP computes them in FP16 (`relaxed_precision_flag value=1`).
+- **Gate the islands on the phone.** The host interpreter computes the islands in fp32 where the HTP uses FP16. In the one case measured, the host was the looser check: LFM3-VL-2B with 105 fully connected layers as fp16 islands (those of layers 8 to 23 and lm_head; the rest int8 weights with int16 activations) kept the bfloat16 source model's first 32 tokens on 21 of 23 picture questions on the Mac interpreter (the bar it had to clear), and on the Galaxy S26 NPU one of 8 picture answers changed at its first token ("Oversize load" became "OVERSIZE LOAD"; the fp16 model's top-2 gap there is 0.066), so that file was not published. The cause was not isolated: the HTP's float fully connected op takes only FP16 and BF16, so the islands cannot run in fp32 on the phone.
+- **Count the 16-bit weights after stage ③.** ai-edge-quantizer's min-max policy has no static 16-bit weight entry, and its recipe manager skips an entry that the policy lacks without an error, so read the weight types in the quantized file.
+
 ## 5. License note on the `.so` files — summary, not legal advice
 
 The ten libraries are Qualcomm's proprietary binaries (three straight from the QAIRT SDK;

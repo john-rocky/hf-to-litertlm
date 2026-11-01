@@ -1,0 +1,727 @@
+{
+ "format": "lfm3vl-fixtures-1",
+ "pillow": "13.0.0",
+ "g_rule": "ImageOps.exif_transpose(Image.open(src)).convert('RGB').resize((G, G), Image.BICUBIC)",
+ "grids": [
+  512,
+  768
+ ],
+ "images": {
+  "syn_shapes": {
+   "src": "img/src/syn_shapes.png",
+   "src_size_wh": [
+    640,
+    480
+   ],
+   "src_sha256": "894f3317a1eb38548ff5e770cf2bf33076d6dedddf675d3a6834a0589c0d7ce1",
+   "src_pixel_sha256": "741cd4df7b04c8200b2e62ac245d92cac541de08177e59a28f02f10a1f0b2503",
+   "g512": "img/g512/syn_shapes.png",
+   "g512_sha256": "c1497d4daeebb6f76f26f4affe630aa8812a7e62ceec803b7333e271ad93c252",
+   "g512_pixel_sha256": "5b3db4e43c6acfa2579235af8932e437ed8a7137cadf297de5039c7dfee056ad",
+   "g768": "img/g768/syn_shapes.png",
+   "g768_sha256": "c5198c2f56e65295cab7ede3f3a1b1159207dfe177c3a5b163bbe613f3bf92ab",
+   "g768_pixel_sha256": "433d3bf015f35213e39c96367d98a1164e45ea264629c98f22026b91ee383b7d",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_shapes",
+    "truth": {
+     "size": [
+      640,
+      480
+     ],
+     "seed": 3101,
+     "objects": [
+      {
+       "label": "red square",
+       "box_xyxy": [
+        48,
+        269,
+        134,
+        355
+       ]
+      },
+      {
+       "label": "red square",
+       "box_xyxy": [
+        165,
+        148,
+        248,
+        231
+       ]
+      },
+      {
+       "label": "blue circle",
+       "box_xyxy": [
+        229,
+        311,
+        312,
+        394
+       ]
+      },
+      {
+       "label": "blue circle",
+       "box_xyxy": [
+        379,
+        28,
+        451,
+        100
+       ]
+      },
+      {
+       "label": "blue circle",
+       "box_xyxy": [
+        545,
+        239,
+        623,
+        317
+       ]
+      },
+      {
+       "label": "blue circle",
+       "box_xyxy": [
+        383,
+        236,
+        475,
+        328
+       ]
+      },
+      {
+       "label": "blue circle",
+       "box_xyxy": [
+        433,
+        131,
+        524,
+        222
+       ]
+      }
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_exit": {
+   "src": "img/src/syn_exit.png",
+   "src_size_wh": [
+    640,
+    480
+   ],
+   "src_sha256": "883590efbd691f4340666c7e0a8420bcc2713749ac3315d9f8957418dfb3835e",
+   "src_pixel_sha256": "212c335a046e26b68147de7dafe1ddfb72d692518326c43a3c6e8036db422cfa",
+   "g512": "img/g512/syn_exit.png",
+   "g512_sha256": "7e06b80748a466770cf902504abda717a922fafc97ec77875082af0f61165e9f",
+   "g512_pixel_sha256": "923b44b82616545192ffce69a7274773f71341a9f3b46dce5ff5524387cbd58f",
+   "g768": "img/g768/syn_exit.png",
+   "g768_sha256": "99db74646fbe901296e81d8c6f90dff3fa33166c8940ecdc174dc2c079894b29",
+   "g768_pixel_sha256": "a8af2d4180d3e2a241b7d1296508c7a409504a5b9bd433ff5971b9db91b6b12c",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_exit",
+    "truth": {
+     "size": [
+      640,
+      480
+     ],
+     "sign_box_xyxy": [
+      120,
+      150,
+      520,
+      330
+     ],
+     "text": "EXIT 12",
+     "text_box_xyxy": [
+      167,
+      209,
+      473,
+      271
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_gate": {
+   "src": "img/src/syn_gate.png",
+   "src_size_wh": [
+    480,
+    640
+   ],
+   "src_sha256": "b585d3eb5ff145f552bbde4736ae481a326b7ca218f8686f9a1dd4ebbd852a52",
+   "src_pixel_sha256": "069ed5100660710282ace6019d383a9796e0ad0d3d951c7cbad94c39ac58902c",
+   "g512": "img/g512/syn_gate.png",
+   "g512_sha256": "24e3fb18435955a72395f112a15013cd0b11467d7ad394c395ad19c869def433",
+   "g512_pixel_sha256": "60bc946f2fcc06e8dce9cb6913f722955d25a04e9df3c7731853858184936a02",
+   "g768": "img/g768/syn_gate.png",
+   "g768_sha256": "208b3715f116e2ac8d05c312d1f1607949e7dcaa3c4d6648b3958097b128a05f",
+   "g768_pixel_sha256": "1ade4cc9a6a5fcf1cbdc50d299e44edc8497b44bc1041d7211de5f1c2b4c3558",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_gate",
+    "truth": {
+     "size": [
+      480,
+      640
+     ],
+     "text": "GATE 47",
+     "text_box_xyxy": [
+      75,
+      179,
+      405,
+      240
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_bar": {
+   "src": "img/src/syn_bar.png",
+   "src_size_wh": [
+    640,
+    480
+   ],
+   "src_sha256": "538223cb94bd0f57f80394a83fff613a770e8d26d4530aa296f45702d38420b3",
+   "src_pixel_sha256": "273dfb835cbb4dd588e595862c219a6c1d58f289c83f8bb576a0f5e4e0749098",
+   "g512": "img/g512/syn_bar.png",
+   "g512_sha256": "35785cef36f04e0d940a71aab6977224493668b112fb6420d649c2976862cb2e",
+   "g512_pixel_sha256": "e406497518d58c02aa983f471bfecf445bcbd9e1a193b0afd40027d3dad67cc3",
+   "g768": "img/g768/syn_bar.png",
+   "g768_sha256": "13fc0dc102e8cfa9520fac2678b1c75da8fd2bf5fedaac2132ba5acd7ab41805",
+   "g768_pixel_sha256": "f29f965c037b19ac0352dce815756f3db5a43b22a7cdee4ceefd3d2de91db485",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_bar",
+    "truth": {
+     "size": [
+      640,
+      480
+     ],
+     "title": "Visitors",
+     "bars": [
+      {
+       "label": "Mon",
+       "value": 3,
+       "box_xyxy": [
+        120,
+        311,
+        200,
+        410
+       ]
+      },
+      {
+       "label": "Tue",
+       "value": 5,
+       "box_xyxy": [
+        245,
+        245,
+        325,
+        410
+       ]
+      },
+      {
+       "label": "Wed",
+       "value": 8,
+       "box_xyxy": [
+        370,
+        146,
+        450,
+        410
+       ]
+      },
+      {
+       "label": "Thu",
+       "value": 2,
+       "box_xyxy": [
+        495,
+        344,
+        575,
+        410
+       ]
+      }
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_table": {
+   "src": "img/src/syn_table.png",
+   "src_size_wh": [
+    640,
+    480
+   ],
+   "src_sha256": "d774466b398d377ba97ac7e4e40d2725a6d67da52b3f7a1ab4e76c290e7d553d",
+   "src_pixel_sha256": "581b091546a4c06e4af40db1236a7b5fb6a392b5f81c48c43821c8fe5b760d4f",
+   "g512": "img/g512/syn_table.png",
+   "g512_sha256": "cecf9b128b3bec24bbda7a47d8f4070a82d0ff129c76ffe48e69984d7e14febb",
+   "g512_pixel_sha256": "f8a0201f67ea86fd6553bd302b670718f558395795c1f1d96a1f2f8e96075563",
+   "g768": "img/g768/syn_table.png",
+   "g768_sha256": "ab60018268e68348d93959fe76b1542750c53509ab81ab87c98a3192e2ca2b70",
+   "g768_pixel_sha256": "180626dd830bd7ce6146baf68107d981c52b9e4ea4b09ef55fdd77f8ff92d8a9",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_table",
+    "truth": {
+     "size": [
+      640,
+      480
+     ],
+     "rows": [
+      [
+       "Item",
+       "Price"
+      ],
+      [
+       "Apple",
+       "3"
+      ],
+      [
+       "Bread",
+       "5"
+      ],
+      [
+       "Milk",
+       "2"
+      ]
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_lr": {
+   "src": "img/src/syn_lr.png",
+   "src_size_wh": [
+    640,
+    480
+   ],
+   "src_sha256": "9f534745c9bd77e36e076ed36b726cf24f227972fa3ad9ef3778ceda37f7fabf",
+   "src_pixel_sha256": "0714983a3b0b09a9a6d603a449829ff7ff36e68a6bd323ed43d4a05c6365055f",
+   "g512": "img/g512/syn_lr.png",
+   "g512_sha256": "8d8679b8aebffb689ec72f38f3e77012c04d37e58e261b76f7cdf4e18d0db303",
+   "g512_pixel_sha256": "dd9e2b920a46d21ce3cc5873eb6d2b29c2eb07a4f9b3574cb1110f6c0499d98c",
+   "g768": "img/g768/syn_lr.png",
+   "g768_sha256": "3f40b6c1cb893352268bcbe2e9f756fe2a68c2932189d8340659159563df6a02",
+   "g768_pixel_sha256": "0ef050e3f27f4479e944a2f8afc1e142aca6b8d13a098a7bed5993bd6ac7d82d",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_lr",
+    "truth": {
+     "size": [
+      640,
+      480
+     ],
+     "objects": [
+      {
+       "label": "red circle",
+       "box_xyxy": [
+        70,
+        170,
+        210,
+        310
+       ]
+      },
+      {
+       "label": "blue square",
+       "box_xyxy": [
+        440,
+        180,
+        560,
+        300
+       ]
+      }
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_tb": {
+   "src": "img/src/syn_tb.png",
+   "src_size_wh": [
+    480,
+    640
+   ],
+   "src_sha256": "f493752d7c6fbb887eb1a50b54691cce44e0287d3224d6f555128d8e9f40170f",
+   "src_pixel_sha256": "7ff40378e74b41b65953b34fca39f79abe5a599b493e43b226d4cd92be11781a",
+   "g512": "img/g512/syn_tb.png",
+   "g512_sha256": "5c6d0bd37b386fac96b72fd531de8a1b6e0184624192cd6d45451711873142a6",
+   "g512_pixel_sha256": "a6651371bfabf5ee3975adfcabd2ece671241451991e5ee8a739fd965a0b9c36",
+   "g768": "img/g768/syn_tb.png",
+   "g768_sha256": "5e527a3a1e164260dcd07a5e865d3dc13203d3acef12c6c0f256d520a7dbebc7",
+   "g768_pixel_sha256": "d60e72f4d6ad227009a2a96c49c43dcbf55f7fa1a4eea36f0bec3c42e02761f2",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_tb",
+    "truth": {
+     "size": [
+      480,
+      640
+     ],
+     "objects": [
+      {
+       "label": "green triangle",
+       "box_xyxy": [
+        150,
+        50,
+        330,
+        200
+       ]
+      },
+      {
+       "label": "orange square",
+       "box_xyxy": [
+        180,
+        450,
+        300,
+        570
+       ]
+      }
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "syn_big": {
+   "src": "img/src/syn_big.png",
+   "src_size_wh": [
+    512,
+    512
+   ],
+   "src_sha256": "ac052e0fff3261f8fecce1073ca5b2b2ca388dbdb7befcf630d5b5848866bdf7",
+   "src_pixel_sha256": "d17dc3fe1cb9ad7699dfddb89724281d85a3bba221fe748e7117ac6659df4f06",
+   "g512": "img/g512/syn_big.png",
+   "g512_sha256": "ac052e0fff3261f8fecce1073ca5b2b2ca388dbdb7befcf630d5b5848866bdf7",
+   "g512_pixel_sha256": "d17dc3fe1cb9ad7699dfddb89724281d85a3bba221fe748e7117ac6659df4f06",
+   "g768": "img/g768/syn_big.png",
+   "g768_sha256": "a44180070d527ec1120eb60325b81e0dcb1de2a30ef2e5447cc552b94935fb1a",
+   "g768_pixel_sha256": "4be43e120dacf8089e90a5a97770b8c2abdf99ebd6c9eef4a0db04fa92617ea3",
+   "source": {
+    "kind": "synthetic",
+    "script": "make_synth.py",
+    "fn": "syn_big",
+    "truth": {
+     "size": [
+      512,
+      512
+     ],
+     "objects": [
+      {
+       "label": "purple circle",
+       "box_xyxy": [
+        106,
+        106,
+        406,
+        406
+       ]
+      }
+     ]
+    },
+    "licence": "own drawing (public_ok)"
+   },
+   "public_ok": true
+  },
+  "nasa_jungle": {
+   "src": "img/src/nasa_jungle.png",
+   "src_size_wh": [
+    1024,
+    693
+   ],
+   "src_sha256": "451c8661abdfd8f4319162e45eb1b60e089b1dacb0959e01175b77661a05d37b",
+   "src_pixel_sha256": "1651aa736f5db35f0e1641ef0ab5e9f97d79cbf0fdb1d52ed2ea1488608ed494",
+   "g512": "img/g512/nasa_jungle.png",
+   "g512_sha256": "04bb4e0fbbd59162db732e3fcd330e45609f77617900bd2c666d096e8fea6184",
+   "g512_pixel_sha256": "9820115b8569d282fc3148ee29743b1206649e9ee8d2b70c4ed7ba6079285b37",
+   "g768": "img/g768/nasa_jungle.png",
+   "g768_sha256": "cd240df1099f30d78b874df572ccd728676ee00d791aab1d3fbf890316c60198",
+   "g768_pixel_sha256": "e4c3e1a488474628dd4a290d24910ac81dbc4f194586cb3d8995f5412d8a8e60",
+   "source": {
+    "kind": "nasa",
+    "nasa_id": "S67-34267",
+    "title": "ASTRONAUT GROUP - TRAINING - JUNGLE - PANAMA (1967)",
+    "url": "https://images-assets.nasa.gov/image/S67-34267/S67-34267~orig.jpg",
+    "orig_file": "img/orig/nasa_S67-34267.jpg",
+    "orig_sha256": "7e748be3b43b91a25652329f4026b1c19c96ae60decc2ea99cd71a538754db21",
+    "licence": "NASA / public domain",
+    "credit": "NASA",
+    "src_rule": "exif_transpose -> RGB -> longest side 1024 LANCZOS"
+   },
+   "public_ok": true
+  },
+  "nasa_guppy": {
+   "src": "img/src/nasa_guppy.png",
+   "src_size_wh": [
+    683,
+    1024
+   ],
+   "src_sha256": "709c64c20e7fe56b3a3104920183656b063ab636dd3a2220e48ac67cacf5b64b",
+   "src_pixel_sha256": "09e5d782f0ab147641b8c9242f9e86786bf110436d255932dee82fa231210d21",
+   "g512": "img/g512/nasa_guppy.png",
+   "g512_sha256": "011af8594f1745f1d2087ce9f8a7e15a123d898a1350904f8d97c0f0f831c1ff",
+   "g512_pixel_sha256": "c4ec2563d0c149cd44f5d08e6dc35a33621f013eb76608bc194fbe8ad39c0150",
+   "g768": "img/g768/nasa_guppy.png",
+   "g768_sha256": "556b8b52f0410839636ba66d96a253532a3ce9e6638a80e5fc7a164acc2159b3",
+   "g768_pixel_sha256": "fc3eaabeba0b0b0a3caadf4e30bbd8f28ccd94a5a6e2d5bc7b30cf7572ebd4d6",
+   "source": {
+    "kind": "nasa",
+    "nasa_id": "KSC-20170424-PH_SWW01_0007",
+    "title": "Guppy Arrival for Orion EM-1 Crew Module Structural Test Article (2017)",
+    "url": "https://images-assets.nasa.gov/image/KSC-20170424-PH_SWW01_0007/KSC-20170424-PH_SWW01_0007~orig.JPG",
+    "orig_file": "img/orig/nasa_KSC-20170424-PH_SWW01_0007.jpg",
+    "orig_sha256": "497419455401d41fd0042b2af1d07944d4013a8362d549f6787f4cc6e66110a2",
+    "licence": "NASA / public domain",
+    "credit": "NASA",
+    "src_rule": "exif_transpose -> RGB -> longest side 1024 LANCZOS"
+   },
+   "public_ok": true
+  },
+  "nasa_truck": {
+   "src": "img/src/nasa_truck.png",
+   "src_size_wh": [
+    1024,
+    685
+   ],
+   "src_sha256": "159c93bf444d24fa4624c820c332f5a752c6f8f412e375a540516fff8b70beb4",
+   "src_pixel_sha256": "414d89885b2d65f0d55c1cdeb8bd472112eb522dfe93e7bdd5c9d87e4d158417",
+   "g512": "img/g512/nasa_truck.png",
+   "g512_sha256": "267ddbaa55e3ac410b09bcd2a2597b263bbf23c576897021ee25f4ae978b0877",
+   "g512_pixel_sha256": "3073b87e89f3eee81e045e66726c138b355384356c83d9fe28ee1aaa703180f9",
+   "g768": "img/g768/nasa_truck.png",
+   "g768_sha256": "2c52af5122841050dc8d207cb6b7475cf873e03f22f415d2c0a5c5a5b4da7fb0",
+   "g768_pixel_sha256": "18b62088e3759384d2bb849d4aaecdccff2cf2d2806a7a20108b3bb04633b46a",
+   "source": {
+    "kind": "nasa",
+    "nasa_id": "KSC-08pd3809",
+    "title": "Crane segments arrive by truck at Launch Pad 39B (2008)",
+    "url": "https://images-assets.nasa.gov/image/KSC-08pd3809/KSC-08pd3809~orig.jpg",
+    "orig_file": "img/orig/nasa_KSC-08pd3809.jpg",
+    "orig_sha256": "4b187db43aaea1720286e4fc35989e020a170510d3d11fa3d21dfefb07fabfd4",
+    "licence": "NASA / public domain",
+    "credit": "NASA",
+    "src_rule": "exif_transpose -> RGB -> longest side 1024 LANCZOS"
+   },
+   "public_ok": true
+  },
+  "nasa_radar": {
+   "src": "img/src/nasa_radar.png",
+   "src_size_wh": [
+    1024,
+    790
+   ],
+   "src_sha256": "dab4cf5bfd73bad0d3e957d828dd889d0dc218afd4a14f9bdbc25b3d62a6f578",
+   "src_pixel_sha256": "b5c08ba820dcfb24e4145bdd0741c815ba5ee8c7c8b421840a9308f304daf9bc",
+   "g512": "img/g512/nasa_radar.png",
+   "g512_sha256": "b5d4ab89bf8cc259ec5677a945d719f592c100d6f67377e25a1ea00a5e2a3c4f",
+   "g512_pixel_sha256": "be63c558294894412dba70c9e5bae6f5c52b615da5055531937b31b8c0f9ab9e",
+   "g768": "img/g768/nasa_radar.png",
+   "g768_sha256": "9de955acd9219113becaf0465870b28e15b8475f64135b3e600b6afc32e9b50a",
+   "g768_pixel_sha256": "8c7f06aa69603398740af4ac0c7ba678361eed761385798806d649b53a3e6b60",
+   "source": {
+    "kind": "nasa",
+    "nasa_id": "PIA12503",
+    "title": "NASA Airborne Radar Captures Its First Images of Post-Quake Haiti (2010)",
+    "url": "https://images-assets.nasa.gov/image/PIA12503/PIA12503~orig.jpg",
+    "orig_file": "img/orig/nasa_PIA12503.jpg",
+    "orig_sha256": "7b3a301daab2254f311913d173e10f5ff2c6a10a589f8d36918f8f3ecc6cb008",
+    "licence": "NASA / public domain",
+    "credit": "NASA",
+    "src_rule": "exif_transpose -> RGB -> longest side 1024 LANCZOS"
+   },
+   "public_ok": true
+  }
+ },
+ "rows": [
+  {
+   "id": "syn_shapes_count",
+   "image": "syn_shapes",
+   "kind": "count",
+   "question": "How many blue circles are in this image? Answer with a number.",
+   "expect": "5",
+   "public_ok": true
+  },
+  {
+   "id": "syn_shapes_color",
+   "image": "syn_shapes",
+   "kind": "color",
+   "question": "What color are the squares? Answer with one word.",
+   "expect": "red",
+   "public_ok": true
+  },
+  {
+   "id": "syn_shapes_loc",
+   "image": "syn_shapes",
+   "kind": "position",
+   "question": "Locate the red squares in this image and give their bounding boxes.",
+   "expect": null,
+   "public_ok": true
+  },
+  {
+   "id": "syn_exit_text",
+   "image": "syn_exit",
+   "kind": "text",
+   "question": "What text is written on the sign? Answer with the text only.",
+   "expect": "exit 12",
+   "public_ok": true
+  },
+  {
+   "id": "syn_exit_color",
+   "image": "syn_exit",
+   "kind": "color",
+   "question": "What color is the sign? Answer with one word.",
+   "expect": "green",
+   "public_ok": true
+  },
+  {
+   "id": "syn_gate_num",
+   "image": "syn_gate",
+   "kind": "text",
+   "question": "What is the gate number? Answer with the number only.",
+   "expect": "47",
+   "public_ok": true
+  },
+  {
+   "id": "syn_bar_max",
+   "image": "syn_bar",
+   "kind": "chart",
+   "question": "Which day has the tallest bar in this chart? Answer with the day label only.",
+   "expect": "wed",
+   "public_ok": true
+  },
+  {
+   "id": "syn_bar_count",
+   "image": "syn_bar",
+   "kind": "chart",
+   "question": "How many bars are in this chart? Answer with a number.",
+   "expect": "4",
+   "public_ok": true
+  },
+  {
+   "id": "syn_table_bread",
+   "image": "syn_table",
+   "kind": "table",
+   "question": "In this table, what is the price of Bread? Answer with the number only.",
+   "expect": "5",
+   "public_ok": true
+  },
+  {
+   "id": "syn_lr_side",
+   "image": "syn_lr",
+   "kind": "side",
+   "question": "Is the red circle on the left side or the right side of the image? Answer with one word.",
+   "expect": "left",
+   "public_ok": true
+  },
+  {
+   "id": "syn_lr_loc",
+   "image": "syn_lr",
+   "kind": "position",
+   "question": "Locate the blue square in this image and give its bounding box.",
+   "expect": null,
+   "public_ok": true
+  },
+  {
+   "id": "syn_tb_side",
+   "image": "syn_tb",
+   "kind": "side",
+   "question": "Is the green triangle at the top or at the bottom of the image? Answer with one word.",
+   "expect": "top",
+   "public_ok": true
+  },
+  {
+   "id": "syn_big_color",
+   "image": "syn_big",
+   "kind": "color",
+   "question": "What color is the circle? Answer with one word.",
+   "expect": "purple",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_jungle_count",
+   "image": "nasa_jungle",
+   "kind": "count",
+   "question": "How many people are in this image? Answer with a number.",
+   "expect": "3",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_jungle_color",
+   "image": "nasa_jungle",
+   "kind": "color",
+   "question": "What color are the people's clothes? Answer with one word.",
+   "expect": "orange",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_jungle_desc",
+   "image": "nasa_jungle",
+   "kind": "describe",
+   "question": "Describe this image in one sentence.",
+   "expect": null,
+   "public_ok": true
+  },
+  {
+   "id": "nasa_guppy_yes",
+   "image": "nasa_guppy",
+   "kind": "yesno",
+   "question": "Is there an airplane in this image? Answer yes or no.",
+   "expect": "yes",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_guppy_sky",
+   "image": "nasa_guppy",
+   "kind": "word",
+   "question": "Is the sky clear or cloudy? Answer with one word.",
+   "expect": "cloudy",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_truck_sign",
+   "image": "nasa_truck",
+   "kind": "text",
+   "question": "What words are written on the yellow sign? Answer with the words only.",
+   "expect": "oversize load",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_truck_color",
+   "image": "nasa_truck",
+   "kind": "color",
+   "question": "What color is the truck? Answer with one word.",
+   "expect": "red",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_truck_loc",
+   "image": "nasa_truck",
+   "kind": "position",
+   "question": "Locate the yellow sign in this image and give its bounding box.",
+   "expect": null,
+   "public_ok": true
+  },
+  {
+   "id": "nasa_radar_color",
+   "image": "nasa_radar",
+   "kind": "color",
+   "question": "What is the main color of the land in this image? Answer with one word.",
+   "expect": "green",
+   "public_ok": true
+  },
+  {
+   "id": "nasa_radar_desc",
+   "image": "nasa_radar",
+   "kind": "describe",
+   "question": "Describe this image in one sentence.",
+   "expect": null,
+   "public_ok": true
+  }
+ ]
+}

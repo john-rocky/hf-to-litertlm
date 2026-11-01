@@ -5,7 +5,8 @@ the N embeddings where the chat template writes the image token. A tower written
 (window index tables, `cu_seqlens`, gathers) exports badly; a fixed grid lets every index become a constant.
 These are the steps that turned MiniCPM-V-4.7-1B's 27-layer window-merger ViT (448×448 → 32×32 patches →
 64 soft tokens) into two graphs that passed parity on the first export (`minicpmv47_work/mv47_vision.py`,
-`vision_export.py`, `vision_parity_eager.py`; the record is the 2026-10-13 entry in REPRODUCE.md).
+`vision_export.py`, `vision_parity_eager.py`; the record is the 2026-10-13 entry in REPRODUCE.md). A tower with 2D rotary positions
+and patches in merge-block order (LFM3-VL-2B) is in [vlm_fixed_grid_tower.md](vlm_fixed_grid_tower.md).
 
 1. **Positions as a constant.** Slice the position-embedding table to the fixed grid once, in Python: the
    graph holds the 1024 rows it needs out of a 4900-row table, and no GATHER.
