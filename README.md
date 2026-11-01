@@ -213,6 +213,8 @@ Conversions published without a manifest (personal-namespace mirrors, desktop-on
 the 11 non-chat conversions (encoders, embeddings, TTS, image generation) are in
 [REPRODUCE.md](REPRODUCE.md).
 
+[`tools/coverage/COVERAGE.md`](tools/coverage/COVERAGE.md) lines this up against what people download: the Hub's 100 most-downloaded `text-generation` and 100 most-downloaded `image-text-to-text` models (30-day count, quantized re-uploads left out), each joined to the `litert-community` repos whose card names it as `base_model`, with what the conversion still lacks: a `.litertlm` file, a manifest, a file verified on GPU, external weights, image input. In the 2026-11-01 (UTC) fetch, 36 of the 200 have a conversion there and 4 lack none of these. `python3 tools/coverage/make_coverage_table.py` rebuilds it from the public Hub API.
+
 ## What lives here
 
 1. **A finetune converter.** `python scripts/convert.py <org>/<model>`: one command from Hub

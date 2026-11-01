@@ -1,0 +1,2978 @@
+{
+ "generated_by": "tools/coverage/make_coverage_table.py",
+ "fetched_utc": "2026-11-01T20:03:04Z",
+ "org": "litert-community",
+ "top": 100,
+ "pipelines": [
+  "text-generation",
+  "image-text-to-text"
+ ],
+ "min_params": 10000000.0,
+ "listed": {
+  "text-generation": 167,
+  "image-text-to-text": 291
+ },
+ "excluded_from_ranking": {
+  "text-generation": {
+   "gguf / mlx repo": 8,
+   "quantized re-upload (base_model:quantized)": 55,
+   "under 10 M parameters": 3
+  },
+  "image-text-to-text": {
+   "gguf / mlx repo": 7,
+   "quantized re-upload (base_model:quantized)": 179,
+   "under 10 M parameters": 5
+  }
+ },
+ "org_repos": 425,
+ "org_repos_with_litertlm": 155,
+ "org_repos_with_manifest": 93,
+ "rows": [
+  {
+   "pipeline": "text-generation",
+   "rank": 1,
+   "id": "openai-community/gpt2",
+   "downloads_30d": 28989033,
+   "likes": 3909,
+   "params_b": 0.137,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 2,
+   "id": "Qwen/Qwen3-0.6B",
+   "downloads_30d": 23444902,
+   "likes": 1867,
+   "params_b": 0.752,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-0.6B",
+     "litertlm": [
+      "Qwen3-0.6B.litertlm",
+      "Qwen3-0.6B.mediatek.mt6993.litertlm",
+      "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm",
+      "qwen3_0_6b_mixed_int4.litertlm"
+     ],
+     "manifest": "no"
+    },
+    {
+     "repo": "litert-community/Qwen3-0.6B-int4",
+     "litertlm": [
+      "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm",
+      "qwen3_0.6b_q4_block32_ekv1280.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 3,
+   "id": "Qwen/Qwen3-14B",
+   "downloads_30d": 13002507,
+   "likes": 529,
+   "params_b": 14.768,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-14B",
+     "litertlm": [
+      "qwen3_14b_channelwise_int8_float32kv.litertlm",
+      "qwen3_14b_mixed_int4.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 4,
+   "id": "Qwen/Qwen3-4B",
+   "downloads_30d": 8424710,
+   "likes": 778,
+   "params_b": 4.022,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-4B",
+     "litertlm": [
+      "qwen3_4b_channelwise_int8_float32kv.litertlm",
+      "qwen3_4b_mixed_int4.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 5,
+   "id": "Qwen/Qwen3-8B",
+   "downloads_30d": 7660335,
+   "likes": 2160,
+   "params_b": 8.191,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-8B",
+     "litertlm": [
+      "qwen3_8b_channelwise_int8_float32kv.litertlm",
+      "qwen3_8b_mixed_int4.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 6,
+   "id": "deepseek-ai/DeepSeek-V3.2",
+   "downloads_30d": 6580429,
+   "likes": 1590,
+   "params_b": 685.355,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 7,
+   "id": "openai/gpt-oss-20b",
+   "downloads_30d": 6046280,
+   "likes": 5260,
+   "params_b": 20.915,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 8,
+   "id": "Qwen/Qwen2.5-7B-Instruct",
+   "downloads_30d": 5601971,
+   "likes": 2483,
+   "params_b": 7.616,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 9,
+   "id": "Qwen/Qwen2.5-0.5B-Instruct",
+   "downloads_30d": 4960320,
+   "likes": 724,
+   "params_b": 0.494,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen2.5-0.5B-Instruct",
+     "litertlm": [],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no .litertlm file (.task only)"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 10,
+   "id": "dphn/dolphin-2.9.1-yi-1.5-34b",
+   "downloads_30d": 4778759,
+   "likes": 90,
+   "params_b": 34.389,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 11,
+   "id": "Qwen/Qwen2.5-1.5B-Instruct",
+   "downloads_30d": 4554130,
+   "likes": 923,
+   "params_b": 1.544,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen2.5-1.5B-Instruct",
+     "litertlm": [
+      "Qwen2.5-1.5B-Instruct_multi-prefill-seq_f32_ekv4096.litertlm",
+      "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 12,
+   "id": "meta-llama/Llama-3.1-8B-Instruct",
+   "downloads_30d": 4501381,
+   "likes": 8737,
+   "params_b": 8.03,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 13,
+   "id": "facebook/opt-125m",
+   "downloads_30d": 4444035,
+   "likes": 333,
+   "params_b": null,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 14,
+   "id": "Qwen/Qwen3-1.7B",
+   "downloads_30d": 4199333,
+   "likes": 607,
+   "params_b": 2.032,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-1.7B",
+     "litertlm": [
+      "Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm",
+      "Qwen3_1.7B.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 15,
+   "id": "EleutherAI/pythia-160m",
+   "downloads_30d": 3406696,
+   "likes": 66,
+   "params_b": 0.213,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 16,
+   "id": "deepseek-ai/DeepSeek-V4-Flash-0731",
+   "downloads_30d": 3168654,
+   "likes": 4094,
+   "params_b": 304.18,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 17,
+   "id": "Qwen/Qwen2.5-3B-Instruct",
+   "downloads_30d": 3112986,
+   "likes": 628,
+   "params_b": 3.086,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 18,
+   "id": "Qwen/Qwen3-32B",
+   "downloads_30d": 2934052,
+   "likes": 791,
+   "params_b": 32.762,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 19,
+   "id": "Qwen/Qwen3-4B-Instruct-2507",
+   "downloads_30d": 2610894,
+   "likes": 1041,
+   "params_b": 4.022,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-4B-Instruct-2507",
+     "litertlm": [
+      "qwen3_4b_instruct_2507_mixed_int4.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 20,
+   "id": "openai/gpt-oss-120b",
+   "downloads_30d": 2549284,
+   "likes": 5475,
+   "params_b": 116.829,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 21,
+   "id": "zai-org/GLM-5.3",
+   "downloads_30d": 2473851,
+   "likes": 2361,
+   "params_b": 753.33,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 22,
+   "id": "HuggingFaceTB/SmolLM2-135M",
+   "downloads_30d": 2372787,
+   "likes": 266,
+   "params_b": 0.135,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 23,
+   "id": "Qwen/Qwen2.5-Coder-14B-Instruct",
+   "downloads_30d": 1967786,
+   "likes": 210,
+   "params_b": 14.77,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 24,
+   "id": "meta-llama/Llama-3.2-1B-Instruct",
+   "downloads_30d": 1899093,
+   "likes": 1931,
+   "params_b": 1.236,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 25,
+   "id": "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16",
+   "downloads_30d": 1883615,
+   "likes": 142,
+   "params_b": 3.974,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Nemotron-3-Nano-4B",
+     "litertlm": [
+      "Nemotron-3-Nano-4B_int8.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Nemotron-3-Nano-4B_int8.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 26,
+   "id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+   "downloads_30d": 1763961,
+   "likes": 840,
+   "params_b": 31.578,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 27,
+   "id": "mistralai/Mistral-7B-Instruct-v0.2",
+   "downloads_30d": 1741602,
+   "likes": 3277,
+   "params_b": 7.242,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 28,
+   "id": "deepseek-ai/DeepSeek-R1",
+   "downloads_30d": 1712192,
+   "likes": 14422,
+   "params_b": 684.49,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 29,
+   "id": "deepseek-ai/DeepSeek-V3",
+   "downloads_30d": 1657256,
+   "likes": 4461,
+   "params_b": 684.49,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 30,
+   "id": "zai-org/GLM-5",
+   "downloads_30d": 1615751,
+   "likes": 2141,
+   "params_b": 753.864,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 31,
+   "id": "distilbert/distilgpt2",
+   "downloads_30d": 1554891,
+   "likes": 666,
+   "params_b": 0.088,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 32,
+   "id": "Qwen/Qwen2.5-Coder-7B-Instruct",
+   "downloads_30d": 1499654,
+   "likes": 856,
+   "params_b": 7.616,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 33,
+   "id": "ornith-ai/Ornith-1.0-35B",
+   "downloads_30d": 1455824,
+   "likes": 519,
+   "params_b": 35.107,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 34,
+   "id": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
+   "downloads_30d": 1429742,
+   "likes": 381,
+   "params_b": 560.525,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 35,
+   "id": "MiniMaxAI/MiniMax-M2.5",
+   "downloads_30d": 1358450,
+   "likes": 1529,
+   "params_b": 228.69,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 36,
+   "id": "unsloth/Llama-3.2-1B-Instruct",
+   "downloads_30d": 1340948,
+   "likes": 112,
+   "params_b": 1.236,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 37,
+   "id": "tencent/Hy3",
+   "downloads_30d": 1331157,
+   "likes": 990,
+   "params_b": 298.786,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 38,
+   "id": "zai-org/GLM-4.5-Air",
+   "downloads_30d": 1328974,
+   "likes": 649,
+   "params_b": 110.469,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 39,
+   "id": "PrimeIntellect/Qwen3-0.6B",
+   "downloads_30d": 1310251,
+   "likes": 1,
+   "params_b": 0.752,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 40,
+   "id": "Qwen/Qwen2.5-0.5B",
+   "downloads_30d": 1210292,
+   "likes": 488,
+   "params_b": 0.494,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 41,
+   "id": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
+   "downloads_30d": 1177164,
+   "likes": 258,
+   "params_b": 32.913,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 42,
+   "id": "kindlingai/glm-5.3-exlr8-k2-k3-k4",
+   "downloads_30d": 1167475,
+   "likes": 26,
+   "params_b": null,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 43,
+   "id": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16",
+   "downloads_30d": 1153587,
+   "likes": 440,
+   "params_b": 123.611,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 44,
+   "id": "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8",
+   "downloads_30d": 1153554,
+   "likes": 239,
+   "params_b": 30.534,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 45,
+   "id": "ornith-ai/Ornith-1.5-35B-A3B-NVFP4",
+   "downloads_30d": 1087112,
+   "likes": 69,
+   "params_b": 19.529,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 46,
+   "id": "openbmb/MiniCPM5-2B",
+   "downloads_30d": 1083600,
+   "likes": 1831,
+   "params_b": 2.517,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/MiniCPM5-2B",
+     "litertlm": [
+      "MiniCPM5-2B_int4.litertlm",
+      "MiniCPM5-2B_int8.litertlm",
+      "minicpm_wi4c_wi8_afp32.litertlm",
+      "minicpm_wi8_afp32.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "MiniCPM5-2B_int4.litertlm",
+      "MiniCPM5-2B_int8.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 47,
+   "id": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+   "downloads_30d": 1056691,
+   "likes": 1314,
+   "params_b": 30.532,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 48,
+   "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+   "downloads_30d": 1053046,
+   "likes": 852,
+   "params_b": 30.532,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 49,
+   "id": "Qwen/Qwen3-30B-A3B",
+   "downloads_30d": 1051869,
+   "likes": 977,
+   "params_b": 30.532,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 50,
+   "id": "deepseek-ai/DeepSeek-V4-Flash",
+   "downloads_30d": 1051332,
+   "likes": 2362,
+   "params_b": 290.945,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 51,
+   "id": "ornith-ai/Ornith-1.5-9B-NVFP4",
+   "downloads_30d": 1042536,
+   "likes": 17,
+   "params_b": 6.729,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 52,
+   "id": "meta-llama/Llama-3.2-3B-Instruct",
+   "downloads_30d": 1031607,
+   "likes": 2922,
+   "params_b": 3.213,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 53,
+   "id": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4",
+   "downloads_30d": 1018095,
+   "likes": 488,
+   "params_b": 17.82,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 54,
+   "id": "EleutherAI/pythia-70m-deduped",
+   "downloads_30d": 1015489,
+   "likes": 39,
+   "params_b": 0.096,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 55,
+   "id": "Qwen/Qwen2.5-32B-Instruct",
+   "downloads_30d": 1012092,
+   "likes": 375,
+   "params_b": 32.764,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 56,
+   "id": "zai-org/GLM-5.1",
+   "downloads_30d": 998572,
+   "likes": 1852,
+   "params_b": 753.864,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 57,
+   "id": "poolside/Laguna-XS.2",
+   "downloads_30d": 977907,
+   "likes": 320,
+   "params_b": 33.443,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 58,
+   "id": "zai-org/GLM-4.7-Flash",
+   "downloads_30d": 968875,
+   "likes": 1891,
+   "params_b": 31.221,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 59,
+   "id": "poolside/Laguna-M.1",
+   "downloads_30d": 944336,
+   "likes": 149,
+   "params_b": 225.796,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 60,
+   "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+   "downloads_30d": 929720,
+   "likes": 1895,
+   "params_b": 1.1,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/TinyLlama-1.1B-Chat-v1.0",
+     "litertlm": [],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no .litertlm file (.task only)"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 61,
+   "id": "openbmb/MiniCPM5-2B-DSpark",
+   "downloads_30d": 892465,
+   "likes": 56,
+   "params_b": 0.324,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 62,
+   "id": "bigscience/bloomz-560m",
+   "downloads_30d": 866019,
+   "likes": 149,
+   "params_b": 0.559,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 63,
+   "id": "openai-community/gpt2-large",
+   "downloads_30d": 844700,
+   "likes": 371,
+   "params_b": 0.812,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 64,
+   "id": "poolside/Laguna-XS-2.1",
+   "downloads_30d": 802751,
+   "likes": 263,
+   "params_b": 33.443,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 65,
+   "id": "ornith-ai/Ornith-1.0-9B",
+   "downloads_30d": 800231,
+   "likes": 566,
+   "params_b": 9.41,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Ornith-1.0-9B",
+     "litertlm": [
+      "Ornith-1.0-9B_int8.litertlm",
+      "Ornith-1.0-9B_mixed_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Ornith-1.0-9B_int8.litertlm",
+      "Ornith-1.0-9B_mixed_int4.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 66,
+   "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+   "downloads_30d": 784646,
+   "likes": 1654,
+   "params_b": 1.777,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/DeepSeek-R1-Distill-Qwen-1.5B",
+     "litertlm": [
+      "DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 67,
+   "id": "Qwen/Qwen2.5-14B-Instruct",
+   "downloads_30d": 782597,
+   "likes": 380,
+   "params_b": 14.77,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 68,
+   "id": "sshleifer/tiny-gpt2",
+   "downloads_30d": 761896,
+   "likes": 36,
+   "params_b": null,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 69,
+   "id": "RadixArk/Kimi-K3-DSpark",
+   "downloads_30d": 702413,
+   "likes": 80,
+   "params_b": 2.249,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 70,
+   "id": "farbodtavakkoli/OTel-2.0-LLM-31B-IT-QLoRA",
+   "downloads_30d": 688003,
+   "likes": 3,
+   "params_b": 31.273,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 71,
+   "id": "poolside/Laguna-S-2.1",
+   "downloads_30d": 654391,
+   "likes": 1076,
+   "params_b": 117.562,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 72,
+   "id": "Qwen/Qwen2.5-1.5B",
+   "downloads_30d": 630848,
+   "likes": 248,
+   "params_b": 1.544,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 73,
+   "id": "Qwen/Qwen3-Coder-Next-FP8",
+   "downloads_30d": 626102,
+   "likes": 212,
+   "params_b": 79.674,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 74,
+   "id": "Qwen/Qwen3-1.7B-Base",
+   "downloads_30d": 620279,
+   "likes": 97,
+   "params_b": 1.721,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 75,
+   "id": "HuggingFaceTB/SmolLM3-3B",
+   "downloads_30d": 611561,
+   "likes": 1072,
+   "params_b": 3.075,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/SmolLM3-3B",
+     "litertlm": [
+      "SmolLM3-3B.litertlm",
+      "SmolLM3-3B_q4_block32_ekv4096.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "SmolLM3-3B.litertlm",
+      "SmolLM3-3B_q4_block32_ekv4096.litertlm"
+     ],
+     "external_weights_files": [
+      "SmolLM3-3B.litertlm",
+      "SmolLM3-3B_q4_block32_ekv4096.litertlm"
+     ],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [],
+   "status": "covered"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 76,
+   "id": "Qwen/Qwen3-0.6B-Base",
+   "downloads_30d": 605719,
+   "likes": 219,
+   "params_b": 0.596,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 77,
+   "id": "Bahushruth/Qwen3.6-35B-A3B-abliterated-v4",
+   "downloads_30d": 579362,
+   "likes": 13,
+   "params_b": 34.661,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 78,
+   "id": "meta-llama/Llama-3.1-8B",
+   "downloads_30d": 560703,
+   "likes": 2740,
+   "params_b": 8.03,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 79,
+   "id": "ibm-granite/granite-4.1-3b",
+   "downloads_30d": 558905,
+   "likes": 119,
+   "params_b": 3.403,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/granite-4.1-3b",
+     "litertlm": [
+      "granite-4.1-3b_int4.litertlm",
+      "granite-4.1-3b_int8.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "granite-4.1-3b_int4.litertlm",
+      "granite-4.1-3b_int8.litertlm"
+     ],
+     "external_weights_files": [
+      "granite-4.1-3b_int4.litertlm",
+      "granite-4.1-3b_int8.litertlm"
+     ],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [],
+   "status": "covered"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 80,
+   "id": "Qwen/Qwen2.5-7B",
+   "downloads_30d": 537269,
+   "likes": 341,
+   "params_b": 7.616,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 81,
+   "id": "Qwen/Qwen3-8B-Base",
+   "downloads_30d": 526033,
+   "likes": 149,
+   "params_b": 8.191,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 82,
+   "id": "Qwen/Qwen2.5-Coder-32B-Instruct",
+   "downloads_30d": 513412,
+   "likes": 2202,
+   "params_b": 32.764,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 83,
+   "id": "ornith-ai/Ornith-1.5-35B-A3B-FP8",
+   "downloads_30d": 496905,
+   "likes": 34,
+   "params_b": 35.952,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 84,
+   "id": "meta-llama/Llama-3.2-1B",
+   "downloads_30d": 483882,
+   "likes": 2741,
+   "params_b": 1.236,
+   "gated": true,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Llama-3.2-1B",
+     "litertlm": [
+      "llama3_2_1b_mixed_int4_gpu.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 85,
+   "id": "meta-llama/Llama-3.1-405B-FP8",
+   "downloads_30d": 477560,
+   "likes": 124,
+   "params_b": 405.853,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 86,
+   "id": "ornith-ai/Ornith-1.5-9B",
+   "downloads_30d": 476015,
+   "likes": 404,
+   "params_b": 9.653,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Ornith-1.5-9B",
+     "litertlm": [
+      "Ornith-1.5-9B_int8.litertlm",
+      "Ornith-1.5-9B_mixed_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Ornith-1.5-9B_int8.litertlm",
+      "Ornith-1.5-9B_mixed_int4.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 87,
+   "id": "unsloth/Llama-3.2-3B-Instruct",
+   "downloads_30d": 475526,
+   "likes": 99,
+   "params_b": 3.213,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 88,
+   "id": "EleutherAI/gpt-neo-125m",
+   "downloads_30d": 472429,
+   "likes": 231,
+   "params_b": 0.15,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 89,
+   "id": "Qwen/Qwen3-4B-Base",
+   "downloads_30d": 469417,
+   "likes": 118,
+   "params_b": 4.022,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 90,
+   "id": "farbodtavakkoli/OTel-2.0-LLM-31B-IT",
+   "downloads_30d": 462695,
+   "likes": 31,
+   "params_b": 31.273,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 91,
+   "id": "ornith-ai/Ornith-1.5-397B-NVFP4",
+   "downloads_30d": 459168,
+   "likes": 24,
+   "params_b": 209.238,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 92,
+   "id": "NousResearch/Hermes-3-Llama-3.1-8B",
+   "downloads_30d": 457699,
+   "likes": 542,
+   "params_b": 8.03,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 93,
+   "id": "Qwen/Qwen3-4B-Thinking-2507",
+   "downloads_30d": 457095,
+   "likes": 629,
+   "params_b": 4.022,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3-4B-Thinking-2507",
+     "litertlm": [
+      "Qwen3_4b_thinking_dynamic_wi4b32_afp32.litertlm",
+      "model.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3_4b_thinking_dynamic_wi4b32_afp32.litertlm",
+      "model.litertlm"
+     ],
+     "external_weights_files": [
+      "Qwen3_4b_thinking_dynamic_wi4b32_afp32.litertlm",
+      "model.litertlm"
+     ],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [],
+   "status": "covered"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 94,
+   "id": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
+   "downloads_30d": 453951,
+   "likes": 456,
+   "params_b": 67.229,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 95,
+   "id": "mistralai/Mistral-7B-v0.1",
+   "downloads_30d": 447605,
+   "likes": 4229,
+   "params_b": 7.242,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 96,
+   "id": "shibing624/macbert4csc-base-chinese",
+   "downloads_30d": 440593,
+   "likes": 121,
+   "params_b": 0.102,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 97,
+   "id": "Qwen/Qwen2.5-Coder-3B-Instruct",
+   "downloads_30d": 438315,
+   "likes": 153,
+   "params_b": 3.086,
+   "gated": false,
+   "link": "name",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen2.5-Coder-3B-Instruct",
+     "litertlm": [
+      "Qwen2.5_Coder_3B_It.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 98,
+   "id": "Qwen/Qwen3-Coder-Next",
+   "downloads_30d": 434134,
+   "likes": 1725,
+   "params_b": 79.674,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 99,
+   "id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+   "downloads_30d": 431969,
+   "likes": 167,
+   "params_b": 1.544,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen2.5-Coder-1.5B-Instruct",
+     "litertlm": [
+      "Qwen2.5-Coder-1.5B-Instruct_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen2.5-Coder-1.5B-Instruct_int4.litertlm"
+     ],
+     "external_weights_files": [
+      "Qwen2.5-Coder-1.5B-Instruct_int4.litertlm"
+     ],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [],
+   "status": "covered"
+  },
+  {
+   "pipeline": "text-generation",
+   "rank": 100,
+   "id": "openbmb/MiniCPM5-2B-MLX",
+   "downloads_30d": 426079,
+   "likes": 57,
+   "params_b": 2.517,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 1,
+   "id": "google/gemma-4-31B-it",
+   "downloads_30d": 8301351,
+   "likes": 4262,
+   "params_b": 31.273,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/gemma-4-31B-it-litert-lm",
+     "litertlm": [
+      "gemma-4-31B-it-gpu.litertlm",
+      "gemma-4-31B-it-web.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 2,
+   "id": "Qwen/Qwen3.8-27B",
+   "downloads_30d": 7892866,
+   "likes": 18912,
+   "params_b": 27.781,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3.8-27B",
+     "litertlm": [
+      "Qwen3.8-27B_mixed_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3.8-27B_mixed_int4.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights",
+    "no image input"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 3,
+   "id": "Qwen/Qwen3-VL-8B-Instruct",
+   "downloads_30d": 6902450,
+   "likes": 1235,
+   "params_b": 8.767,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 4,
+   "id": "Qwen/Qwen3.5-4B",
+   "downloads_30d": 6588471,
+   "likes": 1175,
+   "params_b": 4.66,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3.5-4B",
+     "litertlm": [
+      "Qwen3.5-4B_int8.litertlm",
+      "Qwen3.5-4B_mixed_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3.5-4B_int8.litertlm",
+      "Qwen3.5-4B_mixed_int4.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights",
+    "no image input"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 5,
+   "id": "Qwen/Qwen3.5-9B",
+   "downloads_30d": 6471053,
+   "likes": 2288,
+   "params_b": 9.653,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3.5-9B",
+     "litertlm": [
+      "Qwen3.5-9B_int8.litertlm",
+      "Qwen3.5-9B_mixed_int4.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3.5-9B_int8.litertlm",
+      "Qwen3.5-9B_mixed_int4.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": false,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights",
+    "no image input"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 6,
+   "id": "zai-org/GLM-5.3-Flash",
+   "downloads_30d": 6329724,
+   "likes": 3012,
+   "params_b": 321.323,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 7,
+   "id": "google/gemma-4-26B-A4B-it",
+   "downloads_30d": 6032823,
+   "likes": 1725,
+   "params_b": 25.806,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/gemma-4-26B-A4B-it-litert-lm",
+     "litertlm": [
+      "gemma-4-26B-A4B-it-gpu.litertlm",
+      "gemma-4-26B-A4B-it-web.litertlm",
+      "gemma4-26B-A4B-it-Intel_PTL_NPU.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 8,
+   "id": "Qwen/Qwen2.5-VL-7B-Instruct",
+   "downloads_30d": 5838999,
+   "likes": 1762,
+   "params_b": 8.292,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 9,
+   "id": "microsoft/Florence-2-base",
+   "downloads_30d": 5241149,
+   "likes": 433,
+   "params_b": 0.232,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 10,
+   "id": "Qwen/Qwen3.6-35B-A3B",
+   "downloads_30d": 4622082,
+   "likes": 3064,
+   "params_b": 35.952,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 11,
+   "id": "baidu/Unlimited-OCR",
+   "downloads_30d": 4122291,
+   "likes": 4936,
+   "params_b": 3.336,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 12,
+   "id": "Qwen/Qwen3-VL-4B-Instruct",
+   "downloads_30d": 4062866,
+   "likes": 520,
+   "params_b": 4.438,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 13,
+   "id": "Qwen/Qwen3.8-Flash-Next",
+   "downloads_30d": 4029520,
+   "likes": 6689,
+   "params_b": 180.0,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 14,
+   "id": "Qwen/Qwen3.5-0.8B",
+   "downloads_30d": 3730405,
+   "likes": 793,
+   "params_b": 0.873,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3.5-0.8B",
+     "litertlm": [
+      "Qwen3.5-0.8B-VL_int8.litertlm",
+      "Qwen3.5-0.8B_int8.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3.5-0.8B-VL_int8.litertlm",
+      "Qwen3.5-0.8B_int8.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 15,
+   "id": "Qwen/Qwen3.5-2B",
+   "downloads_30d": 3431121,
+   "likes": 464,
+   "params_b": 2.274,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen3.5-2B",
+     "litertlm": [
+      "Qwen3.5-2B-VL_int8.litertlm",
+      "Qwen3.5-2B_int8.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen3.5-2B-VL_int8.litertlm",
+      "Qwen3.5-2B_int8.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 16,
+   "id": "autotrust/JEV-27B-VL",
+   "downloads_30d": 2780133,
+   "likes": 2950,
+   "params_b": 27.781,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 17,
+   "id": "vikhyatk/moondream2",
+   "downloads_30d": 2429212,
+   "likes": 1450,
+   "params_b": 1.927,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 18,
+   "id": "Qwen/Qwen3.6-27B",
+   "downloads_30d": 2306643,
+   "likes": 2342,
+   "params_b": 27.781,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 19,
+   "id": "deepseek-ai/DeepSeek-V4.1-Flash",
+   "downloads_30d": 2127615,
+   "likes": 4833,
+   "params_b": 763.205,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 20,
+   "id": "thinkingmachines/Inkling",
+   "downloads_30d": 2084207,
+   "likes": 1832,
+   "params_b": 952.378,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 21,
+   "id": "deepseek-ai/DeepSeek-OCR",
+   "downloads_30d": 2055501,
+   "likes": 3461,
+   "params_b": 3.336,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 22,
+   "id": "Qwen/Qwen3.5-27B",
+   "downloads_30d": 1812990,
+   "likes": 1081,
+   "params_b": 27.781,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 23,
+   "id": "Qwen/Qwen3.5-35B-A3B",
+   "downloads_30d": 1720099,
+   "likes": 1550,
+   "params_b": 35.952,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 24,
+   "id": "Qwen/Qwen2.5-VL-3B-Instruct",
+   "downloads_30d": 1541027,
+   "likes": 742,
+   "params_b": 3.755,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 25,
+   "id": "Qwen/Qwen3-VL-2B-Instruct",
+   "downloads_30d": 1425456,
+   "likes": 510,
+   "params_b": 2.128,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 26,
+   "id": "datalab-to/chandra-ocr-2",
+   "downloads_30d": 1413672,
+   "likes": 593,
+   "params_b": 5.296,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 27,
+   "id": "thinkingmachines/Inkling-Small",
+   "downloads_30d": 1411262,
+   "likes": 435,
+   "params_b": 265.956,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 28,
+   "id": "datalab-to/surya-ocr-2",
+   "downloads_30d": 1191094,
+   "likes": 144,
+   "params_b": 0.686,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 29,
+   "id": "Qwen/Qwen2-VL-2B-Instruct",
+   "downloads_30d": 1033262,
+   "likes": 529,
+   "params_b": 2.209,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Qwen2-VL-2B",
+     "litertlm": [
+      "Qwen2-VL-2B.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Qwen2-VL-2B.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 30,
+   "id": "Qwen/Qwen3.5-122B-A10B",
+   "downloads_30d": 1026056,
+   "likes": 652,
+   "params_b": 125.086,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 31,
+   "id": "Qwen/Qwen3.5-397B-A17B",
+   "downloads_30d": 980257,
+   "likes": 1581,
+   "params_b": 403.398,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 32,
+   "id": "google/gemma-3-4b-it",
+   "downloads_30d": 955800,
+   "likes": 1612,
+   "params_b": 4.3,
+   "gated": true,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Gemma3-4B-IT",
+     "litertlm": [],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no .litertlm file (.task only)"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 33,
+   "id": "Qwen/Qwen2.5-VL-32B-Instruct",
+   "downloads_30d": 841775,
+   "likes": 510,
+   "params_b": 33.453,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 34,
+   "id": "OpenGVLab/InternVL2-1B",
+   "downloads_30d": 828325,
+   "likes": 84,
+   "params_b": 0.938,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 35,
+   "id": "moonshotai/Kimi-K3",
+   "downloads_30d": 813134,
+   "likes": 11905,
+   "params_b": 2779.932,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 36,
+   "id": "Infomaniak-AI/vllm-translategemma-4b-it",
+   "downloads_30d": 799476,
+   "likes": 15,
+   "params_b": 4.3,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 37,
+   "id": "lightonai/LightOnOCR-2-1B",
+   "downloads_30d": 755070,
+   "likes": 850,
+   "params_b": 1.006,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 38,
+   "id": "tencent/HunyuanOCR",
+   "downloads_30d": 724991,
+   "likes": 843,
+   "params_b": 1.12,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 39,
+   "id": "Qwen/Qwen3.5-0.8B-Base",
+   "downloads_30d": 681877,
+   "likes": 134,
+   "params_b": 0.873,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 40,
+   "id": "OpenGVLab/InternVL3_5-GPT-OSS-20B-A4B-Preview-HF",
+   "downloads_30d": 649740,
+   "likes": 10,
+   "params_b": 21.233,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 41,
+   "id": "google/diffusiongemma-26B-A4B-it",
+   "downloads_30d": 632361,
+   "likes": 1319,
+   "params_b": 25.824,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 42,
+   "id": "llava-hf/llava-1.5-7b-hf",
+   "downloads_30d": 618901,
+   "likes": 383,
+   "params_b": 7.063,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 43,
+   "id": "Qwen/Qwen3.5-4B-Base",
+   "downloads_30d": 612504,
+   "likes": 123,
+   "params_b": 4.66,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 44,
+   "id": "Qwen/Qwen2-VL-7B-Instruct",
+   "downloads_30d": 609237,
+   "likes": 1297,
+   "params_b": 8.291,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 45,
+   "id": "nvidia/Cosmos-Reason2-2B",
+   "downloads_30d": 602406,
+   "likes": 354,
+   "params_b": 2.439,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 46,
+   "id": "raxcore-dev/Rax-4.5",
+   "downloads_30d": 579589,
+   "likes": 5,
+   "params_b": 2.274,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 47,
+   "id": "Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+   "downloads_30d": 561803,
+   "likes": 61,
+   "params_b": 125.086,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 48,
+   "id": "dots-studio/dots.ocr",
+   "downloads_30d": 447614,
+   "likes": 1347,
+   "params_b": 3.039,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 49,
+   "id": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+   "downloads_30d": 435648,
+   "likes": 627,
+   "params_b": 31.071,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 50,
+   "id": "openbmb/MiniCPM-V-4.7-35B-A3B",
+   "downloads_30d": 422545,
+   "likes": 1107,
+   "params_b": 35.213,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 51,
+   "id": "deepseek-ai/DeepSeek-OCR-2",
+   "downloads_30d": 419321,
+   "likes": 1150,
+   "params_b": 3.389,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 52,
+   "id": "google/medgemma-4b-it",
+   "downloads_30d": 409850,
+   "likes": 1132,
+   "params_b": 4.3,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 53,
+   "id": "Salesforce/blip2-opt-2.7b",
+   "downloads_30d": 406938,
+   "likes": 448,
+   "params_b": 3.745,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 54,
+   "id": "moonshotai/Kimi-K2.5",
+   "downloads_30d": 406716,
+   "likes": 2898,
+   "params_b": 1026.879,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 55,
+   "id": "microsoft/Florence-2-large",
+   "downloads_30d": 392354,
+   "likes": 1885,
+   "params_b": 0.777,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 56,
+   "id": "kindlingai/glm-5.3-flash-exlr8-k2-k3-k4",
+   "downloads_30d": 362241,
+   "likes": 3,
+   "params_b": null,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 57,
+   "id": "google/gemma-3-12b-it",
+   "downloads_30d": 355733,
+   "likes": 899,
+   "params_b": 12.187,
+   "gated": true,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Gemma3-12B-IT",
+     "litertlm": [],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no .litertlm file (.task only)"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 58,
+   "id": "google/gemma-3-27b-it",
+   "downloads_30d": 351339,
+   "likes": 2061,
+   "params_b": 27.432,
+   "gated": true,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Gemma3-27B-IT",
+     "litertlm": [],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no .litertlm file (.task only)"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 59,
+   "id": "nvidia/LocateAnything-3B",
+   "downloads_30d": 349180,
+   "likes": 3160,
+   "params_b": 3.831,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 60,
+   "id": "Qwen/Qwen3.5-2B-Base",
+   "downloads_30d": 343084,
+   "likes": 108,
+   "params_b": 2.274,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 61,
+   "id": "nanonets/Nanonets-OCR2-3B",
+   "downloads_30d": 335643,
+   "likes": 517,
+   "params_b": 3.755,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 62,
+   "id": "Zyphra/ZAYA1-VL-8B",
+   "downloads_30d": 333629,
+   "likes": 42,
+   "params_b": 9.722,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 63,
+   "id": "microsoft/Phi-3.5-vision-instruct",
+   "downloads_30d": 317760,
+   "likes": 749,
+   "params_b": 4.147,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 64,
+   "id": "Qwen/Qwen3.5-9B-Base",
+   "downloads_30d": 304059,
+   "likes": 139,
+   "params_b": 9.653,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 65,
+   "id": "huihui-ai/Qwen2.5-VL-7B-Instruct-abliterated",
+   "downloads_30d": 298926,
+   "likes": 64,
+   "params_b": 8.292,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 66,
+   "id": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+   "downloads_30d": 298296,
+   "likes": 429,
+   "params_b": 235.67,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 67,
+   "id": "google/gemma-3-4b-pt",
+   "downloads_30d": 295401,
+   "likes": 172,
+   "params_b": 4.3,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 68,
+   "id": "google/paligemma-3b-pt-224",
+   "downloads_30d": 286468,
+   "likes": 689,
+   "params_b": 2.923,
+   "gated": true,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 69,
+   "id": "zenosai/MonkeyOCRv2-B-Parsing",
+   "downloads_30d": 272998,
+   "likes": 17,
+   "params_b": 0.878,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 70,
+   "id": "nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-NVFP4-QAD",
+   "downloads_30d": 272176,
+   "likes": 41,
+   "params_b": 7.699,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 71,
+   "id": "Alibaba-DAMO-Academy/RynnBrain1.1-2B",
+   "downloads_30d": 254516,
+   "likes": 12,
+   "params_b": 2.213,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 72,
+   "id": "moonshotai/Kimi-K2.6",
+   "downloads_30d": 249755,
+   "likes": 1640,
+   "params_b": 1026.879,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 73,
+   "id": "OpenGVLab/InternVL2_5-4B-MPO",
+   "downloads_30d": 241506,
+   "likes": 18,
+   "params_b": 3.713,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 74,
+   "id": "florence-community/Florence-2-large",
+   "downloads_30d": 223258,
+   "likes": 8,
+   "params_b": 0.777,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 75,
+   "id": "openbmb/MiniCPM-V-4.7-1B",
+   "downloads_30d": 222564,
+   "likes": 411,
+   "params_b": 1.554,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/MiniCPM-V-4.7-1B",
+     "litertlm": [
+      "MiniCPM-V-4.7-1B-VL_int8.litertlm",
+      "MiniCPM-V-4.7-1B-VL_int8vis.litertlm",
+      "MiniCPM-V-4.7-1B_int8.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "MiniCPM-V-4.7-1B-VL_int8.litertlm",
+      "MiniCPM-V-4.7-1B-VL_int8vis.litertlm",
+      "MiniCPM-V-4.7-1B_int8.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 76,
+   "id": "meta-models/Muse-Glimmer-30B-assistant",
+   "downloads_30d": 221337,
+   "likes": 80,
+   "params_b": 2.556,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 77,
+   "id": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+   "downloads_30d": 215777,
+   "likes": 962,
+   "params_b": 304.647,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 78,
+   "id": "mistral-experimental/pixtral-12b",
+   "downloads_30d": 204474,
+   "likes": 106,
+   "params_b": 12.683,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 79,
+   "id": "openbmb/MiniCPM-V-4.6",
+   "downloads_30d": 198424,
+   "likes": 1248,
+   "params_b": 1.3,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 80,
+   "id": "meta-models/Muse-Glimmer-30B",
+   "downloads_30d": 195811,
+   "likes": 2107,
+   "params_b": 29.777,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/Muse-Glimmer-30B-LiteRT",
+     "litertlm": [
+      "Muse-Glimmer-30B_q4_ekv2048.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "Muse-Glimmer-30B_q4_ekv2048.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 81,
+   "id": "MiniMaxAI/MiniMax-M3",
+   "downloads_30d": 195416,
+   "likes": 1600,
+   "params_b": 427.04,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 82,
+   "id": "dots-studio/dots.mocr",
+   "downloads_30d": 193159,
+   "likes": 192,
+   "params_b": 3.039,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 83,
+   "id": "omlab/VLX-Seek-1.5-10B",
+   "downloads_30d": 190152,
+   "likes": 34,
+   "params_b": 10.017,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 84,
+   "id": "llava-hf/llava-v1.6-mistral-7b-hf",
+   "downloads_30d": 189150,
+   "likes": 315,
+   "params_b": 7.567,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 85,
+   "id": "microsoft/Florence-2-base-ft",
+   "downloads_30d": 185055,
+   "likes": 154,
+   "params_b": 0.232,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 86,
+   "id": "google/medgemma-1.5-4b-it",
+   "downloads_30d": 179086,
+   "likes": 1092,
+   "params_b": 4.3,
+   "gated": true,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/MedGemma-1.5-4B-IT",
+     "litertlm": [
+      "medgemma-1.5-4b-it_q4_block32_ekv2048.litertlm",
+      "medgemma-1.5-4b-it_q4_block32_vision_ekv2048.litertlm",
+      "medgemma-1.5-4b-it_q8_gpu_ekv2048.litertlm"
+     ],
+     "manifest": "no"
+    }
+   ],
+   "gaps": [
+    "no manifest"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 87,
+   "id": "stepfun-ai/GOT-OCR2_0",
+   "downloads_30d": 172815,
+   "likes": 1577,
+   "params_b": 0.716,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 88,
+   "id": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+   "downloads_30d": 170353,
+   "likes": 4245,
+   "params_b": 763.205,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 89,
+   "id": "Qwen/Qwen3-VL-32B-Instruct",
+   "downloads_30d": 163424,
+   "likes": 255,
+   "params_b": 33.357,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 90,
+   "id": "unsloth/Qwen3.5-4B",
+   "downloads_30d": 160309,
+   "likes": 29,
+   "params_b": 4.66,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 91,
+   "id": "NAMAA-Space/Qari-OCR-v0.3-VL-2B-Instruct",
+   "downloads_30d": 155211,
+   "likes": 22,
+   "params_b": 2.209,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 92,
+   "id": "unsloth/gemma-3n-E4B-it",
+   "downloads_30d": 154014,
+   "likes": 10,
+   "params_b": 7.85,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 93,
+   "id": "llava-hf/llava-onevision-qwen2-0.5b-ov-hf",
+   "downloads_30d": 137686,
+   "likes": 61,
+   "params_b": 0.894,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/LLaVA-OneVision-0.5B",
+     "litertlm": [
+      "LLaVA-OneVision-0.5B.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [
+      "LLaVA-OneVision-0.5B.litertlm"
+     ],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 94,
+   "id": "OpenGVLab/InternVL2-2B",
+   "downloads_30d": 136887,
+   "likes": 83,
+   "params_b": 2.206,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 95,
+   "id": "Qwen/Qwen3-VL-8B-Thinking",
+   "downloads_30d": 125917,
+   "likes": 234,
+   "params_b": 8.767,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 96,
+   "id": "zai-org/GLM-5.3-Flash-BF16",
+   "downloads_30d": 125604,
+   "likes": 78,
+   "params_b": 321.323,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 97,
+   "id": "ibm-granite/granite-vision-4.1-4b",
+   "downloads_30d": 125548,
+   "likes": 114,
+   "params_b": 3.997,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 98,
+   "id": "ibm-granite/granite-docling-258M",
+   "downloads_30d": 125090,
+   "likes": 1292,
+   "params_b": 0.258,
+   "gated": false,
+   "link": "base_model",
+   "repos": [
+    {
+     "repo": "litert-community/granite-docling-258M",
+     "litertlm": [
+      "granite-docling-258M.litertlm"
+     ],
+     "manifest": "yes",
+     "gpu_files": [],
+     "external_weights_files": [],
+     "vision": true,
+     "audio": false
+    }
+   ],
+   "gaps": [
+    "no GPU row",
+    "no external weights"
+   ],
+   "status": "gaps"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 99,
+   "id": "opendatalab/MinerU2.5-Pro-2605-1.2B",
+   "downloads_30d": 124293,
+   "likes": 109,
+   "params_b": 1.156,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  },
+  {
+   "pipeline": "image-text-to-text",
+   "rank": 100,
+   "id": "nvidia/NVIDIA-Nemotron-Parse-v1.1",
+   "downloads_30d": 123959,
+   "likes": 175,
+   "params_b": 0.957,
+   "gated": false,
+   "link": null,
+   "repos": [],
+   "status": "not linked"
+  }
+ ]
+}
