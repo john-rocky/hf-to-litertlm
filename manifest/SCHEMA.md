@@ -71,11 +71,20 @@ parse error.
 | `parameters_b` | curated | parameter count in billions |
 | `license` | curated | SPDX id or pointer |
 | `context_length` | *(derived)* | bundle `max_num_tokens` |
-| `capabilities.vision` / `.audio` | *(derived)* | from bundle `llm_model_type` |
+| `capabilities.vision` / `.audio` | *(derived)* | `true` when the bundle `llm_model_type` declares the input **and** a section of one of the manifest's `variants[]` files has a `model_type` containing `vision` / `audio`; see [below](#capabilitiesvision--audio--what-the-file-takes-as-input) |
 | `capabilities.thinking` | *(derived)* | `{declared, channel:{start,end}}` from bundle `channels` |
 | `capabilities.thinking.control` | *(derived, 0.1.3+)* | `switch`, `always`, `never` or `model` — what the bundle's template does about thinking; see [below](#capabilitiesthinkingcontrol--what-the-template-does-about-thinking) |
 | `capabilities.channels` | *(derived, 0.1.1+)* | the bundle's **full** declared channel set, `[{name, start, end, is_reasoning?}]` — the header's `channels` block is a generic named list (a model may declare e.g. tool-call markers there, though nothing shipped today does); `thinking` keeps mirroring the first channel for 0.1.0 readers |
 | `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints). Readers take keys by name and ignore what they don't consume |
+
+## `capabilities.vision` / `.audio` — what the file takes as input
+
+The model type declares vision through `start_of_image_token` (`gemma3`, `gemma3n`, `gemma4`, `lfm2`),
+`generic_model`'s `image_enabled`, or the `fast_vlm` type itself; audio through `start_of_audio_token`
+(`gemma3n`, `gemma4`) or `generic_model`'s `audio_enabled`. A capability the model type declares is kept
+only when a section of one of the manifest's files has a `model_type` containing `vision` / `audio`; the
+sections never add one. A text-only file packed with a configuration that declares image tokens
+(LiteRT-LM's `models/lfm2`, since 2026-09-28) has no vision encoder section and gets `false`.
 
 ## `capabilities.thinking.control` — what the template does about thinking
 
@@ -185,6 +194,10 @@ is removed, renamed, or changed in meaning short of `0.2.0`. `0.1.1` adds
 range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
 manifest fails validation rather than half-parsing, and both reference readers refuse it at
 parse time.
+
+On 2026-11-01 the generator began to write `capabilities.vision` / `.audio` as `true` only when a
+section of that kind is present (no field added; a value changes only for a file whose model type
+declares image or audio input while the file has no such section).
 
 ## What deliberately stays OUT of v0.1
 

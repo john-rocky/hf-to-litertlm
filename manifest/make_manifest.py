@@ -137,7 +137,11 @@ def strip_evidence(obj):
     for item in obj:
       strip_evidence(item)
 
-def derive_capabilities(m):
+def derive_capabilities(m, sections=None):
+  """Capabilities from the LlmMetadata model type, gated by the bundle's sections when given:
+  a text-only bundle packed with a family configuration that declares image / audio tokens
+  (LiteRT-LM models/lfm2 since 2026-09-28) has no vision encoder section, so vision stays False.
+  `sections` = the section lists of every variant (model_type items); None = token-only (old behaviour)."""
   caps = {"vision": False, "audio": False}
   which = m.llm_model_type.WhichOneof("model_type") if m.HasField("llm_model_type") else None
   if which:
@@ -154,6 +158,12 @@ def derive_capabilities(m):
           caps["vision"] = True
         if f.name == "start_of_audio_token":
           caps["audio"] = True
+  if sections is not None:
+    mt = [str(sec.get("model_type", "")).lower() for sec in sections]
+    if not any("vision" in t for t in mt):
+      caps["vision"] = False
+    if not any("audio" in t for t in mt):
+      caps["audio"] = False
   if m.channels:
     ch = m.channels[0]
     caps["thinking"] = {"declared": True,
@@ -413,7 +423,8 @@ def main():
   if model_meta is not None:
     if model_meta.max_num_tokens:
       model["context_length"] = model_meta.max_num_tokens
-    model["capabilities"] = derive_capabilities(model_meta)
+    all_sections = [sec for var in variants for sec in var.get("sections", [])]
+    model["capabilities"] = derive_capabilities(model_meta, all_sections)
     control = model_thinking_control(controls)  # 0.1.3
     if control is not None:
       model["capabilities"]["thinking"]["control"] = control
