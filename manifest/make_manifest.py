@@ -107,6 +107,25 @@ def parse_bundle_header(fetch):
       llm_meta.ParseFromString(raw)
   return sections, llm_meta
 
+# LiteRT-LM 0.19.0's capability check (litert_lm_loaded_file_create in the C
+# API, litert_lm.ModelInfo in Python) refuses a file whose
+# tf_lite_vision_encoder section is over 2 GiB (schema/model_info/model_info.cc:
+# kMaxVisionSectionSize, `section.size() > max_size`); the engine itself
+# still loads the same file.
+VISION_ENCODER_LIMIT = 2 * 1024 ** 3
+
+def vision_section_warnings(name, sections):
+  """One WARN line per tf_lite_vision_encoder section over the limit (from
+  the section sizes in the header; the check reads nothing more)."""
+  return [f"WARN {name}: tf_lite_vision_encoder section of {s['size_bytes']:,}"
+          f" B is over 2 GiB ({VISION_ENCODER_LIMIT:,} B): LiteRT-LM 0.19.0's"
+          " capability check (litert_lm_loaded_file_create in the C API,"
+          " litert_lm.ModelInfo in Python) refuses this file; the engine"
+          " itself still loads it"
+          for s in sections
+          if s.get("model_type") == "tf_lite_vision_encoder"
+          and s["size_bytes"] > VISION_ENCODER_LIMIT]
+
 def strip_evidence(obj):
   """Drop every `evidence` key under obj (measured rows, quality rows, ...).
   Evidence points at private logs; --public output must carry none."""
@@ -359,6 +378,8 @@ def main():
         return http_range(_u, s, e)
     sections, llm_meta = parse_bundle_header(fetch)
     v["sections"] = sections
+    for line in vision_section_warnings(name, sections):
+      print(line, file=sys.stderr)
     if llm_meta is not None:
       controls[name] = derive_thinking_control(llm_meta)
       control, basis = controls[name]
