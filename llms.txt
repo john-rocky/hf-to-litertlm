@@ -61,6 +61,7 @@ The same scripts run from PyPI without a clone: `uvx hf-to-litertlm <org>/<model
 ## Model cards and bundles
 
 - [cards/](https://github.com/john-rocky/hf-to-litertlm/tree/main/cards): one card per converted bundle.
+- [docs/demo_scene_check.md](https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/demo_scene_check.md) and [tools/demo_scene_check/](https://github.com/john-rocky/hf-to-litertlm/tree/main/tools/demo_scene_check): check a VLM demo scene before filming it: fixed photos and truth masks, the `.litertlm` scored in the app's form, every rival at its best and a detector + fixed-rule arm; `tools/card_verify.py` checks a card draft's numbers against the raw run records.
 - [litert-community on Hugging Face](https://huggingface.co/litert-community): the published bundles; each repo ships `litertlm_manifest.json`.
 
 ## Related
