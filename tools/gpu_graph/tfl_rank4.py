@@ -20,12 +20,20 @@ Every inserted RESHAPE keeps the data order (row-major), so the rewrite computes
 The file keeps the external-buffer layout (> 2 GB graphs): the flatbuffer is rebuilt, every referenced constant is
 copied after it at a 64-byte boundary, new constants are appended the same way.
 
-  rewrite IN OUT [--rules elem,bmm,mean,sslice,softmax] [--report R.json]
+  rewrite IN OUT [--rules elem,bmm,mean,sslice,softmax] [--report R.json] [--unique-names]
   slice   IN OUT [--inputs T,...] --outputs T,...      T = tensor index or op:K (first output of op K)
   probe   IN OUT --ops A:B                              every op output in [A,B) becomes a graph output
   (slice / probe may be combined with --rules: the rewrite runs first, op numbers refer to the input file)
+
+--unique-names: no tensor the rewrite adds shares a name with another tensor of OUT. Without it some added names repeat
+(`r4_begin` / `r4_end` / `r4_strides` at every axis-0 STRIDED_SLICE site, `<name>/r4` when one tensor is lifted twice),
+and ai-edge-quantizer 0.10.0 refuses such a file; the default keeps those names so that the published conversion steps
+still write the same bytes. A repeated name gets "#2", "#3", ... in OUT's tensor order, the names
+tfl_unique_names.py gives (an added tensor whose name a tensor of IN holds is renamed instead of that tensor; names IN
+already repeats stay as they are). The report lists every renamed tensor.
 """
 import argparse
+import collections
 import json
 import mmap
 import os
@@ -50,6 +58,7 @@ class Graph:
         self.sg = self.m.subgraphs[0]
         assert len(self.m.subgraphs) == 1, "one subgraph only"
         self.new_data = {}  # buffer index -> bytes of a constant this tool created
+        self.added = set()  # id() of every tensor this tool created
         for t in self.sg.tensors:
             t.shape = [int(x) for x in t.shape] if t.shape is not None else []
             t.shapeSignature = None
@@ -107,6 +116,7 @@ class Graph:
         t.buffer = buffer
         t.hasRank = True
         self.sg.tensors.append(t)
+        self.added.add(id(t))
         return len(self.sg.tensors) - 1
 
     def add_const(self, arr, name):
@@ -342,6 +352,32 @@ def compact(g):
     g.m.signatureDefs = [sig]
 
 
+def unique_names(g):
+    """--unique-names, after compact(): give the added tensors whose name another tensor holds "#2", "#3", ... in
+    tensor order (tfl_unique_names.py's rule: the first holder keeps the name). Returns the renamed tensors."""
+    tensors = g.sg.tensors
+    count = collections.Counter(t.name for t in tensors)
+    held = {t.name for t in tensors if id(t) not in g.added}  # names the input's own tensors keep
+    taken = set(count)
+    seen = collections.Counter()
+    renamed = []
+    for i, t in enumerate(tensors):
+        if count[t.name] < 2:
+            continue
+        seen[t.name] += 1
+        if id(t) not in g.added or (seen[t.name] == 1 and t.name not in held):
+            continue
+        k = max(seen[t.name], 2)
+        new = t.name + b"#" + str(k).encode()
+        while new in taken:
+            k += 1
+            new = t.name + b"#" + str(k).encode()
+        taken.add(new)
+        renamed.append({"tensor": i, "from": t.name.decode(errors="replace"), "to": new.decode(errors="replace")})
+        t.name = new
+    return renamed
+
+
 def write(g, out):
     """Flatbuffer first, then every external / new constant at a 64-byte boundary (offsets absolute)."""
     bufs = g.m.buffers
@@ -393,6 +429,7 @@ def main():
     ap.add_argument("--outputs", default="")
     ap.add_argument("--ops", default="")
     ap.add_argument("--report")
+    ap.add_argument("--unique-names", action="store_true")
     a = ap.parse_args()
     g = Graph(a.src)
     opmap = {k: op.outputs[0] for k, op in enumerate(g.sg.operators)}
@@ -411,16 +448,19 @@ def main():
         outs = [opmap[k] for k in range(lo, hi)]
         cut(g, list(g.sg.inputs), outs)
     compact(g)
+    renamed = unique_names(g) if a.unique_names else None
     hlen, size = write(g, a.dst)
     by_rule = {}
     for r in report:
         by_rule[r["rule"]] = by_rule.get(r["rule"], 0) + 1
     print(f"wrote {a.dst}: ops {len(g.sg.operators)} tensors {len(g.sg.tensors)} header {hlen} B file {size} B; "
-          f"sites {by_rule}", flush=True)
+          f"sites {by_rule}" + (f"; renamed {len(renamed)}" if renamed is not None else ""), flush=True)
     if a.report:
-        json.dump({"src": a.src, "dst": a.dst, "rules": sorted(rules), "sites": report,
-                   "probe_ops": ({k: names[k] for k in range(*map(int, a.ops.split(":")))} if a.cmd == "probe" else None)},
-                  open(a.report, "w"), indent=1)
+        rec = {"src": a.src, "dst": a.dst, "rules": sorted(rules), "sites": report,
+               "probe_ops": ({k: names[k] for k in range(*map(int, a.ops.split(":")))} if a.cmd == "probe" else None)}
+        if renamed is not None:
+            rec["renamed"] = renamed
+        json.dump(rec, open(a.report, "w"), indent=1)
     return 0
 
 
