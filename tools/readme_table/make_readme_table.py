@@ -3,7 +3,9 @@
 
 Sources, all public:
   repos.txt     one Hugging Face repo per line; every repo must ship litertlm_manifest.json
-  curated.json  per repo tail (without a -LiteRT suffix): task text, sort group, recipe link
+  curated.json  per repo tail (without a -LiteRT suffix): task text, sort group, recipe link, and optionally
+                `speed_skip`, files whose rows stay out of the speed columns (a file for a narrower use, such as
+                a shorter context, whose speed the columns could not qualify; its card carries it)
 
 Each row takes, per device class (phone / Mac), the measured row with the highest decode
 tokens/s across every variant of the repo, and prints device, backend and decode speed. A
@@ -64,9 +66,11 @@ def device(d):
     return d
 
 
-def best_rows(manifest):
+def best_rows(manifest, skip=()):
     phone = mac = None
     for v in manifest["variants"]:
+        if v.get("file") in skip:
+            continue  # curated.json `speed_skip`
         rows = v.get("measured", [])
         is_mac = lambda r: bool(MAC.search(r.get("device", ""))) or str(r.get("os", "")).lower() == "macos"
         long_side = {side: any((r.get("decode_tokens") or 256) >= 64 and is_mac(r) == side for r in rows) for side in (True, False)}
@@ -119,7 +123,7 @@ def build():
             continue
         m = manifests[repo]
         p = m["model"].get("parameters_b")
-        phone, mac = best_rows(m)
+        phone, mac = best_rows(m, c.get("speed_skip", ()))
         label = "card" if c["recipe"].startswith("cards/") else "recipe"
         rows.append((c["group"], p or 0, name.lower(), f"| [{name}](https://huggingface.co/{repo}) | {p:g}B | {c['task']} | "
                                           f"{phone} | {mac} | [{label}]({c['recipe']}) |"))

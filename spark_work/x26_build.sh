@@ -1,9 +1,11 @@
 #!/bin/bash
-# Spark-X2.6-1.7B / -4B: the four published .litertlm files from the vendor checkpoints (REPRODUCE.md, Spark-X2.6 entry).
+# Spark-X2.6-1.7B / -4B: the five published .litertlm files, four from the vendor checkpoints and the 4B int8-kv2048
+# file from the 4B int8 file (REPRODUCE.md, Spark-X2.6 entry).
 #
 #   bash spark_work/x26_build.sh 1.7b      # -> out/Spark-X2.6-1.7B_int8.litertlm, out/Spark-X2.6-1.7B_int4-mlp.litertlm
 #   bash spark_work/x26_build.sh 4b        # -> out/Spark-X2.6-4B_int8.litertlm, out/Spark-X2.6-4B_int4.litertlm
 #   bash spark_work/x26_build.sh post <in.litertlm> <out.litertlm> [fp32]   # only the GPU graph rewrite (+ fp32 item)
+#   bash spark_work/x26_build.sh kv2048 <4B int8.litertlm> <out.litertlm>  # the 4B int8 file with a 2,048-token KV cache
 #
 # Environment (each a path; the defaults are what PATH gives):
 #   PY             python with litert-torch 0.9.3, transformers 5.14.1, torch 2.12.1, ai-edge-quantizer 0.8.0 (the export)
@@ -55,6 +57,31 @@ order() {  # in.litertlm <published name>: out/<name>.litertlm = in with the pub
   $PYT -B spark_work/x26_stop_order.py "$1" "out/$2.litertlm" "$2"
 }
 
+kv2048() {  # in.litertlm out.litertlm: the KV cache cut from 4,096 to 2,048 tokens without a re-export, weights unchanged;
+            # writes out and, beside it, the cut's report (<out>.variant.json without the .litertlm)
+  local in=$1 out=$2 w t
+  [ -f "$in" ] || { echo "no such file: $in" >&2; exit 2; }
+  w=$(dirname "$out")/$(basename "$out" .litertlm).work
+  t=$w/unpack/Section2_TFLiteModel_tf_lite_prefill_decode.tflite
+  rm -rf "$w" "$out"; mkdir -p "$(dirname "$w")"
+  "$CLI" unpack "$in" --output-dir "$w/unpack" < /dev/null > /dev/null    # the CLI creates the directory itself
+  [ -f "$t" ] || { echo "unpack wrote no $t" >&2; exit 2; }              # the CLI reports a bad input with exit 0
+  # the metadata first: a file that is not a 4,096-token one (one already cut, for example) stops before any rewrite
+  $PYT -B - "$w/unpack/LlmMetadataProto.pbtext" <<'PY'
+import re, sys
+p = sys.argv[1]; t = open(p).read()
+if len(re.findall(r"(?m)^max_num_tokens: 4096$", t)) != 1:
+    sys.exit("expected one top-level 'max_num_tokens: 4096' line in " + p)
+open(p, "w").write(re.sub(r"(?m)^max_num_tokens: 4096$", "max_num_tokens: 2048", t))
+PY
+  # every signature's cache length rewritten (shapes and the constants that carry it); weight buffers checked byte for byte
+  $PYT -B tools/gpu_graph/cache_variant.py "$t" "$w/c2048.tflite" --cache 2048 --report "${out%.litertlm}.variant.json"
+  mv "$w/c2048.tflite" "$t"
+  "$CLI" pack "$w/unpack" --output "$out" --allow-overwrite < /dev/null > /dev/null
+  [ -s "$out" ] || { echo "pack wrote no $out" >&2; exit 2; }
+  rm -rf "$w"
+}
+
 case "${1:-}" in
   1.7b)
     dl XHToken/Spark-X2.6-1.7B f18c032c7675f807c0fdffe281dbe124edba2605 $SM/Spark-X2.6-1.7B
@@ -97,6 +124,8 @@ case "${1:-}" in
     order out/spark26-4b-int4b128-gpug/model.litertlm Spark-X2.6-4B_int4 ;;
   post)
     post "$2" "$3" "${4:-}" ;;
+  kv2048)
+    kv2048 "$2" "$3" ;;
   *)
-    sed -n '2,19p' "$0"; exit 2 ;;
+    sed -n '2,21p' "$0"; exit 2 ;;
 esac
