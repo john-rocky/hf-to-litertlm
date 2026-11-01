@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """litertlm_vision_swap.py OLD.litertlm NEW.litertlm --venc VISION_ENCODER.tflite --vadp VISION_ADAPTER.tflite
-                           [--clone] [--json OUT.json]
+                           [--clone] [--ids-from FILE] [--json OUT.json]
 
 Writes a .litertlm that is OLD with only its two vision sections (tf_lite_vision_encoder, tf_lite_vision_adapter)
 replaced by the given .tflite files, without unpacking anything else: every other section (LlmMetadata, tokenizer,
@@ -10,6 +10,11 @@ The header is written by litert_lm_builder 0.19.0's own LitertLmFileBuilder (its
 system metadata = OLD's entries with a new uuid and creation_timestamp (the builder always writes those two; a copied
 uuid would make two different files look the same to anything keyed on it), so the whole-file sha256 of a rebuild
 differs while every section is the same.
+--ids-from FILE writes FILE's uuid and creation_timestamp instead. FILE is a .litertlm, or the first bytes of one
+through the end of its header (`curl -r 0-65535` fetches the first 64 KiB; the tool stops if the header ends later).
+Given the file a rebuild reproduces, the rebuild has that file's whole-file sha256 when its sections and layout are the
+same; given OLD, the output depends on the inputs only, but two different files then carry one uuid. The check after
+writing also compares the two values with FILE's.
 After writing, every section of NEW is hashed and compared: the other sections must equal OLD's, the vision sections
 must equal the new files; exit 1 otherwise (SWAP_OK / SWAP_FAIL). --json records both files' section tables (index,
 type, model_type, items, begin, end, size, sha256).
@@ -51,6 +56,8 @@ def read_header(path):
         if hdr_end > len(head):
             f.seek(0)
             head = f.read(hdr_end + 64)
+    if len(head) < hdr_end:
+        raise SystemExit(f"{path} ends at byte {len(head)}, before the end of its header ({hdr_end})")
     meta = schema.LiteRTLMMetaData.GetRootAs(bytearray(head[litertlm_core.HEADER_BEGIN_BYTE_OFFSET:hdr_end]), 0)
     return schema.LiteRTLMMetaDataT.InitFromObj(meta)
 
@@ -141,6 +148,7 @@ def main():
     ap.add_argument("--venc", required=True)
     ap.add_argument("--vadp", required=True)
     ap.add_argument("--clone", action="store_true")
+    ap.add_argument("--ids-from", metavar="FILE")
     ap.add_argument("--json")
     a = ap.parse_args()
     if os.path.exists(a.out):
@@ -153,6 +161,16 @@ def main():
         m = lbm.Metadata.from_key_value_pair(kvp)
         if m.key not in ("uuid", "creation_timestamp"):
             b._system_metadata.append(m)
+    ids = None
+    if a.ids_from:
+        ids = {m.key: m for m in map(lbm.Metadata.from_key_value_pair, read_header(a.ids_from).systemMetadata.entries or [])
+               if m.key in ("uuid", "creation_timestamp")}
+        if len(ids) != 2:
+            raise SystemExit(f"--ids-from {a.ids_from}: no uuid and creation_timestamp in its system metadata")
+        # the builder writes these two at build time (populate_system_metadata, after the other entries, uuid first);
+        # write FILE's in the same place
+        copied = [ids["uuid"], ids["creation_timestamp"]]
+        lbm.populate_system_metadata = lambda md: [m for m in md if m.key not in ids] + copied
     plan = []
     objs = list(meta.sectionMetadata.objects)
     first_vision = min(i for i, o in enumerate(objs) if items_of(o).get("model_type") in VISION)
@@ -229,8 +247,14 @@ def main():
                {k: v for k, v in out_sys.items() if k not in ("uuid", "creation_timestamp")}
     ok = ok and sys_same
     print(f"system metadata (without uuid / timestamp) same: {sys_same}", flush=True)
+    if ids is not None:
+        want = {k: (m.value.decode() if isinstance(m.value, bytes) else m.value) for k, m in ids.items()}
+        ids_same = all(out_sys.get(k) == v for k, v in want.items())
+        ok = ok and ids_same
+        print(f"uuid / creation_timestamp = {a.ids_from}'s: {ids_same}", flush=True)
     rec = {"old": a.old, "old_bytes": os.path.getsize(a.old), "out": a.out, "out_bytes": os.path.getsize(a.out),
-           "venc": a.venc, "vadp": a.vadp, "clone": a.clone, "write_s": round(t_write, 1), "total_s": round(time.time() - t0, 1),
+           "venc": a.venc, "vadp": a.vadp, "clone": a.clone, "ids_from": a.ids_from,
+           "write_s": round(t_write, 1), "total_s": round(time.time() - t0, 1),
            "old_sections": old_rows, "out_sections": out_rows, "old_system": old_sys, "out_system": out_sys,
            "checks": checks, "ok": ok}
     if a.json:
