@@ -79,12 +79,17 @@ parse error.
 
 ## `capabilities.vision` / `.audio` — what the file takes as input
 
-The model type declares vision through `start_of_image_token` (`gemma3`, `gemma3n`, `gemma4`, `lfm2`),
-`generic_model`'s `image_enabled`, or the `fast_vlm` type itself; audio through `start_of_audio_token`
+The model type declares vision through `start_of_image_token` (`gemma3`, `gemma3n`, `gemma4`), through
+`generic_model`'s `image_enabled`, or by the type itself (`fast_vlm`, `lfm2`). An `lfm2` type may leave its
+image tokens unset — the LFM2.5-VL files are packed with an empty `lfm2 {}` — because LiteRT-LM's lfm2
+processor then uses `<|image_start|>` / `<|image_end|>`. Audio is declared through `start_of_audio_token`
 (`gemma3n`, `gemma4`) or `generic_model`'s `audio_enabled`. A capability the model type declares is kept
 only when a section of one of the manifest's files has a `model_type` containing `vision` / `audio`; the
 sections never add one. A text-only file packed with a configuration that declares image tokens
-(LiteRT-LM's `models/lfm2`, since 2026-09-28) has no vision encoder section and gets `false`.
+(LiteRT-LM's `models/lfm2`, since 2026-09-28) has no vision encoder section and gets `false`. Two kinds of
+file get `false` even with vision sections, because the generator does not count them yet: a `gemma3`,
+`gemma3n` or `gemma4` type without `start_of_image_token` (LiteRT-LM's Gemma processors also have default
+image tokens), and the `minicpmv4` type, which has no token fields.
 
 ## `capabilities.thinking.control` — what the template does about thinking
 
@@ -197,7 +202,9 @@ parse time.
 
 On 2026-11-01 the generator began to write `capabilities.vision` / `.audio` as `true` only when a
 section of that kind is present (no field added; a value changes only for a file whose model type
-declares image or audio input while the file has no such section).
+declares image or audio input while the file has no such section). The same day `lfm2` joined the
+types that declare vision by themselves: an `lfm2` file with vision sections now gets `true` even when its
+type carries no image tokens.
 
 ## What deliberately stays OUT of v0.1
 

@@ -4,8 +4,11 @@ model type's image / audio tokens say what the family configuration can
 carry, the bundle's sections say what this file carries. A text-only LFM2
 file packed with LiteRT-LM's models/lfm2 configuration (image tokens declared
 since 2026-09-28) has no vision encoder section and must not be reported as
-vision-capable. Each case is an LlmMetadata built in memory with a section
-list (one case through a .litertlm header built in memory). No network.
+vision-capable. An LFM2 VL file packed with an empty lfm2 {} type has vision
+sections and must be reported as vision-capable: LiteRT-LM's lfm2 processor
+then falls back to its default <|image_start|> / <|image_end|>. Each case is
+an LlmMetadata built in memory with a section list (the lfm2 cases also
+through a .litertlm header built in memory). No network.
 
     python manifest/test_capabilities.py
 """
@@ -36,6 +39,12 @@ def lfm2_meta():
   m = llm_metadata_pb2.LlmMetadata()
   m.llm_model_type.lfm2.start_of_image_token.token_str = "<|image_start|>"
   m.llm_model_type.lfm2.end_of_image_token.token_str = "<|image_end|>"
+  return m
+
+def empty_lfm2_meta():
+  """An empty lfm2 {} type, as the LFM2.5-VL files are packed."""
+  m = llm_metadata_pb2.LlmMetadata()
+  m.llm_model_type.lfm2.SetInParent()
   return m
 
 def gemma3n_meta():
@@ -105,6 +114,11 @@ class Capabilities(unittest.TestCase):
   def test_lfm2_file_with_vision_sections(self):
     self.assertEqual(caps(lfm2_meta(), TEXT + VISION), (True, False))
 
+  def test_empty_lfm2_type_follows_the_sections(self):
+    self.assertEqual(caps(empty_lfm2_meta(), TEXT + VISION), (True, False))
+    self.assertEqual(caps(empty_lfm2_meta(), TEXT), (False, False))
+    self.assertEqual(caps(empty_lfm2_meta(), TEXT + AUDIO), (False, False))
+
   def test_audio_token_needs_an_audio_section(self):
     self.assertEqual(caps(gemma3n_meta(), TEXT), (False, False))
     self.assertEqual(caps(gemma3n_meta(), TEXT + AUDIO), (False, True))
@@ -121,17 +135,19 @@ class Capabilities(unittest.TestCase):
     m.llm_model_type.qwen3.SetInParent()
     self.assertEqual(caps(m, TEXT + VISION + AUDIO), (False, False))
 
-  def test_no_sections_keeps_the_token_rule(self):
+  def test_no_sections_is_the_model_type_alone(self):
     self.assertEqual(caps(lfm2_meta(), None), (True, False))
+    self.assertEqual(caps(empty_lfm2_meta(), None), (True, False))
     self.assertEqual(caps(gemma3n_meta(), None), (True, True))
 
   def test_sections_read_from_a_header(self):
-    for types, want in (([], (False, False)),
-                        (["tf_lite_prefill_decode", "tf_lite_embedder"], (False, False)),
-                        (["tf_lite_prefill_decode", "tf_lite_vision_encoder",
-                          "tf_lite_vision_adapter"], (True, False))):
-      sections, meta = mm.parse_bundle_header(fake_bundle(lfm2_meta(), types))
-      self.assertEqual(caps(meta, sections), want, types)
+    for meta_fn in (lfm2_meta, empty_lfm2_meta):
+      for types, want in (([], (False, False)),
+                          (["tf_lite_prefill_decode", "tf_lite_embedder"], (False, False)),
+                          (["tf_lite_prefill_decode", "tf_lite_vision_encoder",
+                            "tf_lite_vision_adapter"], (True, False))):
+        sections, meta = mm.parse_bundle_header(fake_bundle(meta_fn(), types))
+        self.assertEqual(caps(meta, sections), want, (meta_fn.__name__, types))
 
 if __name__ == "__main__":
   unittest.main(verbosity=2)

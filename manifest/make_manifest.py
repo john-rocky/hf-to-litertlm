@@ -141,13 +141,18 @@ def derive_capabilities(m, sections=None):
   """Capabilities from the LlmMetadata model type, gated by the bundle's sections when given:
   a text-only bundle packed with a family configuration that declares image / audio tokens
   (LiteRT-LM models/lfm2 since 2026-09-28) has no vision encoder section, so vision stays False.
-  `sections` = the section lists of every variant (model_type items); None = token-only (old behaviour)."""
+  `sections` = the section lists of every variant (model_type items); None = the model type alone."""
   caps = {"vision": False, "audio": False}
   which = m.llm_model_type.WhichOneof("model_type") if m.HasField("llm_model_type") else None
   if which:
     sub = getattr(m.llm_model_type, which)
     if which == "fast_vlm":
       # FastVlm carries only image tensor dims — the type itself means vision.
+      caps["vision"] = True
+    elif which == "lfm2":
+      # LiteRT-LM's lfm2 processor uses <|image_start|> / <|image_end|> when the type leaves its
+      # image tokens unset (Lfm2DataProcessorConfig), and the LFM2.5-VL files are packed with an
+      # empty lfm2 {} — the type itself means vision; the sections below decide for the file.
       caps["vision"] = True
     elif which == "generic_model":
       caps["vision"] = bool(getattr(sub, "image_enabled", False))
