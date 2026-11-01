@@ -15,6 +15,10 @@
 #      EXTERNALIZE_EMBEDDER (split embedding so 3B+ loads on iPhone), PHI3_STATIC_ROPE (Phi),
 #      GPTQREC_GCD_FIX (GPTQ ingest), CACHE (KV length), PREFILL.
 set -euo pipefail
+# litert-torch writes the stop tokens in the iteration order of a Python set of strings, and LiteRT-LM 0.17.0+
+# keeps or drops a reply's final punctuation mark by that order: pin the hash seed for every export below
+# (scripts/convert.py does the same). `python -I` ignores it, so the exports here do not run under -I.
+export PYTHONHASHSEED=0
 cd "$(dirname "$0")/.."
 PY="${PY:-$HOME/venvs/ltconv040dev/bin/python}"
 EXPORT="$PY scripts/export_simple_template.py"

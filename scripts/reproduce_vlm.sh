@@ -8,6 +8,11 @@
 #
 # See cards/<name>-litert.md for each model's details, and README.md for the recipe.
 set -euo pipefail
+# Pin the hash seed for every ship_*.sh below (the exporter writes the stop tokens in the iteration order of a set of
+# strings; see reproduce_llm.sh). A step that runs `python -I` ignores it: ship_wevisone.sh runs its decoder export
+# under -I, so the PYTHONHASHSEED=0 on that line has no effect either; that bundle's stop tokens do not come from the
+# export (wevisone_work/tools/build_wv_bundle.py writes them in a fixed order).
+export PYTHONHASHSEED=0
 cd "$(dirname "$0")/.."
 
 case "${1:-}" in
