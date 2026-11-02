@@ -1,0 +1,20 @@
+{
+  "blk2.norm1": 2,
+  "blk2.norm2": 2,
+  "blk3.norm1": 2,
+  "blk3.norm2": 2,
+  "blk4.norm1": 2,
+  "blk6.norm1": 16,
+  "blk6.norm2": 16,
+  "blk7.norm1": 16,
+  "blk7.norm2": 16,
+  "blk8.norm1": 16,
+  "blk8.norm2": 16,
+  "blk9.norm1": 16,
+  "blk9.norm2": 16,
+  "blk10.norm1": 16,
+  "blk10.norm2": 16,
+  "blk11.norm1": 16,
+  "blk11.norm2": 16,
+  "final": 512
+}

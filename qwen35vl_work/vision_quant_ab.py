@@ -6,6 +6,9 @@ HF fp32 visual reference on the 3 real fixtures + noise, like northmv's
 vision_quant_ab.py.
 
     .venv-vl093/bin/python qwen35vl_work/vision_quant_ab.py out/qwen35vl-vision
+
+IMG (default 512) or IMG_H / IMG_W: the picture size the tflites were exported
+at (convert_qwen35_vision.py); the fixtures are resized to it.
 """
 import json
 import os
@@ -19,7 +22,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 VIS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "out/qwen35vl-vision")
 MODEL = os.environ.get("MODEL", "Qwen/Qwen3.5-2B")
-IMG = 512
+IMG = int(os.environ.get("IMG", "512"))
+IMG_H = int(os.environ.get("IMG_H", IMG))
+IMG_W = int(os.environ.get("IMG_W", IMG))
 # Fixture set is a MEASUREMENT choice: photo fixtures for captioning towers,
 # document fixtures (docling_work/*_512.png) for OCR towers — OCR is harder on
 # int8 vision and the photo numbers must not be quoted for it.
@@ -74,10 +79,10 @@ def main():
   imgs = {}
   for f in FIXTURE_FILES:
     p = os.path.join(FIXTURES, f)
-    im = Image.open(p).convert("RGB").resize((IMG, IMG), Image.BICUBIC)
+    im = Image.open(p).convert("RGB").resize((IMG_W, IMG_H), Image.BICUBIC)
     imgs[f] = im
   torch.manual_seed(0)
-  noise_u8 = (torch.rand(IMG, IMG, 3) * 255).round().clamp(0, 255).to(torch.uint8)
+  noise_u8 = (torch.rand(IMG_H, IMG_W, 3) * 255).round().clamp(0, 255).to(torch.uint8)
   imgs["noise"] = Image.fromarray(noise_u8.numpy(), mode="RGB")
 
   refs = {}

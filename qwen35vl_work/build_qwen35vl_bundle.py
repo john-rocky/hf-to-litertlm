@@ -21,6 +21,12 @@ shipped as _int8_fp32act for the same reason).
 After building, append ExecutorMetadata (scripts/add_executor_metadata.py — it
 auto-selects the tflite with kv_cache_* inputs).
 
+A picture that is not square: IMAGE_H / IMAGE_W (each defaults to IMAGE_SIZE)
+write FastVlm.image_tensor_height / image_tensor_width apart, for a vision
+encoder exported with the same IMG_H / IMG_W (convert_qwen35_vision.py).
+VENC_ACT (unset by default = no declaration = the runtime's GPU default, fp32)
+declares prefer_activation_type on the VISION_ENCODER section, e.g. fp16.
+
     DEC=out/qwen35vl-decoder VIS=out/qwen35vl-vision TOK=<tokenizer.json> \
       .venv-092/bin/python qwen35vl_work/build_qwen35vl_bundle.py
 """
@@ -37,6 +43,8 @@ OUT = os.environ.get("OUT_DIR", "out/qwen35vl-bundle")
 os.makedirs(OUT, exist_ok=True)
 
 IMAGE_SIZE = int(os.environ.get("IMAGE_SIZE", "512"))
+IMAGE_H = int(os.environ.get("IMAGE_H", IMAGE_SIZE))
+IMAGE_W = int(os.environ.get("IMAGE_W", IMAGE_SIZE))
 MAX_TOKENS = int(os.environ.get("CACHE", "4096"))
 IMG_RENDER = os.environ.get(
     "IMG_RENDER", "<|vision_start|><image_soft_token><|vision_end|>")
@@ -119,8 +127,8 @@ def main():
   md.jinja_prompt_template = JINJA
   md.llm_model_type.CopyFrom(
       llm_model_type_pb2.LlmModelType(fast_vlm=llm_model_type_pb2.FastVlm()))
-  md.llm_model_type.fast_vlm.image_tensor_height = IMAGE_SIZE
-  md.llm_model_type.fast_vlm.image_tensor_width = IMAGE_SIZE
+  md.llm_model_type.fast_vlm.image_tensor_height = IMAGE_H
+  md.llm_model_type.fast_vlm.image_tensor_width = IMAGE_W
   md.stop_tokens.add().token_ids.ids.append(eot_id)
   md.stop_tokens.add().token_ids.ids.append(imend_id)
   md_path = os.path.join(OUT, "llm_metadata.pb")
@@ -138,7 +146,10 @@ def main():
   dec_act = os.environ.get("DEC_ACT", "fp32")
   b.add_tflite_model(prefill_decode, litertlm_builder.TfLiteModelType.PREFILL_DECODE,
                      prefer_activation_type=dec_act or None)
-  b.add_tflite_model(vision_encoder, litertlm_builder.TfLiteModelType.VISION_ENCODER)
+  # VENC_ACT: only when set is the declaration passed (the default call is unchanged).
+  venc_act = os.environ.get("VENC_ACT", "")
+  venc_kw = {"prefer_activation_type": venc_act} if venc_act else {}
+  b.add_tflite_model(vision_encoder, litertlm_builder.TfLiteModelType.VISION_ENCODER, **venc_kw)
   b.add_tflite_model(vision_adapter, litertlm_builder.TfLiteModelType.VISION_ADAPTER)
 
   out_path = os.path.join(OUT, os.environ.get("OUT_NAME", "Qwen3.5-2B-VL.litertlm"))

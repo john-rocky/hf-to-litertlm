@@ -25,6 +25,17 @@ get_vision_bilinear_indices_and_weights returning [4,N]):
 IMG must be a multiple of 32 (patch16 x merge2). Default 512 -> 32x32 grid ->
 1024 patches -> 256 soft tokens.
 
+A picture that is not square: IMG_H / IMG_W (each defaults to IMG, so the
+square default is unchanged), e.g. IMG_H=1344 IMG_W=768 -> an 84x48 grid ->
+4,032 patches -> 1,008 soft tokens; the bundle then takes IMAGE_H / IMAGE_W.
+
+The LayerNorm pre-scales are calibrated on the three photos of
+northmv_work/fixtures (when present) and one noise picture. CALIB_FILES
+(comma-separated picture paths) adds pictures to that calibration; LN_SCALES
+(a JSON file {"blk<i>.norm<1|2>" | "final": scale}, scales above 1 only) skips
+the calibration and uses the given table, so the exported files do not depend
+on which pictures are at hand.
+
     IMG=512 .venv-092/bin/python qwen35vl_work/convert_qwen35_vision.py [out_dir]
 """
 import json
@@ -47,11 +58,14 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "out/qwen35vl-vis
 os.makedirs(OUT, exist_ok=True)
 
 IMG = int(os.environ.get("IMG", "512"))
+IMG_H = int(os.environ.get("IMG_H", IMG))
+IMG_W = int(os.environ.get("IMG_W", IMG))
 PATCH = 16
 MERGE = 2
-assert IMG % (PATCH * MERGE) == 0, "IMG must be a multiple of 32 (patch16 x merge2)"
-GRID = IMG // PATCH
-N_PATCH = GRID * GRID
+assert IMG_H % (PATCH * MERGE) == 0 and IMG_W % (PATCH * MERGE) == 0, \
+    "IMG_H and IMG_W must be multiples of 32 (patch16 x merge2)"
+GRID_H, GRID_W = IMG_H // PATCH, IMG_W // PATCH
+N_PATCH = GRID_H * GRID_W
 N_TOK = N_PATCH // (MERGE * MERGE)
 MEAN, STD = 0.5, 0.5
 BARRIER = os.environ.get("BARRIER", "1") == "1"
@@ -59,6 +73,8 @@ FP16SAFE = os.environ.get("FP16SAFE", "1") == "1"
 LN_S = {}  # per-LN pre-scale for the fp16-safe LayerNorm (filled by calibration)
 NBLOCKS = int(os.environ["NBLOCKS"]) if "NBLOCKS" in os.environ else None
 FIXTURES = os.path.join(ROOT, "northmv_work", "fixtures")
+CALIB_FILES = [f for f in os.environ.get("CALIB_FILES", "").split(",") if f]
+LN_SCALES = os.environ.get("LN_SCALES", "")
 
 
 def op_hist(p):
@@ -93,7 +109,8 @@ def _quant_int8(src, dst):
 
 
 def main():
-  res = {"ok": False, "stage": "load", "img": IMG, "grid": GRID, "n_tok": N_TOK}
+  res = {"ok": False, "stage": "load", "img": IMG_H if IMG_H == IMG_W else [IMG_H, IMG_W],
+         "grid": GRID_H if GRID_H == GRID_W else [GRID_H, GRID_W], "n_tok": N_TOK}
   try:
     model = AutoModelForImageTextToText.from_pretrained(
         MODEL, dtype=torch.float32, low_cpu_mem_usage=True,
@@ -115,7 +132,7 @@ def main():
     conv2d.weight.data = w2d.detach().clone()
     conv2d.bias.data = b.detach().clone()
 
-    grid = torch.tensor([[1, GRID, GRID]], dtype=torch.long)
+    grid = torch.tensor([[1, GRID_H, GRID_W]], dtype=torch.long)
     # learned pos_embed resampled to the static grid, RASTER order
     # (spatial_merge_size=1 -> the helper's merge reorder is the identity)
     idx, wts = get_vision_bilinear_indices_and_weights(
@@ -124,7 +141,7 @@ def main():
 
     # 2-D rope, RASTER order
     pid = torch.arange(N_PATCH)
-    pos = torch.stack([pid // GRID, pid % GRID], dim=-1)   # [N,2]
+    pos = torch.stack([pid // GRID_W, pid % GRID_W], dim=-1)   # [N,2] (row, col)
     rpe = visual.rotary_pos_emb(pos)                       # [N, head_dim//2]
     emb = torch.cat((rpe, rpe), dim=-1)
     rcos, rsin = emb.cos(), emb.sin()
@@ -174,9 +191,9 @@ def main():
         self.register_buffer("cos", rcos.reshape(1, 1, N_PATCH, -1), persistent=False)
         self.register_buffer("sin", rsin.reshape(1, 1, N_PATCH, -1), persistent=False)
 
-      def forward(self, images, calib=None):        # [1,IMG,IMG,3] in [0,1]
+      def forward(self, images, calib=None):        # [1,IMG_H,IMG_W,3] in [0,1]
         x = (images.permute(0, 3, 1, 2) - MEAN) / STD
-        p = self.conv(x)                            # [1,1024,GRID,GRID]
+        p = self.conv(x)                            # [1,1024,GRID_H,GRID_W]
         # NHWC-order flatten (permute then reshape) -- NOT flatten(2).transpose:
         # the converter's TRANSPOSE->RESHAPE[C,N] form is miscomputed on Metal.
         h = p.permute(0, 2, 3, 1).reshape(1, N_PATCH, -1)  # [1,N,1024] raster
@@ -195,7 +212,7 @@ def main():
         return h                                     # [1,N,1024] raster order
 
     def merge2x2(f):                                 # [1,N,C] raster -> [1,N/4,4C] window order
-      f = f.reshape(1, GRID, GRID, -1)
+      f = f.reshape(1, GRID_H, GRID_W, -1)
       m = torch.cat([f[:, 0::2, 0::2, :], f[:, 0::2, 1::2, :],
                      f[:, 1::2, 0::2, :], f[:, 1::2, 1::2, :]], dim=-1)
       return m.reshape(1, N_TOK, -1)
@@ -218,29 +235,40 @@ def main():
     # calibrate the fp16-safe LN scales on real images + noise, in plain fp32
     res["stage"] = "calibrate"
     LN_S.clear()
-    calib = {}
-    fx = [os.path.join(FIXTURES, f) for f in ("cats_512.png", "kitchen1_512.png", "kitchen2_512.png")]
-    with torch.no_grad():
-      for fpath in [f for f in fx if os.path.exists(f)]:
-        im = Image.open(fpath).convert("RGB").resize((IMG, IMG), Image.BICUBIC)
-        enc_m((torch.from_numpy(np.asarray(im)).float() / 255.0).unsqueeze(0), calib=calib)
-      torch.manual_seed(1)
-      enc_m(torch.rand(1, IMG, IMG, 3), calib=calib)
-    for k, v in calib.items():
-      LN_S[k] = _calib_S(v)
-    res["ln_scales"] = {k: v for k, v in sorted(LN_S.items()) if v > 1.0}
-    res["ln_absmax_max"] = max(calib.values())
-    print("fp16-safe LN scales (>1):", res["ln_scales"], "| absmax max:",
-          round(res["ln_absmax_max"], 1), flush=True)
+    if LN_SCALES:  # a given table: no calibration
+      with open(LN_SCALES) as f:
+        LN_S.update({k: float(v) for k, v in json.load(f).items()})
+      res["ln_scales"] = {k: v for k, v in sorted(LN_S.items()) if v > 1.0}
+      res["ln_scales_file"] = LN_SCALES
+      print("fp16-safe LN scales (>1) from", LN_SCALES, ":", res["ln_scales"], flush=True)
+    else:
+      calib = {}
+      fx = [os.path.join(FIXTURES, f) for f in ("cats_512.png", "kitchen1_512.png", "kitchen2_512.png")]
+      missing = [f for f in CALIB_FILES if not os.path.exists(f)]
+      assert not missing, f"CALIB_FILES missing: {missing}"
+      if CALIB_FILES:
+        res["calib_files"] = [f for f in fx if os.path.exists(f)] + CALIB_FILES
+      with torch.no_grad():
+        for fpath in [f for f in fx if os.path.exists(f)] + CALIB_FILES:
+          im = Image.open(fpath).convert("RGB").resize((IMG_W, IMG_H), Image.BICUBIC)
+          enc_m((torch.from_numpy(np.asarray(im)).float() / 255.0).unsqueeze(0), calib=calib)
+        torch.manual_seed(1)
+        enc_m(torch.rand(1, IMG_H, IMG_W, 3), calib=calib)
+      for k, v in calib.items():
+        LN_S[k] = _calib_S(v)
+      res["ln_scales"] = {k: v for k, v in sorted(LN_S.items()) if v > 1.0}
+      res["ln_absmax_max"] = max(calib.values())
+      print("fp16-safe LN scales (>1):", res["ln_scales"], "| absmax max:",
+            round(res["ln_absmax_max"], 1), flush=True)
 
     # reference: the model's OWN visual path on the same IMGxIMG input
     res["stage"] = "reference"
     torch.manual_seed(0)
-    img_u8 = (torch.rand(IMG, IMG, 3) * 255).round().clamp(0, 255).to(torch.uint8)
+    img_u8 = (torch.rand(IMG_H, IMG_W, 3) * 255).round().clamp(0, 255).to(torch.uint8)
     pil = Image.fromarray(img_u8.numpy(), mode="RGB")
     pp = processor.image_processor(images=[pil], return_tensors="pt")
     pv, pgrid = pp["pixel_values"], pp["image_grid_thw"]
-    assert list(pgrid[0]) == [1, GRID, GRID], f"processor grid {pgrid} != static {GRID}"
+    assert list(pgrid[0]) == [1, GRID_H, GRID_W], f"processor grid {pgrid} != static {[GRID_H, GRID_W]}"
     img01 = (img_u8.float() / 255.0).unsqueeze(0)
 
     with torch.no_grad():

@@ -32,11 +32,12 @@ case "${1:-}" in
   smolvlm2-500m)         bash scripts/ship_smolvlm2.sh ;;         # SigLIP + SmolLM2 (64 tokens)
   smolvlm2-2.2b)         bash scripts/ship_smolvlm2_22b.sh ;;     # SigLIP + SmolLM2-1.7B (81 tokens)
   wevisone-vl-2b)        bash scripts/ship_wevisone.sh ;;         # static-512 ViT + 8196-wide DeepStack rows + derived M-RoPE, fp16
+  xiaomi-ocr-0)          bash scripts/ship_xiaomi_ocr_0.sh ;;     # static 1344x768 ViT (1,008 tokens) + Qwen3.5 hybrid int8
   --list|"")
     echo "VLM keys (fast_vlm single-image):"
     printf '  %s\n' granite-docling-258m internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
       llava-onevision-0.5b minicpm-ocr-1.0 north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b \
-      wevisone-vl-2b
+      wevisone-vl-2b xiaomi-ocr-0
     echo; echo "each -> out/*-bundle/<Model>.litertlm ; details in cards/*-litert.md" ;;
   *) echo "unknown VLM key: '$1' (run --list)"; exit 2 ;;
 esac
