@@ -11,7 +11,8 @@
 #            (qwen35vl_work/convert_qwen35_vision.py, IMG_H / IMG_W), the fp16-safe LayerNorm pre-scales pinned to
 #            xiaomiocr_work/ln_scales_1344x768.json.
 # Decoder  = the Qwen3.5 hybrid rail (qwen35vl_work/export_qwen35vl_decoder.py + the litert-torch patch pinned in
-#            qwen35_work), run on the checkpoint itself: its text config, safetensors keys and chat template are the base's.
+#            qwen35_work), run on the checkpoint itself: its text geometry is Qwen3.5-0.8B's, and its chat_template.jinja
+#            is Qwen/Qwen3.5-0.8B's file byte for byte (the -Base repository has none).
 # Bundle   = qwen35vl_work/build_qwen35vl_bundle.py (IMAGE_H / IMAGE_W, VENC_ACT): ChatML with the empty think block, no
 #            start token, stop tokens <|endoftext|> 248044 and <|im_end|> 248046, the repository's own tokenizer.json; then
 #            scripts/add_executor_metadata.py binds the 48 hybrid state buffers.
