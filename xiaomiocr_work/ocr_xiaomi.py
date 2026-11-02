@@ -5,13 +5,13 @@
       [--keys date,total_amount,...] [--prompt TEXT] [--backend cpu|gpu] [--vision-backend cpu|gpu]
       [--max-output-tokens N] [--cache-dir DIR] [--keep-picture OUT.png]
 
-Needs litert-lm (pip install litert-lm) and Pillow. The bundle resizes every picture to 768 wide x 1344 tall without
-keeping its aspect ratio and without reading EXIF orientation, so this script applies the EXIF orientation, pastes the
-picture centred on a white canvas of that tall 4:7 shape that just holds it, and resizes the canvas to 768 x 1344
-(bicubic) itself. The task prompts are the five of the model card (xiaomi-research/Xiaomi-OCR-0, "Task prompts");
---task kie writes the card's key-information-extraction prompt with the keys of --keys. One Engine per call: the text
-decoder carries a recurrent state, and a second conversation on the same Engine continues from the first one's state
-(LiteRT-LM issue #3165).
+Needs litert-lm (pip install litert-lm) and Pillow. LiteRT-LM resizes every picture to the bundle's 768 wide x 1344
+tall without keeping its aspect ratio and without reading EXIF orientation, so this script applies the EXIF
+orientation, pastes the picture centred on a white canvas of that tall 4:7 shape that just holds it, and resizes the
+canvas to 768 x 1344 (bicubic) itself. The task prompts are the five of the model card (xiaomi-research/Xiaomi-OCR-0,
+"Task prompts"); --task kie writes the card's key-information-extraction prompt with the keys of --keys. One Engine per
+call: the text decoder carries a recurrent state, and a second conversation on the same Engine continues from the first
+one's state (LiteRT-LM issue #3165).
 """
 import argparse
 import os

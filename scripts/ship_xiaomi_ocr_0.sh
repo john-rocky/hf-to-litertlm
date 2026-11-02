@@ -1,5 +1,5 @@
 #!/bin/bash
-# xiaomi-research/Xiaomi-OCR-0 (0.87B OCR VLM, apache-2.0, a post-train of Qwen/Qwen3.5-0.8B-Base) -> a fast_vlm file that
+# xiaomi-research/Xiaomi-OCR-0 (0.87B OCR VLM, apache-2.0, trained from Qwen/Qwen3.5-0.8B-Base) -> a fast_vlm file that
 # reads one 1344x768 picture (height x width = 84 x 48 patches of 16 = 1,008 image tokens):
 #   Xiaomi-OCR-0_int8.litertlm   the Qwen3.5 hybrid decoder with int8 fully connected layers (the 36 GatedDeltaNet
 #                                decay/gate projections float) and an fp32 activation preference; int8 embedder; vision
