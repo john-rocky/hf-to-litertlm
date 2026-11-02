@@ -61,6 +61,14 @@ A label is `<model> <arm> <think> <form>` (`lfm3 S512 on std`, `gemma4 N on box`
 6. **Count a thought that never closed as no answer, and read the ones that never opened apart.** A model asked to think can answer without a thought; the rule counts that as no answer, so count those answers separately when they change the best condition.
 7. **Keep the whole set.** A clip shows one request; the count over the set is what it stands for.
 
+## Voice-cloning scenes (text to speech)
+
+The same check applies to a text-to-speech model that clones a voice from a short recording. A search for a scene that only Audio8-TTS-Realistic-0.6b (23 languages) could make found none; three of the reasons carry over to any voice-cloning scene:
+
+- **A rival's card is not its ability.** The older Audio8-TTS-Preview-0.6b, whose card lists no Swedish, run as its original weights from the same reference clip, read both Swedish scene sentences with 0 or 1 word errors (one sentence in 2 of 3 runs, the other in 3 of 3), and Qwen3-TTS-12Hz-0.6B-Base made one of them with its language set to German (a rival makes a clip when any one of its runs has at most one word error and a speaker cosine of at least 0.48). Run each rival on the scene's own sentences and reference, the cheapest first, and score it before any other check.
+- **The clone copies the recording.** The FLEURS references we used (UTMOS22 2.13 to 3.19) gave outputs with every word right that still stayed under a 3.70 UTMOS22 line (Turkish 9 of 9, Arabic 4 of 6, Hindi 1 of 4); LibriSpeech references score 4.06 to 4.44. Score the reference clip first, and count the clips in the scene's language that pass a quality line (we used UTMOS22 ≥ 3.80), a verbatim transcript (the ASR reads the clip's text with no difference) and a licence that allows cloning, before you write the scene. For Turkish, Vietnamese and Arabic we found none in the open sets we tried.
+- **Use a reference in the language it will speak.** With an English reference, Audio8-TTS-Realistic-0.6b broke words in 9 of the 10 other languages we screened (Arabic, Finnish, Hindi, Indonesian, Malay, Norwegian, Swedish, Thai, Turkish, Vietnamese; only Malay held), and its original weights did the same (runs with at most one word error: 9 of 30 for the LiteRT files, 13 of 30 for the original weights, one seed each), so the breakage comes with the model, not with the conversion; we did not measure why.
+
 ## Check a card's numbers
 
 `tools/card_verify.py` checks every number of a model card draft against the raw run records, with code that shares nothing with the scorer, the card writer or the table writer. A checks file re-derives each value from the records and names the exact text the card must contain; the verifier reports each check found or not.

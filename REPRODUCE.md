@@ -577,7 +577,7 @@ SEC=10 SUFFIX=_g2 python export_codec_encoder.py       # voice registration enco
 python quantize_ar.py out/slow/slow_fp32_c2048_p256.tflite drq8     # dynamic int8 (ships)
 python quantize_ar.py out/slow/slow_fp32_c2048_p256.tflite bo4      # blockwise-32 OCTAV int4 (small option)
 python quantize_ar.py out/fast/fast_fp32_v3.tflite drq8
-python quantize_codec.py out/codec/codec_decoder_fp32_T128_g2.tflite fp16   # exact; GPU-capable
+python quantize_codec.py out/codec/codec_decoder_fp32_T128_g2.tflite fp16   # exact on the CPU; see the GPU note below
 python quantize_codec.py out/codec/codec_decoder_fp32_T192_g2.tflite fp16
 python quantize_encoder.py out/codec/codec_encoder_fp32_10s_g2.tflite fp16
 T=128 SUFFIX=_g2 python export_codec_native_i8.py && python fix_native_i8_tables.py \
@@ -590,6 +590,8 @@ python out/ship/audio8_tts_litert.py --model-dir out/ship --text "Hello from Lit
 ```
 
 Gates: fp32 graphs reproduce the PyTorch oracle's code sequence frame-for-frame on all 14 cases (same seeded sampler); codec decoder bit-exact at torch level, 1.9e-6 as .tflite; int8 slow + int8 fast + fp16 codec keeps the oracle's WER (en 1.1%, ja 0.0%, whisper large-v3-turbo) and speaker cosine (TitaNet-L, en 0.68 / ja 0.76 vs oracle 0.66 / 0.74).
+
+GPU note: as first published (`c2b32692…` T128, `26ee7720…` T192), the two fp16 codec decoders gave a wrong output on the LiteRT GPU accelerator at both GPU precisions (fp16 and fp32). Since 2026-11-02 (commit `3d59a74c` of litert-community/Audio8-TTS-Preview-0.6b) the model repository holds them rewritten by `codec_gpu_rewrite.py`; the Audio8-TTS-Realistic-0.6b section below rebuilds them from the first-published files (revision `56fcb491`) to these hashes: `codec_decoder_fp16_T128.tflite` `e1f187dcf29d3caef749af2aaca68039020220c6cb491c2a780faba62f232a79`, `codec_decoder_fp16_T192.tflite` `21c04bd04ed27c42ec6fc92cf26a854850fc7c8d746fb766cca04bc3640d1b68`.
 
 Walls and fixes recorded in `audio8_tts_work/FINDINGS.md`: `repeat_interleave` on the KV cache lowers to BROADCAST_TO and costs 615 ms/step (fold GQA heads into the matmul rows: 16 ms); `torch.polar` has no lowering (eager-cached real tables); the vendor's bf16-rounded RoPE table is reproduced exactly by permuting q/k rows to the rotate-half layout; litert-torch's PT2E dynamic mode also quantizes unannotated embedding tables asymmetrically, which TFLite's EMBEDDING_LOOKUP refuses (write the fp32 codebooks back); ai-edge-quantizer's >32 MiB chunked path breaks on 4-D conv weights; every gather index is clamped in-graph so random-input benchmark tools do not fault.
 
