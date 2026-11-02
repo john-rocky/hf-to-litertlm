@@ -1576,6 +1576,65 @@ How this file was made, and what ran as printed: the four steps up to the tokeni
 - Measured (prefill 1024 / decode 256 / context 2048, litert-lm 0.18.1, Mac M4 Max): GPU (WebGPU) 175.5 / 18.24 tok/s; CPU with the XNNPACK weight cache 21.82 / 5.59 tok/s. Without the weight cache the CPU engine packs the int4 weights once per signature: on the block-32 file it passed 91 GB of memory during the engine build and was stopped. Not run on a phone: the file is larger than the phones' memory.
 - **Count the WebGPU validation errors in every Mac GPU log.** A `litert-lm benchmark` process builds one Engine per run, the warmup included (four for `--runs 3`). Across 11 benchmark processes on this file and its variants (44 engines), WebGPU `Validation error` lines (`[Buffer (unlabeled)] usage (Storage(read-write)|Storage(read-only)) includes writable usage and another usage in the same synchronization scope`, then `[Invalid CommandBuffer] is invalid due to a previous error`) appeared in 2 engines, each the third engine of its process, while the process exited 0 and printed rates; 130 single-engine processes (the 100 GSM8K questions among them) printed none. The litert-lm 0.18.1 CLI prints only ERROR lines unless `--verbose` is given; these are ERROR lines, so they show without it. The GPU speeds in this entry come from benchmark processes without such a line.
 
+### 2026-11-02 — Qwen3.5-4B-3D-Coder: the Qwen3.5-4B rail with a KV cache sized for the model's long answers, Mixed INT4 at 16,384 and 32,768 tokens
+
+`qwen35_work/convert_qwen35_4b_int4.sh` converts [ccore/Qwen3.5-4B-3D-Coder](https://huggingface.co/ccore/Qwen3.5-4B-3D-Coder) at commit `196c03ff` — CCORE's independent finetune of Qwen/Qwen3.5-4B, an early preview "with a particular focus on creating interactive 3D scenes with Three.js" — into the two files of [litert-community/Qwen3.5-4B-3D-Coder](https://huggingface.co/litert-community/Qwen3.5-4B-3D-Coder). Both are Mixed INT4 text decoders: one with a 16,384-token KV cache and prefill signatures of 256, 16 and 1 tokens, one with a 32,768-token KV cache and the Qwen3.5-4B prefill ladder (1024, 256, 64, 16, 4, 1). Environments: for the export and quantize steps (`QWEN35_PY`) transformers 5.14.1, torch 2.12.1, ai-edge-quantizer 0.8.0, ai-edge-litert 2.1.6, litert-lm-builder 0.15.0 and litert-torch at `115a13607c73` with `qwen35_work/qwen35_hybrid_litert_torch.patch` applied; litert-lm 0.18.0 (CLI and builder) for unpacking and packing, the tokenizer swap and the metadata steps. The ExecutorMetadata step (`scripts/add_executor_metadata.py`) packed the published files with litert-lm 0.15.0, the CLI at the script's default path `~/venvs/lt0150run/bin/litert-lm`; `EXEC_META_LITERT_LM` gives it another path.
+
+```bash
+git clone https://github.com/john-rocky/litert-torch qwen35_work/litert-torch-qwen35
+git -C qwen35_work/litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
+git -C qwen35_work/litert-torch-qwen35 apply "$(pwd)/qwen35_work/qwen35_hybrid_litert_torch.patch"
+export QWEN35_PY=/path/to/python-with-transformers-5.14.1-torch-2.12.1-ai-edge-quantizer-0.8.0
+export RUN_PY=/path/to/python-with-litert-lm-0.18.0
+export LITERT_LM=/path/to/litert-lm-0.18.0
+export CHECK_PY=/path/to/python-with-ai-edge-litert-litert-lm-builder-and-tokenizers
+export EXEC_META_LITERT_LM=/path/to/litert-lm-0.15.0   # the CLI scripts/add_executor_metadata.py packs with
+export HF_HUB_CACHE=$(pwd)/hf_cache_3dcoder   # one pinned snapshot for both runs (every file of the commit, the GGUF files too)
+export EXPECT_TOKENIZER_SHA256=a5cd9732badce41de57e6efce8302930ded1c1188c5f81feb2bd6c24c4a1941f
+QWEN35_CACHE_LENGTH=16384 QWEN35_PREFILL_LADDER=256,16,1 \
+  bash qwen35_work/convert_qwen35_4b_int4.sh ccore/Qwen3.5-4B-3D-Coder out_3dcoder_kv16k
+QWEN35_CACHE_LENGTH=32768 QWEN35_PREFILL_LADDER=1024,256,64,16,4,1 \
+  bash qwen35_work/convert_qwen35_4b_int4.sh ccore/Qwen3.5-4B-3D-Coder out_3dcoder_kv32k
+```
+
+Each run writes `<OUTDIR>/Qwen3.5-4B-3D-Coder_mixed_int4.litertlm`. `bash scripts/reproduce_llm.sh qwen35-4b-3d-coder-kv16k` (or `-kv32k`) runs the same command with the same environment variables, into `out/<key>`; the guard step below then takes `out/<key>` as its `out_3dcoder_$V`.
+
+Then the step that gives the chat template a guard for an empty message list (the published files have it):
+
+```bash
+for V in kv16k kv32k; do
+  mkdir -p out_3dcoder_$V/guard
+  "$RUN_PY" -I scripts/set_prompt_template.py out_3dcoder_$V/Qwen3.5-4B-3D-Coder_mixed_int4.litertlm \
+    out_3dcoder_$V/guard/Qwen3.5-4B-3D-Coder_mixed_int4.litertlm qwen35_work/qwen35_text_T1_noswitch_guard.jinja --litert-lm "$LITERT_LM"
+done
+```
+
+LiteRT-LM renders the template with no messages when a conversation is created with `prefill_preface_on_init` and a preface of tools or extra context, and when an app renders the preface into a string (`RenderPrefaceIntoString`, Kotlin and Swift `renderPrefaceIntoString()`). The driver's template then stops at line 19, `messages[0]['role']`, with `undefined value` (minijinja 2.14.0, the runtime's engine, in all six such cases); the default path, with `prefill_preface_on_init` off as in the Python API and the CLI, never renders it that way. `qwen35_text_T1_noswitch_guard.jinja` reads it as `messages and messages[0]['role'] == 'system'`, the only line that differs, so it renders those six cases and a conversation with messages renders the same text. The step changes the LlmMetadata section only; the other three sections, and the TFLite section's fp32 declaration, pass through the unpack and pack unchanged.
+
+The section hashes of the two published files (after the guard step; before it, the LlmMetadata section is `4c66b21b…` in the KV 16,384 file and `de224807…` in the KV 32,768 file):
+
+| File | Section | Bytes | sha256 |
+|---|---|---:|---|
+| KV 16,384, prefill 256 / 16 / 1 (2,710,506,160 B) | LlmMetadataProto | 4,181 | `d8769fb6c043bad4847f2fcb461994ae74004d3f73e2aebf77b6e0ead6ae3c98` |
+| | ExecutorMetadataProto | 4,309 | `f2ded5e8df8182f9a2f68fe2f8ac64d7c117f08dd2b4a65d209d4fadef491747` |
+| | HF_Tokenizer_Zlib | 3,913,272 | `e571b54986a68c11bf40a5dfed58bfc5c488ec2312c0b77db1c2a9b328c8a7ed` |
+| | TFLiteModel | 2,706,541,232 | `49fecaa840ed6a1a929a20df1760ce16a484c1c64f2c3cfa64e618edf87dc394` |
+| KV 32,768, prefill 1024 / 256 / 64 / 16 / 4 / 1 (2,767,541,424 B) | LlmMetadataProto | 4,181 | `94d8cf8bdc8cfe525d0de3b3eadc16310a1c9be305356e6483169178550d8d67` |
+| | ExecutorMetadataProto | 4,309 | `7b3fbbebc33c5283006cd5ab8b7f2f6fb2979d0dd90605e5f7c70627286f58e8` |
+| | HF_Tokenizer_Zlib | 3,913,272 | `e571b54986a68c11bf40a5dfed58bfc5c488ec2312c0b77db1c2a9b328c8a7ed` |
+| | TFLiteModel | 2,763,576,496 | `45247e65d1876461e11b2139513b1a779682a3eb3dfe4cd3cdd395ec875789d2` |
+
+Checked on 2026-11-02 on an Apple M4 Max (128 GB, macOS 27.0), from a clean checkout of this repository. Both driver commands ran as printed, and every section of each file they wrote has the sha256 of the published file before the guard step (the runs' `checks/sections.txt` list them); the guard step, run as printed on those two files, gave files whose four sections all have the sha256 in the table. The KV 16,384 run took about 18 minutes (16 for the export, which peaked at about 54 GB of memory, sampled every 15 s) and the KV 32,768 run about 74 (69 for the export, peak about 58 GB), both at a low CPU priority beside other jobs. The KV 16,384 float export also had the same section hashes as the export the published file was quantized from (TFLiteModel `c76946b8…`). Both runs reused an HF cache that already held the pinned commit, fetched the day before by the same step 0 (`fetch_pinned.py`: all 42 files equal to the Hub's record), so step 0 downloaded nothing. A rebuilt file's sha256 differs from the published file's, because the packer writes a new uuid and creation timestamp into the container header: compare sections.
+
+- **A KV cache for the answer, not 4,096.** The model answers with a whole HTML page. On the 213 scenes of the `validation` split of its training dataset ([ccore/ThreeJS-3D-Scenes](https://huggingface.co/datasets/ccore/ThreeJS-3D-Scenes)), the answer alone is 3,188 to 26,035 tokens with the repo's tokenizer (median 12,509), and 1 of the 213 fits in 4,096 tokens, the cache of the Qwen3.5-4B files. With the card's system prompt and the user turn in front of it, 172 of the 213 fit in 16,384 tokens and all 213 in 32,768.
+- **Three prefill signatures in the 16,384 file.** Its largest activation is then prefill_256's attention score, [1, 4, 1024, 16384] in float32 = 256 MiB; a 1024-token signature would make it [1, 4, 4096, 16384] = 1 GiB. The 32,768 file keeps the Qwen3.5-4B ladder.
+- **Mixed INT4 = blockwise-32 min-max int4 FULLY_CONNECTED weights, int8 channelwise lm_head and embedding**, the 48 GatedDeltaNet decay / gate projections (`in_proj_a`, `in_proj_b`) float, and every int4 block scale floored at 2^-14 (`falcon_h1_work/quantize_clamped.py`: 200 blockwise int4 tensors, none needed raising on this model). The 2026-08-27 Qwen3.5-4B int4 recipe (`make_int4_4b.py`) predates both rules. fp32 GPU activations are declared (rule 11 of AGENTS.md): with the GPU's default fp16 activations the Mac GPU answered the first two check questions with a run of `!` to the 512-token cap.
+- **The tokenizer section is the repo's `tokenizer.json`** (19,989,339 bytes, sha256 `a5cd9732…`), which is not Qwen/Qwen3.5-4B's file (12,807,982 bytes, `5f9e4d49…`): the export writes the tokenizer transformers builds from the tokenizer class, and `use_repo_tokenizer.sh` swaps it in (rule 7).
+- **Thinking off only.** The repo's chat template is Qwen/Qwen3.5-4B's (the same 7,756 bytes), with thinking on by default. In transformers (fp16, greedy) the vendor template with thinking on looped inside the thought on 2 of 2 checked prompts, without `</think>` (2,304 and 2,048 tokens). So the files carry `qwen35_text_T1_noswitch_guard.jinja` (`qwen35_text_T1.jinja` whose generation prompt always opens with an empty think block, with the guard above), no `thought` channel and `supports_thinking` false; on the 9 check prompts compared (the card's system prompt and one user turn) its render has the same sha256 as transformers' render of the vendor template with `enable_thinking=False`.
+- **Stops 248046 and 248044, no start token.** The repo's `generation_config.json` names both ids and the export writes both; `build_qwen35_quant.py` would add a missing one (none here). `llm_model_type` is `generic_model`.
+- Speeds, device rows and checks: the model card and the repo's `litertlm_manifest.json`.
+
 ## Qwen3.5-2B VISION build — the shipped text model was half of a VLM
 
 The Qwen3.5 checkpoints are multimodal, and the text conversion above deliberately drops the vision tower. `qwen35vl_work/` keeps it: the checkpoint's own 24-layer, 1024-dim ViT (no DeepStack — `deepstack_visual_indexes` is empty upstream), wired to LiteRT-LM's `fast_vlm` contract at a static 512x512. Published alongside the text file: [litert-community/Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) (`Qwen3.5-2B-VL_int8.litertlm`).
