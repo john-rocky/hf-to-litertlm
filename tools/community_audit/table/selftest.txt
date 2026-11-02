@@ -1,0 +1,6 @@
+tools/community_audit/audit.py --self-test, 2026-11-02
+PASS missing repo -> repo info: HTTP 401 (refused: no such repo, or a private one)
+PASS gated repo -> 11 files: ['HTTP 401 (gated repo: an anonymous read is refused)']
+PASS server ignores Range -> header read: the server ignored the Range request (HTTP 200 with 8,192 B)
+PASS file cut to 24 B (litert-community/SmolLM2-360M-Instruct SmolLM2_360M_instruct.litertlm) -> header read: the file is 24 B; a bundle header needs at least 32 B
+PASS file cut to 4096 B (litert-community/SmolLM2-360M-Instruct SmolLM2_360M_instruct.litertlm) -> header read: section 0 (LlmMetadataProto) ends at 16,516, past the file's end (4,096 B)

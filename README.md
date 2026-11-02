@@ -383,6 +383,10 @@ it into a Play for On-device AI pack — one device group per manifest recommend
 device-targeting XML, and a host app that fetches the pack and runs the file on the backend the
 manifest names.
 
+## Audit an org's files
+
+[`tools/community_audit/`](tools/community_audit/) reads the header of every `.litertlm` file of a Hugging Face org (HTTP ranges, no weights) and writes one table of what each file carries: inline or external weights, the ExecutorMetadata section, vision and audio sections, the model type, whether the chat template reads `tools` and `enable_thinking`, the channels, the sampler, and flags for the files to rebuild. Each repo is read at a recorded commit, and `--pin` reads the same commits again, so a second read gives the same table. `run_check.py` runs a file from each of the most-downloaded repos, plus files named on the command line, on the CPU and the GPU (a text question, a tool-call exchange, and a photo question and thinking on and off where the file has them) and notes where the run and the header disagree. The current `litert-community` table is [`tools/community_audit/table/audit.md`](tools/community_audit/table/audit.md).
+
 ## Layout
 
 | path | what |
