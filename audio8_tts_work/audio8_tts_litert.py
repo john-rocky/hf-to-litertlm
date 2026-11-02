@@ -6,7 +6,7 @@
     python audio8_tts_litert.py --model-dir <repo> --register-voice ref.wav --ref-text "..." --voice-out voices/alice   # codes.npy + meta.json
     python audio8_tts_litert.py --model-dir <repo> --text "..." --voice voices/alice --out out.wav
 
-Files (from the LiteRT repo): slow_ar_<q>.tflite (prefill_256 + decode), fast_ar_int8.tflite (step),
+Files (from the LiteRT repo): slow_ar_<q>.tflite (prefill_256 [+ prefill_64] + decode), fast_ar_int8.tflite (step),
 codec_decoder_fp16_T128.tflite / _T192.tflite (decode), codec_encoder_fp16_10s.tflite (encode, optional),
 tokenizer.json. The sampler is the vendor's: top-k/top-p + temperature, RAS re-draw for repeated semantic tokens
 (window 10, temperature 1.0 / top-p 0.9), exponential-race sampling, seedable. The KV cache length is read from the
@@ -234,6 +234,7 @@ def main():
     sf.write(a.out, wav, SR, subtype="PCM_16")
     dur = wav.size / SR
     print(f"[done] {codes.shape[1]} frames = {dur:.2f}s audio | AR {t2-t1:.2f}s codec {t3-t2:.2f}s | RTF {(t3-t1)/max(dur,1e-6):.2f} -> {a.out}")
+    if 0 < a.max_new_tokens <= codes.shape[1]: print(f"[cap] the speech reached the {a.max_new_tokens}-frame cap ({a.max_new_tokens * FRAME / SR:.1f} s) and stops there; split the text")
 
 
 if __name__ == "__main__":

@@ -597,7 +597,7 @@ Walls and fixes recorded in `audio8_tts_work/FINDINGS.md`: `repeat_interleave` o
 
 ## Audio8-TTS-Realistic-0.6b (the Preview's DualAR architecture with new weights, 23 languages) — host-loop tflite set
 
-`audio8_tts_work/` also converts [Edge0/Audio8-TTS-Realistic-0.6b](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) (Apache-2.0) at revision `1e857568bfd4f02931aca3988ee773a44d2d26d3`; the later commit on its main branch, `925bbd4c` (2026-11-01), changes `README.md` only. Realistic keeps the Preview's architecture and code: `model.safetensors` is new, while `codec.pth`, the codec code and `tokenizer.json` are the same files as the Preview's. So the two AR graphs are exported again with the Preview recipe, and the codec graphs are the files of [litert-community/Audio8-TTS-Preview-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Preview-0.6b): the encoder unchanged, the two decoders rewritten for mobile GPUs by `codec_gpu_rewrite.py`. The slow AR holds a KV cache of 1,024 positions: a prompt of up to 512 positions leaves room for the 512-frame cap. Exported at 2,048 positions, the same weights give bit-identical logits and hidden states on 38 test cases, and the slow decode is slower (Galaxy S26 CPU 11.87 against 8.83 ms per call). Published as [litert-community/Audio8-TTS-Realistic-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Realistic-0.6b), with the host loop and an Android app. The commands quantize the two AR graphs with `quantize_ar.py … drq8` (drq8 = dynamic-range int8).
+`audio8_tts_work/` also converts [Edge0/Audio8-TTS-Realistic-0.6b](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) (Apache-2.0) at revision `1e857568bfd4f02931aca3988ee773a44d2d26d3`; the later commit on its main branch, `925bbd4c` (2026-11-01), changes `README.md` only. Realistic keeps the Preview's architecture and code: `model.safetensors` is new, while `codec.pth`, the codec code and `tokenizer.json` are the same files as the Preview's. So the two AR graphs are exported again with the Preview recipe, and the codec graphs are the files of [litert-community/Audio8-TTS-Preview-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Preview-0.6b): the encoder unchanged, the two decoders rewritten for mobile GPUs by `codec_gpu_rewrite.py`. The slow AR holds a KV cache of 1,024 positions: a prompt of up to 512 positions leaves room for the 512-frame cap. It has two prefill signatures, `prefill_256` and `prefill_64` (`PREFILL=64,256`), and a prompt is prefilled in chunks through the smallest one that holds what is left of it. Exported at 2,048 positions, the same weights give bit-identical logits and hidden states on 38 test cases, and the slow decode is slower (Galaxy S26 CPU 11.87 against 8.83 ms per call). Published as [litert-community/Audio8-TTS-Realistic-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Realistic-0.6b), with the host loop and an Android app; the app keeps the slow graph's weights as XNNPACK packs them in one weight cache file, named by the file's SHA-256 and the LiteRT version, which the first load writes and every later load maps. The commands quantize the two AR graphs with `quantize_ar.py … drq8` (drq8 = dynamic-range int8).
 
 ```bash
 cd audio8_tts_work
@@ -607,32 +607,32 @@ hf download Edge0/Audio8-TTS-Realistic-0.6b model.safetensors \
 hf download litert-community/Audio8-TTS-Preview-0.6b codec_decoder_fp16_T128.tflite codec_decoder_fp16_T192.tflite \
     --revision 56fcb491ebf03eb3a1a66615fedf6744015dd4c7 --local-dir preview_codec
 export AUDIO8_SNAP=$PWD/realistic_src AUDIO8_OUT=$PWD/out_realistic PYTHONHASHSEED=0
-CACHE=1024 PREFILL=256 SUFFIX=_p256 python export_slow.py      # slow AR: prefill_256 + decode, KV 1024, fp32
+CACHE=1024 PREFILL=64,256 SUFFIX=_p64_256 python export_slow.py   # slow AR: prefill_64 + prefill_256 + decode, KV 1024, fp32
 SUFFIX=_v3 python export_fast.py                               # fast AR step graph, fp32
-python quantize_ar.py $AUDIO8_OUT/slow/slow_fp32_c1024_p256.tflite drq8   # -> slow_ar_int8.tflite
+python quantize_ar.py $AUDIO8_OUT/slow/slow_fp32_c1024_p64_256.tflite drq8   # -> slow_ar_int8.tflite
 python quantize_ar.py $AUDIO8_OUT/fast/fast_fp32_v3.tflite drq8           # -> fast_ar_int8.tflite
 mkdir -p $AUDIO8_OUT/codec
 for T in 128 192; do                                           # -> codec_decoder_fp16_T128 / _T192.tflite
   python codec_gpu_rewrite.py preview_codec/codec_decoder_fp16_T$T.tflite $AUDIO8_OUT/codec/codec_decoder_fp16_T$T.tflite \
       --promote --mask-floor -30000 --mask-ops 155,220,285,350,415,480,545,610 --rms-scale 0.0625 --rms-ops all
 done
-shasum -a 256 $AUDIO8_OUT/slow/slow_drq8_c1024_p256.tflite $AUDIO8_OUT/fast/fast_drq8_v3.tflite $AUDIO8_OUT/codec/*.tflite
+shasum -a 256 $AUDIO8_OUT/slow/slow_drq8_c1024_p64_256.tflite $AUDIO8_OUT/fast/fast_drq8_v3.tflite $AUDIO8_OUT/codec/*.tflite
 ```
 
-Run on 2026-11-02 from a clean copy of this commit on an Apple M4 Max (the two exports 115 s, peak resident memory 6.5 GiB), every rebuilt file has the published SHA-256:
+Run on 2026-11-03 from a clean copy of this commit on an Apple M4 Max (the two exports 203 s, peak resident memory 6.1 GiB), every rebuilt file has the published SHA-256:
 
 | Rebuilt file | Published as | SHA-256 |
 |---|---|---|
-| `slow/slow_drq8_c1024_p256.tflite` | `slow_ar_int8.tflite` (551,890,704 B) | `8b5097dcd4ab6f330a3a0bb750a8d5e459ca4ff3ab8812f7f78b5d5a635863df` |
+| `slow/slow_drq8_c1024_p64_256.tflite` | `slow_ar_int8.tflite` (558,303,696 B) | `8a54c2a1d331e0bb9efa42c98506672ab7739a1d9a77cf54f7d383c8903d882e` |
 | `fast/fast_drq8_v3.tflite` | `fast_ar_int8.tflite` (67,780,320 B) | `0a0bc9f0a969c09f9b2af69231a677db3cb93852b2b8a04609413096b5e48ac0` |
 | `codec/codec_decoder_fp16_T128.tflite` | the same name (261,633,152 B) | `e1f187dcf29d3caef749af2aaca68039020220c6cb491c2a780faba62f232a79` |
 | `codec/codec_decoder_fp16_T192.tflite` | the same name (261,829,760 B) | `21c04bd04ed27c42ec6fc92cf26a854850fc7c8d746fb766cca04bc3640d1b68` |
 
-The float32 intermediates were `slow_fp32_c1024_p256.tflite` (2,153,110,960 B, `81f437a446c497d747d5e3ffcc807ddaa5bbbb8ce0e91c32222f4b65eb2ecf84`) and `fast_fp32_v3.tflite` (268,008,360 B, `d7cc63b7085edfaa1deed565242eb9676aac053f98d0e8d7f70743c47f2a6c31`). The published `codec_encoder_fp16_10s.tflite` is the Preview repository's file (`e27deb6663e25919d2149c63ff70e10418f0f341df963d2ae458d1466359a977`), and `tokenizer.json` the source repository's.
+The repository's first release (2026-11-02) shipped the `PREFILL=256` export of the same weights, `slow_drq8_c1024_p256.tflite` (551,890,704 B, `8b5097dcd4ab6f330a3a0bb750a8d5e459ca4ff3ab8812f7f78b5d5a635863df`); the current file's `prefill_256` and `decode` give that file's outputs bit for bit on 38 test cases. The float32 intermediates were `slow_fp32_c1024_p64_256.tflite` (2,153,476,016 B, `c7dc47422215dcbcb23a478116d4cc3ae02a28007297b29c231f81c52f34725b`) and `fast_fp32_v3.tflite` (268,008,360 B, `d7cc63b7085edfaa1deed565242eb9676aac053f98d0e8d7f70743c47f2a6c31`). The published `codec_encoder_fp16_10s.tflite` is the Preview repository's file (`e27deb6663e25919d2149c63ff70e10418f0f341df963d2ae458d1466359a977`), and `tokenizer.json` the source repository's.
 
 `codec_gpu_rewrite.py` fixes three faults of the published Preview decoders on the LiteRT GPU accelerator; its docstring has the details. A RESHAPE goes before two MUL operators whose rank-2 runtime operand the GPU lays out wrongly. The RMSNorm squares are scaled by 1/16, so their sums stay inside float16. The attention mask is floored at −30000, so a fully masked softmax row cannot turn into NaN. On an Apple M4 Max CPU the rewritten decoders give the original's output byte for byte on 15 (T128) and 17 (T192) test code sequences.
 
-`audio8_tts_litert.py` is the host loop of both models; it reads the KV cache length from the slow graph. The model repository's Quick start also runs in a fresh venv with only its pip line (no PyTorch): on 2026-11-02 its five commands made four sentences and registered a voice, and whisper large-v3-turbo read the four sentences back with one error ("LiteRT" heard as "LightRT").
+`audio8_tts_litert.py` is the host loop of both models; it reads the KV cache length and the prefill signatures from the slow graph. With the current slow file it makes the same codes as with the first release's on four test sentences (2026-11-03). The model repository's Quick start ran in a fresh venv with only its pip line (no PyTorch) on 2026-11-02, with the first release's files: its five commands made four sentences and registered a voice, and whisper large-v3-turbo read the four sentences back with one error ("LiteRT" heard as "LightRT").
 
 ## MiniCPM family (new-style: full-jinja LlmMetadata + post-hoc quantization)
 
