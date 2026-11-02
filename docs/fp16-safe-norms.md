@@ -27,3 +27,7 @@ class F16SafeRMSNorm(torch.nn.Module):
         y = x * r
         return y * self.weight if self.weight is not None else y
 ```
+
+## On a converted graph
+
+When only the converted `.tflite` is at hand, the same rescale can be made in the graph: each RMSNorm square `x * x` becomes `(x·S) * (x·S)`, its eps becomes `eps·S²`, and the RSQRT output is multiplied by `S`. [`audio8_tts_work/codec_gpu_rewrite.py`](../audio8_tts_work/codec_gpu_rewrite.py) `IN OUT --rms-scale 0.0625 --rms-ops all` does this for every square followed by SUM or MEAN, the ADD of eps and RSQRT or SQRT. In the codec decoder of Audio8-TTS-Preview-0.6b (`codec_decoder_fp16_T128.tflite`) one 1,024-channel sum of squares reaches about 76,500; at fp16 it is inf, its rsqrt is 0, and on the GPU at the default precision the decoder returns the same finite output for every input. The mask floor of step 4 is `--mask-floor -30000 --mask-ops …` on the graph's mask ADD constants. With S = 1/16 the rewritten T128 and T192 decoders give the originals' CPU output byte for byte (15 and 17 test code sequences on an Apple M4 Max CPU).
