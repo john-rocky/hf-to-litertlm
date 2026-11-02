@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 99 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 100 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -175,6 +175,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [SmolVLM2-500M](https://huggingface.co/litert-community/SmolVLM2-500M) | 0.5B | chat + image | Galaxy S26 GPU 76.3 | M4 Max CPU 63.9 | [card](cards/smolvlm2-500m-litert.md) |
 | [Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) | 0.8B | chat; separate image file | iPhone 17 Pro GPU 65.8 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [OvisOCR2](https://huggingface.co/mlboydaisuke/OvisOCR2-LiteRT) | 0.85B | document OCR | iPhone 17 Pro GPU 48.5 | M4 Max GPU 140.9 | [recipe](REPRODUCE.md#ovisocr2--an-ocr-finetune-rides-the-08b-vision-rail-unchanged) |
+| [Xiaomi-OCR-0](https://huggingface.co/litert-community/Xiaomi-OCR-0) | 0.873439B | OCR: pages, text, tables, formulas, fields | iPhone 18 Pro GPU 71.8 | M4 Max CPU 41.2 | [recipe](REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-2026-11-03) |
 | [PaddleOCR-VL-1.6](https://huggingface.co/litert-community/PaddleOCR-VL-1.6) | 0.9B | OCR, 109 languages | — | M4 Max GPU 208.3 | [card](cards/paddleocr-vl-1.6-litert.md) |
 | [InternVL3-1B](https://huggingface.co/litert-community/InternVL3-1B) | 1B | chat + image | Galaxy S26 GPU 84.4 | M4 Max CPU 94.0 | [card](cards/internvl3-1b-litert.md) |
 | [InternVL3_5-1B](https://huggingface.co/litert-community/InternVL3_5-1B) | 1B | chat + image | Galaxy S26 GPU 42.9 | M4 Max GPU 176.2 | [card](cards/internvl3_5-1b-litert.md) |

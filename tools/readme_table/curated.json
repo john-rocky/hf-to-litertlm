@@ -407,6 +407,11 @@
     "group": 3,
     "recipe": "REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-and-page-tiles-through-one-extra-context-variable-2026-10-29"
   },
+  "Xiaomi-OCR-0": {
+    "task": "OCR: pages, text, tables, formulas, fields",
+    "group": 3,
+    "recipe": "REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-2026-11-03"
+  },
   "MiniCPM-V-4.7-1B": {
     "task": "chat + image",
     "group": 3,
