@@ -269,6 +269,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form"
   },
+  "Qwen3.5-4B-3D-Coder": {
+    "task": "coding, Three.js 3D scenes",
+    "group": 1,
+    "recipe": "REPRODUCE.md#2026-11-02--qwen35-4b-3d-coder-the-qwen35-4b-rail-with-a-kv-cache-sized-for-the-models-long-answers-mixed-int4-at-16384-and-32768-tokens"
+  },
   "S1-mini": {
     "task": "ASR transcript normalization",
     "group": 4,
