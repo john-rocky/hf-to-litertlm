@@ -1,0 +1,1880 @@
+{
+ "what": "The 24 pictures the requests name by media id (request.media): the file under this folder with its SHA-256 and size, its source and license. Every file is in media/ except the COCO photo, listed by URL and SHA-256 only (stored: false).",
+ "counts": {
+  "media": 24,
+  "files": 23,
+  "file_bytes": 4502987,
+  "commons_cc0": 5,
+  "synthetic_pictures": 18,
+  "by_url": 1
+ },
+ "media": {
+  "coco_val2017_000000039769": {
+   "kind": "image",
+   "file": "media/coco_val2017_000000039769.jpg",
+   "stored": false,
+   "url": "http://images.cocodataset.org/val2017/000000039769.jpg",
+   "sha256": "dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e",
+   "bytes": 173131,
+   "width": 640,
+   "height": 480,
+   "source": "coco_val2017",
+   "license": "COCO val2017 image (Flickr); its license is the one the COCO annotations give for this image; not redistributed here: fetch it from the URL and check the SHA-256",
+   "provenance": "the d1-2B card's example picture (README.md line 182)"
+  },
+  "commons_img_dogs_01": {
+   "kind": "image",
+   "file": "media/commons_img_dogs_01.png",
+   "sha256": "dde44ce93c4f0722a4262499e91afc636667dcb5ff9f8c917010ff6b48c5c519",
+   "bytes": 138690,
+   "width": 384,
+   "height": 216,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Two_French_bulldogs_swimming_in_life_jackets.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Two_French_bulldogs_swimming_in_life_jackets.jpg, by W.carter (Wikimedia Commons user)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_cat_02": {
+   "kind": "image",
+   "file": "media/commons_img_cat_02.png",
+   "sha256": "243fe8e9ca1b666558f50cb5e55d58b385a0ad81d2ce4af7a3369562fcc62df9",
+   "bytes": 198215,
+   "width": 320,
+   "height": 384,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg, by AdinaVoicu (via Pixabay, CC0 on Commons)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_bike_03": {
+   "kind": "image",
+   "file": "media/commons_img_bike_03.png",
+   "sha256": "a99c8b7a314f01cc15e8d340906eaa7220ea62df883c2884e0f1f05ee08c03ba",
+   "bytes": 165090,
+   "width": 384,
+   "height": 256,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg, by Wilfredor (Wikimedia Commons user)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_02": {
+   "kind": "image",
+   "file": "media/commons_img_02.png",
+   "sha256": "1864e1c215f23774abbd74860272c5f8e9ce439e75857b48b4cabaabf09195b7",
+   "bytes": 146091,
+   "width": 384,
+   "height": 288,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File%3ABed_in_hotel_room_5.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ABed_in_hotel_room_5.jpg, by Kurt Kaiser), resized to 384x288 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_03": {
+   "kind": "image",
+   "file": "media/commons_img_03.png",
+   "sha256": "28080dd775920ac0b701d6640eb08e0500542946a19c84ab80e263e595224312",
+   "bytes": 566869,
+   "width": 768,
+   "height": 1024,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File%3ARoom_at_Siamaze_Hostel.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ARoom_at_Siamaze_Hostel.jpg, by Mx. Granger), resized to 768x1024 px; `url` is the Commons page of the original, which is larger"
+  },
+  "syn_384_plain": {
+   "kind": "image",
+   "file": "media/syn_384_plain.png",
+   "sha256": "58a75c4f5f88087e328579732dae3e9c634b493833cb5322db718c17850ac9ea",
+   "bytes": 2538,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "10c3a8cd911c78a4bbe6dba4ec441c1695075db9ae69607688e0b252729b36bd",
+    "params": {
+     "id": "syn_384_plain",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       236,
+       236,
+       236
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        96,
+        96
+       ],
+       "size": 100
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        288,
+        96
+       ],
+       "size": 100
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        96,
+        288
+       ],
+       "size": 100
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        288,
+        288
+       ],
+       "size": 110
+      }
+     ]
+    }
+   }
+  },
+  "syn_640x480_gradient": {
+   "kind": "image",
+   "file": "media/syn_640x480_gradient.png",
+   "sha256": "2ef947053b2251f644fde73a0da16d805e665cea71c7825d85f0ec0031cef2e0",
+   "bytes": 3975,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3f5a938fb2c2c3406c3b2578005bb4db6e1796f6cb1938c21f24d9dce336e789",
+    "params": {
+     "id": "syn_640x480_gradient",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "vertical",
+      "from": [
+       150,
+       200,
+       255
+      ],
+      "to": [
+       255,
+       255,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "orange_circle_1",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        130,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "orange_circle_2",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        320,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "orange_circle_3",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        510,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "teal_square",
+       "kind": "square",
+       "color": "teal",
+       "center": [
+        160,
+        340
+       ],
+       "size": 110
+      },
+      {
+       "name": "magenta_triangle",
+       "kind": "triangle",
+       "color": "magenta",
+       "center": [
+        470,
+        340
+       ],
+       "size": 120
+      }
+     ]
+    }
+   }
+  },
+  "syn_480x640_noise": {
+   "kind": "image",
+   "file": "media/syn_480x640_noise.png",
+   "sha256": "4f066e0e6f526dd9d770f103f6ec167201226f5281da8364d2681ba241b37f4b",
+   "bytes": 728952,
+   "width": 480,
+   "height": 640,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "e093c2fe9cd29e22a317d6f6158542a29a5a192798ab44347e693a4b5c764b91",
+    "params": {
+     "id": "syn_480x640_noise",
+     "size": [
+      480,
+      640
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       185,
+       185,
+       185
+      ],
+      "amplitude": 35
+     },
+     "shapes": [
+      {
+       "name": "red_star_1",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        120,
+        120
+       ],
+       "size": 120
+      },
+      {
+       "name": "red_star_2",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        360,
+        270
+       ],
+       "size": 120
+      },
+      {
+       "name": "blue_ring_1",
+       "kind": "ring",
+       "color": "blue",
+       "center": [
+        360,
+        110
+       ],
+       "size": 100
+      },
+      {
+       "name": "blue_ring_2",
+       "kind": "ring",
+       "color": "blue",
+       "center": [
+        120,
+        300
+       ],
+       "size": 100
+      },
+      {
+       "name": "green_square",
+       "kind": "square",
+       "color": "green",
+       "center": [
+        240,
+        450
+       ],
+       "size": 100
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "LOT 7",
+       "at": [
+        180,
+        560
+       ],
+       "scale": 4,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_1024x768_plain": {
+   "kind": "image",
+   "file": "media/syn_1024x768_plain.png",
+   "sha256": "15e737e2b713583dade657e14e0b204df625d278e1ce7fd721912fd88edd3b04",
+   "bytes": 5906,
+   "width": 1024,
+   "height": 768,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "823e9bab054c9d5881b3424147538cbde7b4659312a4a81a7fdd5ef01465bb5f",
+    "params": {
+     "id": "syn_1024x768_plain",
+     "size": [
+      1024,
+      768
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       252,
+       252,
+       252
+      ]
+     },
+     "shapes": [
+      {
+       "name": "blue_square_1",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        110,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_2",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        250,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_3",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        390,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_4",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        530,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_5",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        180,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_6",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        320,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_7",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        460,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "red_triangle_1",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        740,
+        150
+       ],
+       "size": 110
+      },
+      {
+       "name": "red_triangle_2",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        900,
+        150
+       ],
+       "size": 110
+      },
+      {
+       "name": "red_triangle_3",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        820,
+        330
+       ],
+       "size": 110
+      },
+      {
+       "name": "green_ring",
+       "kind": "ring",
+       "color": "green",
+       "center": [
+        820,
+        590
+       ],
+       "size": 140
+      }
+     ]
+    }
+   }
+  },
+  "syn_800x200_wide": {
+   "kind": "image",
+   "file": "media/syn_800x200_wide.png",
+   "sha256": "e11be686989c05bb2a2eb14f37d29b538e77a6651c365729a0daa205f92af473",
+   "bytes": 4165,
+   "width": 800,
+   "height": 200,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "bb12b142663fe8bc14109d8517d3aa329f97024cf6751319691a2c503a2c3188",
+    "params": {
+     "id": "syn_800x200_wide",
+     "size": [
+      800,
+      200
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "horizontal",
+      "from": [
+       255,
+       230,
+       200
+      ],
+      "to": [
+       200,
+       230,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle_1",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        70,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        200,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        330,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "orange_star",
+       "kind": "star",
+       "color": "orange",
+       "center": [
+        460,
+        120
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        590,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "red_circle_2",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        720,
+        120
+       ],
+       "size": 96
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "ROW A",
+       "at": [
+        12,
+        8
+       ],
+       "scale": 3,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_300x900_tall": {
+   "kind": "image",
+   "file": "media/syn_300x900_tall.png",
+   "sha256": "0d4ef6328971165de28bf59769547575d8a9df02909784f28c81a21bd1c584c9",
+   "bytes": 560914,
+   "width": 300,
+   "height": 900,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "e45aba36006ff079aff14b6085f9a42d5903b5a767c7ad463824445fa059f6b2",
+    "params": {
+     "id": "syn_300x900_tall",
+     "size": [
+      300,
+      900
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       200,
+       200,
+       200
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "yellow_circle_1",
+       "kind": "circle",
+       "color": "yellow",
+       "center": [
+        150,
+        100
+       ],
+       "size": 120
+      },
+      {
+       "name": "black_square",
+       "kind": "square",
+       "color": "black",
+       "center": [
+        150,
+        270
+       ],
+       "size": 120
+      },
+      {
+       "name": "cyan_triangle",
+       "kind": "triangle",
+       "color": "cyan",
+       "center": [
+        150,
+        450
+       ],
+       "size": 120
+      },
+      {
+       "name": "yellow_circle_2",
+       "kind": "circle",
+       "color": "yellow",
+       "center": [
+        150,
+        630
+       ],
+       "size": 120
+      },
+      {
+       "name": "red_star",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        150,
+        800
+       ],
+       "size": 130
+      }
+     ]
+    }
+   }
+  },
+  "syn_1600x1200_big": {
+   "kind": "image",
+   "file": "media/syn_1600x1200_big.png",
+   "sha256": "e654365c7f53dbd293c3f99a36b6c0f23d624f091ddd48a0db710403b8bbaf6c",
+   "bytes": 65836,
+   "width": 1600,
+   "height": 1200,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "8f086a6740b515f100b4c57b63ebdc881face5b0cf90271e8a14f4d0614960ac",
+    "params": {
+     "id": "syn_1600x1200_big",
+     "size": [
+      1600,
+      1200
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "diagonal",
+      "from": [
+       255,
+       245,
+       210
+      ],
+      "to": [
+       210,
+       225,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_triangle_1",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        300,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        800,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_2",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        1300,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "orange_square_1",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        300,
+        600
+       ],
+       "size": 260
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        800,
+        600
+       ],
+       "size": 340
+      },
+      {
+       "name": "orange_square_2",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        1300,
+        600
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_3",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        300,
+        980
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        800,
+        980
+       ],
+       "size": 260
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        1300,
+        980
+       ],
+       "size": 260
+      }
+     ]
+    }
+   }
+  },
+  "syn_200x150_tiny": {
+   "kind": "image",
+   "file": "media/syn_200x150_tiny.png",
+   "sha256": "9d9a6e3244a92480028dcc3f7b339fc03a97825c8f7d1e0096b2f41167036a5c",
+   "bytes": 822,
+   "width": 200,
+   "height": 150,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "29d9805a2e400feb7628f6b4d95a407c7bfb67fe3c50ab6b53f01355b665d739",
+    "params": {
+     "id": "syn_200x150_tiny",
+     "size": [
+      200,
+      150
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       240,
+       240,
+       240
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        60,
+        75
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        160,
+        75
+       ],
+       "size": 44
+      }
+     ]
+    }
+   }
+  },
+  "syn_512_noise_empty": {
+   "kind": "image",
+   "file": "media/syn_512_noise_empty.png",
+   "sha256": "63f0654b002d20809e8c61ab542502836562d3bf5d8f9d8dccd291ae23adc7e5",
+   "bytes": 668227,
+   "width": 512,
+   "height": 512,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "7c891dc7dbed95b4c7fcfd87ef4f40bf498414eec8bac2157e80c8debe2902c6",
+    "params": {
+     "id": "syn_512_noise_empty",
+     "size": [
+      512,
+      512
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       175,
+       175,
+       175
+      ],
+      "amplitude": 40
+     },
+     "shapes": [
+      {
+       "name": "grey_square_1",
+       "kind": "square",
+       "color": "dark grey",
+       "center": [
+        140,
+        360
+       ],
+       "size": 80
+      },
+      {
+       "name": "grey_square_2",
+       "kind": "square",
+       "color": "dark grey",
+       "center": [
+        380,
+        150
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_960x540_labels": {
+   "kind": "image",
+   "file": "media/syn_960x540_labels.png",
+   "sha256": "2ab5dc1f947f62545d1906363c9c1ab0e77fabcda2df2f2f8187047e88941a52",
+   "bytes": 3943,
+   "width": 960,
+   "height": 540,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3ea825e99323f04920d9f919b6b5cfb4f9c5725a7c631647cfd8ef199b3ad928",
+    "params": {
+     "id": "syn_960x540_labels",
+     "size": [
+      960,
+      540
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       245,
+       238,
+       220
+      ]
+     },
+     "shapes": [
+      {
+       "name": "circle_a",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        170,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "square_b",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        440,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "triangle_c",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        710,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "exit_sign",
+       "kind": "sign",
+       "color": "green",
+       "center": [
+        855,
+        72
+       ],
+       "size": 0,
+       "width": 150,
+       "height": 64,
+       "text": "EXIT",
+       "scale": 4,
+       "text_color": "white"
+      }
+     ],
+     "texts": [
+      {
+       "name": "label_a",
+       "text": "A",
+       "at": [
+        155,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      },
+      {
+       "name": "label_b",
+       "text": "B",
+       "at": [
+        425,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      },
+      {
+       "name": "label_c",
+       "text": "C",
+       "at": [
+        695,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_500x375_noise": {
+   "kind": "image",
+   "file": "media/syn_500x375_noise.png",
+   "sha256": "59f65b5e68019ab778cbc1090e8fb2941eca51e3c1391f125d46f323d0183b8f",
+   "bytes": 457714,
+   "width": 500,
+   "height": 375,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "61dbc7da7ac72470494b539198d49a8deaeb01b5b0bad2bd7b6315c36017a067",
+    "params": {
+     "id": "syn_500x375_noise",
+     "size": [
+      500,
+      375
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       190,
+       190,
+       190
+      ],
+      "amplitude": 35
+     },
+     "shapes": [
+      {
+       "name": "orange_ring_1",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        80,
+        80
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_2",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        260,
+        120
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_3",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        420,
+        90
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_4",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        150,
+        290
+       ],
+       "size": 80
+      },
+      {
+       "name": "blue_star",
+       "kind": "star",
+       "color": "blue",
+       "center": [
+        380,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_count3": {
+   "kind": "image",
+   "file": "media/syn_count3.png",
+   "sha256": "ce71145fa274a10066c7d83dd24a4b33047f17e30670a9f7bb5fd2fbe26dc164",
+   "bytes": 2914,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "6ee40134bb273d69321c59083e15464490734807981c6ad1cfa42efff5ec1dc6",
+    "params": {
+     "id": "syn_count3",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       230,
+       230,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_circle_1",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        110,
+        130
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_2",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        330,
+        250
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_3",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        540,
+        120
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_count5": {
+   "kind": "image",
+   "file": "media/syn_count5.png",
+   "sha256": "7d619e12e705311e7412c02ff0bdb235134b405bec1ef959fff174181362362d",
+   "bytes": 3509,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "c3d68f2e2897c37ff5fbe3e506789f3717c4600c370afdee5e6694e15aa20d4f",
+    "params": {
+     "id": "syn_count5",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       230,
+       230,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_circle_1",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        110,
+        130
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_2",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        330,
+        250
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_3",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        540,
+        120
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_4",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        200,
+        390
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_5",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        520,
+        380
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_crowd_20": {
+   "kind": "image",
+   "file": "media/syn_crowd_20.png",
+   "sha256": "78d7f7a4f51735f3fee4aa0ce31d47759c1ffe86a45c19118b51f72ba832f7a5",
+   "bytes": 6348,
+   "width": 768,
+   "height": 768,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "fdb5864932b18d20345602aa368b8f0f042ae104b2c753e8df7b3e2791bc265f",
+    "params": {
+     "id": "syn_crowd_20",
+     "size": [
+      768,
+      768
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       250,
+       250,
+       250
+      ]
+     },
+     "shapes": [
+      {
+       "name": "blue_circle_c0r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        620
+       ],
+       "size": 60
+      }
+     ]
+    }
+   }
+  },
+  "syn_stars4": {
+   "kind": "image",
+   "file": "media/syn_stars4.png",
+   "sha256": "71c185f59435825686d1308448b359212763b3ec08961247aa76ca6b5e5a7caf",
+   "bytes": 343108,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "25e93fe4afdb20309c8184e5c54afc7502b7fbc13677ff7f8c43bbb204b56025",
+    "params": {
+     "id": "syn_stars4",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       195,
+       195,
+       195
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "purple_star_1",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_2",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_3",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        280
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_4",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_stars2": {
+   "kind": "image",
+   "file": "media/syn_stars2.png",
+   "sha256": "627e17652af0a3aa238911676440145a30629163073216496f383aec286a402d",
+   "bytes": 357539,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3b0880a83de58877a92c3f358ad7829909e5b2ee38b01856c45d64e5ce104735",
+    "params": {
+     "id": "syn_stars2",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       195,
+       195,
+       195
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "purple_star_1",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_2",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_640x640_mix": {
+   "kind": "image",
+   "file": "media/syn_640x640_mix.png",
+   "sha256": "7d869c53659c473bb886c442ce12baa4a5f410aa56057cca77f3a4d83cf0f2ca",
+   "bytes": 7022,
+   "width": 640,
+   "height": 640,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "222e2910ea8a13a77ebaaa5816675cd92239125f7a35ee1ec29f5e6d1940dfc3",
+    "params": {
+     "id": "syn_640x640_mix",
+     "size": [
+      640,
+      640
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "vertical",
+      "from": [
+       255,
+       255,
+       255
+      ],
+      "to": [
+       200,
+       210,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        90,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        250,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        410,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "purple_star",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        570,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "orange_circle",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        90,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "cyan_square",
+       "kind": "square",
+       "color": "cyan",
+       "center": [
+        250,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "brown_triangle",
+       "kind": "triangle",
+       "color": "brown",
+       "center": [
+        410,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "magenta_ring",
+       "kind": "ring",
+       "color": "magenta",
+       "center": [
+        570,
+        420
+       ],
+       "size": 110
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "Q17",
+       "at": [
+        270,
+        560
+       ],
+       "scale": 4,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_1200x1600_tall": {
+   "kind": "image",
+   "file": "media/syn_1200x1600_tall.png",
+   "sha256": "61321a338bf8ccab2a114f7c1217b6e3d5a7ba07cf0a8c706ebde2d9573a7fb2",
+   "bytes": 64600,
+   "width": 1200,
+   "height": 1600,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "df25a5daa45e38f28be53385e9d1a60c434bc9dcc1dd9b3e04960516bf1de68a",
+    "params": {
+     "id": "syn_1200x1600_tall",
+     "size": [
+      1200,
+      1600
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "diagonal",
+      "from": [
+       255,
+       245,
+       210
+      ],
+      "to": [
+       210,
+       225,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_triangle_1",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        220,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        220,
+        800
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_2",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        220,
+        1300
+       ],
+       "size": 260
+      },
+      {
+       "name": "orange_square_1",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        600,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        600,
+        800
+       ],
+       "size": 340
+      },
+      {
+       "name": "orange_square_2",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        600,
+        1300
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_3",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        980,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        980,
+        800
+       ],
+       "size": 260
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        980,
+        1300
+       ],
+       "size": 260
+      }
+     ]
+    },
+    "made_as": "the transpose of syn_1600x1200_big"
+   }
+  }
+ }
+}

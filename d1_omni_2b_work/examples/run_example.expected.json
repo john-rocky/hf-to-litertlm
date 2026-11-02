@@ -1,0 +1,184 @@
+{
+ "what": "the answers of the provider's own code (LiquidAI/d1-Omni-2B at revision 431f1d667de5afcc9b0c58b2d9c170a7b38b358b, transformers 5.19.0, torch 2.14.1) in float32 on the CPU, one request per call, to the model card's examples as examples/run_example.py sends them",
+ "tolerance": {
+  "probability": 0.0001,
+  "recording": 0.001,
+  "box_edge": 0.002,
+  "box_confidence": 0.02,
+  "other": "equal"
+ },
+ "examples": {
+  "recording": {
+   "answers": {
+    "beeps": {
+     "type": "number",
+     "number": 3.0,
+     "interval": [
+      3.0,
+      4.0
+     ],
+     "unit": null
+    },
+    "speech": {
+     "type": "noul",
+     "noul": 0.0663789929918685
+    }
+   },
+   "usage": {
+    "input_tokens": 113,
+    "output_tokens": 0
+   }
+  },
+  "ticket": {
+   "answers": {
+    "refund": {
+     "type": "noul",
+     "noul": 0.9417632734491226
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "confidence": 0.5063737398139129,
+     "probabilities": {
+      "billing": 0.5063737398139129,
+      "shipping": 0.4759893761712859,
+      "technical": 0.0176368840148013
+     }
+    },
+    "topics": {
+     "type": "choice",
+     "choices": [
+      "billing",
+      "delivery"
+     ],
+     "probabilities": {
+      "billing": 0.8685069528309224,
+      "delivery": 0.8918918918918919,
+      "login": 7.938589140938143e-06
+     }
+    }
+   },
+   "usage": {
+    "input_tokens": 154,
+    "output_tokens": 0
+   }
+  },
+  "invoice": {
+   "answers": {
+    "payee": {
+     "type": "text",
+     "text": "ACME SA",
+     "span": [
+      0,
+      7
+     ],
+     "found": 0.9903480710650168
+    },
+    "total": {
+     "type": "number",
+     "number": 1234.5,
+     "span": [
+      36,
+      48
+     ],
+     "found": 1.0,
+     "text": "1 234,50 EUR",
+     "unit": "EUR"
+    },
+    "due": {
+     "type": "date",
+     "date": "2026-04-03",
+     "span": [
+      60,
+      70
+     ],
+     "found": 1.0,
+     "text": "03/04/2026"
+    },
+    "vat": {
+     "type": "number",
+     "number": null,
+     "span": null,
+     "found": 0.0,
+     "text": null,
+     "unit": null
+    }
+   },
+   "usage": {
+    "input_tokens": 174,
+    "output_tokens": 0
+   }
+  },
+  "photo": {
+   "answers": {
+    "cats": {
+     "type": "number",
+     "number": 2.0,
+     "interval": [
+      2.0,
+      2.0
+     ],
+     "unit": null
+    },
+    "remote": {
+     "type": "box",
+     "box": {
+      "top": 0.152,
+      "bottom": 0.241,
+      "left": 0.058,
+      "right": 0.273
+     },
+     "found": 0.9989673544894162,
+     "confidence": 0.936923076923077
+    },
+    "every_cat": {
+     "type": "boxes",
+     "boxes": [
+      {
+       "box": {
+        "top": 0.114,
+        "bottom": 0.984,
+        "left": 0.016,
+        "right": 0.495
+       },
+       "found": 1.0,
+       "confidence": 0.9401709401709402
+      },
+      {
+       "box": {
+        "top": 0.053,
+        "bottom": 0.774,
+        "left": 0.531,
+        "right": 0.999
+       },
+       "found": 0.9973150608369791,
+       "confidence": 0.9401709401709402
+      }
+     ],
+     "count": 2,
+     "at_least": false,
+     "presence": [
+      1.0,
+      0.9973150608369791,
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "usage": {
+    "input_tokens": 606,
+    "output_tokens": 0
+   }
+  }
+ },
+ "refusal": {
+  "state": {
+   "type": "ValueError",
+   "contains": "is longer than the largest the decision backend takes (6144)"
+  },
+  "clip": {
+   "type": "ValueError",
+   "contains": "is longer than the largest the audio backend takes (3000 frames"
+  }
+ }
+}

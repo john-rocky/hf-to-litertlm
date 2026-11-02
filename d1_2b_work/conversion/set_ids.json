@@ -1,0 +1,74 @@
+{
+ "what": "the device question set: 24 records of every kind (the subset of the float64 check), the card's records, the six chosen red arms and their bases, the three long requests; plus one record for each canvas the set does not reach",
+ "components": {
+  "noise_subset": "24 records of every kind (the subset of the float64 check, not in this folder)",
+  "card": "set/card.json",
+  "red_arms": "conversion/red_arms_chosen.json chosen + their base_id (set/red_arms.json)",
+  "long": [
+   "own_long_15k_001",
+   "own_long_34k_001",
+   "wl_5k_state"
+  ],
+  "extra_canvas": [
+   "img_stars_rings_480x640",
+   "img_stack_300x900",
+   "img_grid_1600x1200",
+   "img_grid_1200x1600"
+  ]
+ },
+ "counts": {
+  "noise_subset": 24,
+  "card": 5,
+  "red_arms": 6,
+  "bases": 6,
+  "long": 3,
+  "records_deduplicated": 38,
+  "extra_canvas": 4
+ },
+ "records": [
+  "new_order_json_18q",
+  "img_mix_17q",
+  "new_delivery_note",
+  "new_checklist",
+  "card_coco",
+  "img_tiny_200x150",
+  "tv4s_00",
+  "tv4s_01",
+  "wl_384px",
+  "img_stars2",
+  "img_stars4",
+  "wl_one_question",
+  "tv4x_emotion_02",
+  "tv4x_emotion_06",
+  "tv4x_emotion_01",
+  "tv4x_emotion_04",
+  "tv4x_emotion_07",
+  "tv4x_emotion_14",
+  "tv4x_qnli_18",
+  "card_batch_2",
+  "tv4x_emotion_10",
+  "wl_64_states_56",
+  "card_batch_1",
+  "tv4x_emotion_00",
+  "card_ticket",
+  "card_invoice",
+  "arm_1_not_signed",
+  "arm_2_swap_card_batch",
+  "arm_3_num_card_total",
+  "arm_4_word_vegan_halal",
+  "arm_5_pic_circles_3to5",
+  "arm_6_box_circle_to_square",
+  "new_meetup_programme",
+  "img_count3",
+  "img_shapes_384",
+  "own_long_15k_001",
+  "own_long_34k_001",
+  "wl_5k_state"
+ ],
+ "extra_canvas": [
+  "img_stars_rings_480x640",
+  "img_stack_300x900",
+  "img_grid_1600x1200",
+  "img_grid_1200x1600"
+ ]
+}

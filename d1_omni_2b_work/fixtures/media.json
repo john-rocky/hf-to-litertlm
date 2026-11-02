@@ -1,0 +1,4426 @@
+{
+ "what": "The 99 pictures and clips the requests name by media id (request.media, and a spoken question's instructions {type: audio, media: id}): the file under this folder with its SHA-256 and size, its source and license. Every file is in media/ except the COCO photo, listed by URL and SHA-256 only (stored: false), and the card's recording, made by examples/run_example.py (stored: false). Clips: frames = the provider's log-mel frames, tokens = the clip's positions in the sequence.",
+ "counts": {
+  "media": 99,
+  "files": 97,
+  "file_bytes": 20201443,
+  "commons_cc0": 5,
+  "synthetic_pictures": 18,
+  "by_url": 1,
+  "kokoro_speech": 59,
+  "synthetic_sounds": 15,
+  "made_by_script": 1
+ },
+ "media": {
+  "coco_val2017_000000039769": {
+   "kind": "image",
+   "file": "media/coco_val2017_000000039769.jpg",
+   "stored": false,
+   "url": "http://images.cocodataset.org/val2017/000000039769.jpg",
+   "sha256": "dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e",
+   "bytes": 173131,
+   "width": 640,
+   "height": 480,
+   "source": "coco_val2017",
+   "license": "COCO val2017 image (Flickr); its license is the one the COCO annotations give for this image; not redistributed here: fetch it from the URL and check the SHA-256",
+   "provenance": "the d1-2B card's example picture (README.md line 182); also the d1-Omni-2B card's picture example"
+  },
+  "commons_img_dogs_01": {
+   "kind": "image",
+   "file": "media/commons_img_dogs_01.png",
+   "sha256": "dde44ce93c4f0722a4262499e91afc636667dcb5ff9f8c917010ff6b48c5c519",
+   "bytes": 138690,
+   "width": 384,
+   "height": 216,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Two_French_bulldogs_swimming_in_life_jackets.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Two_French_bulldogs_swimming_in_life_jackets.jpg, by W.carter (Wikimedia Commons user)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_cat_02": {
+   "kind": "image",
+   "file": "media/commons_img_cat_02.png",
+   "sha256": "243fe8e9ca1b666558f50cb5e55d58b385a0ad81d2ce4af7a3369562fcc62df9",
+   "bytes": 198215,
+   "width": 320,
+   "height": 384,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg, by AdinaVoicu (via Pixabay, CC0 on Commons)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_bike_03": {
+   "kind": "image",
+   "file": "media/commons_img_bike_03.png",
+   "sha256": "a99c8b7a314f01cc15e8d340906eaa7220ea62df883c2884e0f1f05ee08c03ba",
+   "bytes": 165090,
+   "width": 384,
+   "height": 256,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg, by Wilfredor (Wikimedia Commons user)), long side resized to 384 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_02": {
+   "kind": "image",
+   "file": "media/commons_img_02.png",
+   "sha256": "1864e1c215f23774abbd74860272c5f8e9ce439e75857b48b4cabaabf09195b7",
+   "bytes": 146091,
+   "width": 384,
+   "height": 288,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File%3ABed_in_hotel_room_5.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ABed_in_hotel_room_5.jpg, by Kurt Kaiser), resized to 384x288 px; `url` is the Commons page of the original, which is larger"
+  },
+  "commons_img_03": {
+   "kind": "image",
+   "file": "media/commons_img_03.png",
+   "sha256": "28080dd775920ac0b701d6640eb08e0500542946a19c84ab80e263e595224312",
+   "bytes": 566869,
+   "width": 768,
+   "height": 1024,
+   "source": "commons_cc0",
+   "url": "https://commons.wikimedia.org/wiki/File%3ARoom_at_Siamaze_Hostel.jpg",
+   "license": "CC0 1.0 (Wikimedia Commons; page and author in provenance)",
+   "provenance": "CC0 1.0 photograph from Wikimedia Commons (https://commons.wikimedia.org/wiki/File%3ARoom_at_Siamaze_Hostel.jpg, by Mx. Granger), resized to 768x1024 px; `url` is the Commons page of the original, which is larger"
+  },
+  "syn_384_plain": {
+   "kind": "image",
+   "file": "media/syn_384_plain.png",
+   "sha256": "58a75c4f5f88087e328579732dae3e9c634b493833cb5322db718c17850ac9ea",
+   "bytes": 2538,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "10c3a8cd911c78a4bbe6dba4ec441c1695075db9ae69607688e0b252729b36bd",
+    "params": {
+     "id": "syn_384_plain",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       236,
+       236,
+       236
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        96,
+        96
+       ],
+       "size": 100
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        288,
+        96
+       ],
+       "size": 100
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        96,
+        288
+       ],
+       "size": 100
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        288,
+        288
+       ],
+       "size": 110
+      }
+     ]
+    }
+   }
+  },
+  "syn_640x480_gradient": {
+   "kind": "image",
+   "file": "media/syn_640x480_gradient.png",
+   "sha256": "2ef947053b2251f644fde73a0da16d805e665cea71c7825d85f0ec0031cef2e0",
+   "bytes": 3975,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3f5a938fb2c2c3406c3b2578005bb4db6e1796f6cb1938c21f24d9dce336e789",
+    "params": {
+     "id": "syn_640x480_gradient",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "vertical",
+      "from": [
+       150,
+       200,
+       255
+      ],
+      "to": [
+       255,
+       255,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "orange_circle_1",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        130,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "orange_circle_2",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        320,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "orange_circle_3",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        510,
+        110
+       ],
+       "size": 90
+      },
+      {
+       "name": "teal_square",
+       "kind": "square",
+       "color": "teal",
+       "center": [
+        160,
+        340
+       ],
+       "size": 110
+      },
+      {
+       "name": "magenta_triangle",
+       "kind": "triangle",
+       "color": "magenta",
+       "center": [
+        470,
+        340
+       ],
+       "size": 120
+      }
+     ]
+    }
+   }
+  },
+  "syn_480x640_noise": {
+   "kind": "image",
+   "file": "media/syn_480x640_noise.png",
+   "sha256": "4f066e0e6f526dd9d770f103f6ec167201226f5281da8364d2681ba241b37f4b",
+   "bytes": 728952,
+   "width": 480,
+   "height": 640,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "e093c2fe9cd29e22a317d6f6158542a29a5a192798ab44347e693a4b5c764b91",
+    "params": {
+     "id": "syn_480x640_noise",
+     "size": [
+      480,
+      640
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       185,
+       185,
+       185
+      ],
+      "amplitude": 35
+     },
+     "shapes": [
+      {
+       "name": "red_star_1",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        120,
+        120
+       ],
+       "size": 120
+      },
+      {
+       "name": "red_star_2",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        360,
+        270
+       ],
+       "size": 120
+      },
+      {
+       "name": "blue_ring_1",
+       "kind": "ring",
+       "color": "blue",
+       "center": [
+        360,
+        110
+       ],
+       "size": 100
+      },
+      {
+       "name": "blue_ring_2",
+       "kind": "ring",
+       "color": "blue",
+       "center": [
+        120,
+        300
+       ],
+       "size": 100
+      },
+      {
+       "name": "green_square",
+       "kind": "square",
+       "color": "green",
+       "center": [
+        240,
+        450
+       ],
+       "size": 100
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "LOT 7",
+       "at": [
+        180,
+        560
+       ],
+       "scale": 4,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_1024x768_plain": {
+   "kind": "image",
+   "file": "media/syn_1024x768_plain.png",
+   "sha256": "15e737e2b713583dade657e14e0b204df625d278e1ce7fd721912fd88edd3b04",
+   "bytes": 5906,
+   "width": 1024,
+   "height": 768,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "823e9bab054c9d5881b3424147538cbde7b4659312a4a81a7fdd5ef01465bb5f",
+    "params": {
+     "id": "syn_1024x768_plain",
+     "size": [
+      1024,
+      768
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       252,
+       252,
+       252
+      ]
+     },
+     "shapes": [
+      {
+       "name": "blue_square_1",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        110,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_2",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        250,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_3",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        390,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_4",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        530,
+        150
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_5",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        180,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_6",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        320,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square_7",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        460,
+        330
+       ],
+       "size": 90
+      },
+      {
+       "name": "red_triangle_1",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        740,
+        150
+       ],
+       "size": 110
+      },
+      {
+       "name": "red_triangle_2",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        900,
+        150
+       ],
+       "size": 110
+      },
+      {
+       "name": "red_triangle_3",
+       "kind": "triangle",
+       "color": "red",
+       "center": [
+        820,
+        330
+       ],
+       "size": 110
+      },
+      {
+       "name": "green_ring",
+       "kind": "ring",
+       "color": "green",
+       "center": [
+        820,
+        590
+       ],
+       "size": 140
+      }
+     ]
+    }
+   }
+  },
+  "syn_800x200_wide": {
+   "kind": "image",
+   "file": "media/syn_800x200_wide.png",
+   "sha256": "e11be686989c05bb2a2eb14f37d29b538e77a6651c365729a0daa205f92af473",
+   "bytes": 4165,
+   "width": 800,
+   "height": 200,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "bb12b142663fe8bc14109d8517d3aa329f97024cf6751319691a2c503a2c3188",
+    "params": {
+     "id": "syn_800x200_wide",
+     "size": [
+      800,
+      200
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "horizontal",
+      "from": [
+       255,
+       230,
+       200
+      ],
+      "to": [
+       200,
+       230,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle_1",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        70,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        200,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        330,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "orange_star",
+       "kind": "star",
+       "color": "orange",
+       "center": [
+        460,
+        120
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        590,
+        120
+       ],
+       "size": 96
+      },
+      {
+       "name": "red_circle_2",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        720,
+        120
+       ],
+       "size": 96
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "ROW A",
+       "at": [
+        12,
+        8
+       ],
+       "scale": 3,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_300x900_tall": {
+   "kind": "image",
+   "file": "media/syn_300x900_tall.png",
+   "sha256": "0d4ef6328971165de28bf59769547575d8a9df02909784f28c81a21bd1c584c9",
+   "bytes": 560914,
+   "width": 300,
+   "height": 900,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "e45aba36006ff079aff14b6085f9a42d5903b5a767c7ad463824445fa059f6b2",
+    "params": {
+     "id": "syn_300x900_tall",
+     "size": [
+      300,
+      900
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       200,
+       200,
+       200
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "yellow_circle_1",
+       "kind": "circle",
+       "color": "yellow",
+       "center": [
+        150,
+        100
+       ],
+       "size": 120
+      },
+      {
+       "name": "black_square",
+       "kind": "square",
+       "color": "black",
+       "center": [
+        150,
+        270
+       ],
+       "size": 120
+      },
+      {
+       "name": "cyan_triangle",
+       "kind": "triangle",
+       "color": "cyan",
+       "center": [
+        150,
+        450
+       ],
+       "size": 120
+      },
+      {
+       "name": "yellow_circle_2",
+       "kind": "circle",
+       "color": "yellow",
+       "center": [
+        150,
+        630
+       ],
+       "size": 120
+      },
+      {
+       "name": "red_star",
+       "kind": "star",
+       "color": "red",
+       "center": [
+        150,
+        800
+       ],
+       "size": 130
+      }
+     ]
+    }
+   }
+  },
+  "syn_1600x1200_big": {
+   "kind": "image",
+   "file": "media/syn_1600x1200_big.png",
+   "sha256": "e654365c7f53dbd293c3f99a36b6c0f23d624f091ddd48a0db710403b8bbaf6c",
+   "bytes": 65836,
+   "width": 1600,
+   "height": 1200,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "8f086a6740b515f100b4c57b63ebdc881face5b0cf90271e8a14f4d0614960ac",
+    "params": {
+     "id": "syn_1600x1200_big",
+     "size": [
+      1600,
+      1200
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "diagonal",
+      "from": [
+       255,
+       245,
+       210
+      ],
+      "to": [
+       210,
+       225,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_triangle_1",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        300,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        800,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_2",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        1300,
+        220
+       ],
+       "size": 260
+      },
+      {
+       "name": "orange_square_1",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        300,
+        600
+       ],
+       "size": 260
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        800,
+        600
+       ],
+       "size": 340
+      },
+      {
+       "name": "orange_square_2",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        1300,
+        600
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_3",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        300,
+        980
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        800,
+        980
+       ],
+       "size": 260
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        1300,
+        980
+       ],
+       "size": 260
+      }
+     ]
+    }
+   }
+  },
+  "syn_200x150_tiny": {
+   "kind": "image",
+   "file": "media/syn_200x150_tiny.png",
+   "sha256": "9d9a6e3244a92480028dcc3f7b339fc03a97825c8f7d1e0096b2f41167036a5c",
+   "bytes": 822,
+   "width": 200,
+   "height": 150,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "29d9805a2e400feb7628f6b4d95a407c7bfb67fe3c50ab6b53f01355b665d739",
+    "params": {
+     "id": "syn_200x150_tiny",
+     "size": [
+      200,
+      150
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       240,
+       240,
+       240
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        60,
+        75
+       ],
+       "size": 90
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        160,
+        75
+       ],
+       "size": 44
+      }
+     ]
+    }
+   }
+  },
+  "syn_512_noise_empty": {
+   "kind": "image",
+   "file": "media/syn_512_noise_empty.png",
+   "sha256": "63f0654b002d20809e8c61ab542502836562d3bf5d8f9d8dccd291ae23adc7e5",
+   "bytes": 668227,
+   "width": 512,
+   "height": 512,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "7c891dc7dbed95b4c7fcfd87ef4f40bf498414eec8bac2157e80c8debe2902c6",
+    "params": {
+     "id": "syn_512_noise_empty",
+     "size": [
+      512,
+      512
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       175,
+       175,
+       175
+      ],
+      "amplitude": 40
+     },
+     "shapes": [
+      {
+       "name": "grey_square_1",
+       "kind": "square",
+       "color": "dark grey",
+       "center": [
+        140,
+        360
+       ],
+       "size": 80
+      },
+      {
+       "name": "grey_square_2",
+       "kind": "square",
+       "color": "dark grey",
+       "center": [
+        380,
+        150
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_960x540_labels": {
+   "kind": "image",
+   "file": "media/syn_960x540_labels.png",
+   "sha256": "2ab5dc1f947f62545d1906363c9c1ab0e77fabcda2df2f2f8187047e88941a52",
+   "bytes": 3943,
+   "width": 960,
+   "height": 540,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3ea825e99323f04920d9f919b6b5cfb4f9c5725a7c631647cfd8ef199b3ad928",
+    "params": {
+     "id": "syn_960x540_labels",
+     "size": [
+      960,
+      540
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       245,
+       238,
+       220
+      ]
+     },
+     "shapes": [
+      {
+       "name": "circle_a",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        170,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "square_b",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        440,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "triangle_c",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        710,
+        270
+       ],
+       "size": 130
+      },
+      {
+       "name": "exit_sign",
+       "kind": "sign",
+       "color": "green",
+       "center": [
+        855,
+        72
+       ],
+       "size": 0,
+       "width": 150,
+       "height": 64,
+       "text": "EXIT",
+       "scale": 4,
+       "text_color": "white"
+      }
+     ],
+     "texts": [
+      {
+       "name": "label_a",
+       "text": "A",
+       "at": [
+        155,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      },
+      {
+       "name": "label_b",
+       "text": "B",
+       "at": [
+        425,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      },
+      {
+       "name": "label_c",
+       "text": "C",
+       "at": [
+        695,
+        352
+       ],
+       "scale": 5,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_500x375_noise": {
+   "kind": "image",
+   "file": "media/syn_500x375_noise.png",
+   "sha256": "59f65b5e68019ab778cbc1090e8fb2941eca51e3c1391f125d46f323d0183b8f",
+   "bytes": 457714,
+   "width": 500,
+   "height": 375,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "61dbc7da7ac72470494b539198d49a8deaeb01b5b0bad2bd7b6315c36017a067",
+    "params": {
+     "id": "syn_500x375_noise",
+     "size": [
+      500,
+      375
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       190,
+       190,
+       190
+      ],
+      "amplitude": 35
+     },
+     "shapes": [
+      {
+       "name": "orange_ring_1",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        80,
+        80
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_2",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        260,
+        120
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_3",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        420,
+        90
+       ],
+       "size": 80
+      },
+      {
+       "name": "orange_ring_4",
+       "kind": "ring",
+       "color": "orange",
+       "center": [
+        150,
+        290
+       ],
+       "size": 80
+      },
+      {
+       "name": "blue_star",
+       "kind": "star",
+       "color": "blue",
+       "center": [
+        380,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_count3": {
+   "kind": "image",
+   "file": "media/syn_count3.png",
+   "sha256": "ce71145fa274a10066c7d83dd24a4b33047f17e30670a9f7bb5fd2fbe26dc164",
+   "bytes": 2914,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "6ee40134bb273d69321c59083e15464490734807981c6ad1cfa42efff5ec1dc6",
+    "params": {
+     "id": "syn_count3",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       230,
+       230,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_circle_1",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        110,
+        130
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_2",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        330,
+        250
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_3",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        540,
+        120
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_count5": {
+   "kind": "image",
+   "file": "media/syn_count5.png",
+   "sha256": "7d619e12e705311e7412c02ff0bdb235134b405bec1ef959fff174181362362d",
+   "bytes": 3509,
+   "width": 640,
+   "height": 480,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "c3d68f2e2897c37ff5fbe3e506789f3717c4600c370afdee5e6694e15aa20d4f",
+    "params": {
+     "id": "syn_count5",
+     "size": [
+      640,
+      480
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       230,
+       230,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_circle_1",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        110,
+        130
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_2",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        330,
+        250
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_3",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        540,
+        120
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_4",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        200,
+        390
+       ],
+       "size": 80
+      },
+      {
+       "name": "green_circle_5",
+       "kind": "circle",
+       "color": "green",
+       "center": [
+        520,
+        380
+       ],
+       "size": 80
+      }
+     ]
+    }
+   }
+  },
+  "syn_crowd_20": {
+   "kind": "image",
+   "file": "media/syn_crowd_20.png",
+   "sha256": "78d7f7a4f51735f3fee4aa0ce31d47759c1ffe86a45c19118b51f72ba832f7a5",
+   "bytes": 6348,
+   "width": 768,
+   "height": 768,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "fdb5864932b18d20345602aa368b8f0f042ae104b2c753e8df7b3e2791bc265f",
+    "params": {
+     "id": "syn_crowd_20",
+     "size": [
+      768,
+      768
+     ],
+     "background": {
+      "kind": "plain",
+      "color": [
+       250,
+       250,
+       250
+      ]
+     },
+     "shapes": [
+      {
+       "name": "blue_circle_c0r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c0r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        120,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c1r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        250,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c2r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        380,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c3r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        510,
+        620
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r0",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        140
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        300
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        460
+       ],
+       "size": 60
+      },
+      {
+       "name": "blue_circle_c4r3",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        640,
+        620
+       ],
+       "size": 60
+      }
+     ]
+    }
+   }
+  },
+  "syn_stars4": {
+   "kind": "image",
+   "file": "media/syn_stars4.png",
+   "sha256": "71c185f59435825686d1308448b359212763b3ec08961247aa76ca6b5e5a7caf",
+   "bytes": 343108,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "25e93fe4afdb20309c8184e5c54afc7502b7fbc13677ff7f8c43bbb204b56025",
+    "params": {
+     "id": "syn_stars4",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       195,
+       195,
+       195
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "purple_star_1",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_2",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_3",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        280
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_4",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_stars2": {
+   "kind": "image",
+   "file": "media/syn_stars2.png",
+   "sha256": "627e17652af0a3aa238911676440145a30629163073216496f383aec286a402d",
+   "bytes": 357539,
+   "width": 384,
+   "height": 384,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "3b0880a83de58877a92c3f358ad7829909e5b2ee38b01856c45d64e5ce104735",
+    "params": {
+     "id": "syn_stars2",
+     "size": [
+      384,
+      384
+     ],
+     "background": {
+      "kind": "noise",
+      "color": [
+       195,
+       195,
+       195
+      ],
+      "amplitude": 30
+     },
+     "shapes": [
+      {
+       "name": "purple_star_1",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        100,
+        100
+       ],
+       "size": 100
+      },
+      {
+       "name": "purple_star_2",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        280,
+        280
+       ],
+       "size": 100
+      }
+     ]
+    }
+   }
+  },
+  "syn_640x640_mix": {
+   "kind": "image",
+   "file": "media/syn_640x640_mix.png",
+   "sha256": "7d869c53659c473bb886c442ce12baa4a5f410aa56057cca77f3a4d83cf0f2ca",
+   "bytes": 7022,
+   "width": 640,
+   "height": 640,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "222e2910ea8a13a77ebaaa5816675cd92239125f7a35ee1ec29f5e6d1940dfc3",
+    "params": {
+     "id": "syn_640x640_mix",
+     "size": [
+      640,
+      640
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "vertical",
+      "from": [
+       255,
+       255,
+       255
+      ],
+      "to": [
+       200,
+       210,
+       230
+      ]
+     },
+     "shapes": [
+      {
+       "name": "red_circle",
+       "kind": "circle",
+       "color": "red",
+       "center": [
+        90,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "blue_square",
+       "kind": "square",
+       "color": "blue",
+       "center": [
+        250,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "green_triangle",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        410,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "purple_star",
+       "kind": "star",
+       "color": "purple",
+       "center": [
+        570,
+        170
+       ],
+       "size": 110
+      },
+      {
+       "name": "orange_circle",
+       "kind": "circle",
+       "color": "orange",
+       "center": [
+        90,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "cyan_square",
+       "kind": "square",
+       "color": "cyan",
+       "center": [
+        250,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "brown_triangle",
+       "kind": "triangle",
+       "color": "brown",
+       "center": [
+        410,
+        420
+       ],
+       "size": 110
+      },
+      {
+       "name": "magenta_ring",
+       "kind": "ring",
+       "color": "magenta",
+       "center": [
+        570,
+        420
+       ],
+       "size": 110
+      }
+     ],
+     "texts": [
+      {
+       "name": "label",
+       "text": "Q17",
+       "at": [
+        270,
+        560
+       ],
+       "scale": 4,
+       "color": "black"
+      }
+     ]
+    }
+   }
+  },
+  "syn_1200x1600_tall": {
+   "kind": "image",
+   "file": "media/syn_1200x1600_tall.png",
+   "sha256": "61321a338bf8ccab2a114f7c1217b6e3d5a7ba07cf0a8c706ebde2d9573a7fb2",
+   "bytes": 64600,
+   "width": 1200,
+   "height": 1600,
+   "source": "synthetic",
+   "license": "drawn for this set (no third-party content; text in Pillow's built-in bitmap font)",
+   "provenance": "synthetic shapes at known positions; gold boxes = each shape's own drawn pixels",
+   "generator": {
+    "pillow": "13.0.0",
+    "png": "Pillow PNG, compress_level 6, no metadata chunks",
+    "pixels_sha256": "df25a5daa45e38f28be53385e9d1a60c434bc9dcc1dd9b3e04960516bf1de68a",
+    "params": {
+     "id": "syn_1200x1600_tall",
+     "size": [
+      1200,
+      1600
+     ],
+     "background": {
+      "kind": "gradient",
+      "direction": "diagonal",
+      "from": [
+       255,
+       245,
+       210
+      ],
+      "to": [
+       210,
+       225,
+       255
+      ]
+     },
+     "shapes": [
+      {
+       "name": "green_triangle_1",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        220,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_1",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        220,
+        800
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_2",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        220,
+        1300
+       ],
+       "size": 260
+      },
+      {
+       "name": "orange_square_1",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        600,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "yellow_star",
+       "kind": "star",
+       "color": "yellow",
+       "center": [
+        600,
+        800
+       ],
+       "size": 340
+      },
+      {
+       "name": "orange_square_2",
+       "kind": "square",
+       "color": "orange",
+       "center": [
+        600,
+        1300
+       ],
+       "size": 260
+      },
+      {
+       "name": "green_triangle_3",
+       "kind": "triangle",
+       "color": "green",
+       "center": [
+        980,
+        300
+       ],
+       "size": 260
+      },
+      {
+       "name": "blue_circle_2",
+       "kind": "circle",
+       "color": "blue",
+       "center": [
+        980,
+        800
+       ],
+       "size": 260
+      },
+      {
+       "name": "purple_ring",
+       "kind": "ring",
+       "color": "purple",
+       "center": [
+        980,
+        1300
+       ],
+       "size": 260
+      }
+     ]
+    },
+    "made_as": "the transpose of syn_1600x1200_big"
+   }
+  },
+  "card_beeps_4s": {
+   "kind": "audio",
+   "file": "media/card_beeps_4s.npy",
+   "stored": false,
+   "made_by": "examples/run_example.py, recording(): the card's own code (noise of std 0.003 from np.random.default_rng(0), plus 0.3 * sin(2 pi 880 t) for 3,200 samples at 0.5, 1.5 and 2.5 s), saved with np.save as float32",
+   "format": "float32 .npy (np.save), mono",
+   "sha256": "bcdd1d19edd8a4737a78922bc11f74e7702e284751a71439de88af11d943b3c2",
+   "bytes": 256128,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 64000,
+   "seconds": 4.0,
+   "frames": 399,
+   "tokens": 50,
+   "source": "card",
+   "license": "the d1-Omni-2B model card's quick-start example (LFM Open License v1.0)",
+   "provenance": "LiquidAI/d1-Omni-2B@431f1d667de5afcc9b0c58b2d9c170a7b38b358b README.md lines 140-151 (quick start: card prints 3.0 False)"
+  },
+  "sp_cmd_lights": {
+   "kind": "audio",
+   "file": "media/sp_cmd_lights.wav",
+   "sha256": "a28abc7a0fe592d0e2818410c0db4de4c250ec6eaabdd9b70e4580149cb02686",
+   "bytes": 85644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 42800,
+   "seconds": 2.675,
+   "frames": 266,
+   "tokens": 34,
+   "source": "kokoro",
+   "text": "Turn off the kitchen lights, please.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Turn off the kitchen lights, please."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voice command; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_cmd_timer": {
+   "kind": "audio",
+   "file": "media/sp_cmd_timer.wav",
+   "sha256": "a84a178ee774a0609d5fffac4d5f4cda60ad980173cb2b11754335b6d2e43776",
+   "bytes": 72044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 36000,
+   "seconds": 2.25,
+   "frames": 224,
+   "tokens": 28,
+   "source": "kokoro",
+   "text": "Set a timer for twelve minutes.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Set a timer for twelve minutes."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voice command; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_cmd_weather": {
+   "kind": "audio",
+   "file": "media/sp_cmd_weather.wav",
+   "sha256": "27472139c0a465e9d82bbca9d03c3e2d9b73c746b4914b2b68b1809ab09c80b7",
+   "bytes": 124844,
+   "sample_rate": 24000,
+   "channels": 1,
+   "samples": 62400,
+   "seconds": 2.6,
+   "frames": 259,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "Will it rain in Lisbon tomorrow?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Will it rain in Lisbon tomorrow?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "none (Kokoro's 24 kHz samples)"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voice command; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_cmd_call": {
+   "kind": "audio",
+   "file": "media/sp_cmd_call.wav",
+   "sha256": "a00f8fd8061184d1a3968e51f5c79d04f2cd17cfed910f4baeb4808b05aecb1a",
+   "bytes": 107244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 53600,
+   "seconds": 3.35,
+   "frames": 334,
+   "tokens": 42,
+   "source": "kokoro",
+   "text": "Call my sister on her mobile, please.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Call my sister on her mobile, please."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voice command; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_cmd_music": {
+   "kind": "audio",
+   "file": "media/sp_cmd_music.wav",
+   "sha256": "362fbbd4fa02ddc9773909d0f7261661b4a3dc69a1fda148ac084dbe1ca8bd62",
+   "bytes": 94444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 47200,
+   "seconds": 2.95,
+   "frames": 294,
+   "tokens": 37,
+   "source": "kokoro",
+   "text": "Play some quiet jazz in the living room.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "Play some quiet jazz in the living room."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voice command; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_refund_call": {
+   "kind": "audio",
+   "file": "media/sp_refund_call.wav",
+   "sha256": "f17e5512adfba87200dbeca89b1695d6af9194f43345b3ef6ce612e1f6e55e9d",
+   "bytes": 244044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 122000,
+   "seconds": 7.625,
+   "frames": 761,
+   "tokens": 96,
+   "source": "kokoro",
+   "text": "Hi, I bought a kettle from your shop last week and it stopped working after two days. I'd like my money back, please.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Hi, I bought a kettle from your shop last week and it stopped working after two days. I'd like my money back, please."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "customer call: refund; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_delivery_call": {
+   "kind": "audio",
+   "file": "media/sp_delivery_call.wav",
+   "sha256": "535bd8f95ec2c9e969d28fd6b8e0125a74f6fd5fbd3a1c8ec79e05ed97dcf054",
+   "bytes": 207244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 103600,
+   "seconds": 6.475,
+   "frames": 646,
+   "tokens": 81,
+   "source": "kokoro",
+   "text": "Hello, my parcel was supposed to arrive on Monday and it still hasn't come. Can you tell me where it is?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "Hello, my parcel was supposed to arrive on Monday and it still hasn't come. Can you tell me where it is?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "customer call: where is my parcel; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_pizza": {
+   "kind": "audio",
+   "file": "media/sp_pizza.wav",
+   "sha256": "72170849b6ec797324134610358a68e103f45f4a67c4289a07bc4ac5ed9bd5e8",
+   "bytes": 238444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 119200,
+   "seconds": 7.45,
+   "frames": 744,
+   "tokens": 93,
+   "source": "kokoro",
+   "text": "Hi, I'd like to order three large pizzas and two bottles of water for delivery to my flat, please.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Hi, I'd like to order three large pizzas and two bottles of water for delivery to my flat, please."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "phone order with quantities; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_booking": {
+   "kind": "audio",
+   "file": "media/sp_booking.wav",
+   "sha256": "673472a75d2eab54ee33cbaa5bb1de7fff942781e2aeb42e466d885fb6b09b69",
+   "bytes": 267644,
+   "sample_rate": 24000,
+   "channels": 1,
+   "samples": 133800,
+   "seconds": 5.575,
+   "frames": 556,
+   "tokens": 70,
+   "source": "kokoro",
+   "text": "Hello, I'd like to book a table for four people this Friday at half past seven in the evening.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Hello, I'd like to book a table for four people this Friday at half past seven in the evening."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "none (Kokoro's 24 kHz samples)"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "restaurant booking; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_meeting": {
+   "kind": "audio",
+   "file": "media/sp_meeting.wav",
+   "sha256": "0898435269d69d5bbf8dd1c808d9996e068a92fbab3a2c1f49a6d57b1afcab6c",
+   "bytes": 249644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 124800,
+   "seconds": 7.8,
+   "frames": 779,
+   "tokens": 98,
+   "source": "kokoro",
+   "text": "Quick reminder: the budget meeting has moved to Thursday at ten, in room four. Please bring the quarterly figures.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Quick reminder: the budget meeting has moved to Thursday at ten, in room four. Please bring the quarterly figures."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "meeting reminder; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_lang_es": {
+   "kind": "audio",
+   "file": "media/sp_lang_es.wav",
+   "sha256": "c4242d604943eb471c10c503433426d15d04e7acb5941f8fb91c4039f1bd5a56",
+   "bytes": 173644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 86800,
+   "seconds": 5.425,
+   "frames": 541,
+   "tokens": 68,
+   "source": "kokoro",
+   "text": "Hola, quisiera reservar una habitación doble para dos noches a partir del viernes, por favor.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "ef_dora",
+      "lang_code": "e",
+      "text": "Hola, quisiera reservar una habitación doble para dos noches a partir del viernes, por favor."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "Spanish: hotel booking; voice ef_dora (es); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_lang_fr": {
+   "kind": "audio",
+   "file": "media/sp_lang_fr.wav",
+   "sha256": "d6ef0398a32a6d4dcf8f4179b1fac983ff7e063ad30f95c6caafd99a0877a9ef",
+   "bytes": 182444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 91200,
+   "seconds": 5.7,
+   "frames": 569,
+   "tokens": 72,
+   "source": "kokoro",
+   "text": "Bonjour, mon colis n'est toujours pas arrivé et j'aimerais savoir où il se trouve, s'il vous plaît.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "ff_siwis",
+      "lang_code": "f",
+      "text": "Bonjour, mon colis n'est toujours pas arrivé et j'aimerais savoir où il se trouve, s'il vous plaît."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "French: where is my parcel; voice ff_siwis (fr); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_lang_it": {
+   "kind": "audio",
+   "file": "media/sp_lang_it.wav",
+   "sha256": "4668e48e9465871af04d4ec82f12440e51fd8eaff91b872a46ac1a0c9a9d9a7b",
+   "bytes": 192044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 96000,
+   "seconds": 6.0,
+   "frames": 599,
+   "tokens": 75,
+   "source": "kokoro",
+   "text": "Buongiorno, vorrei annullare il mio abbonamento e ricevere un rimborso per questo mese, grazie.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "if_sara",
+      "lang_code": "i",
+      "text": "Buongiorno, vorrei annullare il mio abbonamento e ricevere un rimborso per questo mese, grazie."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "Italian: cancel a subscription and refund; voice if_sara (it); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_emergency": {
+   "kind": "audio",
+   "file": "media/sp_emergency.wav",
+   "sha256": "180f3c9d8ab84f14368e5ab68be7d296a682952f406f9e6794b365042fbef0e5",
+   "bytes": 191244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 95600,
+   "seconds": 5.975,
+   "frames": 596,
+   "tokens": 75,
+   "source": "kokoro",
+   "text": "Help, there's a fire in the flat next door and smoke is coming under my door. We're on the third floor!",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Help, there's a fire in the flat next door and smoke is coming under my door. We're on the third floor!"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "emergency call; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_voicemail": {
+   "kind": "audio",
+   "file": "media/sp_voicemail.wav",
+   "sha256": "005d4fb5f9d2e7b07f87c0620f1dcbb27f0fe21ad389b3bb705d8274d15423d0",
+   "bytes": 269644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 134800,
+   "seconds": 8.425,
+   "frames": 841,
+   "tokens": 106,
+   "source": "kokoro",
+   "text": "Hi, this is Maple Dental, confirming your check-up on Tuesday at nine in the morning. Call us only if you need to change it.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Hi, this is Maple Dental, confirming your check-up on Tuesday at nine in the morning. Call us only if you need to change it."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "voicemail: appointment confirmation; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_wl_10s": {
+   "kind": "audio",
+   "file": "media/sp_wl_10s.wav",
+   "sha256": "0c12878c911e0663aa65402ba88e3c9473c54af9a586ac6593673f47f65fb27c",
+   "bytes": 320044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 160000,
+   "seconds": 10.0,
+   "frames": 999,
+   "tokens": 125,
+   "source": "kokoro",
+   "text": "Hello, this is a message for the facilities team. The heating in meeting room two has stopped working, and it is very cold in here.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Hello, this is a message for the facilities team. The heating in meeting room two has stopped working, and it is very cold in here."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": 160000,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "speed workload: exactly 10.0 s (160,000 samples at 16 kHz), silence after the speech; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_pic_desc": {
+   "kind": "audio",
+   "file": "media/sp_pic_desc.wav",
+   "sha256": "ba5731c36523f2516831bf301c0e42212f389db273ec602e97bf0b496e4bc40e",
+   "bytes": 177644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 88800,
+   "seconds": 5.55,
+   "frames": 554,
+   "tokens": 70,
+   "source": "kokoro",
+   "text": "There are two cats asleep on a pink blanket, and two remote controls lie next to them.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "There are two cats asleep on a pink blanket, and two remote controls lie next to them."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken description of the card's COCO photo; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_dialog_return": {
+   "kind": "audio",
+   "file": "media/sp_dialog_return.wav",
+   "sha256": "2f9d770b0cd484529c41df2a2265760f24309f75d97cf5eb0bd2d86af7e48967",
+   "bytes": 580844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 290400,
+   "seconds": 18.15,
+   "frames": 1814,
+   "tokens": 227,
+   "source": "kokoro",
+   "text": "af_sarah: Hi, I ordered a blue jacket in medium, but you sent me a red one in large.\nam_michael: Sorry about that. Would you like a replacement or a refund?\naf_sarah: A replacement, please. I still want the blue one.\nam_michael: Of course. The right jacket goes out today.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Hi, I ordered a blue jacket in medium, but you sent me a red one in large."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Sorry about that. Would you like a replacement or a refund?"
+     },
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "A replacement, please. I still want the blue one."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Of course. The right jacket goes out today."
+     }
+    ],
+    "gap_s": 0.35,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "dialogue: wrong item, customer and agent; voices af_sarah, am_michael (en-US, en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_dialog_taxi": {
+   "kind": "audio",
+   "file": "media/sp_dialog_taxi.wav",
+   "sha256": "c6b337ec0294c86c461b460eeda201306fba31288bc962dc451db7482f5cab94",
+   "bytes": 496044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 248000,
+   "seconds": 15.5,
+   "frames": 1549,
+   "tokens": 194,
+   "source": "kokoro",
+   "text": "bm_george: City Cabs, how can I help?\nbf_emma: I need a taxi to the airport tomorrow at six in the morning, for three people with two suitcases.\nbm_george: Certainly. What's the pick-up address?\nbf_emma: Forty-two Elm Road. Thank you.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "City Cabs, how can I help?"
+     },
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "I need a taxi to the airport tomorrow at six in the morning, for three people with two suitcases."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Certainly. What's the pick-up address?"
+     },
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Forty-two Elm Road. Thank you."
+     }
+    ],
+    "gap_s": 0.35,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "dialogue: taxi booking with quantities; voices bm_george, bf_emma (en-GB, en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_support_wifi": {
+   "kind": "audio",
+   "file": "media/sp_support_wifi.wav",
+   "sha256": "995ff366a04054e020c15106b8078cbe6cd1e19444670d212e3d82b089bfa842",
+   "bytes": 691244,
+   "sample_rate": 24000,
+   "channels": 1,
+   "samples": 345600,
+   "seconds": 14.4,
+   "frames": 1439,
+   "tokens": 180,
+   "source": "kokoro",
+   "text": "Hello, my internet keeps dropping every evening around eight. I've already restarted the router three times today, and the light on it keeps blinking orange. I work from home, so I really need this fixed before Monday.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "Hello, my internet keeps dropping every evening around eight."
+     },
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "I've already restarted the router three times today, and the light on it keeps blinking orange."
+     },
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "I work from home, so I really need this fixed before Monday."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "none (Kokoro's 24 kHz samples)"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "customer call: internet fault; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_dialog_doctor": {
+   "kind": "audio",
+   "file": "media/sp_dialog_doctor.wav",
+   "sha256": "3eed156db010905d7942bdfc978a0683e3b27e711ea92d7a82ed67bcc66a6473",
+   "bytes": 536844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 268400,
+   "seconds": 16.775,
+   "frames": 1676,
+   "tokens": 210,
+   "source": "kokoro",
+   "text": "am_michael: Good morning, Riverside Surgery.\naf_heart: Hi, my son has had a high temperature since last night. Can he see a doctor today?\nam_michael: We have one appointment left, at eleven forty. Can you make that?\naf_heart: Yes, we'll be there. Thank you so much.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Good morning, Riverside Surgery."
+     },
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Hi, my son has had a high temperature since last night. Can he see a doctor today?"
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "We have one appointment left, at eleven forty. Can you make that?"
+     },
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Yes, we'll be there. Thank you so much."
+     }
+    ],
+    "gap_s": 0.35,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "dialogue: doctor's appointment; voices am_michael, af_heart (en-US, en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_supply_order": {
+   "kind": "audio",
+   "file": "media/sp_supply_order.wav",
+   "sha256": "8911d3075b1991e3a0c31493ceefe7ad845da38bf3d24dc001a47f4c65b32f98",
+   "bytes": 443244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 221600,
+   "seconds": 13.85,
+   "frames": 1384,
+   "tokens": 173,
+   "source": "kokoro",
+   "text": "Hi, this is Dana from the second floor office. We need fourteen boxes of printer paper, six toner cartridges and two new staplers. Could they arrive by Wednesday afternoon, please?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Hi, this is Dana from the second floor office."
+     },
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "We need fourteen boxes of printer paper, six toner cartridges and two new staplers."
+     },
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Could they arrive by Wednesday afternoon, please?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "office supply order with quantities; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_dialog_insurance": {
+   "kind": "audio",
+   "file": "media/sp_dialog_insurance.wav",
+   "sha256": "0cd5449e3c866d193bc7bf3871c14a7e02c769557546cfdd0febbdf0d02e52e4",
+   "bytes": 876044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 438000,
+   "seconds": 27.375,
+   "frames": 2736,
+   "tokens": 342,
+   "source": "kokoro",
+   "text": "bm_george: Northgate Insurance, claims. How can I help?\naf_sarah: Someone drove into the back of my car at a red light this morning. Nobody was hurt, but the bumper is badly dented.\nbm_george: I'm sorry to hear that. Did you get the other driver's details?\naf_sarah: Yes, I have their name and plate number, and I took photos of both cars.\nbm_george: Perfect. I'll open a claim now and text you a reference number.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Northgate Insurance, claims. How can I help?"
+     },
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Someone drove into the back of my car at a red light this morning. Nobody was hurt, but the bumper is badly dented."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "I'm sorry to hear that. Did you get the other driver's details?"
+     },
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Yes, I have their name and plate number, and I took photos of both cars."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Perfect. I'll open a claim now and text you a reference number."
+     }
+    ],
+    "gap_s": 0.35,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "dialogue: car insurance claim; voices bm_george, af_sarah (en-GB, en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_standup": {
+   "kind": "audio",
+   "file": "media/sp_standup.wav",
+   "sha256": "ca99aeaedf7d4a60e9d1791e2f5d981851c471b6f8ffbdfe9e0d2ba5c5acee54",
+   "bytes": 828044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 414000,
+   "seconds": 25.875,
+   "frames": 2586,
+   "tokens": 324,
+   "source": "kokoro",
+   "text": "Morning, everyone. Here's a quick update from the mobile team. We closed nine bugs yesterday, and twelve are still open. The release is planned for next Tuesday, but the payment screen still crashes on older phones. Priya is fixing that today. Please send me your test results by four o'clock, and remember that Friday's demo starts at two.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Morning, everyone. Here's a quick update from the mobile team."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "We closed nine bugs yesterday, and twelve are still open."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "The release is planned for next Tuesday, but the payment screen still crashes on older phones."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Priya is fixing that today."
+     },
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Please send me your test results by four o'clock, and remember that Friday's demo starts at two."
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "team stand-up with numbers; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "sp_long_notice": {
+   "kind": "audio",
+   "file": "media/sp_long_notice.wav",
+   "sha256": "9b60702967cf477790fdf565c1e933feebbc389cee6e3b609ab27891b485c56c",
+   "bytes": 1188044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 594000,
+   "seconds": 37.125,
+   "frames": 3711,
+   "tokens": 464,
+   "source": "kokoro",
+   "text": "Good evening, residents. This is a message from the building manager about the work planned for next week. On Monday and Tuesday, the water will be switched off between nine in the morning and one in the afternoon, while the old pipes are replaced. On Wednesday, the lifts will be serviced, so please use the stairs. Bins will be collected on Thursday instead of Friday. Visitor parking will be closed all week. If you have any questions, please call the office or leave a note in the lobby. Thank you for your patience.",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Good evening, residents. This is a message from the building manager about the work planned for next week."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "On Monday and Tuesday, the water will be switched off between nine in the morning and one in the afternoon, while the old pipes are replaced."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "On Wednesday, the lifts will be serviced, so please use the stairs."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Bins will be collected on Thursday instead of Friday."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Visitor parking will be closed all week."
+     },
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "If you have any questions, please call the office or leave a note in the lobby. Thank you for your patience."
+     }
+    ],
+    "gap_s": 0.25,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "building notice over 30 s; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_refund": {
+   "kind": "audio",
+   "file": "media/q_refund.wav",
+   "sha256": "7d0bb96ec7885d533b711ea985852bfe590c6df1be0b033166251d046cd3f839",
+   "bytes": 84844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 42400,
+   "seconds": 2.65,
+   "frames": 264,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "Is the customer asking for a refund?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Is the customer asking for a refund?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_refund_discount": {
+   "kind": "audio",
+   "file": "media/q_refund_discount.wav",
+   "sha256": "9e59a604ef9ad2ef7a212ac08e64e9b2f062840847a754a03258c911f7b79059",
+   "bytes": 85644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 42800,
+   "seconds": 2.675,
+   "frames": 266,
+   "tokens": 34,
+   "source": "kokoro",
+   "text": "Is the customer asking for a discount?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Is the customer asking for a discount?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_team": {
+   "kind": "audio",
+   "file": "media/q_team.wav",
+   "sha256": "ff9490e77356e55685ca255caf77da7d20ce15cd7d629b1d11b6ca2b1c5f9131",
+   "bytes": 64844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 32400,
+   "seconds": 2.025,
+   "frames": 201,
+   "tokens": 26,
+   "source": "kokoro",
+   "text": "Which team should handle this?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Which team should handle this?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_topics": {
+   "kind": "audio",
+   "file": "media/q_topics.wav",
+   "sha256": "315a69dd0503b22bff32ed27a908b89ecf8e65dfc76db08efd043b475f1ba368",
+   "bytes": 78444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 39200,
+   "seconds": 2.45,
+   "frames": 244,
+   "tokens": 31,
+   "source": "kokoro",
+   "text": "Which topics does the message raise?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Which topics does the message raise?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_urgency": {
+   "kind": "audio",
+   "file": "media/q_urgency.wav",
+   "sha256": "3ed15e8f9bbeb3111db149e979852f8c8006d0d3ee2b54ee65f0fd2c70a6a25e",
+   "bytes": 70444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 35200,
+   "seconds": 2.2,
+   "frames": 219,
+   "tokens": 28,
+   "source": "kokoro",
+   "text": "How urgent is this ticket?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "How urgent is this ticket?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_charged_twice": {
+   "kind": "audio",
+   "file": "media/q_charged_twice.wav",
+   "sha256": "a0e1b3408eaad00401f32164fb543ceea0186263eb2c12efa885b2c66e5ea284",
+   "bytes": 86444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 43200,
+   "seconds": 2.7,
+   "frames": 269,
+   "tokens": 34,
+   "source": "kokoro",
+   "text": "Was the customer charged twice?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Was the customer charged twice?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_charged_once": {
+   "kind": "audio",
+   "file": "media/q_charged_once.wav",
+   "sha256": "fc42e702b8524b31ff2be30a709d097b232f1395a7feb8548aa8208b70313fe2",
+   "bytes": 83244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 41600,
+   "seconds": 2.6,
+   "frames": 259,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "Was the customer charged once?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Was the customer charged once?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_payee": {
+   "kind": "audio",
+   "file": "media/q_payee.wav",
+   "sha256": "251b298cf112c3296b203d3f82e2afd05621c92df7faeb05db01050ed16fb638",
+   "bytes": 109244,
+   "sample_rate": 24000,
+   "channels": 1,
+   "samples": 54600,
+   "seconds": 2.275,
+   "frames": 226,
+   "tokens": 29,
+   "source": "kokoro",
+   "text": "Who issued the invoice?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Who issued the invoice?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "none (Kokoro's 24 kHz samples)"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_payee_received": {
+   "kind": "audio",
+   "file": "media/q_payee_received.wav",
+   "sha256": "f2fafb7dda4d64a261ba7c6a333a855f9ca299235f4c8ead138ddacd5a4ef5c2",
+   "bytes": 96044,
+   "sample_rate": 24000,
+   "channels": 1,
+   "samples": 48000,
+   "seconds": 2.0,
+   "frames": 199,
+   "tokens": 25,
+   "source": "kokoro",
+   "text": "Who received the invoice?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Who received the invoice?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "none (Kokoro's 24 kHz samples)"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_total": {
+   "kind": "audio",
+   "file": "media/q_total.wav",
+   "sha256": "0af2f259817a9808bc7b6298efd89da50d210df0f40209ca8182bc1550e8ac3a",
+   "bytes": 61644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 30800,
+   "seconds": 1.925,
+   "frames": 191,
+   "tokens": 24,
+   "source": "kokoro",
+   "text": "How much is due?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "How much is due?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_due": {
+   "kind": "audio",
+   "file": "media/q_due.wav",
+   "sha256": "c511396e897a22a59b586673fe4101371aba8e1ef702540977597003fa2904e9",
+   "bytes": 71244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 35600,
+   "seconds": 2.225,
+   "frames": 221,
+   "tokens": 28,
+   "source": "kokoro",
+   "text": "By when must it be paid?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "By when must it be paid?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_vat": {
+   "kind": "audio",
+   "file": "media/q_vat.wav",
+   "sha256": "f28b35bcadf80c6df0aa16e45c15be001adafc6b66374e16c5c6f9aa19cccab9",
+   "bytes": 77644,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 38800,
+   "seconds": 2.425,
+   "frames": 241,
+   "tokens": 31,
+   "source": "kokoro",
+   "text": "How much VAT is charged?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "How much VAT is charged?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_signed": {
+   "kind": "audio",
+   "file": "media/q_signed.wav",
+   "sha256": "8a99c594f8f22e72265db90f044d63c5776a077736998b771c6745ceb9431461",
+   "bytes": 72844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 36400,
+   "seconds": 2.275,
+   "frames": 226,
+   "tokens": 29,
+   "source": "kokoro",
+   "text": "Was a signature taken?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "Was a signature taken?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_signed_photo": {
+   "kind": "audio",
+   "file": "media/q_signed_photo.wav",
+   "sha256": "ad3fbddbc99676b67c74fbd9fed756f24332b8c2526292ef7487ed772cae9ffc",
+   "bytes": 64844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 32400,
+   "seconds": 2.025,
+   "frames": 201,
+   "tokens": 26,
+   "source": "kokoro",
+   "text": "Was a photo taken?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "Was a photo taken?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_note_date": {
+   "kind": "audio",
+   "file": "media/q_note_date.wav",
+   "sha256": "fcac1ec498f2aa31c295c62a8ddeac4969d0561894541b80bba3d1da090d79be",
+   "bytes": 83244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 41600,
+   "seconds": 2.6,
+   "frames": 259,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "What date is on the delivery note?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "What date is on the delivery note?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_fee": {
+   "kind": "audio",
+   "file": "media/q_fee.wav",
+   "sha256": "113d167e77b6aece458db604d23a9a46429c2661f0194c4baf8ebbe7f838221d",
+   "bytes": 78444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 39200,
+   "seconds": 2.45,
+   "frames": 244,
+   "tokens": 31,
+   "source": "kokoro",
+   "text": "How much did the delivery cost?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_adam",
+      "lang_code": "a",
+      "text": "How much did the delivery cost?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice am_adam (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_satisfied": {
+   "kind": "audio",
+   "file": "media/q_satisfied.wav",
+   "sha256": "f5d995afbdd101752115bc2418ec4997759482a4a099ba505a864fc09b77cc25",
+   "bytes": 91244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 45600,
+   "seconds": 2.85,
+   "frames": 284,
+   "tokens": 36,
+   "source": "kokoro",
+   "text": "How satisfied is the customer?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "How satisfied is the customer?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_aspects": {
+   "kind": "audio",
+   "file": "media/q_aspects.wav",
+   "sha256": "21fe6d41bee8747f93b77f112390801c2eacaebed571c55384f35c3f7256c9f2",
+   "bytes": 98444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 49200,
+   "seconds": 3.075,
+   "frames": 306,
+   "tokens": 39,
+   "source": "kokoro",
+   "text": "Which aspects does the review mention?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Which aspects does the review mention?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_again": {
+   "kind": "audio",
+   "file": "media/q_again.wav",
+   "sha256": "0adc21d381a61cdf07ea854af2211c83a1b3ed613cad1e94699fc6a1906776e0",
+   "bytes": 83244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 41600,
+   "seconds": 2.6,
+   "frames": 259,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "Would the customer buy it again?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Would the customer buy it again?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_noise": {
+   "kind": "audio",
+   "file": "media/q_noise.wav",
+   "sha256": "86832eb2a405032e92d691bd821bd72affd5faa1c5fb6eb3b91938c28ae45e61",
+   "bytes": 92844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 46400,
+   "seconds": 2.9,
+   "frames": 289,
+   "tokens": 37,
+   "source": "kokoro",
+   "text": "Does the customer mention the noise?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Does the customer mention the noise?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_colour": {
+   "kind": "audio",
+   "file": "media/q_colour.wav",
+   "sha256": "a65205b0b5f0bbc5352a6fc17a336f026562179de7818b512ffe18ec699c2226",
+   "bytes": 96044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 48000,
+   "seconds": 3.0,
+   "frames": 299,
+   "tokens": 38,
+   "source": "kokoro",
+   "text": "Does the customer mention the colour?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_sarah",
+      "lang_code": "a",
+      "text": "Does the customer mention the colour?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice af_sarah (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_boxes_total": {
+   "kind": "audio",
+   "file": "media/q_boxes_total.wav",
+   "sha256": "dd671613b26c3333152d7e5ffbb102f8b0d1a776f1724ff361112e930070dfbc",
+   "bytes": 108844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 54400,
+   "seconds": 3.4,
+   "frames": 339,
+   "tokens": 43,
+   "source": "kokoro",
+   "text": "About how many boxes are there in total?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "About how many boxes are there in total?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_beeps": {
+   "kind": "audio",
+   "file": "media/q_beeps.wav",
+   "sha256": "3dca7353ba04eeb75ce3c2ac05e336616e5b8fb00984e383332a81a5e782f1b4",
+   "bytes": 58444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 29200,
+   "seconds": 1.825,
+   "frames": 181,
+   "tokens": 23,
+   "source": "kokoro",
+   "text": "How many beeps are there?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "How many beeps are there?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_speech": {
+   "kind": "audio",
+   "file": "media/q_speech.wav",
+   "sha256": "dd9c6c424ed8ed576a60eaee1af05a6fe4846a1f2d191c4af4396ad58be2886f",
+   "bytes": 75244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 37600,
+   "seconds": 2.35,
+   "frames": 234,
+   "tokens": 30,
+   "source": "kokoro",
+   "text": "Does someone speak in the recording?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Does someone speak in the recording?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_caller_refund": {
+   "kind": "audio",
+   "file": "media/q_caller_refund.wav",
+   "sha256": "862c9a9b61aef16d9173e7c5d4f3e050f80d6078a4a59aacf458b0b16a931751",
+   "bytes": 94444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 47200,
+   "seconds": 2.95,
+   "frames": 294,
+   "tokens": 37,
+   "source": "kokoro",
+   "text": "Is the caller asking for a refund?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "am_michael",
+      "lang_code": "a",
+      "text": "Is the caller asking for a refund?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice am_michael (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_language": {
+   "kind": "audio",
+   "file": "media/q_language.wav",
+   "sha256": "de0af08497f657e8143ab36d4cce318c1ccfc677b4fafbde72f7fc67e4bd3b83",
+   "bytes": 78444,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 39200,
+   "seconds": 2.45,
+   "frames": 244,
+   "tokens": 31,
+   "source": "kokoro",
+   "text": "Which language is spoken?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bf_emma",
+      "lang_code": "b",
+      "text": "Which language is spoken?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bf_emma (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_remote": {
+   "kind": "audio",
+   "file": "media/q_remote.wav",
+   "sha256": "bb0e7f844c56c0e5750461e511912a95908aaf3a7422f515253d4adf8a810dc9",
+   "bytes": 84044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 42000,
+   "seconds": 2.625,
+   "frames": 261,
+   "tokens": 33,
+   "source": "kokoro",
+   "text": "Where is the remote control on the left?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "Where is the remote control on the left?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_cats": {
+   "kind": "audio",
+   "file": "media/q_cats.wav",
+   "sha256": "befcba7e2fe091974dd62cf94fac1eae07d1de820352b358cda2ad7ea139ec89",
+   "bytes": 59244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 29600,
+   "seconds": 1.85,
+   "frames": 184,
+   "tokens": 23,
+   "source": "kokoro",
+   "text": "How many cats are there?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "How many cats are there?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q_dogs": {
+   "kind": "audio",
+   "file": "media/q_dogs.wav",
+   "sha256": "8a4baa155188cbad6806685720364beca0626ac44793ed30a84d891d292524e5",
+   "bytes": 59244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 29600,
+   "seconds": 1.85,
+   "frames": 184,
+   "tokens": 23,
+   "source": "kokoro",
+   "text": "How many dogs are there?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "af_heart",
+      "lang_code": "a",
+      "text": "How many dogs are there?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question (red arm); voice af_heart (en-US); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q20_expected": {
+   "kind": "audio",
+   "file": "media/q20_expected.wav",
+   "sha256": "2b8d0525c6bb776c10f93aa2f24793253364969337b42336ad487cc824f91a86",
+   "bytes": 95244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 47600,
+   "seconds": 2.975,
+   "frames": 296,
+   "tokens": 37,
+   "source": "kokoro",
+   "text": "When is the delivery expected?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "When is the delivery expected?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q20_napkins": {
+   "kind": "audio",
+   "file": "media/q20_napkins.wav",
+   "sha256": "5ce79c0f89bf2e5193130c742737175fe8cac4a44f3bb76056795780ac1711d7",
+   "bytes": 88044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 44000,
+   "seconds": 2.75,
+   "frames": 274,
+   "tokens": 35,
+   "source": "kokoro",
+   "text": "How many napkins were ordered?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "How many napkins were ordered?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q20_card": {
+   "kind": "audio",
+   "file": "media/q20_card.wav",
+   "sha256": "5e4cff40fae647171a0eb4608f17903988f8ef6be1a652f6a7e0d31d5dea8a00",
+   "bytes": 76044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 38000,
+   "seconds": 2.375,
+   "frames": 236,
+   "tokens": 30,
+   "source": "kokoro",
+   "text": "What does the gift card say?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "What does the gift card say?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q20_town": {
+   "kind": "audio",
+   "file": "media/q20_town.wav",
+   "sha256": "f2c39711f8f018f96c6751321bf6ade89dc81de34d554ac26bacac619f68193f",
+   "bytes": 104844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 52400,
+   "seconds": 3.275,
+   "frames": 326,
+   "tokens": 41,
+   "source": "kokoro",
+   "text": "Is the delivery address in Fenmouth?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "Is the delivery address in Fenmouth?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "q20_expensive": {
+   "kind": "audio",
+   "file": "media/q20_expensive.wav",
+   "sha256": "2be45763ee764f686dd44883ca5fd9f98e7bd04051753024d2a35d39de99b131",
+   "bytes": 92844,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 46400,
+   "seconds": 2.9,
+   "frames": 289,
+   "tokens": 37,
+   "source": "kokoro",
+   "text": "How expensive is the order?",
+   "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "kokoro": "0.9.4",
+    "misaki": "0.9.4",
+    "torch": "2.13.0",
+    "parts": [
+     {
+      "voice": "bm_george",
+      "lang_code": "b",
+      "text": "How expensive is the order?"
+     }
+    ],
+    "gap_s": 0.2,
+    "pad_to": null,
+    "seed": "torch.manual_seed(0) before each part",
+    "resample": "ffmpeg -ar 16000 -ac 1 -sample_fmt s16, per part"
+   },
+   "license": "speech synthesised with hexgrad/Kokoro-82M (Apache-2.0) at revision f3ff3571, from a text written for this set",
+   "provenance": "spoken question; voice bm_george (en-GB); Kokoro 0.9.4 + misaki 0.9.4, torch 2.13.0"
+  },
+  "snd_beeps_2": {
+   "kind": "audio",
+   "file": "media/snd_beeps_2.wav",
+   "sha256": "79e038dbc1d33b3562c366ad417d9bf7b8516d89f017764604b19c7a73bc0309",
+   "bytes": 96044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 48000,
+   "seconds": 3.0,
+   "frames": 299,
+   "tokens": 38,
+   "source": "synthetic",
+   "text": "2 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 2,
+     "seconds": 3.0
+    },
+    "seed": "np.random.default_rng(102)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_3": {
+   "kind": "audio",
+   "file": "media/snd_beeps_3.wav",
+   "sha256": "c95ecdaccc43165394737792169afcb6b01e45cf764d5a3916c53331b8c4b84b",
+   "bytes": 128044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 64000,
+   "seconds": 4.0,
+   "frames": 399,
+   "tokens": 50,
+   "source": "synthetic",
+   "text": "3 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 3,
+     "seconds": 4.0
+    },
+    "seed": "np.random.default_rng(103)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_4": {
+   "kind": "audio",
+   "file": "media/snd_beeps_4.wav",
+   "sha256": "94e39b328992e474c70ecaa0e01c7b17cd8838cd73ad87200ee900c4f85dde00",
+   "bytes": 160044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 80000,
+   "seconds": 5.0,
+   "frames": 499,
+   "tokens": 63,
+   "source": "synthetic",
+   "text": "4 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 4,
+     "seconds": 5.0
+    },
+    "seed": "np.random.default_rng(104)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_5": {
+   "kind": "audio",
+   "file": "media/snd_beeps_5.wav",
+   "sha256": "20f529aa81f631004a05d389f330e4f0c005f0f9296e7c8ddf6530c98d1055f8",
+   "bytes": 192044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 96000,
+   "seconds": 6.0,
+   "frames": 599,
+   "tokens": 75,
+   "source": "synthetic",
+   "text": "5 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 5,
+     "seconds": 6.0
+    },
+    "seed": "np.random.default_rng(105)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_6": {
+   "kind": "audio",
+   "file": "media/snd_beeps_6.wav",
+   "sha256": "4c59746ccac034d4981a58be6a4125dd59b9f5c108409fe687471c862213f9f4",
+   "bytes": 224044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 112000,
+   "seconds": 7.0,
+   "frames": 699,
+   "tokens": 88,
+   "source": "synthetic",
+   "text": "6 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 6,
+     "seconds": 7.0
+    },
+    "seed": "np.random.default_rng(106)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_7": {
+   "kind": "audio",
+   "file": "media/snd_beeps_7.wav",
+   "sha256": "9fdf6b2575edbfb85c19a3c0c8ad436b937affd84f81b6deb38995b3d9b0c6f7",
+   "bytes": 256044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 128000,
+   "seconds": 8.0,
+   "frames": 799,
+   "tokens": 100,
+   "source": "synthetic",
+   "text": "7 short 880 Hz beeps over quiet noise",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps",
+    "params": {
+     "n": 7,
+     "seconds": 8.0
+    },
+    "seed": "np.random.default_rng(107)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_beeps_4_stereo44k": {
+   "kind": "audio",
+   "file": "media/snd_beeps_4_stereo44k.wav",
+   "sha256": "eef6b9d43219d6c2e4a87a6861730a709b57e2848682ac43f8bdf77970ff7620",
+   "bytes": 1058444,
+   "sample_rate": 44100,
+   "channels": 2,
+   "samples": 264600,
+   "seconds": 6.0,
+   "frames": 599,
+   "tokens": 75,
+   "source": "synthetic",
+   "text": "4 beeps on the left channel only, quiet noise (another seed) on the right; 44.1 kHz stereo",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "beeps_stereo",
+    "params": {
+     "n": 4,
+     "seconds": 6.0
+    },
+    "seed": "np.random.default_rng(120)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_tone_high": {
+   "kind": "audio",
+   "file": "media/snd_tone_high.wav",
+   "sha256": "b226c26ef4e4e4f674124a23fb5f1fb072d8b4975b74eba6a86f0e4276b97768",
+   "bytes": 64044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 32000,
+   "seconds": 2.0,
+   "frames": 199,
+   "tokens": 25,
+   "source": "synthetic",
+   "text": "a steady 2 kHz tone from 0.3 s to 1.7 s",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "tone",
+    "params": {
+     "freq": 2000.0,
+     "seconds": 2.0
+    },
+    "seed": "np.random.default_rng(130)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_tone_low": {
+   "kind": "audio",
+   "file": "media/snd_tone_low.wav",
+   "sha256": "7187e538f70d68e09f2e1ec54b98c50545beea7f8a01b9bce56902d0a6e1e12e",
+   "bytes": 64044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 32000,
+   "seconds": 2.0,
+   "frames": 199,
+   "tokens": 25,
+   "source": "synthetic",
+   "text": "a steady 220 Hz tone from 0.3 s to 1.7 s",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "tone",
+    "params": {
+     "freq": 220.0,
+     "seconds": 2.0
+    },
+    "seed": "np.random.default_rng(131)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_siren": {
+   "kind": "audio",
+   "file": "media/snd_siren.wav",
+   "sha256": "e3915b0b5a1dcbfb18daac83321c4aa3f40504af8627253a56d59cb9c474071a",
+   "bytes": 256044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 128000,
+   "seconds": 8.0,
+   "frames": 799,
+   "tokens": 100,
+   "source": "synthetic",
+   "text": "a wailing siren sweeping 600 to 1400 Hz every 3 s",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "siren",
+    "params": {
+     "seconds": 8.0,
+     "low": 600.0,
+     "high": 1400.0,
+     "period": 3.0
+    },
+    "seed": "np.random.default_rng(140)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_knocks_4": {
+   "kind": "audio",
+   "file": "media/snd_knocks_4.wav",
+   "sha256": "9acff38a14b907d0e60d9121f3d1724c2e322aebd917fde6142ae886b8dd9d3e",
+   "bytes": 112044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 56000,
+   "seconds": 3.5,
+   "frames": 349,
+   "tokens": 44,
+   "source": "synthetic",
+   "text": "4 knocks on a door, half a second apart",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "knocks",
+    "params": {
+     "n": 4,
+     "seconds": 3.5
+    },
+    "seed": "np.random.default_rng(150)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_doorbell": {
+   "kind": "audio",
+   "file": "media/snd_doorbell.wav",
+   "sha256": "9cc6021037317841156257b06d9e9ab2a85bcb7db39a76227751d37902899721",
+   "bytes": 112044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 56000,
+   "seconds": 3.5,
+   "frames": 349,
+   "tokens": 44,
+   "source": "synthetic",
+   "text": "a two-tone doorbell (ding E5, dong C5)",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "doorbell",
+    "params": {
+     "seconds": 3.5
+    },
+    "seed": "np.random.default_rng(160)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_alarm_24s": {
+   "kind": "audio",
+   "file": "media/snd_alarm_24s.wav",
+   "sha256": "552684a43fb18824f189902a11af4276f613e69d5e27487c5d10e1eaafa0e546",
+   "bytes": 768044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 384000,
+   "seconds": 24.0,
+   "frames": 2399,
+   "tokens": 300,
+   "source": "synthetic",
+   "text": "a smoke alarm's temporal-three pattern at 3150 Hz for 24 s",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "alarm",
+    "params": {
+     "seconds": 24.0
+    },
+    "seed": "np.random.default_rng(170)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_silence": {
+   "kind": "audio",
+   "file": "media/snd_silence.wav",
+   "sha256": "102cf8e1b366faafcd3cd82249c46d888ecc065f1d38f26140eeaeafc271c721",
+   "bytes": 160044,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 80000,
+   "seconds": 5.0,
+   "frames": 499,
+   "tokens": 63,
+   "source": "synthetic",
+   "text": "near silence: noise of std 0.0015",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "silence",
+    "params": {
+     "seconds": 5.0
+    },
+    "seed": "np.random.default_rng(180)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  },
+  "snd_clock_12s": {
+   "kind": "audio",
+   "file": "media/snd_clock_12s.wav",
+   "sha256": "bc4edba91fa4cd1511c26921e071c95d7c9af4ed63108ea8ad44a7087f1cdd74",
+   "bytes": 403244,
+   "sample_rate": 16000,
+   "channels": 1,
+   "samples": 201600,
+   "seconds": 12.6,
+   "frames": 1259,
+   "tokens": 158,
+   "source": "synthetic",
+   "text": "a clock ticking once a second, 12 ticks",
+   "sound": {
+    "made_with": "numpy",
+    "kind": "clock",
+    "params": {
+     "ticks": 12,
+     "seconds": 12.6
+    },
+    "seed": "np.random.default_rng(190)",
+    "pcm": "np.clip(x, -1, 1) * 32767 -> int16 (truncation)"
+   },
+   "license": "synthesised with numpy for this set (no third-party content)",
+   "provenance": "synthetic sound for this set"
+  }
+ }
+}

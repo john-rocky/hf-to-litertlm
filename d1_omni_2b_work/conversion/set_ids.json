@@ -1,0 +1,673 @@
+{
+ "what": "the device question set: the d1-2B device set's recipe for d1-Omni-2B + audio coverage; graph calls counted by stand-in backends",
+ "components": {
+  "noise_subset": "the records of the float64 check's subset (not in this folder)",
+  "card": "set/card_omni.json",
+  "red_arms": "conversion/red_arms_chosen_arms.json + conversion/red_arms_audio_chosen_arms.json (each arm and its base)",
+  "long": [
+   "own_long_15k_001",
+   "own_long_34k_001",
+   "wl_5k_state"
+  ],
+  "extra_canvas": [
+   "img_stars_rings_480x640",
+   "img_stack_300x900",
+   "img_grid_1600x1200",
+   "img_grid_1200x1600"
+  ],
+  "extra_audio": [
+   "wl_audio_10s",
+   "mix_pic_clip",
+   "spk_coco"
+  ],
+  "added_for_audio_buckets": [
+   "aud_dialog_return"
+  ]
+ },
+ "records": [
+  "new_order_json_18q",
+  "img_mix_17q",
+  "new_delivery_note",
+  "new_checklist",
+  "card_coco",
+  "img_tiny_200x150",
+  "tv4s_00",
+  "tv4s_01",
+  "wl_384px",
+  "img_stars2",
+  "img_stars4",
+  "wl_one_question",
+  "tv4x_emotion_02",
+  "tv4x_emotion_06",
+  "tv4x_emotion_01",
+  "tv4x_emotion_04",
+  "tv4x_emotion_07",
+  "tv4x_emotion_14",
+  "tv4x_qnli_18",
+  "card_batch_2",
+  "tv4x_emotion_10",
+  "wl_64_states_56",
+  "card_batch_1",
+  "tv4x_emotion_00",
+  "aud_refund_call",
+  "sound_beeps_4",
+  "spk_ticket",
+  "aud_dialog_insurance",
+  "card_omni_beeps",
+  "card_omni_ticket",
+  "card_omni_invoice",
+  "card_omni_coco",
+  "arm_1_not_signed",
+  "arm_2_swap_card_batch",
+  "arm_3_num_card_total",
+  "card_invoice",
+  "arm_4_word_late_early",
+  "arm_5_pic_circles_3to5",
+  "img_count3",
+  "arm_6_box_circle_to_square",
+  "img_shapes_384",
+  "arm_g1_beeps_3to5",
+  "sound_beeps_3",
+  "arm_g2_cats_dogs",
+  "spk_coco",
+  "own_long_15k_001",
+  "own_long_34k_001",
+  "wl_5k_state",
+  "img_stars_rings_480x640",
+  "img_stack_300x900",
+  "img_grid_1600x1200",
+  "img_grid_1200x1600",
+  "wl_audio_10s",
+  "mix_pic_clip",
+  "aud_dialog_return"
+ ],
+ "count": 55,
+ "refused_by_host": {},
+ "calls": {
+  "audio_T1000": 4,
+  "audio_T2000": 1,
+  "audio_T3000": 1,
+  "audio_T504": 12,
+  "decide_L1024": 12,
+  "decide_L128": 17,
+  "decide_L2048": 2,
+  "decide_L256": 11,
+  "decide_L4096_qb1024": 4,
+  "decide_L512": 10,
+  "decide_L6144_qb1024": 1,
+  "tower_G24x24": 6,
+  "tower_G32x48": 7,
+  "tower_G48x32": 1,
+  "tower_G48x64": 1,
+  "tower_G64x48": 1,
+  "tower_G72x96_qb1152": 1,
+  "tower_G96x72_qb1152": 1
+ },
+ "calls_total": 93,
+ "rows_input_bytes": 545104160,
+ "rows_output_bytes": 490151936,
+ "per_record": {
+  "new_order_json_18q": {
+   "decide": [
+    512,
+    1024
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "img_mix_17q": {
+   "decide": [
+    512,
+    4096
+   ],
+   "tower": [
+    [
+     48,
+     64
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "new_delivery_note": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "new_checklist": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_coco": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_tiny_200x150": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "tv4s_00": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4s_01": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "wl_384px": {
+   "decide": [
+    256
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_stars2": {
+   "decide": [
+    256
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_stars4": {
+   "decide": [
+    256
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "wl_one_question": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_02": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_06": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_01": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_04": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_07": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_14": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_qnli_18": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_batch_2": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_10": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "wl_64_states_56": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_batch_1": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "tv4x_emotion_00": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "aud_refund_call": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [
+    1000
+   ],
+   "error": null
+  },
+  "sound_beeps_4": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [
+    504
+   ],
+   "error": null
+  },
+  "spk_ticket": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [
+    504,
+    504,
+    504,
+    504,
+    504
+   ],
+   "error": null
+  },
+  "aud_dialog_insurance": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [
+    3000
+   ],
+   "error": null
+  },
+  "card_omni_beeps": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [
+    504
+   ],
+   "error": null
+  },
+  "card_omni_ticket": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_omni_invoice": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_omni_coco": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "arm_1_not_signed": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "arm_2_swap_card_batch": {
+   "decide": [
+    128
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "arm_3_num_card_total": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "card_invoice": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "arm_4_word_late_early": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "arm_5_pic_circles_3to5": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_count3": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "arm_6_box_circle_to_square": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_shapes_384": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     24,
+     24
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "arm_g1_beeps_3to5": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [
+    1000
+   ],
+   "error": null
+  },
+  "sound_beeps_3": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [
+    504
+   ],
+   "error": null
+  },
+  "arm_g2_cats_dogs": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [
+    504,
+    504
+   ],
+   "error": null
+  },
+  "spk_coco": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [
+    504,
+    504
+   ],
+   "error": null
+  },
+  "own_long_15k_001": {
+   "decide": [
+    2048
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "own_long_34k_001": {
+   "decide": [
+    4096
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "wl_5k_state": {
+   "decide": [
+    6144
+   ],
+   "tower": [],
+   "audio": [],
+   "error": null
+  },
+  "img_stars_rings_480x640": {
+   "decide": [
+    2048
+   ],
+   "tower": [
+    [
+     48,
+     32
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_stack_300x900": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     64,
+     48
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_grid_1600x1200": {
+   "decide": [
+    4096
+   ],
+   "tower": [
+    [
+     72,
+     96
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "img_grid_1200x1600": {
+   "decide": [
+    4096
+   ],
+   "tower": [
+    [
+     96,
+     72
+    ]
+   ],
+   "audio": [],
+   "error": null
+  },
+  "wl_audio_10s": {
+   "decide": [
+    256
+   ],
+   "tower": [],
+   "audio": [
+    1000
+   ],
+   "error": null
+  },
+  "mix_pic_clip": {
+   "decide": [
+    1024
+   ],
+   "tower": [
+    [
+     32,
+     48
+    ]
+   ],
+   "audio": [
+    1000
+   ],
+   "error": null
+  },
+  "aud_dialog_return": {
+   "decide": [
+    512
+   ],
+   "tower": [],
+   "audio": [
+    2000
+   ],
+   "error": null
+  }
+ }
+}

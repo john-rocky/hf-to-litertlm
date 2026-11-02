@@ -1,0 +1,209 @@
+{
+ "what": "the answers of the provider's own code (LiquidAI/d1-2B at revision 10e7671d44e4b37700020b1eed3f594c5f2af0b4, transformers 5.19.0, torch 2.14.1) in float32 on the CPU, one request per call, to the model card's examples as examples/run_example.py sends them",
+ "tolerance": {
+  "probability": 0.0001,
+  "box_edge": 0.002,
+  "box_confidence": 0.02,
+  "other": "equal"
+ },
+ "examples": {
+  "ticket": {
+   "answers": {
+    "refund": {
+     "type": "noul",
+     "noul": 0.9969030435870195
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "confidence": 0.7103015575840597,
+     "probabilities": {
+      "billing": 0.7103015575840597,
+      "shipping": 0.24445433912175446,
+      "technical": 0.04524410329418587
+     }
+    },
+    "topics": {
+     "type": "choice",
+     "choices": [
+      "billing",
+      "delivery"
+     ],
+     "probabilities": {
+      "billing": 0.943041315622141,
+      "delivery": 0.9678893962329417,
+      "login": 0.0
+     }
+    },
+    "urgency": {
+     "type": "score",
+     "score": 1.0,
+     "confidence": 0.6731814240252898,
+     "probabilities": {
+      "0": 0.2340110456452715,
+      "1": 0.6731814240252898,
+      "2": 0.09280753032943866
+     },
+     "legend": {
+      "0": "low",
+      "1": "medium",
+      "2": "high"
+     }
+    }
+   },
+   "usage": {
+    "input_tokens": 189,
+    "output_tokens": 0
+   }
+  },
+  "invoice": {
+   "answers": {
+    "payee": {
+     "type": "text",
+     "text": "ACME SA",
+     "span": [
+      0,
+      7
+     ],
+     "found": 0.9973788775950928
+    },
+    "total": {
+     "type": "number",
+     "number": 1234.5,
+     "span": [
+      36,
+      48
+     ],
+     "found": 1.0,
+     "text": "1 234,50 EUR",
+     "unit": "EUR"
+    },
+    "due": {
+     "type": "date",
+     "date": "2026-04-03",
+     "span": [
+      60,
+      70
+     ],
+     "found": 1.0,
+     "text": "03/04/2026"
+    },
+    "vat": {
+     "type": "number",
+     "number": null,
+     "span": null,
+     "found": 0.0,
+     "text": null,
+     "unit": null
+    }
+   },
+   "usage": {
+    "input_tokens": 174,
+    "output_tokens": 0
+   }
+  },
+  "photo": {
+   "answers": {
+    "cats": {
+     "type": "number",
+     "number": 2.0,
+     "interval": [
+      2.0,
+      2.0
+     ],
+     "unit": null
+    },
+    "remote": {
+     "type": "box",
+     "box": {
+      "top": 0.155,
+      "bottom": 0.244,
+      "left": 0.063,
+      "right": 0.276
+     },
+     "found": 1.0,
+     "confidence": 0.9846427841522876
+    },
+    "every_cat": {
+     "type": "boxes",
+     "boxes": [
+      {
+       "box": {
+        "top": 0.114,
+        "bottom": 0.987,
+        "left": 0.019,
+        "right": 0.497
+       },
+       "found": 1.0,
+       "confidence": 0.9977011494252873
+      },
+      {
+       "box": {
+        "top": 0.053,
+        "bottom": 0.777,
+        "left": 0.539,
+        "right": 0.999
+       },
+       "found": 0.9942123797283489,
+       "confidence": 0.9977011494252873
+      }
+     ],
+     "count": 2,
+     "at_least": false,
+     "presence": [
+      1.0,
+      0.9942123797283489,
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "usage": {
+    "input_tokens": 606,
+    "output_tokens": 0
+   }
+  },
+  "tickets": [
+   {
+    "answers": {
+     "team": {
+      "type": "choice",
+      "choice": "shipping",
+      "confidence": 0.9922901065236543,
+      "probabilities": {
+       "billing": 0.0017408666510449603,
+       "shipping": 0.9922901065236543,
+       "technical": 0.005969026825300827
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 59,
+     "output_tokens": 0
+    }
+   },
+   {
+    "answers": {
+     "team": {
+      "type": "choice",
+      "choice": "technical",
+      "confidence": 0.9938539238861268,
+      "probabilities": {
+       "billing": 0.002505713106178254,
+       "shipping": 0.003640363007695034,
+       "technical": 0.9938539238861268
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 57,
+     "output_tokens": 0
+    }
+   }
+  ]
+ },
+ "refusal": {
+  "type": "ValueError",
+  "contains": "is longer than the largest the decision backend takes (6144)"
+ }
+}

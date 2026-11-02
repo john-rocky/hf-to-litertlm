@@ -1,0 +1,42 @@
+d1-Omni-2B for LiteRT
+
+The LiteRT graphs (*.tflite and npu/sm8850/*.tflite) and the table (tables/embed_table.npy) in this repository are
+converted from LiquidAI/d1-Omni-2B, revision 431f1d667de5afcc9b0c58b2d9c170a7b38b358b
+(https://huggingface.co/LiquidAI/d1-Omni-2B), by Liquid AI. d1-Omni-2B is built on LiquidAI/LFM3-Omni-2B
+(https://huggingface.co/LiquidAI/LFM3-Omni-2B). Both are licensed under the LFM Open License v1.0; LICENSE is a copy of
+the d1-Omni-2B repository's LICENSE file. Every graph and the table are derived from that repository's
+model.safetensors: the changes are listed under "Changes from the original work" in README.md and in REPRODUCE.md. The
+files in npu/sm8850/ were compiled ahead of time from this repository's decision graphs for the Qualcomm SM8850 with
+ai-edge-litert 2.2.0 and Qualcomm AI Runtime (QAIRT) 2.47.0.
+
+provider/ holds files of the d1-Omni-2B repository at the revision above, unchanged: 12 Python modules, config.json,
+tokenizer.json, tokenizer_config.json, calibration.json, chat_template.jinja and processor_config.json (LFM Open License
+v1.0).
+
+The Python host (host/) imports the provider modules that need no PyTorch and ports, as numpy code, the rest of the
+d1-Omni-2B repository's request handling (runner.py, attention.py, pointer.py, the readout tables of prompt.py and the
+picture and audio paths of media.py) and its preprocessing (processing_lfm3_vl.py and image_processing_lfm3_vl.py, which
+run on transformers' TorchvisionBackend, processing_lfm3_omni.py and feature_extraction_lfm3_omni.py; transformers is
+licensed under the Apache License 2.0). The picture port includes PyTorch's uint8 antialiased bicubic resize (BSD
+3-Clause License). The audio port (host/d1_audio_features.py) copies the slaney mel filter bank of transformers'
+audio_utils and follows PyTorch's float32 arithmetic (BSD 3-Clause License), with ports of SLEEF's single-precision sine,
+cosine and log10 (Boost Software License 1.0) and of pocketfft's real FFT (BSD 3-Clause License). Its tokenizer runs on
+the tokenizers library (Apache License 2.0). The conversion scripts (conversion/) run the d1-Omni-2B repository's model
+code with transformers, litert-torch, ai-edge-quantizer and LiteRT (ai-edge-litert), each licensed under the Apache
+License 2.0.
+The NPU step (conversion/npu/) also needs Qualcomm AI Runtime (QAIRT) 2.47.0, Qualcomm's SDK under its own
+license, which is not in this repository.
+
+fixtures/ lists 597 test and control requests (fixtures/requests_public.json). 374 are included with their text: 144 are
+SemIf authored144 records (github.com/TheoLeeCJ/SemIf, commit ca3ba65f), Copyright (c) 2026 TheoLeeCJ, licensed under
+the MIT License (fixtures/LICENSE-SemIf-MIT.txt); 11 are the example requests of the d1-2B, d1-3B and d1-Omni-2B model
+cards; 219 were written for these conversions, some over the texts of those examples. 223 are listed by reference only (file, tag, line and SHA-256): 220 records of
+the transfer-v4 development file of github.com/jaredpalmer/kev at tag kev-1.0 (Apache License 2.0) and 3 made from them.
+Their text comes from public datasets under their own licenses and is not included; fixtures/rebuild_requests.py
+restores it from that file. fixtures/media/ holds 5 photographs from Wikimedia Commons (CC0 1.0), 18 synthetic pictures
+and 15 synthetic sounds made for these conversions, and 59 speech clips synthesised with hexgrad/Kokoro-82M (revision
+f3ff3571791e39611d31c381e3a41a3af07b4987, Apache License 2.0) from texts written for these conversions. The photo of the
+card's picture example (COCO val2017 000000039769.jpg) is not included: the fixtures and the example give its URL and
+SHA-256; examples/run_example.py makes the card's recording.
+
+The rest of this repository is licensed under the LFM Open License v1.0 (LICENSE).
