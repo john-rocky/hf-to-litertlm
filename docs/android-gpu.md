@@ -67,6 +67,14 @@ RAM (MemTotal 11,389,756 kB), the phone in our hands and a device-lab unit of th
   low-memory killer ran down to foreground apps and the framework restarted); export the phone file with
   `CACHE=2048` and say on the card that it serves contexts of up to 2,048 tokens.
 
+### A long KV cache on a PowerVR phone (Pixel 11 Pro)
+
+Measured with the `litert-lm-api` 0.19.0 Android wheel (OpenCL) on a Pixel 11 Pro (16 GB) with Qwen3.5-4B-3D-Coder, 2026-11-01 and 02:
+
+- **One GPU buffer holds at most 1 GiB.** The 32,768-token file's GPU engine did not build: `RESOURCE_EXHAUSTED: Requested allocation size - 2147483648 bytes. Max allocation size for this GPU - 1073741824 bytes`, after every node was delegated. The buffer is the 1,024-token prefill's attention score, [1, 4, 4096, 32768] in float32; int8 and Mixed INT4 weights failed the same way. Before a phone run, check every signature's largest non-constant tensor (shape × 4 bytes): `python tools/gpu_graph/tensor_top5.py model.litertlm report.json` prints `TENSOR_TOP5 PASS` or `FAIL` (exit 0 or 1) and reads only the graph structure.
+- **Every prefill signature takes more memory.** With no non-constant tensor above 512 MiB, a prefill ladder of 256, 64, 16, 4 and 1 tokens at KV 32,768 lowered MemAvailable by about 3.9–4.0, 2.9–3.1, 1.6–1.7 and 1.0 million KiB at the first four signatures, from about 11.2 million KiB, and our 400,000 KiB guard stopped the build. With the ladder 256, 16 and 1 at KV 32,768, MemAvailable fell to 0 after the decode signature in three of four attempts (149,108 KiB in the fourth). A check of the largest tensor does not catch this sum.
+- **The export's KV sets the engine's size.** The 16,384-token file with prefill 256, 16 and 1 built and answered a short prompt; its creation took 8.8–9.3 GB of MemAvailable (8.61–9.07 million KiB), 8.61 million KiB also at a 2,048-token context. In the two runs where decoding slowed (0.66 tok/s in one), the process's anonymous memory grew 6–7 MB/s until the guard stopped it; in the faster decodes (3.7–3.9 tok/s) it stayed flat.
+
 ### Image prompts and timing with the LiteRT-LM Android binary
 
 Measured with MiniCPM-V-4.7-1B (`fast_vlm` bundles) on a Galaxy S26 and a Pixel 8a with the prebuilt `litert_lm_advanced_main` of 2026-10-13 (REPRODUCE.md, 2026-10-13):
