@@ -10,11 +10,14 @@ import os
 
 REPO = os.path.expanduser("~/code/litertlm-convert")
 WORK = os.path.join(REPO, "audio8_tts_work")
-OUT = os.path.join(WORK, "out")
-FIX = os.path.join(WORK, "fixtures")
-SNAP = os.path.expanduser(
+# Audio8-TTS-Realistic-0.6b (same architecture, REPRODUCE.md) passes its own output dir, fixture dir, source snapshot
+# and case set by env; unset = the Preview paths and cases below, so the REPRODUCE Preview section runs as written.
+OUT = os.environ.get("AUDIO8_OUT") or os.path.join(WORK, "out")
+FIX = os.environ.get("AUDIO8_FIX") or os.path.join(WORK, "fixtures")
+SNAP = os.environ.get("AUDIO8_SNAP") or os.path.expanduser(
     "~/.cache/huggingface/hub/models--Edge0--Audio8-TTS-Preview-0.6b/snapshots/"
     "f07040f3d151f1ba0253bfb92cb2f5dd38b44594")
+CASES_JSON = os.environ.get("AUDIO8_CASES")      # {"cases": [{"id", "lang", "ref", "text", "seed"}, ...]}
 HF_REPO = "Edge0/Audio8-TTS-Preview-0.6b"
 HF_REV = "f07040f3d151f1ba0253bfb92cb2f5dd38b44594"
 
@@ -72,6 +75,10 @@ SENTENCES = {
 
 def cases():
     """(case_id, lang, ref_key or None, text, seed)."""
+    if CASES_JSON:
+        import json
+        with open(CASES_JSON, encoding="utf-8") as f:
+            return [(c["id"], c["lang"], c["ref"], c["text"], int(c["seed"])) for c in json.load(f)["cases"]]
     out = []
     for lang in ("en", "ja"):
         for i, text in enumerate(SENTENCES[lang]):

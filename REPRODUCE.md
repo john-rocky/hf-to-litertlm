@@ -593,6 +593,45 @@ Gates: fp32 graphs reproduce the PyTorch oracle's code sequence frame-for-frame 
 
 Walls and fixes recorded in `audio8_tts_work/FINDINGS.md`: `repeat_interleave` on the KV cache lowers to BROADCAST_TO and costs 615 ms/step (fold GQA heads into the matmul rows: 16 ms); `torch.polar` has no lowering (eager-cached real tables); the vendor's bf16-rounded RoPE table is reproduced exactly by permuting q/k rows to the rotate-half layout; litert-torch's PT2E dynamic mode also quantizes unannotated embedding tables asymmetrically, which TFLite's EMBEDDING_LOOKUP refuses (write the fp32 codebooks back); ai-edge-quantizer's >32 MiB chunked path breaks on 4-D conv weights; every gather index is clamped in-graph so random-input benchmark tools do not fault.
 
+## Audio8-TTS-Realistic-0.6b (the Preview's DualAR architecture with new weights, 23 languages) — host-loop tflite set
+
+`audio8_tts_work/` also converts [Edge0/Audio8-TTS-Realistic-0.6b](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) (Apache-2.0) at revision `1e857568bfd4f02931aca3988ee773a44d2d26d3`; the later commit on its main branch, `925bbd4c` (2026-11-01), changes `README.md` only. Realistic keeps the Preview's architecture and code: `model.safetensors` is new, while `codec.pth`, the codec code and `tokenizer.json` are the same files as the Preview's. So the two AR graphs are exported again with the Preview recipe, and the codec graphs are the files of [litert-community/Audio8-TTS-Preview-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Preview-0.6b): the encoder unchanged, the two decoders rewritten for mobile GPUs by `codec_gpu_rewrite.py`. The slow AR holds a KV cache of 1,024 positions: a prompt of up to 512 positions leaves room for the 512-frame cap. Exported at 2,048 positions, the same weights give bit-identical logits and hidden states on 38 test cases, and the slow decode is slower (Galaxy S26 CPU 11.87 against 8.83 ms per call). Published as [litert-community/Audio8-TTS-Realistic-0.6b](https://huggingface.co/litert-community/Audio8-TTS-Realistic-0.6b), with the host loop and an Android app.
+
+```bash
+cd audio8_tts_work
+# env: Python 3.14, litert-torch 0.9.4, ai-edge-litert 2.2.0, ai-edge-quantizer 0.9.0, torch 2.13.0, numpy 2.5.2
+hf download Edge0/Audio8-TTS-Realistic-0.6b model.safetensors \
+    --revision 1e857568bfd4f02931aca3988ee773a44d2d26d3 --local-dir realistic_src
+hf download litert-community/Audio8-TTS-Preview-0.6b codec_decoder_fp16_T128.tflite codec_decoder_fp16_T192.tflite \
+    --revision 56fcb491ebf03eb3a1a66615fedf6744015dd4c7 --local-dir preview_codec
+export AUDIO8_SNAP=$PWD/realistic_src AUDIO8_OUT=$PWD/out_realistic PYTHONHASHSEED=0
+CACHE=1024 PREFILL=256 SUFFIX=_p256 python export_slow.py      # slow AR: prefill_256 + decode, KV 1024, fp32
+SUFFIX=_v3 python export_fast.py                               # fast AR step graph, fp32
+python quantize_ar.py $AUDIO8_OUT/slow/slow_fp32_c1024_p256.tflite drq8   # -> slow_ar_int8.tflite
+python quantize_ar.py $AUDIO8_OUT/fast/fast_fp32_v3.tflite drq8           # -> fast_ar_int8.tflite
+mkdir -p $AUDIO8_OUT/codec
+for T in 128 192; do                                           # -> codec_decoder_fp16_T128 / _T192.tflite
+  python codec_gpu_rewrite.py preview_codec/codec_decoder_fp16_T$T.tflite $AUDIO8_OUT/codec/codec_decoder_fp16_T$T.tflite \
+      --promote --mask-floor -30000 --mask-ops 155,220,285,350,415,480,545,610 --rms-scale 0.0625 --rms-ops all
+done
+shasum -a 256 $AUDIO8_OUT/slow/slow_drq8_c1024_p256.tflite $AUDIO8_OUT/fast/fast_drq8_v3.tflite $AUDIO8_OUT/codec/*.tflite
+```
+
+Run on 2026-11-02 from a clean copy of this commit on an Apple M4 Max (the two exports 115 s, peak resident memory 6.5 GiB), every rebuilt file has the published SHA-256:
+
+| Rebuilt file | Published as | SHA-256 |
+|---|---|---|
+| `slow/slow_drq8_c1024_p256.tflite` | `slow_ar_int8.tflite` (551,890,704 B) | `8b5097dcd4ab6f330a3a0bb750a8d5e459ca4ff3ab8812f7f78b5d5a635863df` |
+| `fast/fast_drq8_v3.tflite` | `fast_ar_int8.tflite` (67,780,320 B) | `0a0bc9f0a969c09f9b2af69231a677db3cb93852b2b8a04609413096b5e48ac0` |
+| `codec/codec_decoder_fp16_T128.tflite` | the same name (261,633,152 B) | `e1f187dcf29d3caef749af2aaca68039020220c6cb491c2a780faba62f232a79` |
+| `codec/codec_decoder_fp16_T192.tflite` | the same name (261,829,760 B) | `21c04bd04ed27c42ec6fc92cf26a854850fc7c8d746fb766cca04bc3640d1b68` |
+
+The float32 intermediates were `slow_fp32_c1024_p256.tflite` (2,153,110,960 B, `81f437a446c497d747d5e3ffcc807ddaa5bbbb8ce0e91c32222f4b65eb2ecf84`) and `fast_fp32_v3.tflite` (268,008,360 B, `d7cc63b7085edfaa1deed565242eb9676aac053f98d0e8d7f70743c47f2a6c31`). The published `codec_encoder_fp16_10s.tflite` is the Preview repository's file (`e27deb6663e25919d2149c63ff70e10418f0f341df963d2ae458d1466359a977`), and `tokenizer.json` the source repository's.
+
+`codec_gpu_rewrite.py` fixes three faults of the published Preview decoders on the LiteRT GPU accelerator; its docstring has the details. A RESHAPE goes before two MUL operators whose rank-2 runtime operand the GPU lays out wrongly. The RMSNorm squares are scaled by 1/16, so their sums stay inside float16. The attention mask is floored at −30000, so a fully masked softmax row cannot turn into NaN. On an Apple M4 Max CPU the rewritten decoders give the original's output byte for byte on 15 (T128) and 17 (T192) test code sequences.
+
+`audio8_tts_litert.py` is the host loop of both models; it reads the KV cache length from the slow graph. The model repository's Quick start also runs in a fresh venv with only its pip line (no PyTorch): on 2026-11-02 its five commands made four sentences and registered a voice, and whisper large-v3-turbo read the four sentences back with one error ("LiteRT" heard as "LightRT").
+
 ## MiniCPM family (new-style: full-jinja LlmMetadata + post-hoc quantization)
 
 `minicpm_work/` converts the MiniCPM family with the newer packaging used by litert-community/MiniCPM5-1B: the LlmMetadata carries the model's **full `chat_template.jinja` verbatim** plus a `thought` channel (`<think>`/`</think>`), so hybrid-reasoning works natively in LiteRT-LM ≥0.14 (`enable_thinking` via conversation extra context; thinking text arrives on a separate channel). Export unquantized (`--quantization_recipe=""`), then quantize with ai-edge-quantizer, then repackage with `litert-lm-builder`:

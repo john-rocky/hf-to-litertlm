@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audio8 TTS Preview 0.6B on LiteRT -- reference host loop (CPU, ai-edge-litert Interpreter).
+"""Audio8 TTS 0.6B (Realistic or Preview) on LiteRT -- reference host loop (CPU, ai-edge-litert Interpreter).
 
     python audio8_tts_litert.py --model-dir <repo> --text "Hello there." --out out.wav
     python audio8_tts_litert.py --model-dir <repo> --text "..." --ref-audio ref.wav --ref-text "exact transcript" --out out.wav
@@ -9,7 +9,8 @@
 Files (from the LiteRT repo): slow_ar_<q>.tflite (prefill_256 + decode), fast_ar_int8.tflite (step),
 codec_decoder_fp16_T128.tflite / _T192.tflite (decode), codec_encoder_fp16_10s.tflite (encode, optional),
 tokenizer.json. The sampler is the vendor's: top-k/top-p + temperature, RAS re-draw for repeated semantic tokens
-(window 10, temperature 1.0 / top-p 0.9), exponential-race sampling, seedable.
+(window 10, temperature 1.0 / top-p 0.9), exponential-race sampling, seedable. The KV cache length is read from the
+slow graph (2048 in the Preview files, 1024 in the Realistic files): prompt + generated frames stay inside it.
 """
 import argparse, json, os, time
 import numpy as np
@@ -142,12 +143,13 @@ class Audio8LiteRT:
                        top_p=0.9, top_k=50, seed=42, on_frame=None):
         prompt = self.build_prompt(text, ref_text, ref_codes)
         P = prompt.shape[1]
-        if P >= MAX_SEQ:
-            raise ValueError(f"prompt length {P} must be smaller than {MAX_SEQ}")
+        limit = min(self.cache, MAX_SEQ)  # positions the slow graph's KV cache holds
+        if P >= limit:
+            raise ValueError(f"prompt length {P} must be smaller than {limit} (the slow graph's KV cache)")
         rng = np.random.default_rng(seed)
         logits, hidden, kv = self._prefill(prompt)
         previous, frames = [], []
-        for step in range(min(max_new_tokens, MAX_SEQ - P)):
+        for step in range(min(max_new_tokens, limit - P)):
             sem = self._sample_semantic(logits, previous, rng, temperature, top_p, top_k)
             if sem == EOS:
                 break
