@@ -1,11 +1,10 @@
 #!/bin/bash
-# xiaomi-research/Xiaomi-OCR-0 (0.87B OCR VLM, apache-2.0, a post-train of Qwen/Qwen3.5-0.8B-Base) -> fast_vlm files that
-# read one 1344x768 picture (height x width = 84 x 48 patches of 16 = 1,008 image tokens):
+# xiaomi-research/Xiaomi-OCR-0 (0.87B OCR VLM, apache-2.0, a post-train of Qwen/Qwen3.5-0.8B-Base) -> a fast_vlm file that
+# reads one 1344x768 picture (height x width = 84 x 48 patches of 16 = 1,008 image tokens):
 #   Xiaomi-OCR-0_int8.litertlm   the Qwen3.5 hybrid decoder with int8 fully connected layers (the 36 GatedDeltaNet
 #                                decay/gate projections float) and an fp32 activation preference; int8 embedder; vision
 #                                encoder fp16 with an fp16 activation preference (read by the GPU executor); vision
 #                                adapter int8
-#   Xiaomi-OCR-0_fp16w.litertlm  with FILES="int8 fp16w": the same, the decoder's fully connected weights fp16
 #
 # Vision   = the checkpoint's 12-layer ViT (no DeepStack) and 2x2 merger for one static 1344x768 picture
 #            (qwen35vl_work/convert_qwen35_vision.py, IMG_H / IMG_W), the fp16-safe LayerNorm pre-scales pinned to
@@ -25,14 +24,12 @@
 #               transformers 5.14.1, torch 2.13.0, pillow (converter 0.4.0 lowers the 2x2 merge to STRIDED_SLICE; 0.3.x
 #               writes GATHER_ND)
 #   LITERT_LM   a litert-lm CLI with pack / unpack (0.18.1 was used)
-#   FILES       which files (default "int8"; "int8 fp16w" for both)
 #
 #   bash scripts/ship_xiaomi_ocr_0.sh [OUT]        # OUT defaults to out/xiaomiocr
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 : "${PY_EXPORT:?}" "${PY_VISION:?}" "${LITERT_LM:?}"
-FILES=${FILES:-int8}
 OUT=$(mkdir -p "${1:-out/xiaomiocr}" && cd "${1:-out/xiaomiocr}" && pwd)
 W=$OUT/work
 mkdir -p "$W"
@@ -56,10 +53,6 @@ mkdir -p "$W/decoder" "$W/tmp"
 PREFILL=1024,256,64,16,4,1 CACHE=4096 QWEN35_FLOAT_FC_REGEX='Linear_in_proj_(a|b);' PYTHONHASHSEED=0 \
   PYTHONPATH="$ROOT/qwen35_work/litert-torch-qwen35" TMPDIR="$W/tmp" \
   "$PY_EXPORT" qwen35vl_work/export_qwen35vl_decoder.py "$SRC" "$W/decoder"
-if [[ " $FILES " == *" fp16w "* ]]; then
-  echo "### 2b. the fp16 weight-only decoder from the same float export (the 36 in_proj_a / in_proj_b stay fp32)"
-  "$PY_EXPORT" xiaomiocr_work/quant_fp16w.py "$W/decoder/model.tflite" "$W/decoder/model_fp16w.tflite"
-fi
 
 echo "### 3. vision 1344x768: the TFLite pair (fp32 parity against the model's own vision path, int8 parts), then the"
 echo "###    fp16 parts and the fp32 / fp16 / int8 correlation on the repository's four example pictures"
@@ -69,19 +62,12 @@ IMG_H=1344 IMG_W=768 MODEL="$SRC" FIXTURES="$SRC/example_pics" \
   FIXTURE_FILES=receipt.jpg,dense-equations.jpg,handwrite-formula.jpg,qianziwen.jpeg \
   "$PY_VISION" qwen35vl_work/vision_quant_ab.py "$W/vision"
 
-echo "### 4. the bundles: sections + LlmMetadata (fast_vlm 1344x768, stops 248044 / 248046), then the ExecutorMetadata"
+echo "### 4. the bundle: sections + LlmMetadata (fast_vlm 1344x768, stops 248044 / 248046), then the ExecutorMetadata"
 echo "###    section that binds the 48 hybrid state buffers"
-for f in $FILES; do
-  case $f in
-    int8)  decode=prefill_decode_wi8 ;;
-    fp16w) decode=fp16w ;;
-    *) echo "unknown file '$f' (int8 | fp16w)"; exit 2 ;;
-  esac
-  DEC="$W/decoder" DECODE=$decode EMB=embedder_wi8 VIS="$W/vision" TOK="$SRC/tokenizer.json" \
-    VENC=vision_encoder_fp16.tflite VADP=vision_adapter_int8.tflite IMAGE_H=1344 IMAGE_W=768 CACHE=4096 \
-    DEC_ACT=fp32 VENC_ACT=fp16 OUT_DIR="$W/bundle" OUT_NAME="pre_$f.litertlm" \
-    "$PY_EXPORT" qwen35vl_work/build_qwen35vl_bundle.py
-  "$PY_EXPORT" scripts/add_executor_metadata.py "$W/bundle/pre_$f.litertlm" "$OUT/Xiaomi-OCR-0_$f.litertlm" \
-    --litert-lm "$LITERT_LM" --python "$PY_EXPORT"
-done
-ls -l "$OUT"/*.litertlm
+DEC="$W/decoder" DECODE=prefill_decode_wi8 EMB=embedder_wi8 VIS="$W/vision" TOK="$SRC/tokenizer.json" \
+  VENC=vision_encoder_fp16.tflite VADP=vision_adapter_int8.tflite IMAGE_H=1344 IMAGE_W=768 CACHE=4096 \
+  DEC_ACT=fp32 VENC_ACT=fp16 OUT_DIR="$W/bundle" OUT_NAME="pre_int8.litertlm" \
+  "$PY_EXPORT" qwen35vl_work/build_qwen35vl_bundle.py
+"$PY_EXPORT" scripts/add_executor_metadata.py "$W/bundle/pre_int8.litertlm" "$OUT/Xiaomi-OCR-0_int8.litertlm" \
+  --litert-lm "$LITERT_LM" --python "$PY_EXPORT"
+ls -l "$OUT/Xiaomi-OCR-0_int8.litertlm"
