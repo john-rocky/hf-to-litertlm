@@ -11,6 +11,8 @@ Apple M4 Max (Metal; ai-edge-litert 2.2.0). Three faults, one change each:
                RESHAPE of that operand to the output shape first. ML Drift places a runtime rank-2 [a,b] as
                BHWC(a,1,1,b) and a rank-3 [1,a,b] as BHWC(1,1,a,b) (tools/gpu_graph/tfl_rank4.py), so without it the
                op multiplies the wrong elements, at fp32 too. A RESHAPE keeps the row-major order: the same values.
+               The test is tfl_rank4.py's rule promote (on these decoders `tfl_rank4.py rewrite --rules promote` writes
+               the same file as --promote alone).
 --rms-scale S  fp16 range: each RMSNorm square x * x (followed by SUM / MEAN, a MUL by a scalar, the ADD of eps, a
 --rms-ops      RESHAPE, then RSQRT or SQRT; single consumers, read op by op, refused otherwise) becomes (x*S) * (x*S),
                eps becomes eps * S^2 and the RSQRT output is multiplied by S (a SQRT output by 1 / S). With S = 2^-4
@@ -65,21 +67,17 @@ def main():
     post = {}  # op index -> ops to insert after it
     if a.promote:
         for k, op in enumerate(sg.operators):
-            if g.opname(op) not in t4.ELEMWISE or len(op.inputs) != 2:
+            ri = t4.lower_rank_operand(g, op)  # tfl_rank4.py's rule promote
+            if ri is None:
                 continue
-            c = [g.is_const(i) for i in op.inputs]
-            if c[0] == c[1]:
-                continue
-            ri = 1 if c[0] else 0
             rt, ot = sg.tensors[op.inputs[ri]], sg.tensors[op.outputs[0]]
-            if len(rt.shape) < len(ot.shape) and int(np.prod(rt.shape)) == int(np.prod(ot.shape)):
-                nt = g.add_tensor(ot.shape, rt.type, rt.name + b"/promoted")
-                pre.setdefault(k, []).append(g.reshape_op(op.inputs[ri], nt))
-                ins = list(op.inputs)
-                ins[ri] = nt
-                op.inputs = ins
-                report.append({"rule": "promote", "op": k, "name": g.opname(op), "runtime": rt.shape,
-                               "const": sg.tensors[op.inputs[1 - ri]].shape, "out": ot.shape})
+            nt = g.add_tensor(ot.shape, rt.type, rt.name + b"/promoted")
+            pre.setdefault(k, []).append(g.reshape_op(op.inputs[ri], nt))
+            ins = list(op.inputs)
+            ins[ri] = nt
+            op.inputs = ins
+            report.append({"rule": "promote", "op": k, "name": g.opname(op), "runtime": rt.shape,
+                           "const": sg.tensors[op.inputs[1 - ri]].shape, "out": ot.shape})
     if a.mask_floor is not None:
         floored = {}
         for k in [int(x) for x in a.mask_ops.split(",") if x]:

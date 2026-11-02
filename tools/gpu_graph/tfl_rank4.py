@@ -15,12 +15,19 @@ position table) reads row 0. Rules (each switchable):
           keep_dims true, RESHAPE to the original output shape
   sslice  STRIDED_SLICE / SLICE of a rank <= 3 input with a leading dim != 1 that slices axis 0 -> rank 4 input
   softmax SOFTMAX of a rank-4 input with a leading dim != 1 -> [1, B*H, W, C], RESHAPE back
+  promote (not in the default set: --promote-lower-rank, or name it in --rules) binary elementwise op, one runtime
+          operand, one constant, the runtime operand of a lower rank than the output and with the same element count
+          (runtime [N,C] x const [1,1,C] -> [1,N,C]): a RESHAPE of the runtime operand to the output shape goes before
+          the op; nothing else changes. elem skips this form (it reads [1,1,C] as per-channel), and on the GPU the op
+          then multiplies the wrong elements, at fp32 too (runtime [N,C] is BHWC(N,1,1,C), the output [1,N,C] is
+          BHWC(1,1,N,C)). An operand with quantization parameters is left alone. When the rule matches an op, the
+          other rules skip that op.
 Every inserted RESHAPE keeps the data order (row-major), so the rewrite computes the same function on the CPU.
 
 The file keeps the external-buffer layout (> 2 GB graphs): the flatbuffer is rebuilt, every referenced constant is
 copied after it at a 64-byte boundary, new constants are appended the same way.
 
-  rewrite IN OUT [--rules elem,bmm,mean,sslice,softmax] [--report R.json] [--unique-names]
+  rewrite IN OUT [--rules elem,bmm,mean,sslice,softmax,promote] [--promote-lower-rank] [--report R.json] [--unique-names]
   slice   IN OUT [--inputs T,...] --outputs T,...      T = tensor index or op:K (first output of op K)
   probe   IN OUT --ops A:B                              every op output in [A,B) becomes a graph output
   (slice / probe may be combined with --rules: the rewrite runs first, op numbers refer to the input file)
@@ -158,11 +165,31 @@ def runtime_bhwc(shape):
     return tuple(shape) if r == 4 else None
 
 
+def lower_rank_operand(g, op):
+    """Rule promote: the input index of op's runtime operand when op is a binary elementwise op with one constant
+    operand and that runtime operand has a lower rank than the output, the same element count and no quantization
+    parameters; else None."""
+    if g.opname(op) not in ELEMWISE or len(op.inputs) != 2:
+        return None
+    c = [g.is_const(i) for i in op.inputs]
+    if c[0] == c[1]:
+        return None
+    ri = 1 if c[0] else 0
+    rt, ot = g.sg.tensors[op.inputs[ri]], g.sg.tensors[op.outputs[0]]
+    q = rt.quantization
+    if q is not None and q.scale is not None and len(q.scale):
+        return None
+    if len(rt.shape) < len(ot.shape) and int(np.prod(rt.shape)) == int(np.prod(ot.shape)):
+        return ri
+    return None
+
+
 def rewrite(g, rules, report):
     sg = g.sg
     out_ops = []
     cache = {}  # (tensor, shape) -> reshaped tensor, inserted once at the first use
     ccache = {}  # (constant tensor, shape) -> materialized rank-4 constant (RoPE tables are shared by every layer)
+    pcache = {}  # (tensor, shape) -> the tensor rule promote reshaped it to, inserted once at the first use
 
     def lifted(ti, shape, pre):
         key = (ti, tuple(shape))
@@ -177,7 +204,19 @@ def rewrite(g, rules, report):
         name = g.opname(op)
         pre, post, site = [], [], None
         ins = op.inputs
-        if name in ELEMWISE and "elem" in rules and len(ins) == 2:
+        ri = lower_rank_operand(g, op) if "promote" in rules else None
+        if ri is not None:
+            rt, oshape = sg.tensors[ins[ri]], sg.tensors[op.outputs[0]].shape
+            key = (ins[ri], tuple(oshape))
+            if key not in pcache:
+                nt = g.add_tensor(oshape, rt.type, rt.name + b"/promoted")
+                pre.append(g.reshape_op(ins[ri], nt))
+                pcache[key] = nt
+            site = {"rule": "promote", "runtime": rt.shape, "const": sg.tensors[ins[1 - ri]].shape, "out": oshape}
+            ins = list(ins)
+            ins[ri] = pcache[key]
+            op.inputs = ins
+        elif name in ELEMWISE and "elem" in rules and len(ins) == 2:
             c = [g.is_const(i) for i in ins]
             if c[0] != c[1]:
                 ci, ri = (0, 1) if c[0] else (1, 0)
@@ -430,6 +469,7 @@ def main():
     ap.add_argument("--ops", default="")
     ap.add_argument("--report")
     ap.add_argument("--unique-names", action="store_true")
+    ap.add_argument("--promote-lower-rank", action="store_true", help="add rule promote to the rules that run")
     a = ap.parse_args()
     g = Graph(a.src)
     opmap = {k: op.outputs[0] for k, op in enumerate(g.sg.operators)}
@@ -437,6 +477,8 @@ def main():
     rules = set(x for x in a.rules.split(",") if x)
     if a.cmd == "rewrite" and not rules:
         rules = {"elem", "bmm", "mean", "sslice", "softmax"}
+    if a.promote_lower_rank:
+        rules.add("promote")
     report = []
     if rules:
         rewrite(g, rules, report)
