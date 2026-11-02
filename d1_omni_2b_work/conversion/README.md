@@ -120,7 +120,7 @@ $REF conversion/id_sets.py           # conversion/ids_textpic.json (529 requests
 $HOST conversion/make_ids_L128.py    # conversion/ids_L128*.json and red_arms*_L128.json: the requests that fit 128 tokens
 ```
 
-`out/ref/ref_fp32.json` (with its answer slots in `out/ref/ref_fp32_slots.npz`) holds the provider's answers in float32 on the CPU to the 597 requests: of the 529 text and picture requests, 523 answered, 5 refused and 1 too long for the largest graph; of the 68 audio requests, 67 answered and 1 clip too long. `pick_arms.py`, `id_sets.py` and `make_ids_L128.py` read no output of the graphs: they ran before any check of the graphs.
+`out/ref/ref_fp32.json` (with its answer slots in `out/ref/ref_fp32_slots.npz`) holds the provider's answers in float32 on the CPU to the 597 requests: 592 answered and 5 refused (all five text requests). Two of the answered, `long_refused_9k` (text) and `long_refused_audio` (a clip), are longer than the largest graph and the largest audio file hold, and the host refuses them, so the checks score 523 text and picture requests and 67 audio requests. `pick_arms.py`, `id_sets.py` and `make_ids_L128.py` read no output of the graphs: they ran before any check of the graphs.
 
 ### Agreement on the Mac
 

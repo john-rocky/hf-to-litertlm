@@ -13,7 +13,7 @@ The conversion ran on a Mac (Apple M4 Max, 128 GB, macOS 27.0) on 2026-11-01 and
 | | | | `LICENSE` | 10,574 | `4d28ca14dedc0b3d0fcc2b3339f0e79931faa33874f3d24f522183a8fc70068c` |
 | The card's photo (for the checks, not redistributed) | `http://images.cocodataset.org/val2017/000000039769.jpg` | | `000000039769.jpg` | 173,131 | `dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e` |
 
-The revision was the head of the source repository's main branch on 2026-11-02. The provider's model, prompt and processor code runs from that snapshot in the reference and in the graph export; `provider/` holds the files of it that the host reads.
+The revision was the head of the source repository's main branch on 2026-11-02. The provider (Liquid AI's model code in the source repository: its model, prompt and processor code) runs from that snapshot in the reference and in the graph export; `provider/` holds the files of it that the host reads.
 
 ## Environments
 

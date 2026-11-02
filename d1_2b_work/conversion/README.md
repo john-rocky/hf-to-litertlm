@@ -107,7 +107,7 @@ python3 conversion/pick_arms.py      # conversion/red_arms_chosen_arms.json: the
 python3 conversion/make_subsets.py   # conversion/ids_L128.json (the 382 requests that fit 128 tokens), red_arms_L128.json
 ```
 
-`out/ref/ref_fp32.json` (with its answer slots in `out/ref/ref_fp32_slots.npz`) holds the provider's answers in float32 on the CPU to the 526 requests: 520 answered, 5 refused, 1 too long for the largest graph. `pick_arms.py` and `make_subsets.py` read no output of the graphs: they ran before any check of the graphs.
+`out/ref/ref_fp32.json` (with its answer slots in `out/ref/ref_fp32_slots.npz`) holds the provider's answers in float32 on the CPU to the 526 requests: 521 answered and 5 refused. One of the answered, `long_refused_9k`, is longer than the largest graph holds, and the host refuses it, so the checks score 520. `pick_arms.py` and `make_subsets.py` read no output of the graphs: they ran before any check of the graphs.
 
 ### Agreement on the Mac
 

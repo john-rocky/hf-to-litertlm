@@ -21,6 +21,9 @@ def spoken(rec):
 
 
 def main():
+    if sys.argv[1:]:  # the script takes no arguments: print the usage and stop
+        print(__doc__.strip())
+        sys.exit(0 if sys.argv[1:] in (["-h"], ["--help"]) else 2)
     files = TEXTPIC_FILES + AUDIO_FILES + CARD_FILES
     recs, media = load_records(files, TEXTPIC_MEDIA + AUDIO_MEDIA)
     audio = sorted(r["id"] for r in recs if audio_ids(r, media))

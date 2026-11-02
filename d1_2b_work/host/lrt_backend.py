@@ -1,7 +1,6 @@
 """LiteRT backends for the d1-2B host (ai-edge-litert CompiledModel): the decision graph per bucket and the picture
 tower per canvas. CPU = XNNPACK with N threads; GPU = the platform's GPU accelerator (Metal on the Mac) with float32
-(`GpuOptions(enforce_f32=True)`) or the delegate's default precision; NPU = a file compiled ahead of time for the
-SoC's NPU, through the vendor's dispatch library.
+(`GpuOptions(enforce_f32=True)`) or the delegate's default precision.
 
     dec = LiteRTDecide({L: path, ...}, accelerator="gpu", precision="fp32")
     hidden = dec(embeds [T, 2048], state_len, question)      # the host's DecideBackend interface
@@ -35,8 +34,6 @@ def compiled_options(accelerator: str, precision: str = "fp32", threads: int = 8
         cpu = CpuOptions(num_threads=threads, xnnpack_weight_cache_path=weight_cache) if weight_cache else \
             CpuOptions(num_threads=threads)
         return Options(hardware_accelerators=HardwareAccelerator.CPU, cpu_options=cpu)
-    if accelerator == "npu":   # an ahead-of-time compiled file: one DISPATCH_OP, the vendor's dispatch library
-        return Options(hardware_accelerators=HardwareAccelerator.NPU)
     raise ValueError(accelerator)
 
 

@@ -13,17 +13,17 @@ provider/ holds files of the d1-Omni-2B repository at the revision above, unchan
 tokenizer.json, tokenizer_config.json, calibration.json, chat_template.jinja and processor_config.json (LFM Open License
 v1.0).
 
-The Python host (host/) imports the provider modules that need no PyTorch and ports, as numpy code, the rest of the
-d1-Omni-2B repository's request handling (runner.py, attention.py, pointer.py, the readout tables of prompt.py and the
-picture and audio paths of media.py) and its preprocessing (processing_lfm3_vl.py and image_processing_lfm3_vl.py, which
-run on transformers' TorchvisionBackend, processing_lfm3_omni.py and feature_extraction_lfm3_omni.py; transformers is
-licensed under the Apache License 2.0). The picture port includes PyTorch's uint8 antialiased bicubic resize (BSD
-3-Clause License). The audio port (host/d1_audio_features.py) copies the slaney mel filter bank of transformers'
-audio_utils and follows PyTorch's float32 arithmetic (BSD 3-Clause License), with ports of SLEEF's single-precision sine,
-cosine and log10 (Boost Software License 1.0) and of pocketfft's real FFT (BSD 3-Clause License). Its tokenizer runs on
-the tokenizers library (Apache License 2.0). The conversion scripts (conversion/) run the d1-Omni-2B repository's model
-code with transformers, litert-torch, ai-edge-quantizer and LiteRT (ai-edge-litert), each licensed under the Apache
-License 2.0.
+The Python host (host/) imports the modules of the provider (Liquid AI's model code in the d1-Omni-2B repository) that
+need no PyTorch and ports, as numpy code, the rest of the d1-Omni-2B repository's request handling (runner.py,
+attention.py, pointer.py, the readout tables of prompt.py and the picture and audio paths of media.py) and its
+preprocessing (processing_lfm3_vl.py and image_processing_lfm3_vl.py, which run on transformers' TorchvisionBackend,
+processing_lfm3_omni.py and feature_extraction_lfm3_omni.py; transformers is licensed under the Apache License 2.0). The
+picture port includes PyTorch's uint8 antialiased bicubic resize (BSD 3-Clause License). The audio port
+(host/d1_audio_features.py) copies the slaney mel filter bank of transformers' audio_utils and follows PyTorch's float32
+arithmetic (BSD 3-Clause License), with ports of SLEEF's single-precision sine, cosine and log10 (Boost Software License
+1.0) and of pocketfft's real FFT (BSD 3-Clause License). Its tokenizer runs on the tokenizers library (Apache License
+2.0). The conversion scripts (conversion/) run the d1-Omni-2B repository's model code with transformers, litert-torch,
+ai-edge-quantizer and LiteRT (ai-edge-litert), each licensed under the Apache License 2.0.
 The NPU step (conversion/npu/) also needs Qualcomm AI Runtime (QAIRT) 2.47.0, Qualcomm's SDK under its own
 license, which is not in this repository.
 

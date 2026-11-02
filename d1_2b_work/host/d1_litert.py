@@ -24,12 +24,6 @@ Both forms route a provider batch the same way: decide_b8_L128 when it has at le
 else each sequence on the smallest bucket that holds it. Pictures run on the tower files
 d1-2b_tower_G<GH>x<GW>[_qb1152]_fp16fc.tflite (the smallest canvas that holds the picture's patch grid). The GPU runs at
 float32 (GpuOptions(enforce_f32=True)): its default precision moves the answers outside the checked tolerance.
-
-accelerator="npu" (form "files" only) runs the decision files compiled ahead of time for one SoC's NPU, npu/<soc>/
-d1-2b_decide_L<L>_fp16fc_<SOC>.tflite and d1-2b_decide_b8_L128_fp16fc_<SOC>.tflite (soc="sm8850": the Qualcomm SM8850),
-through HardwareAccelerator.NPU and the vendor's dispatch library, which ai-edge-litert loads from its
-vendors/<vendor>/dispatch/ folder (none on a desktop: load_host then raises RuntimeError). A sequence longer than the
-largest NPU file and every picture run on the GPU at float32.
 """
 from __future__ import annotations
 
@@ -47,47 +41,6 @@ from lrt_backend import LiteRTDecide, LiteRTTower, graph_paths  # noqa: E402
 from multi8 import Multi8Decide  # noqa: E402
 
 PREFIX = "d1-2b"
-
-
-def npu_files(repo: str, soc: str = "sm8850") -> tuple[dict, str | None]:
-    """{L: path} of the decision files compiled ahead of time for the SoC's NPU (npu/<soc>/), and the B = 8 file."""
-    d = os.path.join(repo, "npu", soc)
-    names = sorted(os.listdir(d)) if os.path.isdir(d) else []
-    buckets = {int(m.group(1)): os.path.join(d, f) for f in names
-               if (m := re.fullmatch(rf"{PREFIX}_decide_L(\d+)_fp16fc_{soc.upper()}\.tflite", f))}
-    batch = f"{PREFIX}_decide_b8_L128_fp16fc_{soc.upper()}.tflite"
-    return buckets, (os.path.join(d, batch) if batch in names else None)
-
-
-def npu_dispatch_found() -> bool:
-    """Whether the installed ai-edge-litert holds a vendor dispatch library (vendors/<vendor>/dispatch/), which its
-    default environment loads for HardwareAccelerator.NPU."""
-    import glob
-
-    import ai_edge_litert
-
-    base = os.path.join(os.path.dirname(os.path.abspath(ai_edge_litert.__file__)), "vendors")
-    return bool(glob.glob(os.path.join(base, "*", "dispatch", "libLiteRtDispatch_*")))
-
-
-class SplitDecide:
-    """A sequence that fits `low` (the NPU files) runs there; a longer one runs on `high` (the GPU files at float32)."""
-
-    def __init__(self, low: LiteRTDecide, high: LiteRTDecide | None):
-        self.low, self.high = low, high
-        self.max_len = max(low.max_len, high.max_len if high is not None else 0)
-        self.last = {}
-
-    def __call__(self, embeds, state_len, question):
-        d = self.low if self.high is None or embeds.shape[0] <= self.low.max_len else self.high
-        out = d(embeds, state_len, question)
-        self.last = dict(d.last, accelerator=d.accelerator)
-        return out
-
-    def close(self):
-        self.low.close()
-        if self.high is not None:
-            self.high.close()
 
 
 class FilesDecide:
@@ -144,32 +97,14 @@ class Host(D1HostBatched):
 
 
 def load_host(repo: str = ".", accelerator: str = "cpu", form: str = "files", threads: int = 8, keep: int = 1,
-              weight_cache: str | None = None, soc: str = "sm8850") -> Host:
-    """The host over the files of `repo` (this repository's root). accelerator: "cpu" (XNNPACK, `threads`), "gpu"
-    (the GPU at float32) or "npu" (the files of npu/<soc>/; module docstring). form: "files" or "multi8" (module
-    docstring). keep: bucket files compiled at a time ("files"). weight_cache: the XNNPACK weight cache file of the
-    "multi8" form on the CPU (required there)."""
-    if accelerator not in ("cpu", "gpu", "npu"):
-        raise ValueError("accelerator is 'cpu', 'gpu' or 'npu'")
+              weight_cache: str | None = None) -> Host:
+    """The host over the files of `repo` (this repository's root). accelerator: "cpu" (XNNPACK, `threads`) or "gpu"
+    (the GPU at float32). form: "files" or "multi8" (module docstring). keep: bucket files compiled at a time ("files").
+    weight_cache: the XNNPACK weight cache file of the "multi8" form on the CPU (required there)."""
+    if accelerator not in ("cpu", "gpu"):
+        raise ValueError("accelerator is 'cpu' or 'gpu'")
     repo = os.path.abspath(repo)
     dec_paths, tow_paths = graph_paths(repo, "fp16fc")
-    if accelerator == "npu":
-        if form != "files":
-            raise ValueError("accelerator='npu' runs the single files of npu/<soc>/ (form='files')")
-        npu, npu_batch = npu_files(repo, soc)
-        if not npu:
-            raise FileNotFoundError(f"no {PREFIX}_decide_L<L>_fp16fc_{soc.upper()}.tflite file in {repo}/npu/{soc}")
-        if not npu_dispatch_found():
-            raise RuntimeError("accelerator='npu' needs an NPU vendor's dispatch library in the installed ai-edge-litert "
-                               "(ai_edge_litert/vendors/<vendor>/dispatch/libLiteRtDispatch_*), as on a phone with the "
-                               f"{soc.upper()}; this ai-edge-litert has none")
-        rest = {L: p for L, p in dec_paths.items() if L > max(npu)}
-        buckets = SplitDecide(LiteRTDecide(npu, "npu", "fp32", threads, keep=keep),
-                              LiteRTDecide(rest, "gpu", "fp32", threads, keep=keep) if rest else None)
-        decide = FilesDecide(buckets, npu_batch, "npu", threads)
-        tower = LiteRTTower(tow_paths, "gpu", "fp32", threads) if tow_paths else None
-        return Host(os.path.join(repo, "provider"), decide, tower,
-                    embed_table=os.path.join(repo, "tables", "embed_table.npy"))
     if form == "files":
         if not dec_paths:
             raise FileNotFoundError(f"no {PREFIX}_decide_L<L>_fp16fc.tflite file in {repo}")
