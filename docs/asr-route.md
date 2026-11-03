@@ -164,7 +164,7 @@ architecture with no `processor_config.json`, so the runtime's default front end
 
 - A GPU form (the LayerNorm composites, the float16 LayerNorm rescale of the parakeet-ultra entry) and any
   speed comparison against litert-community's file.
-- The PyPI package (`uvx hf-to-litertlm`) carries the route from its next release; 0.1.1 does not. A wheel
+- The PyPI package (`uvx hf-to-litertlm`) carries the route from 0.1.2 on; 0.1.1 does not. A wheel
   built locally from `45e3905` (`pypi/build.py`'s payload) ran `hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3
   --revision 541d1f99… --smoke` to the same bundle bytes (`06547994…`, 0 word errors) and `hf-to-litertlm
   verify` on its lock to MATCH. Its first run installs two environments: the converter's (`uv.lock`) and

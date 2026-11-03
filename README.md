@@ -314,7 +314,7 @@ A standalone speech recognition checkpoint converts with the same command. Today
 transformers. The model_type picks the route; `--task asr` names it.
 
 ```bash
-uvx hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3 --smoke               # the package from its next release (0.1.1 predates the route)
+uvx hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3 --smoke               # the package from 0.1.2 on
 uv run python scripts/convert.py nvidia/parakeet-tdt-0.6b-v3 --smoke  # the same from a clone, today
 # -> out/parakeet-tdt-0.6b-v3/parakeet-tdt-0.6b-v3_int8.litertlm (614 MB) + .lock.json + convert_report.json
 ```
