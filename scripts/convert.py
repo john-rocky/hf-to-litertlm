@@ -3,9 +3,13 @@
 
     uv sync
     uv run python scripts/convert.py <hf_model_id> [--revision SHA] [--recipe int8|int4]
-                                     [--out DIR] [--min-correct N] [--smoke] [--check]
+                                     [--out DIR] [--min-correct N] [--smoke] [--check] [--task asr]
 
 -> out/<name>/<name>_<recipe>.litertlm, <name>.lock.json, convert_report.json.
+
+--task asr (or a standalone speech recognition model_type in config.json) takes scripts/asr_route.py
+instead: a transformers ParakeetForTDT checkpoint -> one .litertlm with Speech2TextMetadata, the form of
+litert-torch PR #1426, gated through MediaPipe's AudioTranscriber (docs/asr-route.md).
 
 The lock (docs/one-command-lock.md) pins the source (repo, commit, size and sha256 of every
 file the export read, each checked against the Hub's tree), the export call, the toolchain
@@ -94,6 +98,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from failure_line import failure, first_line  # noqa: E402
+import asr_route  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INT4_RECIPE = REPO_ROOT / "recipes" / "qwen3_int4_block32_octav.json"
@@ -1277,6 +1282,11 @@ def main():
     ap.add_argument("--no-gate", action="store_true",
                     help="build and lock only, no exit gate and no check "
                          "(scripts/verify_lock.py rebuilds this way)")
+    ap.add_argument("--task", choices=("text", "asr"),
+                    help="text = an LLM or VLM bundle (the default); asr = a standalone speech "
+                         "recognition model -> a Speech2TextMetadata bundle (scripts/asr_route.py, "
+                         "docs/asr-route.md). Without it, a standalone speech recognition model_type "
+                         "takes the asr route")
     args = ap.parse_args()
     if args.int4:
         args.recipe = "int4"
@@ -1351,6 +1361,15 @@ def main():
         refuse(report, "gated",
                f"gated={info.gated!r} — weights are not openly downloadable",
                GATED_ACTION)
+
+    cfg_peek = {}
+    if args.task is None:
+        try:
+            cfg_peek = json.loads(hub_text(args.model, "config.json", sha) or "{}")
+        except json.JSONDecodeError:
+            cfg_peek = {}
+    if asr_route.wants_asr(args, cfg_peek):
+        sys.exit(asr_route.run(sys.modules[__name__], args, report, info, api, out_dir))
 
     report["stage"] = "gate"
     files = {s.rfilename for s in (info.siblings or [])}

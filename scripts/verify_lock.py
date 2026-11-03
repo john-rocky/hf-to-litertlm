@@ -8,7 +8,8 @@
    package version, uv.lock sha256). Otherwise it stops with FAIL and lists what differs: a lock
    is only a test of the toolchain that wrote it (to move to another one, raise the toolchain as
    docs/one-command-lock.md says).
-2. scripts/convert.py <repo> --revision <sha> --recipe <id> --no-gate, into a fresh dir under out/
+2. scripts/convert.py <repo> --revision <sha> --recipe <id> [--task <task>] --no-gate, into a fresh
+   dir under out/ (--task asr for a lock the speech recognition route wrote)
    (from the package: out/ in the current directory).
 3. The whole-file sha256 equal -> MATCH. Otherwise DIFF, with each section's sha256 and the
    header's uuid / creation_timestamp of both files; the rebuilt file is kept for a closer look
@@ -72,6 +73,8 @@ def main():
     tmp = Path(tempfile.mkdtemp(prefix=f"{name}.verify-", dir=out_root))
     cmd = [sys.executable, str(convert.REPO_ROOT / "scripts" / "convert.py"), repo,
            "--revision", rev, "--recipe", rid, "--out", str(tmp), "--no-gate"]
+    if lock.get("task"):
+        cmd += ["--task", lock["task"]]
     print("rebuild: " + " ".join(cmd[1:]))
     t0 = time.time()
     proc = subprocess.run(cmd)

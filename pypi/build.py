@@ -29,6 +29,9 @@ PAYLOAD = [
     "scripts/section_identity.py", "tools/chat_template_prefix/desk_render.py",
     "recipes/qwen3_int4_block32_octav.json", "recipes/curated_index.json",
     "lfm_work/add_executor_metadata.py", "granite_work/drop_start_token.py",
+    # the speech recognition route (convert.py imports asr_route; asr/ is its second uv project)
+    "scripts/asr_route.py", "asr/export_parakeet_tdt.py", "asr/pack_speech2text.py", "asr/smoke.py",
+    "asr/pyproject.toml", "asr/uv.lock",
 ]
 PACKAGE_FILES = ["pyproject.toml", "README.md", "hf_to_litertlm/__init__.py",
                  "hf_to_litertlm/__main__.py", "hf_to_litertlm/cli.py"]

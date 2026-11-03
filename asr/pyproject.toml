@@ -1,0 +1,17 @@
+[project]
+name = "hf-to-litertlm-asr"
+version = "0.1.0"
+description = "The pack and smoke environment of the ASR route: litert-lm-builder 0.19.0 writes the Speech2TextMetadata section (0.18.0 has none), mediapipe 1.2.0's AudioTranscriber runs the bundle"
+requires-python = ">=3.12"
+dependencies = [
+    # pinned like the root project: raise by editing the == pins, then `uv lock --project asr`
+    "litert-lm-builder==0.19.0",
+    "mediapipe==1.2.0",
+    "numpy",
+    "protobuf",
+    "pyarrow",
+    "soundfile",
+]
+
+[tool.uv]
+package = false

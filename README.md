@@ -307,6 +307,47 @@ Latin-1, emoji — the engine's encode against the upstream `tokenizer.json`). T
 on a format-exact derivative, first blamed on the runtime, was the bundle's own SentencePiece
 section; the gate is what catches it, and REPRODUCE.md carries the correction.
 
+## Speech recognition models
+
+A standalone speech recognition checkpoint converts with the same command. Today that is transformers'
+`ParakeetForTDT` (model_type `parakeet_tdt`): nvidia/parakeet-tdt-0.6b-v3 and finetunes saved with
+transformers. The model_type picks the route; `--task asr` names it.
+
+```bash
+uvx hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3 --smoke               # the package from its next release (0.1.1 predates the route)
+uv run python scripts/convert.py nvidia/parakeet-tdt-0.6b-v3 --smoke  # the same from a clone, today
+# -> out/parakeet-tdt-0.6b-v3/parakeet-tdt-0.6b-v3_int8.litertlm (614 MB) + .lock.json + convert_report.json
+```
+
+The file has the form of litert-torch [PR #1426](https://github.com/google-ai-edge/litert-torch/pull/1426):
+a Speech2TextMetadata section, the repo's own `tokenizer.json` and one `.tflite` with the `encode` /
+`decode` / `decode_1` signatures of litert-community's
+[parakeet-tdt-0.6b-v3](https://huggingface.co/litert-community/parakeet-tdt-0.6b-v3) file. MediaPipe's
+`AudioTranscriber` runs it (`pip install mediapipe==1.2.0 soundfile`), and LiteRT-LM's C++ `OmniEngine`
+reads the same sections; the `litert-lm` 0.19.0 Python package and CLI have no speech-to-text API.
+
+```python
+from mediapipe.tasks.python.audio import audio_transcriber
+from mediapipe.tasks.python.core import base_options
+import soundfile as sf
+
+audio, rate = sf.read("speech.wav", dtype="float32")
+if audio.ndim > 1:
+    audio = audio.mean(axis=1)  # the task takes mono samples
+options = audio_transcriber.AudioTranscriberOptions(
+    base_options=base_options.BaseOptions(model_asset_path="out/parakeet-tdt-0.6b-v3/parakeet-tdt-0.6b-v3_int8.litertlm"),
+    sample_rate_hz=rate)
+with audio_transcriber.AudioTranscriber.create_from_options(options) as transcriber:
+    print(transcriber.transcribe(audio, end_of_stream=True).text)
+```
+
+The gate transcribes LibriSpeech clips through that task on the CPU: `--smoke` one clip, by default 73
+clips with a word error rate of at most 0.10 (on a Mac, litert-community's own file scores 0.0609 on them
+and this route's file 0.0626). The export needs no NeMo. CTC, RNN-T, Whisper, Moonshine and the streaming
+Nemotron models are refused with the reason. The design, the field-by-field match with PR #1426 and the
+measurements: [docs/asr-route.md](docs/asr-route.md). `verify <lock>` rebuilds an ASR file to the same bytes
+like any other.
+
 ## Reproduce a published model
 
 ```bash
