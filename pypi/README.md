@@ -8,6 +8,7 @@ the lock file it writes gives the same bytes.
 uvx hf-to-litertlm <org>/<model>                              # -> out/<model>/: <model>_int8.litertlm, <model>.lock.json, convert_report.json
 uvx hf-to-litertlm verify out/<model>/<model>.lock.json       # rebuild from the lock: MATCH = the same bytes
 uvx hf-to-litertlm check out/<model>/<model>_int8.litertlm    # litert-lm 0.18.0, CPU: load + an echo prompt -> PASS / FAIL
+uvx hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3 --smoke        # speech recognition: a Speech2TextMetadata .litertlm (from 0.1.2)
 ```
 
 `uvx` needs [uv](https://docs.astral.sh/uv/); `pip install hf-to-litertlm` pulls uv in as a dependency
@@ -55,6 +56,19 @@ Rebuilt byte for byte from their locks in a clone, on macOS arm64: `Qwen/Qwen3-1
 package, `Qwen/Qwen3-1.7B` converted to the bytes that its lock in
 [`locks/refs/`](https://github.com/john-rocky/hf-to-litertlm/tree/main/locks/refs) records (gate 8/8),
 and a clone rebuilt the package's lock to the same bytes.
+
+**Speech recognition (from 0.1.2).** A standalone speech recognition checkpoint converts with the same
+command. Today that is transformers' `ParakeetForTDT` (model_type `parakeet_tdt`: nvidia/parakeet-tdt-0.6b-v3
+and finetunes saved with transformers); the model_type picks the route, and `--task asr` names it. The output
+is one `.litertlm` in the form of litert-torch
+[PR #1426](https://github.com/google-ai-edge/litert-torch/pull/1426): a Speech2TextMetadata section, the
+repo's own `tokenizer.json` and one `.tflite` with the `encode` / `decode` / `decode_1` signatures.
+MediaPipe 1.2.0's `AudioTranscriber` runs it; the `litert-lm` 0.19.0 Python package and CLI have no
+speech-to-text API. The gate transcribes LibriSpeech clips on the CPU (`--smoke`: one clip; by default 73
+clips, word error rate at most 0.10). The first such run also installs a second environment for the bundle
+writer and the gate (litert-lm-builder 0.19.0, mediapipe 1.2.0). CTC, RNN-T, Whisper, Moonshine and the
+streaming Nemotron models are refused with the reason. Details:
+[docs/asr-route.md](https://github.com/john-rocky/hf-to-litertlm/blob/main/docs/asr-route.md).
 
 The hybrid families that need a patched litert-torch checkout (granite-4.0-h, Falcon-H1, Zamba2,
 Nemotron-H) and the hand-made recipes of the repository's published conversions (`--curated`) run from

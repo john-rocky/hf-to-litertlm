@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hf-to-litertlm"
-version = "0.1.1"
+version = "0.1.2"
 description = "One command from a Hugging Face model repo to a .litertlm bundle for LiteRT-LM, on a pinned toolchain; rebuilding from its lock file gives the same bytes"
 readme = "README.md"
 requires-python = ">=3.9"
