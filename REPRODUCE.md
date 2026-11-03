@@ -3789,6 +3789,97 @@ Env (`scripts/requirements-venv-*.txt`, every package pinned, the same files as 
 
 **Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats.
 
+## nemotron-3.5-asr-streaming-0.6b (cache-aware streaming RNN-T speech recognition → LiteRT: 320 ms chunks with the caches as graph inputs and outputs; fp16 weights for a phone's CPU, GPU and NPU, fp32 for the desktop example)
+
+[`nemotron_asr_stream_work/`](nemotron_asr_stream_work/) converts [nvidia/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b) (a cache-aware FastConformer encoder with an RNN-T decoder and a language prompt, 40 language-locales) into plain LiteRT `.tflite` graphs for 320 ms streaming (lookahead 3 = 4 encoder frames per chunk): a log-mel front end (`mel_first` / `mel`), the subsampling with its convolution caches (`pre_first` / `pre`), the 24-layer conformer in one graph with its attention and convolution caches as inputs and outputs (`conformer`), and the RNN-T decoder (`predict` / `joint`), with the chunking and the greedy RNN-T loop on the host. No NeMo: the graphs are plain PyTorch modules (`scripts/graphs.py`) that read the checkpoint's safetensors, checked against transformers' `Nemotron3_5AsrForRNNT` streaming generation. Two more conformer files are for a phone's CPU and NPU: one with each layer's relative-position matmul written as a fully connected layer, so that XNNPACK runs 4,090 of its 4,093 nodes in float16 arithmetic on the CPU, all but the three concatenations at its end (`scripts/export_r3_fc.py`), and one with the subsampling and the conformer in one graph for the NPU (`scripts/export_r4_fused.py`, `scripts/graphs_r4.py`). Published: [litert-community/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/litert-community/nemotron-3.5-asr-streaming-0.6b) (with an Android runner).
+
+```sh
+cd nemotron_asr_stream_work
+# three Python 3.12.11 environments at the versions that made the published files (scripts/requirements-venv-*.txt = uv pip freeze, macOS arm64)
+uv venv -p 3.12.11 .venv-ref && uv pip install -p .venv-ref -r scripts/requirements-venv-ref.txt
+uv venv -p 3.12.11 .venv-lt && uv pip install -p .venv-lt -r scripts/requirements-venv-lt.txt
+uv venv -p 3.12.11 .venv-q && uv pip install -p .venv-q -r scripts/requirements-venv-q.txt
+# the checkpoint at a pinned revision (the safetensors weights, the configs and the tokenizer)
+.venv-ref/bin/hf download nvidia/nemotron-3.5-asr-streaming-0.6b config.json generation_config.json model.safetensors processor_config.json tokenizer.json tokenizer_config.json --revision ea30d66debe3740a08b573244286791d423d6b3e --local-dir hf/nemotron
+# LibriSpeech test-clean (CC BY 4.0) from the Open ASR Leaderboard's copy at a pinned revision, read by the checks of the two phone files' exports below (not redistributed here)
+.venv-ref/bin/hf download hf-audio/open-asr-leaderboard librispeech/test.clean-00000-of-00001.parquet --repo-type dataset --revision de79e57adf9983993bcc72586d7313460825f5eb --local-dir data
+shasum -a 256 -c <<'EOF'
+e576cf31312bf67d5ab714ac1dd93fb52d60d62659b76402ba1f97484464ddc3  data/librispeech/test.clean-00000-of-00001.parquet
+EOF
+# the processor's mel filter bank (the constant of the mel graphs)
+mkdir -p out/graphs && .venv-ref/bin/python -c 'import numpy as np; from transformers import AutoProcessor; np.save("out/graphs/melfb.npy", AutoProcessor.from_pretrained("hf/nemotron").feature_extractor.mel_filters.numpy().astype(np.float32))'
+# graphs (litert-torch 0.10.0): mel, pre, the float32 conformer, the decoder, and the conformer with its LayerNorm inputs rescaled (results/r1/fix.json, shipped here: the k of each of the 144 LayerNorm sites, x · 2^-k; scripts/range_pass.py made it from a range pass over 98 utterances (the 82 of our LibriSpeech test-clean check set and the 4 longest of each of the FLEURS German, French, Russian and Japanese test sets; 3,661 chunks))
+PYTHONHASHSEED=0 .venv-lt/bin/python scripts/export_graphs.py --only mel,pre,conformer_fp32,dec_fp32,conformer_fp32s
+# the converter writes the attention matmuls at rank 3: lift them to rank 4
+for c in conformer_fp32 conformer_fp32s; do
+  mv out/graphs/$c.tflite out/graphs/${c}_raw.tflite && .venv-q/bin/python scripts/r2_fb.py lift out/graphs/${c}_raw.tflite out/graphs/$c.tflite --json results/r1/lift_$c.json && rm out/graphs/${c}_raw.tflite
+done
+# the GPU conformer: float16 weights behind DEQUANTIZE (ai-edge-quantizer float_casting), from the rescaled conformer (the NPU's graph is made further down)
+.venv-q/bin/python scripts/half.py out/graphs/conformer_fp32s.tflite out/graphs/conformer_fp16ws.tflite --json results/r1/q_fp16ws.json
+# the decoder with int8 weights (ai-edge-quantizer dynamic_wi8_afp32)
+.venv-q/bin/python scripts/u1_quant.py int8 out/graphs/dec_fp32.tflite out/graphs/dec_int8.tflite --json results/r1/q_dec_int8.json
+# the published files (sha256)
+shasum -a 256 -c <<'EOF'
+dc6f59d2f3be10be63b775905980e61ba9816092ec4f2448cd57fb6e695d6f6d  out/graphs/mel.tflite
+0334afcbdd9686745683f9354ed7833be3c70fead76da727342a8c9054a4dac1  out/graphs/pre.tflite
+34390331b9439ee8efad2e6e9a8c936906c6a2409210accc2d6081d277b131fe  out/graphs/conformer_fp32.tflite
+1f894abdc212fdcb1107b0b6ff02a3c52a99e37893146609cb37aacdc67bc08e  out/graphs/conformer_fp16ws.tflite
+8a14e05f09b80eca1729748e0db7b3fde6926d7729dd6ee659eeb3b2c4ab7cc8  out/graphs/dec_fp32.tflite
+af1fdc6567b9a3c82b92e967b066a0106212c162bcc6520fab09ff06ed1c4899  out/graphs/dec_int8.tflite
+EOF
+# the inputs of the two PyTorch checks below: the first three utterances of our LibriSpeech test-clean check set (from the parquet downloaded above) and their mel frames from the float32 PyTorch mel modules
+.venv-ref/bin/python - <<'PY'
+import io, json, os, sys
+import numpy as np, pyarrow.parquet as pq, soundfile as sf, torch
+sys.path.insert(0, "scripts")
+import graphs as G
+ids = ["4507-16021-0047", "8230-279154-0043", "5105-28241-0001"]
+t = pq.read_table("data/librispeech/test.clean-00000-of-00001.parquet", columns=["id", "audio"])
+col = [str(x) for x in t.column("id").to_pylist()]
+mf = np.load(G.MELFB)
+mel_first, mel_next = G.MelFirst(mf).eval(), G.MelNext(mf).eval()
+for d in ("data/sets/ls", "data/sets/ls-S32", "out/p0"):
+    os.makedirs(d, exist_ok=True)
+rows, dumps = [], {}
+for u in ids:
+    a, sr = sf.read(io.BytesIO(t.column("audio")[col.index(u)].as_py()["bytes"]), dtype="float32")
+    p = f"data/sets/ls/{u}.wav"
+    sf.write(p, a, sr, subtype="PCM_16")
+    rows.append({"id": u, "path": p})
+    x, _ = sf.read(p, dtype="float32")
+    with torch.no_grad():
+        m = [(mel_first if c == 0 else mel_next)(torch.from_numpy(pcm)[None])[0].numpy() for c, pcm in enumerate(G.pcm_chunks(x))]
+    dumps[f"ls-S32/{u}/mel0"], dumps[f"ls-S32/{u}/mel"] = m[0], np.stack(m[1:])
+with open("data/sets/ls-S32/manifest.jsonl", "w") as f:
+    f.writelines(json.dumps(r) + "\n" for r in rows)
+np.savez("out/p0/fp32_cpu_chunks.npz", **dumps)
+PY
+# a phone's CPU: each layer's relative-position matmul, with the query projection folded in, as one fully connected layer (XNNPACK's float16 arithmetic refuses a matmul whose second input is a constant), checked in PyTorch against the conformer above on the first 8 chunks of the first utterance; the script writes the form without and with the LayerNorm rescale, and the rescaled one gets float16 weights as above
+PYTHONHASHSEED=0 .venv-lt/bin/python scripts/export_r3_fc.py
+.venv-q/bin/python scripts/half.py out/r3/graphs/conformer_fp32s_fc.tflite out/r3/graphs/conformer_fp16ws_fc.tflite --json results/r3/q_fp16ws_fc.json
+# the NPU: the subsampling and the conformer in one graph (signature conformer_pre), checked in PyTorch against pre + conformer on the first 6 chunks of the three utterances, then the rank lift and float16 weights as above
+PYTHONHASHSEED=0 .venv-lt/bin/python scripts/export_r4_fused.py --only conformer_pre_fp32s
+.venv-q/bin/python scripts/r2_fb.py lift out/r4/graphs/conformer_pre_fp32s_raw.tflite out/r4/graphs/conformer_pre_fp32s.tflite --json results/r4/lift_conformer_pre_fp32s.json && rm out/r4/graphs/conformer_pre_fp32s_raw.tflite
+.venv-q/bin/python scripts/half.py out/r4/graphs/conformer_pre_fp32s.tflite out/r4/graphs/conformer_pre_fp16ws.tflite --json results/r4/q_fp16ws.json
+# the two phone files (sha256)
+shasum -a 256 -c <<'EOF'
+75205238df82c3323921804a88960a87007c8c8df179ff2238401499e270ea94  out/r3/graphs/conformer_fp16ws_fc.tflite
+00dc815d35a57f2266351eea45f626011aa47446b4fbc19a5d5baca8c14621ce  out/r4/graphs/conformer_pre_fp16ws.tflite
+EOF
+```
+
+Run as printed in clean checkouts on macOS 27 on an Apple M4 Max (the three environments made with uv from `scripts/requirements-venv-*.txt`), the eight published `.tflite` files came out byte for byte equal to the published ones: on 2026-11-02 the steps through the first `shasum` check (six files; the export step took 380 s and peaked at 12.6 GB of resident memory), and on 2026-11-03 the setup steps again and the steps from the check inputs on (the CPU and NPU files; `export_r3_fc.py` took 118 s and peaked at 13.7 GB, `export_r4_fused.py` 56 s and 9.6 GB).
+
+Published names: `out/graphs/mel` → `nemotron_asr_mel.tflite`, `out/graphs/pre` → `nemotron_asr_pre.tflite`, `out/graphs/conformer_fp32` → `nemotron_asr_conformer_f32.tflite` (the desktop Python example), `out/r3/graphs/conformer_fp16ws_fc` → `nemotron_asr_conformer_f16_cpu.tflite` (a phone's CPU), `out/graphs/conformer_fp16ws` → `nemotron_asr_conformer_f16.tflite` (GPU), `out/r4/graphs/conformer_pre_fp16ws` → `nemotron_asr_conformer_pre_f16.tflite` (NPU), `out/graphs/dec_fp32` → `nemotron_asr_decoder_f32.tflite`, `out/graphs/dec_int8` → `nemotron_asr_decoder_i8.tflite`; `tokenizer.json` and `processor_config.json` are the original's files. The Android runner (`runner/nemotron_stream_runner.cc`, `runner/build_android.sh`, `runner/rnnt_text.py`) reads the model files from its arguments; it cuts the audio into chunks, runs mel → pre → conformer per chunk and the greedy RNN-T loop on the host, and prints the token ids, which `rnnt_text.py` turns into text.
+
+Env (`scripts/requirements-venv-*.txt`, every package pinned): `.venv-ref` = torch 2.14.1 + transformers 5.22.1 + tokenizers 0.23.3 (the reference, the filter bank and the check inputs); `.venv-lt` = litert-torch 0.10.0 + torch 2.14.1 + transformers 5.22.1 + litert-converter 0.5.0 (the export); `.venv-q` = ai-edge-litert 2.3.0 + ai-edge-quantizer 0.10.0 (the rank lift, float16 and int8). Python 3.12.11, uv.
+
+**The chunking.** The graphs follow the processor's streaming loop at lookahead 3: chunk 0 = samples [0, 4,040) through `mel_first` (25 mel frames), then chunk k ≥ 1 = the 5,520 samples from 3,744 + 5,120 (k − 1) through `mel` (32 mel frames); every chunk gives 4 encoder frames. The loop in the original model card's transformers snippet stops before the audio's last partial chunk, so its tail is not transcribed; this conversion appends 5,520 zero samples and streams until the chunk that holds the last real sample.
+
+**The caches are graph inputs and outputs.** `conformer` takes the chunk's 4 frames from `pre` (`x`, [1, 4, 1024]), the right-aligned 56-frame key / value window of every layer ([24, 8, 56, 128] each), the 8-frame convolution context of every layer ([24, 1024, 8]), an additive mask that blanks the not-yet-filled cache slots (−30,000 on the first 56 − min(56, 4·k) slots of chunk k) and the language one-hot ([1, 128], the prompt id of `processor_config.json`'s `prompt_dictionary`), and returns the encoder frames with the next caches; `pre` carries its three convolution caches the same way. The host copies each output cache into the next chunk's input. The NPU's `conformer_pre` takes `pre`'s inputs (the chunk's 32 mel frames and `pre`'s three caches) in place of `x`, the rest of `conformer`'s inputs, and two row masks (`scripts/contract_r4.py`): chunk 0 goes in as 7 zero rows followed by `mel_first`'s 25 rows, with zeros on the first 3 rows of the [1, 1, 16, 1] mask and on the first row of the [1, 1, 8, 1] one, which gives `pre_first`'s result; every later chunk takes masks of ones.
+
+**Float16 needs a LayerNorm rescale.** In this checkpoint's encoder the variance of a LayerNorm input row reaches 137,326 over the range pass, beyond float16's largest value 65,504 (and one element's deviation from its row mean reaches 10,768). Each of the 144 LayerNorm sites takes x · 2^-k and eps · 4^-k (k = 2–9, `results/r1/fix.json`); in float32 the output is the same function, and the float16 weights are the float32 weights rounded to nearest even behind DEQUANTIZE. The three phone files carry the rescale: the GPU (float16 arithmetic) runs `conformer_fp16ws`, the NPU `conformer_pre_fp16ws`, a phone's CPU `conformer_fp16ws_fc` (XNNPACK flags 7 = QS8 | QU8 | FORCE_FP16); the desktop example runs the float32 file.
+
 ## iris-3b Turbo (speridlabs) — text-to-image as 20 LiteRT graphs: a 3B pixel-space DiT and the Qwen3-VL-4B text encoder with float16 weights and float32 activations, every graph on the phone's GPU at FP32 (2026-10-22)
 
 [`iris3b_work/`](iris3b_work/) converts [speridlabs/iris-3b](https://huggingface.co/speridlabs/iris-3b) Turbo (Apache-2.0; 4 steps, no classifier-free guidance, no VAE) and the language stack of [Qwen/Qwen3-VL-4B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct) into the files of [litert-community/iris-3b-Turbo-LiteRT](https://huggingface.co/litert-community/iris-3b-Turbo-LiteRT) for 768 × 768 images: 12 text-encoder graphs (one per hidden state the DiT reads), the text adapter, 6 trunk chunks and the pixel stage, 12,869,097,872 bytes with every FULLY_CONNECTED weight float16 behind a DEQUANTIZE, plus the tokenizer files, the bfloat16 embedding table and the host tensors. The Android app that runs them on the phone's GPU with LiteRT 2.2.0: [LiteRT-Models `iris3b/`](https://github.com/john-rocky/LiteRT-Models/tree/main/iris3b).
