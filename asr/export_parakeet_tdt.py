@@ -20,8 +20,9 @@ runtime reads T as numel / 1024), V + 1 = the vocabulary with the blank last, K 
 reads the duration index as the frame step, so durations must be 0..K-1), L x H = the LSTM's layers x width.
 
 The LSTM is written as explicit gates (torch's LSTMCell arithmetic, the token loop unrolled), as in
-parakeet_redux_work/scripts/r2_graphs.py; the joint head runs on [1, T * U, H] (litert-torch PR #1426 flattens the
-same way: a rank-4 FULLY_CONNECTED input broke tfl.batch_matmul lowering at U = 1).
+parakeet_redux_work/scripts/r2_graphs.py; the joint head runs on [1, T * U, H] (litert-torch PR #1426's
+_FlattenedJointNet flattens the same way: "Avoids a TFLite MLIR BatchMatMul reshape fusion rank-mismatch failure
+when `U == 1` in `decode_1`."; this export did not try the rank-4 form).
 
 Writes <work_dir>/asr_model_fp32.tflite, <work_dir>/asr_model_<recipe>.tflite (recipe int8 = the stock exporter's
 dynamic_wi8_afp32 via litert_torch's quantize_model), <work_dir>/speech2text_metadata.json (the fields PR #1426's
