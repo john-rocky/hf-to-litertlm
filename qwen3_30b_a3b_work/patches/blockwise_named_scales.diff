@@ -1,0 +1,79 @@
+diff --git a/tensor/backends/tflite/tflite_flatbuffer_conversion.cc b/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
+index bb82771..3a92375 100644
+--- a/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
++++ b/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
+@@ -410,6 +410,9 @@ absl::Status ModelFactory::Build() {
+ 
+   size_t unnamed_input_idx = 0;
+   size_t unnamed_output_idx = 0;
++  // (tensor index, scales tensor name) of blockwise tensors whose scales are
++  // an existing tensor of this subgraph.
++  std::vector<std::pair<int, std::string>> named_scale_refs;
+ 
+   for (auto& [tensor, build_info] : tensors_) {
+     // The const cast is safe: we hash on the tensor group shared_ptr and index
+@@ -479,6 +482,21 @@ absl::Status ModelFactory::Build() {
+                                             pcq->zero_points.front());
+         }
+         t.quantization->quantized_dimension = pcq->quantized_dimension;
++      } else if (auto bwn = tensor_info.quantization
++                                ->As<const BlockwiseQuantization>();
++                 bwn.ok() && !bwn->scales_tensor_name.empty()) {
++        // Scales live in an existing tensor of this subgraph; its index is
++        // resolved once every tensor has one (see named_scale_refs below).
++        t.quantization = std::make_unique<tflite::QuantizationParametersT>();
++        t.quantization->quantized_dimension = bwn->quantized_dimension;
++        tflite::BlockwiseQuantizationT q_details;
++        q_details.scales = -1;
++        q_details.zero_points = -1;
++        q_details.block_size = bwn->block_size;
++        q_details.block_shape = bwn->block_shape;
++        t.quantization->details.Set(std::move(q_details));
++        named_scale_refs.emplace_back(build_info.index,
++                                      bwn->scales_tensor_name);
+       } else if (auto bwq = tensor_info.quantization
+                                 ->As<const BlockwiseQuantization>();
+                  bwq.ok()) {
+@@ -532,6 +550,24 @@ absl::Status ModelFactory::Build() {
+     }
+   }
+ 
++  for (const auto& [tensor_index, scales_name] : named_scale_refs) {
++    int scales_index = -1;
++    for (size_t j = 0; j < subgraph.tensors.size(); ++j) {
++      if (subgraph.tensors[j]->name == scales_name) {
++        scales_index = static_cast<int>(j);
++        break;
++      }
++    }
++    if (scales_index < 0) {
++      return absl::InvalidArgumentError(
++          absl::StrCat("Blockwise scales tensor '", scales_name,
++                       "' is not a tensor of this subgraph."));
++    }
++    subgraph.tensors[tensor_index]
++        ->quantization->details.AsBlockwiseQuantization()
++        ->scales = scales_index;
++  }
++
+   // Record scope boundary tensor references for this subgraph and assign
+   // hierarchical scope-qualified names to unnamed intermediate tensors in the
+   // FlatBuffer (`t.name`) without mutating `tensor_info.name`.
+diff --git a/tensor/internal/graph.h b/tensor/internal/graph.h
+index 8909b38..cfe0c2b 100644
+--- a/tensor/internal/graph.h
++++ b/tensor/internal/graph.h
+@@ -130,6 +130,13 @@ struct BlockwiseQuantization : Quantization {
+   std::vector<int64_t> zero_points;
+   int block_size;
+   int quantized_dimension;
++  // When `scales_tensor_name` is set, the TFLite serializer writes no scale
++  // tensor of its own: the details reference the existing tensor of that name
++  // in the same subgraph (e.g. the float32 scale input of a "moe" custom op),
++  // and `block_shape` (one entry per dimension) is written when not empty.
++  // This is ai-edge-quantizer's multi-axis form for MoE experts.
++  std::vector<int32_t> block_shape;
++  std::string scales_tensor_name;
+ };
+ 
+ using Shape = std::vector<int32_t>;
