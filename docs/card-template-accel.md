@@ -57,6 +57,14 @@ difference between the backends, not a footnote. For a one-sided verdict
 (`NPU_ONLY`, `RUNTIME_FAIL`, …) keep the surviving row and state the other side's failure
 in the verdict prose, with the error one-liner if there is one.
 
+**Score on the files as published.** If a usage block converts the input (for example
+`ffmpeg … -c:a pcm_s16le` writes 16-bit PCM from a 32-bit float file), score the accuracy
+tables on the files as published and say so under the block: one token can change. On
+FLEURS's Japanese test file 10401481013809636276.wav, every phone backend of
+nvidia/nemotron-3.5-asr-streaming-0.6b's LiteRT conversion gave 確率予測 from the 16-bit
+file, where the Pixel 11 Pro's CPU and the Galaxy S26's NPU gave 確率で予測 from the 32-bit
+file (the float32 PyTorch reference: 確立で予測).
+
 ## LLM block (`.litertlm`)
 
 ```markdown

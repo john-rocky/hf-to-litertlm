@@ -72,6 +72,7 @@ with Google.
 | GPU or NPU on Android for these bundles | Measured notes | [docs/android-gpu.md](docs/android-gpu.md), [docs/android-npu.md](docs/android-npu.md) |
 | Check a converted graph on an Android phone (parity rows, ms, memory) and keep the record | Run `bash tools/devicebench/dryrun.sh <lane.env>` on a fake phone first, then `bash tools/devicebench/chain.sh check\|run <round> <lane.env>` | [skills/android-device-gate/SKILL.md](skills/android-device-gate/SKILL.md) (the steps, on a public example), [tools/devicebench/README.md](tools/devicebench/README.md) |
 | Ask for a model to be converted | Open a model request with the Hugging Face link; that is the whole ask | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| A raw graph that must run in float16 arithmetic on the phone CPU (XNNPACK flags 7) and fails at prepare on a BATCH_MATMUL with a constant second input | Rewrite that matmul as a FULLY_CONNECTED on the layer's input with the bias folded in; check the profile (every datatype tag F16, one XNNPACK partition) and score the hardest set in three fresh processes | [docs/cpu-fp16-xnnpack.md](docs/cpu-fp16-xnnpack.md) |
 
 ## Rules
 
