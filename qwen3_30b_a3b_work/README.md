@@ -23,10 +23,10 @@ never holds an fp32 graph (its peak memory was 2.6 GB for the pack and 0.1 GB fo
 
 ## The runtime it needs
 
-The experts use SiLU. The `moe` op of LiteRT accepts only GELU so far: LiteRT-LM 0.19.0 (the latest release on
-2026-11-03, PyPI and GitHub) refuses these files on the CPU (`moe node #85 unsupported activation='silu'`) and on the
-GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`), and LiteRT's main branch has the same
-checks on that day. SiLU support is in two open pull requests of the LiteRT repository: #11192 (the GPU delegate's moe
+The experts use SiLU. The `moe` op of LiteRT accepts only GELU so far: LiteRT-LM 0.19.0, the latest release on
+2026-11-03 (PyPI and GitHub), refuses these files; its PyPI package on the CPU (`moe node #85 unsupported
+activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). LiteRT's
+main branch has the same checks on that day. SiLU support is in two open pull requests of the LiteRT repository: #11192 (the GPU delegate's moe
 kernel) and #11188 (the XNNPACK kernel). Until a LiteRT-LM release includes them, build LiteRT-LM with them:
 
 ```bash
@@ -89,7 +89,7 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
    hf download Qwen/Qwen3-30B-A3B --revision ad44e777bcd18fa416d9da3bd8f70d33ebb85d39 --local-dir SNAPSHOT
    ```
 
-2. Pack the weights (20.6 GB; 3 to 11 minutes depending on the disk, peak memory 2.6 GB) and check the scales:
+2. Pack the weights (20.6 GB; 161 s on a Mac's internal SSD, peak memory 2.6 GB) and check the scales:
 
    ```bash
    python tapi_pack_moe.py SNAPSHOT PACK --experts xb4 --block 32 --fc int8 --lm-head int8
