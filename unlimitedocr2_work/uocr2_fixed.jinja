@@ -1,0 +1,18 @@
+{%- for message in messages -%}
+{%- if message['role'] == 'user' -%}
+{%- if message['content'] is not string -%}
+{%- for item in message['content'] -%}
+{%- if item['type'] == 'image' -%}<PAGE><image_soft_token>{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+Multi page parsing.
+{%- elif message['role'] == 'assistant' or message['role'] == 'model' -%}
+{%- if message['content'] is string -%}{{ message['content'] }}
+{%- else -%}
+{%- for item in message['content'] -%}
+{%- if item['type'] == 'text' -%}{{ item['text'] }}{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+<｜end▁of▁sentence｜>
+{%- endif -%}
+{%- endfor -%}
