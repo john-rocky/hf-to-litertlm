@@ -14,12 +14,16 @@ into 1,024 x 1,024 with the gray of its 0.5 normalisation mean. A page prepared 
 to 1,024 x 1,024 unchanged; a picture of another shape would be stretched.
 Prompt: none to choose. The bundle's template writes <PAGE>, the page, then the model's instruction
 "Multi page parsing.".
-Decoding: greedy (the bundle's sampler) with the runtime's no-repeat n-gram constraint, n = 35 within the last 128
-generated tokens (NoRepeatNgramConfig(35, 128)).
+Decoding: the most likely token at each step (the bundle sets no sampler; LiteRT-LM 0.19.0 then takes top-p with
+k = 1) with the runtime's no-repeat n-gram constraint, n = 35 within the last 128 generated tokens
+(NoRepeatNgramConfig(35, 128)), the model's own setting for one page.
 Several pictures: one request per page, in the order given, each in a new conversation on one Engine. The texts are
 printed in that order, joined as they are; each page's text starts with <PAGE>, as in the model's multi-page output.
 Output: the model's raw text with its tags kept (<PAGE>, <BLOCK>, <FORK>, ...), as the checkpoint's infer() returns it.
-Caches: nothing is written unless --cache-dir is given (with it, later runs start faster).
+Caches: nothing is written unless --cache-dir DIR is given. With a cache directory the runtime keeps the weights it
+prepares in files there (about 4.4 GB for the CPU, 2.8 GB for the GPU), the process needs less memory and later runs
+create the engine faster: on a Mac M4 Max the CPU process peaked at a 2.6 GB memory footprint with a new cache
+directory and at 9.1 GB without one (GPU: 5.9 GB and 7.9 GB).
 
 Exit status: 0 = every page ended on the model's end token; 3 = a page stopped at --max-tokens (its text is cut; the
 other pages are complete); 2 = a picture or the bundle could not be read, or a bad option (nothing was run);
@@ -100,7 +104,10 @@ def main():
   ap.add_argument("--max-tokens", type=int, default=CONTEXT - PROMPT_TOKENS,
                   help=f"tokens to generate per page at most (default {CONTEXT - PROMPT_TOKENS} = the "
                        f"{CONTEXT:,}-token context minus the page's {PROMPT_TOKENS}-token prompt)")
-  ap.add_argument("--cache-dir", default=None, help="where the runtime may keep its caches (default: none written)")
+  ap.add_argument("--cache-dir", default=None,
+                  help="where the runtime may keep its caches (default: none written). With one the process needs "
+                       "less memory (Mac M4 Max, CPU: a 2.6 GB peak footprint instead of 9.1 GB; GPU: 5.9 GB instead "
+                       "of 7.9 GB) and later runs start faster; the files take about 4.4 GB (CPU) or 2.8 GB (GPU)")
   ap.add_argument("--out", default=None, help="also write the joined text to this file")
   a = ap.parse_args()
   if not 0 < a.max_tokens <= CONTEXT - PROMPT_TOKENS:
