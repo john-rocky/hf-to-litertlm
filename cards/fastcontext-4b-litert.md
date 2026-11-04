@@ -1,6 +1,7 @@
 ---
 license: mit
 base_model: microsoft/FastContext-1.0-4B-SFT
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

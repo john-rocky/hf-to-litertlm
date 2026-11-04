@@ -1,6 +1,7 @@
 ---
 license: mit
 base_model: microsoft/Phi-4-mini-reasoning
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

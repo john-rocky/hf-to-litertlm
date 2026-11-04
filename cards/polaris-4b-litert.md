@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: POLARIS-Project/Polaris-4B-Preview
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

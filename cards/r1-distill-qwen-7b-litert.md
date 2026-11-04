@@ -1,6 +1,7 @@
 ---
 license: mit
 base_model: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

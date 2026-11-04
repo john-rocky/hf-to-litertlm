@@ -1,6 +1,7 @@
 ---
 license: mit
 base_model: WeiboAI/VibeThinker-3B
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

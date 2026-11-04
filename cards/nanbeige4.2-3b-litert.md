@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: Nanbeige/Nanbeige4.2-3B
+base_model_relation: quantized
 pipeline_tag: text-generation
 tags:
   - litert-lm

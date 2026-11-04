@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: Qwen/Qwen3-4B-Thinking-2507
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: FunAudioLLM/Fun-ASR-Nano-2512
+base_model_relation: quantized
 pipeline_tag: automatic-speech-recognition
 library_name: litert-lm
 language:

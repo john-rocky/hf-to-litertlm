@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: ibm-granite/granite-docling-258M
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

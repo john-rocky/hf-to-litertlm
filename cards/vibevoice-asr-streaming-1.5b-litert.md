@@ -1,6 +1,7 @@
 ---
 license: mit
 base_model: microsoft/VibeVoice-ASR-Streaming-1.5B
+base_model_relation: quantized
 pipeline_tag: automatic-speech-recognition
 library_name: litert-lm
 language:

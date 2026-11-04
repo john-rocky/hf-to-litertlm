@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: llava-hf/llava-onevision-qwen2-0.5b-ov-hf
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

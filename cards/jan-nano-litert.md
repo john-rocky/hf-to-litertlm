@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: Menlo/Jan-nano
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

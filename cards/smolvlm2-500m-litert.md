@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: HuggingFaceTB/SmolVLM2-500M-Video-Instruct
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm

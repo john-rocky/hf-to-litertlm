@@ -1,6 +1,7 @@
 ---
 license: apache-2.0
 base_model: mistralai/Ministral-3-3B-Reasoning-2512
+base_model_relation: quantized
 tags:
   - litert
   - litert-lm
