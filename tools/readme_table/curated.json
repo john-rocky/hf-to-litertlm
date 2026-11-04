@@ -169,6 +169,11 @@
     "group": 3,
     "recipe": "cards/magevl-litert.md"
   },
+  "Mage-VL-Cowork": {
+    "task": "GUI agent step: screenshot + instruction -> next action",
+    "group": 3,
+    "recipe": "REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-bundle-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04"
+  },
   "MiniCPM5-2B": {
     "task": "chat, hybrid thinking",
     "group": 2,
