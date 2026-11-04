@@ -3,7 +3,7 @@
 request).
 
   python ocr_unlimited.py Unlimited-OCR-2_int8.litertlm page.png [more pages ...] [--backend cpu|gpu]
-      [--vision-backend cpu|gpu] [--threads N] [--max-tokens N] [--cache-dir DIR] [--out FILE]
+      [--vision-backend cpu|gpu] [--threads N] [--max-tokens N] [--cache-dir DIR | --no-cache] [--out FILE]
 
 Needs litert-lm (pip install litert-lm) and Pillow.
 
@@ -20,10 +20,10 @@ k = 1) with the runtime's no-repeat n-gram constraint, n = 35 within the last 12
 Several pictures: one request per page, in the order given, each in a new conversation on one Engine. The texts are
 printed in that order, joined as they are; each page's text starts with <PAGE>, as in the model's multi-page output.
 Output: the model's raw text with its tags kept (<PAGE>, <BLOCK>, <FORK>, ...), as the checkpoint's infer() returns it.
-Caches: nothing is written unless --cache-dir DIR is given. With a cache directory the runtime keeps the weights it
-prepares in files there (about 4.4 GB for the CPU, 2.8 GB for the GPU), the process needs less memory and later runs
-create the engine faster: on a Mac M4 Max the CPU process peaked at a 2.6 GB memory footprint with a new cache
-directory and at 9.1 GB without one (GPU: 5.9 GB and 7.9 GB).
+Caches: by default the runtime keeps the weights it prepares in cache files beside the bundle (about 4.4 GB for the
+CPU, 2.8 GB for the GPU; --cache-dir DIR puts them elsewhere), and on a Mac M4 Max one page then peaked at a 2.3-2.6
+GB memory footprint on the CPU and 5.9 GB on the GPU. --no-cache writes no file: the runtime prepares the weights in
+memory at every start, and the process peaked at 9.1 GB (CPU) and 7.9 GB (GPU).
 
 Exit status: 0 = every page ended on the model's end token; 3 = a page stopped at --max-tokens (its text is cut; the
 other pages are complete); 2 = a picture or the bundle could not be read, or a bad option (nothing was run);
@@ -104,10 +104,14 @@ def main():
   ap.add_argument("--max-tokens", type=int, default=CONTEXT - PROMPT_TOKENS,
                   help=f"tokens to generate per page at most (default {CONTEXT - PROMPT_TOKENS} = the "
                        f"{CONTEXT:,}-token context minus the page's {PROMPT_TOKENS}-token prompt)")
-  ap.add_argument("--cache-dir", default=None,
-                  help="where the runtime may keep its caches (default: none written). With one the process needs "
-                       "less memory (Mac M4 Max, CPU: a 2.6 GB peak footprint instead of 9.1 GB; GPU: 5.9 GB instead "
-                       "of 7.9 GB) and later runs start faster; the files take about 4.4 GB (CPU) or 2.8 GB (GPU)")
+  cache = ap.add_mutually_exclusive_group()
+  cache.add_argument("--cache-dir", default=None,
+                     help="where the runtime keeps its cache files (default: beside the bundle; about 4.4 GB for the "
+                          "CPU, 2.8 GB for the GPU)")
+  cache.add_argument("--no-cache", action="store_true",
+                     help="write no cache file: the runtime then prepares the weights in memory at every start (Mac M4 "
+                          "Max: a 9.1 GB peak memory footprint on the CPU and 7.9 GB on the GPU, against 2.3-2.6 GB "
+                          "and 5.9 GB with the cache)")
   ap.add_argument("--out", default=None, help="also write the joined text to this file")
   a = ap.parse_args()
   if not 0 < a.max_tokens <= CONTEXT - PROMPT_TOKENS:
@@ -123,7 +127,7 @@ def main():
   t0 = time.time()
   try:
     engine = litert_lm.Engine(a.bundle, backend=make[a.backend](), vision_backend=make[vision](), max_num_images=1,
-                              cache_dir=a.cache_dir or ":nocache", enable_benchmark=True)
+                              cache_dir=":nocache" if a.no_cache else a.cache_dir, enable_benchmark=True)
   except Exception as e:  # noqa: BLE001
     print(f"error: the runtime could not open {a.bundle!r} on {a.backend} (vision {vision}): {e}", file=sys.stderr)
     return 1
