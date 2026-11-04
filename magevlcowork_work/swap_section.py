@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""swap_section.py SRC.litertlm NEW_prefill_decode.tflite DST.litertlm --report R.json [--cli LITERT_LM_CLI] [--work DIR]
+"""swap_section.py SRC.litertlm NEW.tflite DST.litertlm --model-type TYPE --report R.json [--cli LITERT_LM_CLI] [--work DIR]
 
-Bundle SRC with only its PREFILL_DECODE section replaced by NEW. The pack-and-check of spark_work/x26_pack_check.py
-with an unpack step in front and the work dir removed after: `litert-lm unpack` SRC, copy NEW over the unpacked
-prefill_decode file, `litert-lm pack`, then the check of gpu_graph_retrofit.py's own bundle path (retrofit_bundle):
+Bundle SRC with only its TYPE section (for example vision_encoder) replaced by NEW: `litert-lm unpack` SRC, copy NEW over
+the unpacked file, `litert-lm pack`, then the check of gpu_graph_retrofit.py's own bundle path (retrofit_bundle):
 same section count, same section items (model_type spelling normalized; the activation declarations stay as SRC has
-them), every section other than prefill_decode byte-identical (sha256), the replaced section = NEW's bytes.
+them), every other section byte-identical (sha256), the replaced section = NEW's bytes.
 bundle_sections() is loaded by path from tools/gpu_graph/gpu_graph_retrofit.py. Exit 1 when a check fails (the output
 is kept for the record but the report says FAIL). The CLI: --cli, else $LITERT_LM_CLI, else litert-lm on PATH.
 """
@@ -35,6 +34,7 @@ def main():
   ap.add_argument("src")
   ap.add_argument("tflite")
   ap.add_argument("dst")
+  ap.add_argument("--model-type", required=True, help="the section to replace, without TF_LITE_ (vision_encoder, ...)")
   ap.add_argument("--report", required=True)
   ap.add_argument("--cli", default=os.environ.get("LITERT_LM_CLI", "litert-lm"))
   ap.add_argument("--work")
@@ -53,14 +53,14 @@ def main():
   if p.returncode != 0 or not os.path.exists(toml_path):
     sys.exit(f"unpack failed rc={p.returncode}: {(p.stdout + p.stderr)[-2000:]}")
   toml = open(toml_path).read()
-  m = re.search(r'model_type = "(?:TF_LITE_)?(?i:prefill_decode)"\s*\nsection_type = "TFLiteModel"\s*\ndata_path = "([^"]+)"',
+  m = re.search(rf'model_type = "(?:TF_LITE_)?(?i:{re.escape(a.model_type)})"\s*\n(?:[a-z_]+ = "[^"]*"\s*\n)*?data_path = "([^"]+)"',
                 toml)
   if not m:
-    sys.exit("no prefill_decode TFLiteModel section in model.toml")
+    sys.exit(f"no {a.model_type} TFLiteModel section in model.toml")
   pd = os.path.join(unpack, m.group(1))
   rec = {"src": os.path.abspath(a.src), "dst": os.path.abspath(a.dst), "tflite_in": os.path.abspath(a.tflite),
          "cli": a.cli, "tool": TOOL, "tool_sha256": sha256(TOOL), "toml": toml}
-  rec["prefill_decode_sha256_before"] = sha256(pd)
+  rec["section_sha256_before"] = sha256(pd)
   rec["tflite_in_sha256"] = sha256(a.tflite)
   rec["tflite_in_bytes"] = os.path.getsize(a.tflite)
   shutil.copyfile(a.tflite, pd)
@@ -79,7 +79,7 @@ def main():
   rows = []
   norm = lambda d: {k: (v.lower().replace("tf_lite_", "") if k == "model_type" else v) for k, v in d.items()}
   for x, y in zip(A, B):
-    is_pd = x["type"] == "TFLiteModel" and x["items"].get("model_type", "").lower().endswith("prefill_decode")
+    is_pd = x["type"] == "TFLiteModel" and x["items"].get("model_type", "").lower().endswith(a.model_type.lower())
     same_items = norm(x["items"]) == norm(y["items"])
     same_bytes = x["sha256"] == y["sha256"]
     new_ok = (not is_pd) or y["sha256"] == rec["tflite_in_sha256"]

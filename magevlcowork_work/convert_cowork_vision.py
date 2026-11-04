@@ -44,6 +44,14 @@ rope tables and the normalization constants are computed from positions, not fro
       python magevlcowork_work/convert_cowork_vision.py OUT --example PICTURE
 Writes OUT/vision_encoder.tflite, OUT/vision_adapter.tflite, OUT/result.json (ok, the census, the parity numbers),
 OUT/ref/ and OUT/vendor/ (the repository's configuration / modeling files, imported from there).
+
+--ln-prescale JSON --plain-dir DIR: the encoder of the fp16 file. JSON maps a LayerNorm site ("L13.1" = layer_norm1 of
+layer 13, "L13.2" = its layer_norm2) to k: that LayerNorm takes its input times 2^-k and its eps times 4^-k. In fp32 the
+value is the same (powers of two are exact and the normalization removes the scale), and in fp16 the squared differences
+stay in range. DIR is the output of the plain run on the same --example: its adapter is the pair (no adapter is written
+here), and the encoder's fp32 output must equal the plain run's saved outputs bit for bit, or the run ends with ok false.
+Encoder here is built in build_modules(): a module's qualified name is part of the graph's tensor names, so moving the
+class changes the bytes of the file, not its computation.
 """
 import argparse
 import glob
@@ -64,12 +72,18 @@ _ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
 _ap.add_argument("out", help="output directory")
 _ap.add_argument("--example", required=True,
                  help="a screenshot: the tracing input and the first parity picture (resized to IMG_W x IMG_H)")
+_ap.add_argument("--ln-prescale", help="a JSON file {LayerNorm site: k} (see above); needs --plain-dir")
+_ap.add_argument("--plain-dir", help="with --ln-prescale: the output directory of the plain run")
 _A = _ap.parse_args()
+if bool(_A.ln_prescale) != bool(_A.plain_dir):
+  sys.exit("--ln-prescale and --plain-dir go together")
 if not os.environ.get("MODEL"):
   sys.exit("set MODEL to the microsoft/Mage-VL-Cowork checkpoint directory")
 MODEL = os.path.abspath(os.environ["MODEL"])
 OUT = os.path.abspath(_A.out)
 EXAMPLE = os.path.abspath(_A.example)
+LN_K = json.load(open(_A.ln_prescale)) if _A.ln_prescale else None
+PLAIN = os.path.abspath(_A.plain_dir) if _A.plain_dir else None
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(os.path.join(OUT, "ref"), exist_ok=True)
 
@@ -256,6 +270,70 @@ def corr(a, b):
   return float(np.corrcoef(a, b)[0, 1])
 
 
+def sln(x, ln, k):
+  """LayerNorm of x at the scale 2^-k with eps * 4^-k; k = 0 is the module itself."""
+  if not k:
+    return ln(x)
+  xs = x * (2.0 ** -k)
+  return torch.nn.functional.layer_norm(xs, ln.normalized_shape, ln.weight, ln.bias, ln.eps * (4.0 ** -k))
+
+
+def build_modules(cfg, model, qchunk, lnk):
+  """The encoder of main() with the LayerNorm pre-scales of --ln-prescale."""
+  n_heads = cfg.num_attention_heads
+  head_dim = cfg.hidden_size // n_heads
+  pid = torch.arange(N_PATCH)
+  pos_raster = torch.stack([torch.zeros_like(pid), pid // GW, pid % GW], dim=-1)
+  with torch.no_grad():
+    freqs = model.video_rope.forward_from_positions(pos_raster)
+    freqs = torch.cat([freqs, freqs], dim=-1).unsqueeze(0)
+    rope_cos = freqs.cos().unsqueeze(1).float()
+    rope_sin = freqs.sin().unsqueeze(1).float()
+  conv = model.embeddings.patch_embedding
+  ln_pre = model.layernorm_pre
+  layers = model.encoder.layers
+  scale = layers[0].self_attn.scale
+  bounds = [(a, a + qchunk) for a in range(0, N_PATCH, qchunk)]
+
+  class Encoder(torch.nn.Module):
+    def __init__(self):
+      super().__init__()
+      self.conv = conv
+      self.ln_pre = ln_pre
+      self.blocks = layers
+      self.register_buffer("rope_cos", rope_cos, persistent=False)
+      self.register_buffer("rope_sin", rope_sin, persistent=False)
+      self.register_buffer("mean", MEAN, persistent=False)
+      self.register_buffer("std", STD, persistent=False)
+
+    def forward(self, images):                    # [1,H,W,3] in [0,1]
+      x = (images.permute(0, 3, 1, 2) - self.mean) / self.std
+      p = self.conv(x)
+      h = p.flatten(2).transpose(1, 2)
+      h = self.ln_pre(h)
+      for li, blk in enumerate(self.blocks):
+        r = sln(h, blk.layer_norm1, lnk.get(f"L{li}.1", 0))
+        B, L, _ = r.shape
+        qkv = blk.self_attn.qkv(r)
+        D = n_heads * head_dim
+        q, k, v = (qkv[:, :, i * D:(i + 1) * D].reshape(B, L, n_heads, head_dim).transpose(1, 2) for i in range(3))
+        q = q * self.rope_cos + rotate_half4(q) * self.rope_sin
+        k = k * self.rope_cos + rotate_half4(k) * self.rope_sin
+        q = q * scale
+        kt = k.transpose(2, 3)
+        outs = []
+        for a, b in bounds:
+          s = torch.matmul(q[:, :, a:b, :], kt)
+          outs.append(torch.matmul(s.softmax(dim=-1), v))
+        o = torch.cat(outs, dim=2) if len(outs) > 1 else outs[0]
+        o = o.transpose(1, 2).reshape(B, L, -1)
+        h = h + blk.self_attn.proj(o)
+        h = h + blk.mlp(sln(h, blk.layer_norm2, lnk.get(f"L{li}.2", 0)))
+      return h
+
+  return Encoder().eval()
+
+
 def main():
   res = {"ok": False, "stage": "load", "img_h": IMG_H, "img_w": IMG_W, "grid": [GH, GW], "n_patch": N_PATCH,
          "n_tok": N_TOK, "torch": torch.__version__, "tfl_threads": THREADS}
@@ -365,8 +443,9 @@ def main():
         m = m.reshape(1, N_TOK, -1)
         return self.mlp(m)                           # [1,N/4,2560]
 
-    enc_m = Encoder().eval()
+    enc_m = build_modules(cfg, model, qchunk, LN_K) if LN_K else Encoder().eval()
     adp_m = Adapter().eval()
+    res["ln_prescale"] = LN_K
 
     # --- per picture: processor patches, vendor reference, eager static graph ---
     res["stage"] = "reference"
@@ -412,13 +491,15 @@ def main():
     t0 = time.time()
     litert_torch.convert(enc_m, (example_img,)).export(os.path.join(OUT, "vision_encoder.tflite"))
     res["convert_encoder_s"] = round(time.time() - t0, 1)
-    res["stage"] = "convert-adapter"
-    t0 = time.time()
-    litert_torch.convert(adp_m, (example_feat,)).export(os.path.join(OUT, "vision_adapter.tflite"))
-    res["convert_adapter_s"] = round(time.time() - t0, 1)
+    if not PLAIN:
+      res["stage"] = "convert-adapter"
+      t0 = time.time()
+      litert_torch.convert(adp_m, (example_feat,)).export(os.path.join(OUT, "vision_adapter.tflite"))
+      res["convert_adapter_s"] = round(time.time() - t0, 1)
 
     res["stage"] = "graph-census"
-    enc_p, adp_p = os.path.join(OUT, "vision_encoder.tflite"), os.path.join(OUT, "vision_adapter.tflite")
+    enc_p = os.path.join(OUT, "vision_encoder.tflite")
+    adp_p = os.path.join(PLAIN or OUT, "vision_adapter.tflite")
     res["enc_ops"] = op_hist(enc_p)
     res["adp_ops"] = op_hist(adp_p)
     res["enc_largest"] = largest_tensors(enc_p)
@@ -445,6 +526,11 @@ def main():
       rec["tfl_enc_s"], rec["tfl_adp_s"] = round(te, 2), round(ta, 2)
       np.save(os.path.join(OUT, "ref", f"{rec['label']}_tfl_fp32_feat.npy"), e)
       print("tflite fp32", rec["label"], rec["tfl_fp32_corr"], rec["tfl_fp32_maxdiff"], f"enc {te:.1f}s", flush=True)
+      if PLAIN:
+        rec["encoder_output_bit_equal_to_plain"] = bool(np.array_equal(
+            e, np.load(os.path.join(PLAIN, "ref", f"{rec['label']}_tfl_fp32_feat.npy"))))
+        print("encoder output = the plain run's", rec["label"], rec["encoder_output_bit_equal_to_plain"], flush=True)
+        assert rec["encoder_output_bit_equal_to_plain"], f"{rec['label']}: the fp32 output moved"
     real = [r for r in res["pictures"] if r["label"] != "noise"]
     res["tfl_fp32_corr_min_fixtures"] = min(r["tfl_fp32_corr"] for r in real)
     res["max_intermediate_ok"] = max(res["enc_largest"][0]["bytes"], res["adp_largest"][0]["bytes"]) <= SCORE_CAP

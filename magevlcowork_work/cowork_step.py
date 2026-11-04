@@ -6,11 +6,13 @@ action out (fast_vlm, one 1920 x 1088 picture per request).
       [--previous "Step 1: Click the Settings icon in the dock."]... [--backend gpu|cpu] [--vision-backend gpu|cpu]
       [--max-output-tokens N] [--cache-dir DIR] [--keep-picture OUT.png] [--json]
 
+The file Mage-VL-Cowork_vision-fp16.litertlm is meant for a GPU decoder and a CPU vision encoder: --vision-backend cpu.
+
 Needs litert-lm (pip install litert-lm) and Pillow. What it sends is what the vendor's GUI agent sends at a step
 (microsoft/Mage-VL-Cowork, osworld_eval/mm_agents/mage_gui_agent.py): the agent's system prompt (below, verbatim), then
 one user turn = [screenshot, "Please generate the next move ... Instruction: ... Previous actions: ..."]. Earlier steps
-go in as one line each under "Previous actions:" (the agent folds its history the same way); the bundle holds one
-screenshot per request.
+go in as one line each under "Previous actions:" (the agent folds its history the same way), with one screenshot per
+request: a second picture would take another 2,040 of the bundle's 4,096 tokens.
 
 The picture: the script applies the EXIF orientation and stretches the screenshot to 1920 x 1088 (bicubic, no
 padding) itself, the size the bundle reads (68 x 120 patches of 16 = 2,040 image tokens after the 2 x 2 merge), so
@@ -120,8 +122,8 @@ def main():
                   help='an earlier step as one line, e.g. "Step 1: Click the Settings icon." (repeat in order)')
   ap.add_argument("--backend", choices=("cpu", "gpu"), default="gpu")
   ap.add_argument("--vision-backend", choices=("cpu", "gpu"), default=None, help="default: the --backend value")
-  ap.add_argument("--max-output-tokens", type=int, default=540,
-                  help="the KV cache holds 3,584 tokens; the screenshot and the prompt take about 2,990 of them "
+  ap.add_argument("--max-output-tokens", type=int, default=1000,
+                  help="the KV cache holds 4,096 tokens; the screenshot and the prompt take about 2,990 of them "
                        "(+ about 13 per --previous line)")
   ap.add_argument("--cache-dir", default=None, help="where the runtime writes its caches (default: beside the bundle)")
   ap.add_argument("--keep-picture", default=None, help="also save the 1920 x 1088 picture the bundle reads")
@@ -137,6 +139,8 @@ def main():
   except (OSError, ValueError) as e:
     sys.exit(f"cannot read the screenshot {a.screenshot!r}: {e}")
   picture = shot.resize((W, H), Image.BICUBIC)
+  if a.cache_dir:
+    os.makedirs(a.cache_dir, exist_ok=True)   # the runtime refuses a directory that does not exist
 
   import litert_lm
   backend = {"cpu": litert_lm.interfaces.Backend.CPU, "gpu": litert_lm.interfaces.Backend.GPU}
