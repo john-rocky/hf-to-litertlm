@@ -99,3 +99,4 @@ litert-community/Qwen2.5-VL-72B-Instruct-LiteRT
 litert-community/Qwen3.5-4B-3D-Coder
 litert-community/Xiaomi-OCR-0
 litert-community/Qwen3-30B-A3B
+litert-community/Unlimited-OCR-2
