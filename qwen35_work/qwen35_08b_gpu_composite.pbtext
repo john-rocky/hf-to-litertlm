@@ -1,0 +1,19 @@
+stop_tokens {
+  token_ids {
+    ids: 248044
+  }
+}
+stop_tokens {
+  token_ids {
+    ids: 248046
+  }
+}
+max_num_tokens: 4096
+llm_model_type {
+  qwen3 {
+  }
+}
+jinja_prompt_template: "{%- macro format_content(content) -%}\n    {%- if content is string -%}\n        {{- content -}}\n    {%- elif content is sequence -%}\n        {%- for item in content -%}\n            {%- if item[\'type\'] == \'text\' -%}\n                {{- item[\'text\'] -}}\n            {%- endif -%}\n        {%- endfor -%}\n    {%- endif -%}\n{%- endmacro -%}\n{%- for message in messages -%}\n{%- if message.role == \'assistant\' -%}\n<|im_start|>assistant\n<think>\n\n</think>\n\n{{ format_content(message.content) }}<|im_end|>\n{% else -%}\n<|im_start|>{{ message.role }}\n{{ format_content(message.content) }}<|im_end|>\n{% endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt -%}\n<|im_start|>assistant\n<think>\n\n</think>\n\n{% endif -%}\n"
+pad_token {
+  token_str: "<|endoftext|>"
+}
