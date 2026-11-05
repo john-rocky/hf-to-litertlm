@@ -75,10 +75,11 @@ The files in `npu/sm8850/` are the files that ran on the Galaxy S26: their SHA-2
 | File | Input graph (SHA-256) | Ops in one partition | (i) estimate, KiB | (ii) session, bytes | Bytes | SHA-256 |
 |---|---|---:|---:|---:|---:|---|
 | `decide_L256_f16sfc_SM8850.tflite` | `decide_L256_f16sfc.tflite` (`bc22d87912df27ab…`) | 5,915 / 5,915 | 2,742,904 | 2,902,213,120 | 2,783,922,048 | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` |
-| `decide_L512_f16sfc_SM8850.tflite` | `decide_L512_f16sfc.tflite` (`67a450f5ab6f1313…`) | 8,435 / 8,435 | 2,787,928 | 2,983,960,576 | 2,819,958,656 | `e1556ac9380d1a828abdf714fa87f784b98eee19016825b062bc3b8f322b1203` |
 | `decide_L1024_f16sfc_SM8850.tflite` | `decide_L1024_f16sfc.tflite` (`2fa06fec44afd9b8…`) | 13,475 / 13,475 | 2,920,688 | 3,180,470,784 | 2,882,094,976 | `b6ce69bfd9346a2c96599b59171075ba051bcb865d4dd4484c7ffea05f5d1c37` |
 
 On 2026-11-05 a compile in the image of `conversion/npu/Dockerfile`, from the rebuilt input graph, gave the shipped SHA-256 of `decide_L256_f16sfc_SM8850.tflite` (the table above); the others were not compiled again.
+
+A 512-token file, `decide_L512_f16sfc_SM8850.tflite` (2,819,958,656 bytes, SHA-256 `e1556ac9380d1a828abdf714fa87f784b98eee19016825b062bc3b8f322b1203`), was compiled the same way and ran on the phone. It is not in this repository: its scores are outside the tolerance (see the model card).
 <!-- npu:end -->
 
 ## Where the numbers come from
