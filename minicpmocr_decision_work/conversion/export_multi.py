@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The decision graph's phone-tier buckets as signatures of ONE .tflite over one set of weights, then the fp16 FC cast, then the count of how the
+"""The decision graph's buckets up to 4,096 tokens as signatures of ONE .tflite over one set of weights, then the fp16 FC cast, then the count of how the
 weights are stored (`buffers`). The modules share one text model, so every signature's FC weight is the same torch storage
 and litert-torch's constant cache lowers it once.
 
     PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py [--keep-fp32] [--buckets 256,384,512,768,1024,1536,2048,3072,4096:1024 --name half]
 
-Writes out/graphs/multi_decide_phone_{fp32,fp16fc}.tflite, results/export_multi_phone.json (with --name: multi_decide_<name>_*, export_multi_<name>.json). `size:qblock` in --buckets. Never overwrites."""
+Writes out/graphs/multi_decide_L4096_{fp32,fp16fc}.tflite, results/export_multi_L4096.json (with --name: multi_decide_<name>_*, export_multi_<name>.json). `size:qblock` in --buckets. Never overwrites."""
 from __future__ import annotations
 
 import argparse
@@ -38,7 +38,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep-fp32", action="store_true")
     ap.add_argument("--buckets", default="")
-    ap.add_argument("--name", default="phone")
+    ap.add_argument("--name", default="L4096")
     a = ap.parse_args()
     keep = a.keep_fp32
     buckets = BUCKETS if not a.buckets else tuple((int(x.split(":")[0]), int(x.split(":")[1]) if ":" in x else 0) for x in a.buckets.split(","))

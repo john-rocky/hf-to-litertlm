@@ -26,12 +26,12 @@ results/, logs/
 Below, `$EXPORT`, `$REF` and `$HOST` are the interpreters of three Python environments:
 
 - `$EXPORT` (export, float16 weight casting, the LiteRT checks): Python 3.12.13 and `requirements-export.txt` (litert-torch 0.10.0, torch 2.14.1, transformers 5.14.1, ai-edge-litert 2.3.0, ai-edge-quantizer 0.10.0).
-- `$REF` (the author's code in float32 on the CPU): Python 3.12.11 and `requirements-ref.txt` (torch 2.8.0, torchvision 0.23.0, transformers 5.10.4, the versions the source's card names).
+- `$REF` (the author's code in float32 on the CPU): Python 3.12.11 and `requirements-ref.txt` (torch 2.8.0, torchvision 0.23.0, transformers 5.10.4, the versions the source's `docs/finetune_jev_en.md` names).
 - `$HOST` (the PyTorch-free host): Python 3.12.11 and `host/requirements-host.txt`.
 
 ## The graphs
 
-Every export ran with `PYTHONHASHSEED=0`, one process at a time. A decision export peaks near 16.5 GiB of footprint, the multi-signature decision file near 26.5 GiB, a tower export near 10 GiB.
+Every export ran with `PYTHONHASHSEED=0`, one process at a time. A decision export peaks at 16.2 to 18.5 GiB of footprint, the multi-signature decision file near 26.5 GiB, a tower export at 6.2 to 10 GiB.
 
 ```bash
 # 0. the snapshot and the tables
@@ -88,15 +88,15 @@ python3 conversion/fetch_inputs.py family        # the 446 records of the olmOCR
 $REF -I conversion/ref_run.py . --examples --dtype fp32 --fast-dwconv
 $REF -I conversion/ref_run.py . --set A --dtype fp32 --fast-dwconv
 $REF -I conversion/fixtures_author.py . --pass 1
-$REF -I conversion/fixtures_author.py . --pass 2      # the large records and pictures, near 21 GiB
+$REF -I conversion/fixtures_author.py . --pass 2      # the large records and pictures, 15.3 GiB of footprint
 
 # a graph against the author's numbers, the host not in the path
 $EXPORT conversion/check_graph.py . decide --file out/graphs/decide_L256_fp16fc.tflite --size 256 --acc cpu,gpu_f32
 $EXPORT conversion/check_graph.py . tower --file out/graphs/tower_N400_fp16fc.tflite --size 400 --acc cpu,gpu_f32
 
 # a multi-signature file against the single files, bit for bit
-$EXPORT conversion/multi_check.py . decide --multi out/graphs/multi_decide_phone_fp16fc.tflite --acc gpu_f32 --sharing
-$EXPORT conversion/multi_check.py . tower --multi out/graphs/multi_tower_phone_fp16fc.tflite --acc gpu_f32 --sharing
+$EXPORT conversion/multi_check.py . decide --multi out/graphs/multi_decide_L4096_fp16fc.tflite --acc gpu_f32 --sharing
+$EXPORT conversion/multi_check.py . tower --multi out/graphs/multi_tower_N4096_fp16fc.tflite --acc gpu_f32 --sharing
 
 # the host over the set, then the lines against the reference
 $EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set A
@@ -104,7 +104,8 @@ $EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --s
 python3 -I conversion/judge.py . compare A__base__fp16fc__gpu_f32
 python3 -I conversion/judge.py . p1 examples__fp16fc__gpu_f32
 
-# the controls on 36 records: another candidate's text (R1), the two pictures swapped (R2), another original picture (R4)
+# the controls on 36 records: another candidate's text (R1), the two pictures swapped (R2), another original picture (R4).
+# judge.py red also prints R3, read from the base rows with no run of its own: the logits one position before the pooled token. It does not move the reference's AUROC, so it is not one of the controls.
 for arm in R1 R2 R4; do
   $REF -I conversion/ref_run.py . --set red --arm $arm --dtype fp32 --fast-dwconv
   $EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set red --arm $arm
@@ -112,7 +113,7 @@ done
 python3 -I conversion/judge.py . red fp16fc__gpu_f32
 
 # one timed cell, on a quiet machine: one process per workload (text, formula, table), the two multi-signature files with constant tensor sharing, or leave the three flags out for the single files
-$EXPORT conversion/speed.py . --form fp16fc --acc gpu_f32 --workload text --multi out/graphs/multi_decide_phone_fp16fc.tflite --multi-tower out/graphs/multi_tower_phone_fp16fc.tflite --sharing --suffix __multi_sharing
+$EXPORT conversion/speed.py . --form fp16fc --acc gpu_f32 --workload text --multi out/graphs/multi_decide_L4096_fp16fc.tflite --multi-tower out/graphs/multi_tower_N4096_fp16fc.tflite --sharing --suffix __multi_sharing
 ```
 
 `run_set.py --backend torch` in `$REF` is the separation test: the author's float32 modules behind the host's interfaces, so that everything the host computes is under test and no graph is. `examples/score_olmocr_set.py` is the short way to score the same family with this repository's files and the host alone.

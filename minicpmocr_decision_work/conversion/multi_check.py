@@ -3,8 +3,8 @@
 every signature's whole output against its single file on the same input, bit-equal or max|d|; then the first record of every signature again in reverse order on the same
 CompiledModel (no state between signatures); and the multi file's own answer against the author's fixtures, the host not in the path.
 
-    <python> conversion/multi_check.py <work> decide --multi out/graphs/multi_decide_phone_fp16fc.tflite --acc gpu_f32 --sharing
-    <python> conversion/multi_check.py <work> tower  --multi out/graphs/multi_tower_phone_fp16fc.tflite --acc cpu --weight-cache
+    <python> conversion/multi_check.py <work> decide --multi out/graphs/multi_decide_L4096_fp16fc.tflite --acc gpu_f32 --sharing
+    <python> conversion/multi_check.py <work> tower  --multi out/graphs/multi_tower_N4096_fp16fc.tflite --acc cpu --weight-cache
 
 Inputs: per signature the largest fixture that fits and the smallest one (out/fix). CPU with --weight-cache: one new XNNPACK cache file per graph file, under a directory this
 process removes at the end (the runtime reuses a stale cache unchecked). Writes results/multi_check_<what>_<acc>[_sharing][_wcache][suffix].json.

@@ -10,7 +10,7 @@
 
 Two forms of the graphs (`form=`):
 
-- "multi" (the default, for a desktop): multi_decide_phone_fp16fc.tflite and multi_tower_phone_fp16fc.tflite, every bucket as a signature
+- "multi" (the default, for a desktop): multi_decide_L4096_fp16fc.tflite and multi_tower_N4096_fp16fc.tflite, every bucket as a signature
   of one file over one copy of the weights, up to 4,096 tokens and 4,096 patches a picture. On the GPU with
   GpuOptions.constant_tensor_sharing; on the CPU with an XNNPACK weight cache in `weight_cache_dir` (required there, written on the first
   load).
@@ -28,7 +28,7 @@ import os
 from . import litert_backends as B
 from .host import Host
 
-MULTI_DECIDE, MULTI_TOWER = "multi_decide_phone_fp16fc.tflite", "multi_tower_phone_fp16fc.tflite"
+MULTI_DECIDE, MULTI_TOWER = "multi_decide_L4096_fp16fc.tflite", "multi_tower_N4096_fp16fc.tflite"
 
 
 def load_host(repo: str = ".", accelerator: str = "cpu", form: str = "multi", threads: int = 4, keep: int = 1,

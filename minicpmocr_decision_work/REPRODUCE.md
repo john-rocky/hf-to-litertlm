@@ -38,18 +38,16 @@ The commands are in `conversion/README.md`. Every export ran with `PYTHONHASHSEE
 2. Tables: `make_tables.py` writes `tables/tables.safetensors`, three tensors as bfloat16 bits as they are in the source's `model.safetensors`: the token embeddings, the picture position table and the score weights. The host reads them; no graph holds them.
 3. Decision files: `export_decide.py --L <L>` for 256, 512, 1,024 and 2,048 tokens, and `--L 4096 --qblock 1024` for 4,096 (the full-attention layers' queries in blocks of 1,024, which bounds the memory of their scores). Each exports `decide_graph.py` at float32 and casts its fully connected weights to float16 with ai-edge-quantizer (`fp16fc.py`); the activations stay float32.
 4. Towers: `export_tower.py --N <N>` for 400, 576, 1,024, 1,600 and 2,304 patches, and `--N 4096 --qblock 1024` for 4,096. `tower_graph.py`, the same cast.
-5. The two multi-signature files: `export_multi.py` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches).
+5. The two multi-signature files: `export_multi.py` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches). They write `multi_decide_L4096_fp16fc.tflite` and `multi_tower_N4096_fp16fc.tflite`. Until the first upload these two files were named `multi_decide_phone_fp16fc.tflite` and `multi_tower_phone_fp16fc.tflite`, in that order: the same bytes, and the reports of the checks carry those names.
 6. NPU files: `export_decide.py --L <L> --variant f16s` or `export_tower.py --N <N> --variant f16s` writes the form with the scaled norms, `conversion/npu/aot_compile_sm8850.py` compiles it for the SM8850 in the image of `conversion/npu/Dockerfile`, and `conversion/npu/aot_check.py` reads the compile.
 7. Checks and timing: see `conversion/README.md`.
 8. The shipped set: the graphs are the work directory's `out/graphs/` files under the same names; `npu/sm8850/<name>_SM8850.tflite` is the compile's `<name>_Qualcomm_SM8850_apply_plugin.tflite`. `SHA256SUMS` lists every file.
 
-`tiny_check.py` and `tiny_multi.py` run tiny random graphs through the same path, with no checkpoint.
-
 ## The rebuild on 2026-11-05
 
-On 2026-11-05 the steps ran again from a clean copy of this repository's `conversion/`, `host/` and `examples/` folders, in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). One decision file, one tower, both multi-signature files and the NPU files the table names were rebuilt; the other graphs come from the same scripts with another `--L` or `--N`.
+On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran again from a clean copy of this repository's `conversion/`, `host/` and `examples/` folders, in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). One decision file, one tower, both multi-signature files and the NPU files the table names were rebuilt; the other graphs come from the same scripts with another `--L` or `--N`.
 
-With no fixtures in place an export takes a blank record of seeded random values as its sample and compares its float32 file with its module alone. With the fixtures in place it takes a fixture record and compares both with the author's numbers. The table has both for the two single files.
+With no fixtures in place an export takes a blank record of seeded random values as its sample and compares its float32 file with its module alone. With the fixtures in place it takes a fixture record and compares both with the author's numbers. The table has both for the two single files and the two multi-signature files, whose blank-record rows ran under their earlier names.
 
 <!-- dayof:begin -->
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
@@ -57,12 +55,14 @@ With no fixtures in place an export takes a blank record of seeded random values
 | `tables/tables.safetensors` | not an export | `8fa765826c3676521fa3cc6af61f1cc2c783b129c9564051a0abc28d51678986` | `8fa765826c3676521fa3cc6af61f1cc2c783b129c9564051a0abc28d51678986` | the same bytes |
 | `decide_L256_fp16fc.tflite` | blank record | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | the same bytes |
 | `tower_N400_fp16fc.tflite` | blank record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
-| `multi_tower_phone_fp16fc.tflite` | blank record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
-| `multi_decide_phone_fp16fc.tflite` | blank record | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | the same bytes |
+| `multi_tower_N4096_fp16fc.tflite` | blank record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
+| `multi_decide_L4096_fp16fc.tflite` | blank record | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | the same bytes |
 | `decide_L256_fp16fc.tflite` | fixture record | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | the same bytes |
 | `tower_N400_fp16fc.tflite` | fixture record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
 | `decide_L256_f16sfc.tflite` | fixture record (the input of the compile below, not a file of this repository) | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
 | `npu/sm8850/decide_L256_f16sfc_SM8850.tflite` | the compile of the row above | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | the same bytes |
+| `multi_tower_N4096_fp16fc.tflite` | fixture record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
+| `multi_decide_L4096_fp16fc.tflite` | fixture record | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | the same bytes |
 <!-- dayof:end -->
 
 From that copy the checks ran again on a few records each: the reference on the official examples and three records; `check_graph.py` and `multi_check.py` on the rebuilt files; `judge.py p1` and `compare`; the separation test; the control arms on three records; `speed.py` with one warm-up and two timed requests; the phone tools, with the Mac in the phone's place; `pixel_check.py` on 60 pictures and the examples, `fp16_probe.py` on its default records, the fixed-size arms on six records and the bfloat16 floor on two. `examples/score_olmocr_set.py` scored the family's 446 records with this repository's files and the host alone on Metal: on the 417 it scores, `prob_1`, the logits, the SHA-256 of the token ids and of the hidden row equal the run behind the card, and it returns `too_large` for the other 29. The card's numbers come from the full runs of the same scripts earlier that day.
@@ -83,7 +83,7 @@ On 2026-11-05 a compile in the image of `conversion/npu/Dockerfile`, from the re
 
 ## Where the numbers come from
 
-Each number on the model card comes from a file that a command of `conversion/README.md` writes, or from the example:
+Each number on the model card comes from a file that a command of `conversion/README.md` writes, from the example, or, for the phones' times, from the reports of the test programs:
 
 | Numbers on the card | Command | File |
 |---|---|---|
