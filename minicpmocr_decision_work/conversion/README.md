@@ -1,6 +1,6 @@
 # Conversion and check scripts
 
-These scripts made the LiteRT graphs of this repository and ran the checks reported for it, on an Apple M4 Max (128 GB, macOS 27.0) on 2026-11-05. Every LiteRT run goes through the CompiledModel API of `ai_edge_litert` (CPU = XNNPACK, GPU = Metal on the Mac).
+These scripts made the LiteRT graphs of this repository and ran the checks reported for it, on an Apple M4 Max (128 GB, macOS 27.0) on 2026-11-05 and 2026-11-06. Every LiteRT run goes through the CompiledModel API of `ai_edge_litert` (CPU = XNNPACK, GPU = Metal on the Mac).
 
 They are the scripts that ran. The paths of the machine they ran on are replaced by the folders of one work directory (below), comments and docstrings are edited so that they name no file of that machine, and an export with no fixtures takes a blank sample (see "The graphs"); the code is otherwise the same.
 
@@ -31,25 +31,27 @@ Below, `$EXPORT`, `$REF` and `$HOST` are the interpreters of three Python enviro
 
 ## The graphs
 
-Every export ran with `PYTHONHASHSEED=0`, one process at a time. A decision export peaks at 16.2 to 18.5 GiB of footprint, the multi-signature decision file near 26.5 GiB, a tower export at 6.2 to 10 GiB.
+Every export ran with `PYTHONHASHSEED=0`, one process at a time. A decision export peaks at 16.5 to 18.7 GiB of footprint, the multi-signature decision file near 26.5 GiB, a tower export at 6.2 to 10 GiB.
 
 ```bash
 # 0. the snapshot and the tables
 hf download openbmb/MiniCPM-OCR-Jev --revision a0ed278eb6aa1f333a711665ab610055a4a816ab --local-dir snapshot
 python3 conversion/make_tables.py
 
-# 1. the decision files (out/graphs/decide_L<L>[_qb1024]_fp16fc.tflite, results/export_decide_*.json)
-for L in 256 512 1024 2048; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L; done
-PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 4096 --qblock 1024
+# 1. the decision files, in the f16s form (out/graphs/decide_L<L>[_qb1024]_f16sfc.tflite, results/export_decide_*_f16s.json)
+for L in 256 512 1024 2048; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L --variant f16s; done
+PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 4096 --qblock 1024 --variant f16s
 
 # 2. the towers (out/graphs/tower_N<N>[_qb1024]_fp16fc.tflite, results/export_tower_*.json)
 for N in 400 576 1024 1600 2304; do PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N $N; done
 PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N 4096 --qblock 1024
 
-# 3. the two multi-signature files
-PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py
+# 3. the two multi-signature files (the decision file in the f16s form, the tower file in the plain form)
+PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py --variant f16s
 PYTHONHASHSEED=0 $EXPORT conversion/export_multi_tower.py
 ```
+
+`--variant f16s` multiplies the final norm's input by 2^-4 and its epsilon by 4^-4, and caps its reciprocal square root at the value for a zero input (`apply_f16s` in `decide_graph.py`): the plain graph's final norm sums squares up to 600,543, more than float16 holds, so at a GPU's default precision the plain file answers wrong and this form does not. Without `--variant f16s` the same commands write the plain form (`_fp16fc`). At float32 the two forms gave the same outputs bit for bit on the records we compared: on the CPU, all 417 records of the olmOCR set that the files hold; on Metal at float32, the 83 records of the phones' test set that the 256- to 2,048-token files hold (12, 29, 28 and 14).
 
 Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memory, versions, operator and dtype counts) and never overwrites an existing output. With fixtures in `out/fix/` (below), an export also compares its module and its float32 file with the author's numbers, and takes its sample from a fixture; with none, the sample is a blank record of seeded random values and the float32 file is compared with the module alone. The sample only carries the shapes through the export: REPRODUCE.md compares the bytes.
 
@@ -57,12 +59,12 @@ Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memor
 
 ## The NPU files
 
-The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph. That form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
+The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph, the form of step 1. That form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
 
 ```bash
 docker build --platform linux/amd64 -t npu-aot-qc:2.2.0-full conversion/npu      # with QAIRT at conversion/npu/qairt_data/
 
-PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 256 --variant f16s      # out/graphs/decide_L256_f16sfc.tflite
+# out/graphs/decide_L256_f16sfc.tflite from step 1
 docker run --rm --platform linux/amd64 --cpus 4 --memory 26g --memory-swap 26g -v "$PWD/out/graphs":/m:ro -v "$PWD/conversion/npu":/s:ro \
   -v "$PWD/out/npu":/w npu-aot-qc:2.2.0-full \
   python /s/aot_compile_sm8850.py /m/decide_L256_f16sfc.tflite /w/s_L256 qualcomm_log_level=verbose
@@ -91,36 +93,38 @@ $REF -I conversion/fixtures_author.py . --pass 1
 $REF -I conversion/fixtures_author.py . --pass 2      # the large records and pictures, 15.3 GiB of footprint
 
 # a graph against the author's numbers, the host not in the path
-$EXPORT conversion/check_graph.py . decide --file out/graphs/decide_L256_fp16fc.tflite --size 256 --acc cpu,gpu_f32
+$EXPORT conversion/check_graph.py . decide --file out/graphs/decide_L256_f16sfc.tflite --size 256 --acc cpu,gpu_default,gpu_f32
 $EXPORT conversion/check_graph.py . tower --file out/graphs/tower_N400_fp16fc.tflite --size 400 --acc cpu,gpu_f32
 
 # a multi-signature file against the single files, bit for bit
-$EXPORT conversion/multi_check.py . decide --multi out/graphs/multi_decide_L4096_fp16fc.tflite --acc gpu_f32 --sharing
+$EXPORT conversion/multi_check.py . decide --multi out/graphs/multi_decide_L4096_f16sfc.tflite --form f16sfc --acc gpu_default --sharing
 $EXPORT conversion/multi_check.py . tower --multi out/graphs/multi_tower_N4096_fp16fc.tflite --acc gpu_f32 --sharing
 
-# the host over the set, then the lines against the reference
-$EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set A
-$EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set examples --tag examples__fp16fc__gpu_f32
-python3 -I conversion/judge.py . compare A__base__fp16fc__gpu_f32
-python3 -I conversion/judge.py . p1 examples__fp16fc__gpu_f32
+# the host over the set, then the lines against the reference: the decision graph at the GPU's default precision, the tower at float32
+$EXPORT conversion/run_set.py . --backend litert --form f16sfc --tower-form fp16fc --acc gpu_default --tower-acc gpu_f32 --set A --tag A__base__f16s__gpu_default_towerf32
+$EXPORT conversion/run_set.py . --backend litert --form f16sfc --tower-form fp16fc --acc gpu_default --tower-acc gpu_f32 --set examples --tag examples__f16s__gpu_default_towerf32
+python3 -I conversion/judge.py . compare A__base__f16s__gpu_default_towerf32
+python3 -I conversion/judge.py . p1 examples__f16s__gpu_default_towerf32
+# on the CPU: --form f16sfc --tower-form fp16fc --acc cpu --tag A__base__f16s__cpu
 
 # the controls on 36 records: another candidate's text (R1), the two pictures swapped (R2), another original picture (R4).
 # judge.py red also prints R3, read from the base rows with no run of its own: the logits one position before the pooled token. It does not move the reference's AUROC, so it is not one of the controls.
 for arm in R1 R2 R4; do
   $REF -I conversion/ref_run.py . --set red --arm $arm --dtype fp32 --fast-dwconv
-  $EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set red --arm $arm
+  $EXPORT conversion/run_set.py . --backend litert --form f16sfc --tower-form fp16fc --acc gpu_default --tower-acc gpu_f32 --set red --arm $arm --tag red__${arm}__f16s__gpu_default_towerf32
 done
-python3 -I conversion/judge.py . red fp16fc__gpu_f32
+python3 -I conversion/judge.py . red f16s__gpu_default_towerf32
 
-# one timed cell, on a quiet machine: one process per workload (text, formula, table), the two multi-signature files with constant tensor sharing, or leave the three flags out for the single files
-$EXPORT conversion/speed.py . --form fp16fc --acc gpu_f32 --workload text --multi out/graphs/multi_decide_L4096_fp16fc.tflite --multi-tower out/graphs/multi_tower_N4096_fp16fc.tflite --sharing --suffix __multi_sharing
+# one timed cell, on a quiet machine: one process per workload (text, formula, table), the single files; for the two multi-signature files with constant tensor sharing add
+# --multi out/graphs/multi_decide_L4096_f16sfc.tflite --multi-tower out/graphs/multi_tower_N4096_fp16fc.tflite --sharing
+$EXPORT conversion/speed.py . --form f16sfc --tower-form fp16fc --acc gpu_default --tower-acc gpu_f32 --workload text --suffix __towerf32
 ```
 
 `run_set.py --backend torch` in `$REF` is the separation test: the author's float32 modules behind the host's interfaces, so that everything the host computes is under test and no graph is. `examples/score_olmocr_set.py` is the short way to score the same family with this repository's files and the host alone.
 
 ## The checks behind the form
 
-Four checks behind the host's picture path, the float32 precision and the choice of no fixed picture size. The first reads the pictures that are in `bench/`, so with `fetch_inputs.py` it reads the olmOCR family; the card's number comes from all 4,461 pictures of the benchmark and the examples.
+Four checks behind the host's picture path, the f16s form and the choice of no fixed picture size. The first reads the pictures that are in `bench/`, so with `fetch_inputs.py` it reads the olmOCR family; the card's number comes from all 4,461 pictures of the benchmark and the examples.
 
 ```bash
 $REF -I conversion/pixel_check.py .                                  # the host's resize against the author's and Pillow's: results/pixel_check.json

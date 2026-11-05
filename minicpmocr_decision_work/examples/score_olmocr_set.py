@@ -7,7 +7,7 @@ openbmb/JevOCRBench at a pinned revision, each an original block, a render of a 
 Prints the AUROC (rank method with averaged ties, as the author's eval/evaluate.py), overall and per category, on the records the host
 scored; a record above the top bucket comes back `too_large` and is counted apart. Nothing of the benchmark is in this repository: the
 script downloads the rows and the two pictures of each record into --cache-dir, one file at a time, and writes one row of numbers per
-record to <cache-dir>/scores_<accel>_<form>.jsonl (no picture, no text). A stopped run resumes. Only this family is read: the
+record to <cache-dir>/scores_<accel>_<form>_<decision file form>.jsonl (no picture, no text). A stopped run resumes. Only this family is read: the
 benchmark's other families carry other terms (its DATA_LICENSE.md).
 
 Attribution, as the benchmark's NOTICE and the license ask: this family derives from olmOCR-bench
@@ -82,7 +82,7 @@ def main():
     ap.add_argument("--accel", choices=("gpu", "cpu"), default="gpu")
     ap.add_argument("--form", choices=("multi", "files"), default="multi")
     ap.add_argument("--threads", type=int, default=4)
-    ap.add_argument("--keep", type=int, default=1, help="--form files: bucket files compiled at a time per kind (on Metal a 256-token decision file holds 8.2 GB once compiled and peaks at 14.3 GB while it compiles)")
+    ap.add_argument("--keep", type=int, default=1, help="--form files: bucket files compiled at a time per kind (a compiled decision file holds several GB on Metal)")
     ap.add_argument("--weight-cache", default="", help="--form multi on the CPU: the folder of the XNNPACK weight cache files")
     ap.add_argument("--repo", default=ROOT, help="the folder that holds the graphs, tokenizer.json and tables/ (default: this repository)")
     ap.add_argument("--cache-dir", required=True, help="where the benchmark's rows, pictures and the score rows go")
@@ -92,6 +92,7 @@ def main():
     if a.accel == "cpu" and a.form == "multi" and not a.weight_cache:
         ap.error("--form multi on the CPU needs --weight-cache FOLDER (the first load writes the cache files there), or use --form files")
     from decide_host import load_host
+    from decide_host.load import DECIDE_FORM
 
     os.makedirs(a.cache_dir, exist_ok=True)
     rows_path = fetch(a.cache_dir, ROWS, a.pace)
@@ -105,7 +106,7 @@ def main():
     family.sort(key=lambda r: r["item_id"])
     if a.limit:
         family = family[:a.limit]
-    out_path = os.path.join(a.cache_dir, f"scores_{a.accel}_{a.form}.jsonl")
+    out_path = os.path.join(a.cache_dir, f"scores_{a.accel}_{a.form}_{DECIDE_FORM}.jsonl")     # a file per form: rows of another form never resume into it
     done = {}
     if os.path.exists(out_path):
         done = {r["item_id"]: r for r in map(json.loads, open(out_path, encoding="utf-8"))}

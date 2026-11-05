@@ -1,6 +1,6 @@
 # Reproduce the LiteRT files and the checks
 
-The conversion ran on a Mac (Apple M4 Max, 128 GB, macOS 27.0) on 2026-11-05. The scripts are in [`conversion/`](conversion/README.md), with the commands. They are the scripts that ran, with the machine's paths replaced by the folders of one work directory and the comments edited to name no file of that machine.
+The conversion ran on a Mac (Apple M4 Max, 128 GB, macOS 27.0) on 2026-11-05 and 2026-11-06. The scripts are in [`conversion/`](conversion/README.md), with the commands. They are the scripts that ran, with the machine's paths replaced by the folders of one work directory and the comments edited to name no file of that machine.
 
 ## Sources
 
@@ -36,36 +36,45 @@ The commands are in `conversion/README.md`. Every export ran with `PYTHONHASHSEE
 
 1. Snapshot: an anonymous `hf download` of the pinned revision, checked against the Hub's file list.
 2. Tables: `make_tables.py` writes `tables/tables.safetensors`, three tensors as bfloat16 bits as they are in the source's `model.safetensors`: the token embeddings, the picture position table and the score weights. The host reads them; no graph holds them.
-3. Decision files: `export_decide.py --L <L>` for 256, 512, 1,024 and 2,048 tokens, and `--L 4096 --qblock 1024` for 4,096 (the full-attention layers' queries in blocks of 1,024, which bounds the memory of their scores). Each exports `decide_graph.py` at float32 and casts its fully connected weights to float16 with ai-edge-quantizer (`fp16fc.py`); the activations stay float32.
+3. Decision files: `export_decide.py --L <L> --variant f16s` for 256, 512, 1,024 and 2,048 tokens, and `--L 4096 --qblock 1024 --variant f16s` for 4,096 (the full-attention layers' queries in blocks of 1,024, which bounds the memory of their scores). Each exports `decide_graph.py` at float32 with its final norm in the f16s form (`apply_f16s`: the norm's input times 2^-4, its epsilon times 4^-4, its reciprocal square root capped at the value for a zero input) and casts its fully connected weights to float16 with ai-edge-quantizer (`fp16fc.py`); the activations stay float32. They write `decide_L<L>[_qb1024]_f16sfc.tflite`. Without `--variant f16s` the same commands write the plain form, `decide_L<L>[_qb1024]_fp16fc.tflite`, which this repository does not ship; at float32 the two forms gave the same outputs bit for bit on the records the card names.
 4. Towers: `export_tower.py --N <N>` for 400, 576, 1,024, 1,600 and 2,304 patches, and `--N 4096 --qblock 1024` for 4,096. `tower_graph.py`, the same cast.
-5. The two multi-signature files: `export_multi.py` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches). They write `multi_decide_L4096_fp16fc.tflite` and `multi_tower_N4096_fp16fc.tflite`. Until the first upload these two files were named `multi_decide_phone_fp16fc.tflite` and `multi_tower_phone_fp16fc.tflite`, in that order: the same bytes, and the reports of the checks carry those names.
-6. NPU files: `export_decide.py --L <L> --variant f16s` or `export_tower.py --N <N> --variant f16s` writes the form with the scaled norms, `conversion/npu/aot_compile_sm8850.py` compiles it for the SM8850 in the image of `conversion/npu/Dockerfile`, and `conversion/npu/aot_check.py` reads the compile.
+5. The two multi-signature files: `export_multi.py --variant f16s` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches). They write `multi_decide_L4096_f16sfc.tflite` and `multi_tower_N4096_fp16fc.tflite`. The tower file was named `multi_tower_phone_fp16fc.tflite` in the reports of the checks: the same bytes.
+6. NPU files: `conversion/npu/aot_compile_sm8850.py` compiles a decision file of step 3 for the SM8850 in the image of `conversion/npu/Dockerfile`, and `conversion/npu/aot_check.py` reads the compile. `export_tower.py --N <N> --variant f16s` writes a tower with scaled norms for the same compile, a form this repository does not ship.
 7. Checks and timing: see `conversion/README.md`.
 8. The shipped set: the graphs are the work directory's `out/graphs/` files under the same names; `npu/sm8850/<name>_SM8850.tflite` is the compile's `<name>_Qualcomm_SM8850_apply_plugin.tflite`. `SHA256SUMS` lists every file.
 
-## The rebuild on 2026-11-05
+## The rebuilds
 
-On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran again from a clean copy of this repository's `conversion/`, `host/` and `examples/` folders, in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). One decision file, one tower, both multi-signature files and the NPU files the table names were rebuilt; the other graphs come from the same scripts with another `--L` or `--N`.
+With no fixtures in place an export takes a blank record of seeded random values as its sample and compares its float32 file with its module alone. With the fixtures in place it takes a fixture record and compares both with the author's numbers. The sample only carries the shapes through the export.
 
-With no fixtures in place an export takes a blank record of seeded random values as its sample and compares its float32 file with its module alone. With the fixtures in place it takes a fixture record and compares both with the author's numbers. The table has both for the two single files and the two multi-signature files, whose blank-record rows ran under their earlier names.
+### 2026-11-06: the decision files
+
+On 2026-11-06 the steps ran again from a clean copy of this repository's `conversion/`, `host/` and `examples/` folders, in a new work directory, on the pinned snapshot (its files checked against the Hub's file list). One single decision file and the multi-signature decision file were rebuilt; the other decision files come from the same script with another `--L`.
+
+<!-- dayof7:begin -->
+| File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
+|---|---|---|---|---|
+| `decide_L256_f16sfc.tflite` | blank record | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
+| `multi_decide_L4096_f16sfc.tflite` | blank record | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | the same bytes |
+<!-- dayof7:end -->
+
+### 2026-11-05: the other files
+
+On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran from a clean copy of the scripts of that day in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). The table keeps the rows of the files in this repository: the tables, one tower, the multi-signature tower file, and the 256-token decision file with its NPU compile; the multi-signature tower file's blank-record row ran under its earlier name. The scripts of that day are this repository's but for `export_multi.py`'s new option `--variant` and the host's precision per graph (`host/decide_host/load.py`, and the two examples that print it or name their cache by it).
 
 <!-- dayof:begin -->
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
 |---|---|---|---|---|
 | `tables/tables.safetensors` | not an export | `8fa765826c3676521fa3cc6af61f1cc2c783b129c9564051a0abc28d51678986` | `8fa765826c3676521fa3cc6af61f1cc2c783b129c9564051a0abc28d51678986` | the same bytes |
-| `decide_L256_fp16fc.tflite` | blank record | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | the same bytes |
 | `tower_N400_fp16fc.tflite` | blank record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
 | `multi_tower_N4096_fp16fc.tflite` | blank record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
-| `multi_decide_L4096_fp16fc.tflite` | blank record | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | the same bytes |
-| `decide_L256_fp16fc.tflite` | fixture record | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | `b116743176f6596ced5ff7c61b0f55f85ffc582ec0379b657ae0769145502636` | the same bytes |
 | `tower_N400_fp16fc.tflite` | fixture record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
-| `decide_L256_f16sfc.tflite` | fixture record (the input of the compile below, not a file of this repository) | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
+| `decide_L256_f16sfc.tflite` | fixture record (the input of the compile below) | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
 | `npu/sm8850/decide_L256_f16sfc_SM8850.tflite` | the compile of the row above | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | the same bytes |
 | `multi_tower_N4096_fp16fc.tflite` | fixture record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
-| `multi_decide_L4096_fp16fc.tflite` | fixture record | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | `0b8a334456bef758c674d4f14f316a36b4c16233a0065b434e92e2c80247edc8` | the same bytes |
 <!-- dayof:end -->
 
-From that copy the checks ran again on a few records each: the reference on the official examples and three records; `check_graph.py` and `multi_check.py` on the rebuilt files; `judge.py p1` and `compare`; the separation test; the control arms on three records; `speed.py` with one warm-up and two timed requests; the phone tools, with the Mac in the phone's place; `pixel_check.py` on 60 pictures and the examples, `fp16_probe.py` on its default records, the fixed-size arms on six records and the bfloat16 floor on two. `examples/score_olmocr_set.py` scored the family's 446 records with this repository's files and the host alone on Metal: on the 417 it scores, `prob_1`, the logits, the SHA-256 of the token ids and of the hidden row equal the run behind the card, and it returns `too_large` for the other 29. The card's numbers come from the full runs of the same scripts earlier that day.
+From that copy the checks ran again on a few records each: the reference on the official examples and three records; `check_graph.py` and `multi_check.py` on the rebuilt files; `judge.py p1` and `compare`; the separation test; the control arms on three records; `speed.py` with one warm-up and two timed requests; the phone tools, with the Mac in the phone's place; `pixel_check.py` on 60 pictures and the examples, `fp16_probe.py` on its default records, the fixed-size arms on six records and the bfloat16 floor on two. `examples/score_olmocr_set.py` scored the family's 446 records with the plain decision files, this repository's towers and the host alone on Metal at float32: on the 417 it scores, `prob_1`, the logits, the SHA-256 of the token ids and of the hidden row equal the run behind that day's checks, and it returns `too_large` for the other 29. The card's numbers come from the full runs of the same scripts, on 2026-11-05 and on 2026-11-06 for the decision files at the GPU's default precision.
 
 ## NPU files
 
@@ -77,7 +86,7 @@ The files in `npu/sm8850/` are the files that ran on the Galaxy S26: their SHA-2
 | `decide_L256_f16sfc_SM8850.tflite` | `decide_L256_f16sfc.tflite` (`bc22d87912df27ab…`) | 5,915 / 5,915 | 2,742,904 | 2,902,213,120 | 2,783,922,048 | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` |
 | `decide_L1024_f16sfc_SM8850.tflite` | `decide_L1024_f16sfc.tflite` (`2fa06fec44afd9b8…`) | 13,475 / 13,475 | 2,920,688 | 3,180,470,784 | 2,882,094,976 | `b6ce69bfd9346a2c96599b59171075ba051bcb865d4dd4484c7ffea05f5d1c37` |
 
-On 2026-11-05 a compile in the image of `conversion/npu/Dockerfile`, from the rebuilt input graph, gave the shipped SHA-256 of `decide_L256_f16sfc_SM8850.tflite` (the table above); the others were not compiled again.
+The input graphs are this repository's `decide_L256_f16sfc.tflite` and `decide_L1024_f16sfc.tflite`, the same SHA-256. On 2026-11-05 a compile in the image of `conversion/npu/Dockerfile`, from the rebuilt input graph, gave the shipped SHA-256 of `decide_L256_f16sfc_SM8850.tflite`; the others were not compiled again.
 
 A 512-token file, `decide_L512_f16sfc_SM8850.tflite` (2,819,958,656 bytes, SHA-256 `e1556ac9380d1a828abdf714fa87f784b98eee19016825b062bc3b8f322b1203`), was compiled the same way and ran on the phone. It is not in this repository: its scores are outside the tolerance (see the model card).
 <!-- npu:end -->

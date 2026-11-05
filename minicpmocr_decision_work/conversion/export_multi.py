@@ -3,9 +3,11 @@
 weights are stored (`buffers`). The modules share one text model, so every signature's FC weight is the same torch storage
 and litert-torch's constant cache lowers it once.
 
-    PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py [--keep-fp32] [--buckets 256,384,512,768,1024,1536,2048,3072,4096:1024 --name half]
+    PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py --variant f16s [--keep-fp32] [--buckets 256,384,512,768,1024,1536,2048,3072,4096:1024 --name half]
 
-Writes out/graphs/multi_decide_L4096_{fp32,fp16fc}.tflite, results/export_multi_L4096.json (with --name: multi_decide_<name>_*, export_multi_<name>.json). `size:qblock` in --buckets. Never overwrites."""
+Writes out/graphs/multi_decide_L4096_{fp32,fp16fc}.tflite, results/export_multi_L4096.json (with --name: multi_decide_<name>_*, export_multi_<name>.json); with
+--variant f16s (the form of this repository's file, decide_graph.apply_f16s): multi_decide_L4096_{f16s32,f16sfc}.tflite, results/export_multi_L4096_f16s.json.
+`size:qblock` in --buckets. Never overwrites."""
 from __future__ import annotations
 
 import argparse
@@ -39,14 +41,17 @@ def main():
     ap.add_argument("--keep-fp32", action="store_true")
     ap.add_argument("--buckets", default="")
     ap.add_argument("--name", default="L4096")
+    ap.add_argument("--variant", default="", choices=("", "f16s"), help="f16s: the final norm scaled into float16's range (decide_graph.apply_f16s), as export_decide.py --variant f16s")
     a = ap.parse_args()
+    v = a.variant
     keep = a.keep_fp32
     buckets = BUCKETS if not a.buckets else tuple((int(x.split(":")[0]), int(x.split(":")[1]) if ":" in x else 0) for x in a.buckets.split(","))
     torch.set_num_threads(4)
     torch.set_grad_enabled(False)
     gdir = WORK / "out/graphs"
-    p32, p16 = gdir / f"multi_decide_{a.name}_fp32.tflite", gdir / f"multi_decide_{a.name}_fp16fc.tflite"
-    rec_path = WORK / f"results/export_multi_{a.name}.json"
+    p32 = gdir / (f"multi_decide_{a.name}_{v}32.tflite" if v else f"multi_decide_{a.name}_fp32.tflite")
+    p16 = gdir / (f"multi_decide_{a.name}_{v}fc.tflite" if v else f"multi_decide_{a.name}_fp16fc.tflite")
+    rec_path = WORK / (f"results/export_multi_{a.name}_{v}.json" if v else f"results/export_multi_{a.name}.json")
     for p in (p16, rec_path):
         assert not p.exists(), f"never overwrite {p}"
     t0 = time.time()
@@ -56,6 +61,9 @@ def main():
     model, info = G.load_text_model()
     rec = {"buckets": buckets, "load_info": info, "form_apply": G.apply_form(model), "pythonhashseed": os.environ.get("PYTHONHASHSEED"),
            "versions": {p: importlib.metadata.version(p) for p in ("torch", "transformers", "litert-torch", "litert-converter", "ai-edge-litert", "ai-edge-quantizer", "numpy")}}
+    rec["variant"] = v
+    if v == "f16s":
+        rec["variant_apply"] = G.apply_f16s(model)
 
     class SigRow(G.DecideRow):
         """Sets the attention form of its own signature at every trace: the text model is shared."""

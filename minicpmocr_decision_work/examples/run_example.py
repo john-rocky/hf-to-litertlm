@@ -1,6 +1,7 @@
 """The source's three official examples on this repository's LiteRT files, through the PyTorch-free host.
 
-    python examples/run_example.py                         # the GPU at float32 (Metal on a Mac), the two multi-signature files
+    python examples/run_example.py                         # the GPU (Metal on a Mac), the two multi-signature files: the decision
+                                                           # graph at the GPU's default precision, the tower at float32
     python examples/run_example.py --check                 # also compare with the author's published scores, and test the refusals
     python examples/run_example.py --accel cpu --weight-cache /path/to/folder --check     # CPU (XNNPACK), weight cache in that folder
     python examples/run_example.py --accel cpu --form files --check                       # one file per bucket
@@ -118,7 +119,8 @@ def main():
     t0 = time.time()
     results, refused, fails = {}, {}, []
     with load_host(a.repo, accelerator=a.accel, form=a.form, threads=a.threads, keep=a.keep, weight_cache_dir=a.weight_cache or None) as host:
-        print(f"loaded in {time.time() - t0:.1f} s, accel {a.accel}, form {a.form}, top length {host.decide.max_len}, top patches {host.tower.max_n}", flush=True)
+        acc = {"decide": host.decide.acc, "tower": host.tower.acc}
+        print(f"loaded in {time.time() - t0:.1f} s, accel {a.accel} (decide {acc['decide']}, tower {acc['tower']}), form {a.form}, top length {host.decide.max_len}, top patches {host.tower.max_n}", flush=True)
         for name in CASES:
             case = json.loads(files[f"{name}/case.json"])
             role = case["reference_render_of"]
@@ -149,7 +151,7 @@ def main():
     print(f"wall {time.time() - t0:.1f} s (compiles included)")
     if a.out:
         with open(a.out, "w") as f:
-            json.dump({"accel": a.accel, "form": a.form, "threads": a.threads, "results": results, "refusals": refused, "fails": fails}, f, indent=1)
+            json.dump({"accel": a.accel, "acc": acc, "form": a.form, "threads": a.threads, "results": results, "refusals": refused, "fails": fails}, f, indent=1)
     if a.check:
         print("\n".join(fails) if fails else "", end="\n" if fails else "")
         print("CHECK PASS" if not fails else f"CHECK FAIL ({len(fails)} differences)")
