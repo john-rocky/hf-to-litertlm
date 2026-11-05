@@ -1,0 +1,47 @@
+{
+ "text": {
+  "item_id": 1962,
+  "T": 280,
+  "N": [
+   372,
+   352
+  ],
+  "M": [
+   93,
+   88
+  ],
+  "text_tokens": 22,
+  "family": "olmocr",
+  "median_T_of_category": 279.0
+ },
+ "formula": {
+  "item_id": 1897,
+  "T": 411,
+  "N": [
+   288,
+   576
+  ],
+  "M": [
+   72,
+   144
+  ],
+  "text_tokens": 118,
+  "family": "olmocr",
+  "median_T_of_category": 411
+ },
+ "table": {
+  "item_id": 1918,
+  "T": 1721,
+  "N": [
+   1584,
+   2888
+  ],
+  "M": [
+   396,
+   722
+  ],
+  "text_tokens": 526,
+  "family": "olmocr",
+  "median_T_of_category": 1721
+ }
+}

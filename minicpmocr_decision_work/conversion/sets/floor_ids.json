@@ -1,0 +1,15 @@
+{
+"what": "records of set_A.json for the bf16 / float32 reference floor",
+"seed": 20261108,
+"item_ids": [
+2014,
+2040,
+2077,
+1879,
+2091,
+2132,
+1906,
+1935,
+1945
+]
+}

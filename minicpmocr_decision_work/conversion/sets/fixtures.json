@@ -1,0 +1,284 @@
+{
+"what": "the records and pictures the graph checks compare against the author's torch modules (record ids of the olmOCR family; `pass_` 2 = the large ones)",
+"decide": [
+{
+"item_id": 1962,
+"why": "ladder text",
+"T": 280,
+"n": [
+372,
+352
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 1897,
+"why": "ladder formula",
+"T": 411,
+"n": [
+288,
+576
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 1918,
+"why": "ladder table",
+"T": 1721,
+"n": [
+1584,
+2888
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2259,
+"why": "L256 group A T 256",
+"T": 256,
+"n": [
+336,
+264
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2251,
+"why": "L256 group A T 243",
+"T": 243,
+"n": [
+336,
+300
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2138,
+"why": "L512 group A T 512",
+"T": 512,
+"n": [
+336,
+1152
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2020,
+"why": "L512 group A T 336",
+"T": 336,
+"n": [
+384,
+432
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2198,
+"why": "L1024 group A T 1001",
+"T": 1001,
+"n": [
+432,
+2000
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2095,
+"why": "L1024 group A T 659",
+"T": 659,
+"n": [
+304,
+1360
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 2178,
+"why": "L2048 group A T 2043",
+"T": 2043,
+"n": [
+864,
+4400
+],
+"family": "olmocr",
+"pass_": 2
+},
+{
+"item_id": 1924,
+"why": "L2048 group A T 1457",
+"T": 1457,
+"n": [
+1740,
+2088
+],
+"family": "olmocr",
+"pass_": 1
+},
+{
+"item_id": 1901,
+"why": "L4096 group A T 4092",
+"T": 4092,
+"n": [
+4800,
+6360
+],
+"family": "olmocr",
+"pass_": 2
+},
+{
+"item_id": 1929,
+"why": "L4096 group A T 2590",
+"T": 2590,
+"n": [
+1440,
+4704
+],
+"family": "olmocr",
+"pass_": 2
+},
+{
+"item_id": 1958,
+"why": "L8192 group A T 7304",
+"T": 7304,
+"n": [
+9120,
+9728
+],
+"family": "olmocr",
+"pass_": 2
+},
+{
+"item_id": 1905,
+"why": "L8192 group A T 5741",
+"T": 5741,
+"n": [
+8836,
+6840
+],
+"family": "olmocr",
+"pass_": 2
+}
+],
+"tower": [
+{
+"item_id": 2172,
+"which": 1,
+"n": 400,
+"why": "N400 top group A",
+"pass_": 1
+},
+{
+"item_id": 1849,
+"which": 0,
+"n": 256,
+"why": "N400 half group A",
+"pass_": 1
+},
+{
+"item_id": 2210,
+"which": 0,
+"n": 576,
+"why": "N576 top group A",
+"pass_": 1
+},
+{
+"item_id": 1826,
+"which": 0,
+"n": 288,
+"why": "N576 half group A",
+"pass_": 1
+},
+{
+"item_id": 1927,
+"which": 0,
+"n": 1024,
+"why": "N1024 top group A",
+"pass_": 1
+},
+{
+"item_id": 1846,
+"which": 1,
+"n": 512,
+"why": "N1024 half group A",
+"pass_": 1
+},
+{
+"item_id": 2263,
+"which": 1,
+"n": 1600,
+"why": "N1600 top group A",
+"pass_": 1
+},
+{
+"item_id": 2070,
+"which": 0,
+"n": 792,
+"why": "N1600 half group A",
+"pass_": 1
+},
+{
+"item_id": 1875,
+"which": 1,
+"n": 2304,
+"why": "N2304 top group A",
+"pass_": 1
+},
+{
+"item_id": 2116,
+"which": 1,
+"n": 1152,
+"why": "N2304 half group A",
+"pass_": 1
+},
+{
+"item_id": 1957,
+"which": 1,
+"n": 4032,
+"why": "N4096 top group A",
+"pass_": 1
+},
+{
+"item_id": 1923,
+"which": 0,
+"n": 2064,
+"why": "N4096 half group A",
+"pass_": 1
+},
+{
+"item_id": 1958,
+"which": 0,
+"n": 9120,
+"why": "N9216 top group A",
+"pass_": 2
+},
+{
+"item_id": 1908,
+"which": 1,
+"n": 4592,
+"why": "N9216 half group A",
+"pass_": 2
+},
+{
+"item_id": 1921,
+"which": 0,
+"n": 11700,
+"why": "N16384 top group A",
+"pass_": 2
+},
+{
+"item_id": 2189,
+"which": 0,
+"n": 8476,
+"why": "N16384 half group A",
+"pass_": 2
+}
+]
+}
