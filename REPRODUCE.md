@@ -14,6 +14,30 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## Qwen3.5-0.8B with GPU composites (2026-11-05)
+
+`Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm` on [litert-community/Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) (888,273,664 B, sha256 `ebddb6d5…`) is that model's file for the GPU on LiteRT-LM 0.19.0. It is an export of litert-torch's own Qwen3.5 graph with `--apply_gpu_composites=True`, not an output of `qwen35_work/convert_qwen35_hybrid.py`.
+
+```bash
+bash scripts/reproduce_llm.sh qwen35-0.8b-gpu-composite     # -> out/qwen35-0.8b-gpu-composite/model.litertlm
+```
+
+It needs `python3.12`, `uvx`, `git`, `curl` and 5 GB of disk in the work directory. `qwen35_work/export_qwen35_08b_gpu_composite.sh` prints every command as `### CMD:`, does not repeat a finished step, and refuses to overwrite its output. Its steps:
+
+1. litert-torch at `65aafa4`, the last commit whose `gated_delta_update` has the 6 inputs litert-lm 0.19.0 accepts, with the `litert_lm_builder.py` of `fe5c2bd` (packaging code only: the pinned litert-lm-builder 0.19.0 has no `TfLiteModelType`).
+2. A Python 3.12 venv from `qwen35_work/qwen35_08b_gpu_composite.lock.txt`, plus that litert-torch.
+3. `Qwen/Qwen3.5-0.8B` at `2fc06364`.
+4. LiteRT-LM v0.19.0's `models/qwen3_5/LlmMetadataProto.pbtext`, sha256 checked. The export packages with it and step 6 replaces it.
+5. `export_hf` with `PYTHONHASHSEED=0`: `--quantization_recipe=dynamic_wi8_afp32 --apply_gpu_composites=True --externalize_weights=False --cache_length=4096 --prefill_lengths=[1024,512,256,128,64,32,16,8,4,2,1]`.
+6. A re-pack with litert-lm-nightly 0.20.0.dev20261103. The LlmMetadata becomes `qwen35_work/qwen35_08b_gpu_composite.pbtext`: the chat template and stop tokens of `Qwen3.5-0.8B_int8.litertlm`, model type `qwen3`, and `pad_token <|endoftext|>`. The tokenizer section becomes the repository's own `tokenizer.json` (an 8-byte little-endian length, then zlib level 6). The TFLite and executor sections stay as exported.
+7. The sha256 of every section against the published file. Exit 0 means all four are equal, exit 1 that a step failed or a section differs. `--check FILE [PYTHON]` runs this step alone on any file. If only the TFLite section differs on another machine, `tools/tfl_compare/` says whether it is the same computation.
+
+`pad_token` is not optional for this graph. It masks padded prefill slots with `tokens != 248044`, and the runtime fills empty slots with the metadata's `pad_token`, or with id 0 when there is none, so without the field id 0 enters the recurrent state and no error is raised. On one TFLite section, GSM8K (n = 100, Mac GPU, litert-lm 0.19.0) scored 46 without the field, and 54 and 55 on the two forms with it.
+
+The file's `odml.short_conv_step` nodes are channels-first. [LiteRT #11565](https://github.com/google-ai-edge/LiteRT/pull/11565) (merged 2026-11-04, in no LiteRT-LM release as of 2026-11-05) makes the GPU delegate accept channels-last only. LiteRT-LM `9936aa32` built on a Mac with `LITERT_REF` at that LiteRT commit refuses the file on the GPU at engine creation: `ShortConvStep supports only a channels-last conv_state [1, 3, H], but got [1, 6144, 3]`.
+
+Checked on 2026-11-05 on an Apple M4 Max (128 GB, macOS 27.0), from a clean worktree of this repository at the commit that added the tool: the command above exited 0 and printed `SAME` for all four sections (LlmMetadataProto 746 B `600a70d1…`, ExecutorMetadataProto 3,057 B `6ac6d910…`, HF_Tokenizer_Zlib 3,614,174 B `f7099e03…`, TFLiteModel 884,603,648 B `d53fbd69…`). The machine restarted during the export of the first start, so the same command was started a second time: it skipped steps 1 to 4 (about a minute in the first start) and ran steps 5 to 7 in 466 s, with a peak resident size of 22.6 GB. The file it wrote has sha256 `20abaab4…`, not the published one, because the packer writes a new uuid and creation timestamp into the header. `--check` on `Qwen3.5-0.8B_int8.litertlm` prints `DIFF` and exits 1.
+
 ## Tool-call configuration re-pack (2026-11-03)
 
 On 2026-11-03, 9 published `.litertlm` files of 5 repos whose models use the Qwen3.5 architecture were re-packed with litert-lm 0.19.0, each from the file at the Hub commit in the table below (the published file, that is after each repo's own metadata step, which its entry further down names). The LlmMetadata changed in two fields: it gained the `tool_call_config` of LiteRT-LM v0.19.0's [`models/qwen3_5/LlmMetadataProto.pbtext`](https://github.com/google-ai-edge/LiteRT-LM/blob/771b06e1a2c7f70a399a718599109facf37e38fd/models/qwen3_5/LlmMetadataProto.pbtext) (the `<tool_call>` fence and the patterns for `<function=…>` and `<parameter=…>`) and `supports_function_calling: true`. The container header's format version moves from 1.7.0 to 1.9.0 and carries a new uuid and creation timestamp (the header stays 608 bytes); every other LlmMetadata field (the chat template, stop tokens, channels, sampler, `max_num_tokens`, the model type `generic_model`) is unchanged, every other section is byte-identical to the file each was built from, and every file keeps its size. `tool_call_config` is the field LiteRT-LM 0.19.0 reads to parse the tool calls of a `generic_model` file (`<tool_call><function=NAME><parameter=ARG>VALUE</parameter></function></tool_call>` for these models); releases before 0.19.0 have no such field and return the calls as text. Each repo's model card says what changed for its users and what was checked on the new files.

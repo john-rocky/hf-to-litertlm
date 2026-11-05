@@ -104,7 +104,7 @@ reproduce() {
 
   agents-a1-4b)       "$PY" agents_a1_work/build_bundles.py --prepare --download --output "out/$key"; return ;;  # same float parent -> int8 + mixed int4 b32; dual-form XML/tools/thinking template, fp32 activations
   qwen35-4b-3d-coder-kv16k) QWEN35_CACHE_LENGTH=16384 QWEN35_PREFILL_LADDER=256,16,1 bash qwen35_work/convert_qwen35_4b_int4.sh ccore/Qwen3.5-4B-3D-Coder "out/$key"; return ;;  # litert-community/Qwen3.5-4B-3D-Coder, the KV 16,384 file (prefill 256,16,1); Mixed INT4 b32, repo tokenizer.json, thinking-off template, fp32 activations; env QWEN35_PY / RUN_PY / LITERT_LM / CHECK_PY / EXEC_META_LITERT_LM (REPRODUCE.md)
-  qwen35-0.8b-gpu-composite) bash qwen35_work/export_qwen35_08b_gpu_composite.sh out/$key ;;  # the 2026-11-05 file for the GPU on litert-lm 0.19.0; about 25 min on an M4 Max + the venv and the checkpoint
+  qwen35-0.8b-gpu-composite) bash qwen35_work/export_qwen35_08b_gpu_composite.sh out/$key ;;  # the 2026-11-05 file for the GPU on litert-lm 0.19.0; 8 to 25 min on an M4 Max, up to 22.6 GB resident, + the venv and the checkpoint
   qwen35-4b-3d-coder-kv32k) QWEN35_CACHE_LENGTH=32768 QWEN35_PREFILL_LADDER=1024,256,64,16,4,1 bash qwen35_work/convert_qwen35_4b_int4.sh ccore/Qwen3.5-4B-3D-Coder "out/$key"; return ;;  # the same repo's KV 32,768 file (the Qwen3.5-4B ladder)
   *) echo "unknown model key: '$key' (run --list)"; return 2 ;;
   esac
