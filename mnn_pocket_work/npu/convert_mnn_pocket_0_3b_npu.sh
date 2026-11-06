@@ -39,7 +39,9 @@ FILES=(config.json generation_config.json model.safetensors tokenizer.json token
   added_tokens.json vocab.json merges.txt chat_template.jinja)
 LT_URL=https://github.com/google-ai-edge/litert-torch.git; LT_REV=6d4c622c9a3aade4d411a1e859c6bbe571d38ee0
 ATTN_PY=litert_torch/generative/export_hf/core/split_cache/attention.py
-ATTN_SHA=08ba37d1ec9d8c5126f33f202497393150c9ad419e3a0a72b0276eadc15d87bb
+# attention.py as the patch leaves it. The published file was built with the patch's previous text (08ba37d1...),
+# which differs from this one in two comment lines only (lines 86-87 of the patched file).
+ATTN_SHA=474ea0088e7ac36489d4059706a01324f9ef1a53a0821a7528c5787645973a31
 NAME=MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm
 SNAP=$OUT/hf_cache/models--${REPO//\//--}/snapshots/$REV
 TREE=$OUT/litert-torch
@@ -69,7 +71,7 @@ for step in "${STEPS[@]}"; do
       run git -C "$TREE" apply "$N/litert_torch_6d4c622_split_cache_mask.diff"
       got=$(shasum -a 256 "$TREE/$ATTN_PY" | cut -d' ' -f1)
       echo "patched $ATTN_PY sha256 $got" | tee -a "$LOG"
-      [ "$got" = "$ATTN_SHA" ] || { echo "the patched file differs from the one the published file was built with ($ATTN_SHA)" | tee -a "$LOG"; exit 1; }
+      [ "$got" = "$ATTN_SHA" ] || { echo "the patched file differs from the one this recipe was checked with ($ATTN_SHA)" | tee -a "$LOG"; exit 1; }
       ;;
     pbtext)
       run "$PY" "$W/make_pbtext.py" --template "$R/templates/mnn_pocket_0_3b.jinja" --model-type qwen2p5 \
