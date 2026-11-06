@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Write the LlmMetadata pbtext of MNN-Pocket-0.3B_int8.litertlm (passed to export_hf --litert_lm_llm_metadata_override).
+"""Write the LlmMetadata pbtext of an MNN-Pocket-0.3B file (passed to export_hf --litert_lm_llm_metadata_override).
 
-  python mnn_pocket_work/make_pbtext.py --template templates/mnn_pocket_0_3b.jinja --out <LlmMetadataProto.pbtext>
+  python mnn_pocket_work/make_pbtext.py --template templates/mnn_pocket_0_3b.jinja [--model-type generic_model]
+      [--max-num-tokens 2048] --out <LlmMetadataProto.pbtext>
 
 Fields: no start_token (the source has no BOS: add_bos_token false, bos_token null); stop tokens as ids, <|im_end|> 65512
 then <|endoftext|> 65510 (the order of generation_config.json's eos_token_id); the sampler of the source card's usage
-example (top_k 20, top_p 0.8, temperature 0.8) as TOP_P; max_num_tokens 4096 (= the exported KV cache); model type
-qwen2p5; the chat template text verbatim from --template; no channels (the model has no thinking block); no pad_token.
+example (top_k 20, top_p 0.8, temperature 0.8) as TOP_P; max_num_tokens 4096 (= the exported KV cache; --max-num-tokens
+for another cache length); model type qwen2p5 (--model-type generic_model for the files of 2026-11-07); the chat template
+text verbatim from --template; no channels (the model has no thinking block); no pad_token.
 """
 import argparse
 
