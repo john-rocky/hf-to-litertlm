@@ -148,7 +148,7 @@ The phones ran the graph files in programs that are not in this repository: a te
 $EXPORT conversion/make_rows.py static --out-dir out/rows       # the 90 records of sets/set_device.json, per patch bucket; the fixed workload
 ```
 
-A decision row for the GPU holds the phone's own tower output at the picture positions, so it is made on the Mac after the tower runs, from the phone's folder of reports and outputs (in the NPU's runs only the decision graph ran on the NPU, and its rows hold the Mac's tower output):
+A decision row for the GPU holds the phone's own tower output at the picture positions, so it is made on the Mac after the tower runs, from the phone's folder of reports and outputs (the NPU's runs used the same rows as the Galaxy S26's GPU runs: only the decision graph ran on the NPU, and the rows hold the phone's GPU tower output at float32):
 
 ```bash
 $EXPORT conversion/make_rows.py pic --rows-dir out/rows --round-dir <phone folder> --src-prefix <tower runs> --bucket <L> --name <rows.json> --out-dir <phone folder>/gen
