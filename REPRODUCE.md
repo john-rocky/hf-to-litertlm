@@ -4596,7 +4596,7 @@ Scripts, the host, the examples and the reproduction guide: [`minicpmocr_decisio
 
 ## MNN-Pocket-0.3B — a 0.3B ChatML model as one int8 file: litert-torch's stock `export_hf` with GPU composites, prefill signatures of 128 and 1,024 tokens, a 4,096-token KV cache, the source `tokenizer.json`, and a chat template that takes content parts (2026-11-06)
 
-`mnn_pocket_work/convert_mnn_pocket_0_3b.sh` (key `mnn-pocket-0.3b` of `scripts/reproduce_llm.sh`) converts [taobao-mnn/MNN-Pocket-0.3B](https://huggingface.co/taobao-mnn/MNN-Pocket-0.3B) at commit `087a52fd` into the file of [litert-community/MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B), `MNN-Pocket-0.3B_int8.litertlm` (320,836,208 B). The model (Apache-2.0, `Qwen3ForCausalLM`) has 28 layers, hidden size 896, 14 query and 2 key-value heads of 64, a 65,536-token vocabulary, tied input and output embeddings, and no BOS token (`add_bos_token` false, `bos_token` null).
+`mnn_pocket_work/convert_mnn_pocket_0_3b.sh` (key `mnn-pocket-0.3b` of `scripts/reproduce_llm.sh`) converts [taobao-mnn/MNN-Pocket-0.3B](https://huggingface.co/taobao-mnn/MNN-Pocket-0.3B) at commit `087a52fd` into the first file of [litert-community/MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B), `MNN-Pocket-0.3B_int8.litertlm` as uploaded on 2026-11-06 (320,836,208 B). That file was replaced on 2026-11-07; the repository's revision `7168f8f` still holds it (`hf download litert-community/MNN-Pocket-0.3B MNN-Pocket-0.3B_int8.litertlm --revision 7168f8fccef31f877b94613a4775a23b50ea684e --local-dir .`), and that copy is the `REF` of the command below. The files of 2026-11-07 come from the same script with three options (2026-11-07 update, below). The model (Apache-2.0, `Qwen3ForCausalLM`) has 28 layers, hidden size 896, 14 query and 2 key-value heads of 64, a 65,536-token vocabulary, tied input and output embeddings, and no BOS token (`add_bos_token` false, `bos_token` null).
 
 ```bash
 uv venv -p 3.13 .venv-mnn-pocket
@@ -4621,6 +4621,57 @@ Run as written on 2026-11-06 from a clean clone with the scripts of this entry, 
 - **The chat template.** The source's `chat_template.jinja` reads a message's content only when it is a string. LiteRT-LM passes the content to the template as a list of parts, so with that template the runtime (litert-lm 0.19.1) rendered every user message empty, and a conversation with a system message stopped with `tried to use + operator on unsupported types`. `templates/mnn_pocket_0_3b.jinja` makes two changes: a `format_content` macro that renders a string or a list of `text` / `tool_response` parts, and a guard (`messages and messages[0]...`) so that an empty message list renders (the source template stops there with `undefined value`). On 7 conversations (one user message, system + user, user / assistant / user, tools + user, tools + system + user, a tool call and its result, and the same with a following user message), each with and without the generation prompt, the runtime's render with this template (litert-lm 0.19.1) equals transformers' `apply_chat_template` with the source template byte for byte; with tools and an empty message list it renders, where transformers raises.
 - **Tool calls arrive as text.** Given tool definitions, the model writes the call as a bare JSON object (`{"name": "get_weather", "arguments": {"location": "Paris"}}`) without the `<tool_call>` tags of its own template; the source in transformers (bfloat16) writes the same 26 tokens on the same 170-token prompt. LiteRT-LM's `qwen2p5` parser therefore returns no tool call, and the app parses the JSON from the text.
 - **Checked on a Mac M4 Max with litert-lm 0.19.1** (PyPI): GSM8K, the first 100 test questions, 4-shot chain of thought (the first four exemplars of lm-evaluation-harness `gsm8k-cot`), greedy, at most 1,024 new tokens, three fresh processes per backend: 62 / 62 / 60 on the GPU and 60 / 60 / 58 on the CPU, against 58 for the source in transformers (bfloat16, CPU). An int4 export of the same pipeline (`dynamic_wi4b32_afp32`, blocks of 32) answered 35–38 on the GPU (40–41 with fp32 activations declared) and 28 on the CPU, and is not published. Speed and the phone rows: the model card.
+
+### 2026-11-07 update — the attention composites, model type `generic_model`, and a second file with a 2,048-token KV cache
+
+On 2026-11-07 `MNN-Pocket-0.3B_int8.litertlm` was replaced by a new export, and `MNN-Pocket-0.3B_int8_ekv2048.litertlm` was added. The same script builds both, with three options:
+- `ATTN=1` exports with the attention composites (`--use_qkv_norm_rope_composite=True --use_sdpa_composite=True`; without it both stay `False`).
+- `TYPE=generic_model` writes that model type into the LlmMetadata in place of `qwen2p5`.
+- `KV=2048` sets `--cache_length` and `max_num_tokens` to 2,048 and names the output `MNN-Pocket-0.3B_int8_ekv2048.litertlm`.
+
+Without the options the script writes the first file as before.
+
+```bash
+PY=$PWD/.venv-mnn-pocket/bin/python REF=/path/to/MNN-Pocket-0.3B_int8.litertlm bash scripts/reproduce_llm.sh mnn-pocket-0.3b-attn-kv4096
+PY=$PWD/.venv-mnn-pocket/bin/python REF=/path/to/MNN-Pocket-0.3B_int8_ekv2048.litertlm bash scripts/reproduce_llm.sh mnn-pocket-0.3b-attn-kv2048
+```
+
+Outputs: `out/mnn-pocket-0.3b-attn-kv4096/MNN-Pocket-0.3B_int8.litertlm` and `out/mnn-pocket-0.3b-attn-kv2048/MNN-Pocket-0.3B_int8_ekv2048.litertlm`.
+
+Run as written on 2026-11-07 on a Mac M4 Max:
+- from a clean clone with the scripts of this entry;
+- each key in a new environment made by the two `uv` lines above (75 packages, Python 3.13.13);
+- with the download path of the script.
+
+The largest process was 10.5 GB resident (`/usr/bin/time -l`). Every section of each rebuilt file, its bytes and its header items, equals the published file's (table below). Each rebuilt file has the published file's size and, as on 2026-11-06, a sha256 of its own. On the same day, at the same commit, the key `mnn-pocket-0.3b` without the options rebuilt a file whose four sections, bytes and header items, equal the first file's.
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `MNN-Pocket-0.3B_int8.litertlm` (2026-11-07) | LlmMetadataProto (model type `generic_model`; the other fields as in the first file) | 3,208 | `d26a1e4cd275fa82cf82cdd1ec350d250bf969063209c06aaca6612fcb5c7e3a` |
+|  | ExecutorMetadataProto (the first file's bytes) | 3,790 | `1c3f450df7d1d66a46b5ed121ec57dfc2f8cbdc3254748656737c784f6530244` |
+|  | HF_Tokenizer_Zlib (the first file's bytes) | 880,362 | `5ec4e839e9e772d16aa46fdc4a92f6d6ab2cf6983ee4522e67c5387b5cf773e4` |
+|  | TFLiteModel (tf_lite_prefill_decode: prefill_128, prefill_1024, decode) | 319,091,600 | `3bea37550de7d1147d7609656c1781991ec18e8232a4124021e6287769593457` |
+| `MNN-Pocket-0.3B_int8_ekv2048.litertlm` | LlmMetadataProto (`max_num_tokens` 2048; the other fields as in the line above) | 3,208 | `ca9991e1c027a3e1db9904cbe9f8de3e46e7babac7e65dfdb1a6c0f3ba0cc9fa` |
+|  | ExecutorMetadataProto (`max_history_size` and the caches' `maximum_sequence_length` 2048) | 3,790 | `682db34c0962a0f390d8e1315ca4401621f4301795c96b279e916a49e3e6db20` |
+|  | HF_Tokenizer_Zlib | 880,362 | `5ec4e839e9e772d16aa46fdc4a92f6d6ab2cf6983ee4522e67c5387b5cf773e4` |
+|  | TFLiteModel (the same three signatures) | 319,091,600 | `7be8ea0e53a1832dc80b832d460d4676d7c99645cf273f16f6df31fbedcfa219` |
+(The sha256 of each section's bytes as stored in the file.)
+
+- **The graph.**
+  - Operators per signature: prefill_128 / prefill_1024 / decode = 436 / 436 / 406 (916 / 916 / 830 in the first file).
+  - Composites per signature: 57 `odml.rms_norm`, 28 `odml.qkv_norm_rope`, 28 `odml.sdpa_transposed`, 28 `odml.cache_update` and 28 `odml.swiglu`. The first file's `odml.rope` and `odml.runtime_bmm` composites are gone: each layer's q / k norms and rotary embedding sit in one `odml.qkv_norm_rope`, and its attention in one `odml.sdpa_transposed`.
+  - In the 4,096-token file every tensor with data is the first file's: the same bytes, dtype, shape, scales and zero points, the 113 int8 fully connected weights and the int8 embedding table among them.
+- **The two files of 2026-11-07** differ only in the KV cache's length. In the graph: the K / V cache tensors ([1, 2, 2048, 64] and [1, 2, 64, 2048]), the mask, and three int32 reshape shapes inside the fused attention. In the metadata: `max_num_tokens`, and `max_history_size` and the caches' `maximum_sequence_length`.
+- **Model type `generic_model`.** LiteRT-LM 0.19.1 gives a file that declares any other model type different GPU settings (`runtime/engine/engine_settings.cc`):
+  - `allow_src_quantized_fc_conv_ops` is on for every declared type except `generic_model`;
+  - `hint_waiting_for_completion` is on only for `generic_model`;
+  - `hint_kernel_batch_size` is set to 4 only for `generic_model`.
+- **The GPU floor.** On a Mac M4 Max, litert-lm 0.18.1 runs these files on the CPU but not on the GPU. Its GPU reports `Error while parsing WGSL: :80:5 error: cannot initialize 'var' of type 'f32' with value of type 'f16'`, and the reply is a string of symbols. On the GPU, 0.19.0 and 0.19.1 run them, and 0.18.1 runs the first file.
+- **Tool calls still arrive as text.** The files carry no `tool_call_config`, so LiteRT-LM returns the model's bare JSON as the reply's text.
+- **Checked on a Mac M4 Max with litert-lm 0.19.1** (PyPI): GSM8K as above, three fresh processes per backend, against 58 for the source in transformers.
+  - The 4,096-token file: 58 / 63 / 61 on the GPU and 56 / 55 / 58 on the CPU.
+  - The 2,048-token file: 64 / 62 / 63 on the GPU and 59 / 58 / 61 on the CPU.
+  - Speed and the phone rows: the model card.
 
 ## granite-speech-5.0-2b — speech in, text out through one `generic_model` `.litertlm` file: the log-mel front end, the conformer and the Q-Former projector as one audio encoder graph with fp16 weights for a 36-second window, and the 40-layer Granite language model with int8 weights (2026-11-06)
 
