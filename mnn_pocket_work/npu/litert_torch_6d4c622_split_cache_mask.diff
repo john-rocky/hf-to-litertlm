@@ -21,8 +21,8 @@
 +  if g != 1 and t > 1:
 +    # Prefill: broadcast the 1, 1, t, s mask over the g query heads instead of
 +    # concatenating it g times: logits row gi * t + ti gets mask row ti either
-+    # way, and the mask the ADD reads stays 2 B x t x s in int16 (the Qualcomm
-+    # HTP mis-pairs rows of an ADD operand above 1 MiB, litert-torch#1184;
++    # way, and no concatenation feeds the ADD (the Qualcomm HTP mis-pairs the
++    # rows of an ADD fed by a concat output above 1 MiB, litert-torch#1184;
 +    # MNN-Pocket-0.3B: 14 query heads on 2 KV heads, prefill 128, cache 2048 =
 +    # 3,899,392 B concatenated, 557,056 B broadcast).
 +    padded_logits = (logits.reshape(b0 * bk, g, t, s) + mask).reshape(
