@@ -38,20 +38,22 @@ Every export ran with `PYTHONHASHSEED=0`, one process at a time. A decision expo
 hf download openbmb/MiniCPM-OCR-Jev --revision a0ed278eb6aa1f333a711665ab610055a4a816ab --local-dir snapshot
 python3 conversion/make_tables.py
 
-# 1. the decision files, in the f16s form (out/graphs/decide_L<L>[_qb1024]_f16sfc.tflite, results/export_decide_*_f16s.json)
-for L in 256 384 512 768 1024 1536 2048 3072; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L --variant f16s; done
-PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 4096 --qblock 1024 --variant f16s
+# 1. the single decision files, in the f16s form with the kernel forms bt and cv (out/graphs/decide_L<L>[_qb1024]_f16sfc.tflite, results/export_decide_*_f16s.json)
+for L in 256 384 512 768 1024 1536 2048 3072; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L --form R64+sp+ec+dd+vs6+bt+cv --variant f16s; done
+PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 4096 --qblock 1024 --form R64+sp+ec+dd+vs6+bt+cv --variant f16s
 
 # 2. the towers (out/graphs/tower_N<N>[_qb1024]_fp16fc.tflite, results/export_tower_*.json)
 for N in 400 576 784 1024 1296 1600 1936 2304 3136; do PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N $N; done
 PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N 4096 --qblock 1024
 
-# 3. the two multi-signature files (the decision file in the f16s form, the tower file in the plain form)
+# 3. the two multi-signature files (the decision file in the f16s form on the default kernel form, without bt and cv; the tower file in the plain form)
 PYTHONHASHSEED=0 $EXPORT conversion/export_multi.py --variant f16s
 PYTHONHASHSEED=0 $EXPORT conversion/export_multi_tower.py
 ```
 
 `--variant f16s` multiplies the final norm's input by 2^-4 and its epsilon by 4^-4, and caps its reciprocal square root at the value for a zero input (`apply_f16s` in `decide_graph.py`): the plain graph's final norm sums squares up to 600,543, more than float16 holds, so at a GPU's default precision the plain file answers wrong and this form does not. Without `--variant f16s` the same commands write the plain form (`_fp16fc`). At float32 the two forms gave the same outputs bit for bit on the records we compared: on the CPU, all 417 records of the olmOCR set that the files hold; on Metal at float32, the 83 records of the phones' test set that the 256- to 2,048-token files hold (12, 29, 28 and 14).
+
+`--form R64+sp+ec+dd+vs6+bt+cv` adds two kernel forms to the default `R64+sp+ec+dd+vs6` (`FORM` in `decide_graph.py`; `kernel_q35.py`): `bt` computes the GatedDeltaNet's delta rule with every chunk as one batch row and the terms that do not read the state once over all chunks, and `cv` runs the layer's causal depthwise conv in the layout the converter keeps (`conv_layout.py`), without the transposes around it: the same computation in fewer operators. The multi-signature decision file of step 3 and the NPU files below are on the default kernel form.
 
 Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memory, versions, operator and dtype counts) and never overwrites an existing output. With fixtures in `out/fix/` (below), an export also compares its module and its float32 file with the author's numbers, and takes its sample from a fixture; with none, the sample is a blank record of seeded random values and the float32 file is compared with the module alone. The sample only carries the shapes through the export: REPRODUCE.md compares the bytes.
 
@@ -59,7 +61,7 @@ Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memor
 
 ## The NPU files
 
-The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph, the form of step 1, exported with `--sum-after in_proj_z,q_proj --suffix _z`: each of those bias-free linears (18 `in_proj_z` and 6 `q_proj`) becomes a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it, and the export writes `out/graphs/decide_L<L>_z_f16sfc.tflite`, a graph this repository does not ship. The f16s form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
+The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph on the default kernel form (step 1 without `--form`), exported with `--sum-after in_proj_z,q_proj --suffix _z`: each of those bias-free linears (18 `in_proj_z` and 6 `q_proj`) becomes a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it, and the export writes `out/graphs/decide_L<L>_z_f16sfc.tflite`, a graph this repository does not ship. The f16s form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
 
 ```bash
 docker build --platform linux/amd64 -t npu-aot-qc:2.2.0-full conversion/npu      # with QAIRT at conversion/npu/qairt_data/

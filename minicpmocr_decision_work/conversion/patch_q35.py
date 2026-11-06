@@ -261,6 +261,7 @@ def _build_guarded_forward():
   namespace = dict(vars(modeling_qwen3_5))
   namespace["torch"] = torch
   namespace["_litert_interleave_heads"] = _litert_interleave_heads
+  namespace["_guarded_src"] = src   # for a form that swaps more of the forward (conv_layout.py)
   exec(compile(src, "<qwen3_5_pad_guard>", "exec"), namespace)  # pylint: disable=exec-used
   return namespace["forward"]
 

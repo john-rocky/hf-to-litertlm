@@ -23,6 +23,11 @@ tokens
                so every partial sum holds only the terms inside the window (the masked terms are exact zeros) and the
                absolute error scales with the window sum, not with g_c. exp(g_c[i]) (prefix decays) keeps the cumsum:
                there the value itself is the large number. fp32: the same sums in another order (rounding level).
+  bt           the rest of the delta rule with the same products in fewer ops: every chunk as one batch row [H * n, c, *] (a rank 3
+               matmul is one BATCH_MATMUL, a rank 4 one adds three RESHAPE), the terms that do not read the state computed once
+               over all chunks, no state product in the first chunk and no new state after the last unless asked for.
+  cv           the GatedDeltaNet's causal depthwise conv in the layout the conv runs in (conv_layout.py): the converter's four
+               TRANSPOSE, a RESHAPE and a SLICE of the layer's largest activation around the conv drop out; the same numbers.
 
 Capture (for a probe): CAPTURE["on"] and CAPTURE["layers"] select GatedDeltaNet layers whose kernel
 intermediates are appended to CAPTURE["out"] as (f"L{layer:02d}_{name}", tensor) in execution order. Off by default.
@@ -98,7 +103,62 @@ def _texp(x):
     return x.exp()
 
 
-def make_kernel(inverse="R64", expclamp=True, decay="cumsum", dtype=torch.float32, vscale_log2=0):
+def _rank3_rest(q, k, v_beta, k_beta, g_t, c, n, num_heads, k_dim, v_dim, total, seq_len, inv, ex, decay, dtype, initial_state, output_final_state, initial_dtype, cap):
+    """bt: the rest of the delta rule with the same products in fewer ops. (1) Every chunk as one batch row [H * n, c, *] from here on: a rank 4 matmul lowers to RESHAPE, RESHAPE,
+    BATCH_MATMUL, RESHAPE; a rank 3 one to BATCH_MATMUL alone. (2) The loop's terms that do not read the state are computed once over all chunks; the loop slices them from
+    [H, n * c, *] and holds only the state's products: 14 ops a chunk against 35 (RESHAPE 9, SLICE 8, BMM 5, MUL 4, EXP 3, MAXIMUM 3, ADD 2, SUB 1). (3) The first chunk has no state
+    (x @ 0 = 0), and the last chunk's new state is not built unless asked for."""
+    B = num_heads * n
+    qf, kf, vbf, kbf = [x.reshape(B, c, x.shape[-1]) for x in (q, k, v_beta, k_beta)]
+    gf = g_t.reshape(B, c)
+    eye, tril0_f, tril1_f = P._chunk_rule_constants(c, dtype, q.device)
+    g_c = gf.cumsum(dim=-1)
+    cap("g_cumsum", g_c)
+    k_t = kf.transpose(-1, -2)                                # [B, d, c]
+    if decay == "direct":
+        diff = torch.matmul(gf, window_matrix(c, dtype, q.device)).reshape(B, c, c)
+        sdec = ex(torch.matmul(gf, suffix_matrix(c, dtype, q.device)))   # [B, c]
+        decay_mask = ex(diff) * tril0_f
+    else:
+        diff = (g_c.unsqueeze(-1) - g_c.unsqueeze(-2)) * tril0_f
+        sdec = ex(g_c[:, -1:] - g_c)
+        decay_mask = ex(diff) * tril0_f
+    cap("decay_diff", diff)
+    cap("decay_mask", decay_mask)
+    e_c = ex(g_c).unsqueeze(-1)                               # [B, c, 1]
+    attn = inv(-((kbf @ k_t) * decay_mask) * tril1_f, eye)    # (I - A)^-1, [B, c, c]
+    cap("T_solve", attn)
+    v2 = attn @ vbf                                           # [B, c, dv]
+    k_cumdecay = attn @ (kbf * e_c)                           # [B, c, d]
+    attn_q = (qf @ k_t) * decay_mask                          # [B, c, c]
+    q_dec = qf * e_c                                          # [B, c, d]
+    k_dec_t = (kf * sdec.unsqueeze(-1)).transpose(-1, -2)     # [B, d, c]
+    V, KC, AQ, QD = [x.reshape(num_heads, n * c, x.shape[-1]) for x in (v2, k_cumdecay, attn_q, q_dec)]
+    KD = k_dec_t.reshape(num_heads, n * k_dim, c)
+    LAST = ex(g_c[:, -1:]).reshape(num_heads, n, 1)           # [H, n, 1]
+    st = None if initial_state is None else initial_state.reshape(-1, k_dim, v_dim).to(v2)
+    outs = []
+    for i in range(n):
+        a, b = i * c, (i + 1) * c
+        if st is None:
+            v_new = V[:, a:b]
+            o = AQ[:, a:b] @ v_new
+        else:
+            v_new = V[:, a:b] - KC[:, a:b] @ st
+            o = QD[:, a:b] @ st + AQ[:, a:b] @ v_new
+        cap(f"chunk{i}_out", o)
+        outs.append(o)
+        if i + 1 < n or output_final_state:
+            add = KD[:, i * k_dim:(i + 1) * k_dim] @ v_new
+            st = add if st is None else st * LAST[:, i:i + 1] + add
+    last_state = st.unsqueeze(0) if output_final_state else None
+    out = (torch.cat(outs, dim=1) if n > 1 else outs[0])[:, :seq_len]   # [H, T, dv]
+    out = out.unsqueeze(0).transpose(1, 2).contiguous().to(initial_dtype)
+    cap("k_out", out)
+    return out, last_state
+
+
+def make_kernel(inverse="R64", expclamp=True, decay="cumsum", dtype=torch.float32, vscale_log2=0, batched=False):
     """patch_q35._rank4_chunk_gated_delta_rule (batch 1, rank <= 4) with the chosen inverse / exp / decay.
     dtype = the internal compute dtype (float32 in every export; float64 only for the selftest's reference)."""
     inv = INVERSES[inverse]
@@ -141,6 +201,9 @@ def make_kernel(inverse="R64", expclamp=True, decay="cumsum", dtype=torch.float3
         q = q * (q.shape[-1] ** -0.5)
         v_beta = v * b_t.unsqueeze(-1)
         k_beta = k * b_t.unsqueeze(-1)
+        if batched:
+            return _rank3_rest(q, k, v_beta, k_beta, g_t, chunk_size, n, num_heads, k_dim, v_dim, total, seq_len, inv, ex, decay, dtype,
+                               initial_state, output_final_state, initial_dtype, cap)
         q, k, v, k_beta, v_beta = [x.reshape(num_heads, n, chunk_size, x.shape[-1]) for x in (q, k, v, k_beta, v_beta)]
         g_t = g_t.reshape(num_heads, n, chunk_size)
         eye, tril0_f, tril1_f = P._chunk_rule_constants(chunk_size, dtype, q.device)
@@ -197,8 +260,8 @@ def make_kernel(inverse="R64", expclamp=True, decay="cumsum", dtype=torch.float3
         return out, last_state
 
     kernel.__name__ = (f"kernel_{inverse}" + ("_ec" if expclamp else "") + ("_dd" if decay == "direct" else "")
-                       + (f"_vs{vscale_log2}" if vscale_log2 else ""))
-    kernel.spec = {"inverse": inverse, "expclamp": expclamp, "decay": decay, "vscale_log2": vscale_log2}
+                       + (f"_vs{vscale_log2}" if vscale_log2 else "") + ("_bt" if batched else ""))
+    kernel.spec = {"inverse": inverse, "expclamp": expclamp, "decay": decay, "vscale_log2": vscale_log2, "batched": batched}
     return kernel
 
 
@@ -403,7 +466,7 @@ def l2norm_newton(x, dim=-1, eps=1e-6):
 
 
 # ---- apply / reset ----------------------------------------------------------------------------------------------------
-KNOWN = ("loop", "R64", "sp", "ec", "dd", "gn", "nr", "rs", "sg", "sga", "sg2")   # + fc<n>k<k>, vs<k>, gs<j>
+KNOWN = ("loop", "R64", "sp", "ec", "dd", "gn", "nr", "rs", "sg", "sga", "sg2", "bt", "cv")   # + fc<n>k<k>, vs<k>, gs<j>
 STATE = {"spec": None}
 
 
@@ -433,6 +496,8 @@ def parse(spec):
             "rsplit": "rs" in toks, "sigmoid_exp": "sg" in toks, "sigmoid_exp_all": "sga" in toks,
             "sigmoid_exp2": "sg2" in toks,
             "bmm_chain": bm[0] if bm else 0,
+            "batched": "bt" in toks,
+            "conv_layout": "cv" in toks,
             "tokens": toks}
 
 
@@ -461,9 +526,12 @@ def apply(model, spec):
     mods = _gdn_modules(model)
     assert mods and all(m.chunk_gated_delta_rule is P._rank4_chunk_gated_delta_rule for m in mods), \
         "a GatedDeltaNet does not hold the shipped kernel (reset other rewrites first)"
-    kern = make_kernel(f["inverse"], f["expclamp"], f["decay"], vscale_log2=f["vscale_log2"])
+    kern = make_kernel(f["inverse"], f["expclamp"], f["decay"], vscale_log2=f["vscale_log2"], batched=f["batched"])
     for m in mods:
         m.chunk_gated_delta_rule = _Bound(kern, m.layer_idx)
+    if f["conv_layout"]:
+        import conv_layout
+        conv_layout.apply(mods)
     if f["softplus"]:
         S11.apply("softplus")
     if f["gnorm"]:
@@ -507,7 +575,9 @@ def apply(model, spec):
 
 
 def reset(model):
+    import conv_layout
     import fp16_safe as S11
+    conv_layout.reset(_gdn_modules(model))
     for m in _gdn_modules(model):
         if isinstance(m.chunk_gated_delta_rule, _Bound):
             m.chunk_gated_delta_rule = P._rank4_chunk_gated_delta_rule
