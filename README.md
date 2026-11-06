@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 103 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 104 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -110,6 +110,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | Model | Params | Task | Phone: decode tok/s | Mac: decode tok/s | Recipe |
 |---|---:|---|---|---|---|
 | [LFM2.5-230M](https://huggingface.co/litert-community/LFM2.5-230M) | 0.23B | chat | iPhone 17 Pro GPU 161.7 | M4 Max GPU 561.2 | [recipe](REPRODUCE.md#lfm25-230m-the-smallest-decoder--a-template-the-runtime-cannot-parse-and-a-shape-that-kills-the-gpu-shader-compile) |
+| [MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B) | 0.302831B | chat (en, zh), tool calls as JSON text | Galaxy S26 GPU 107.3–109.2 | M4 Max GPU 380.2 | [recipe](REPRODUCE.md#mnn-pocket-03b--a-03b-chatml-model-as-one-int8-file-litert-torchs-stock-export_hf-with-gpu-composites-prefill-signatures-of-128-and-1024-tokens-a-4096-token-kv-cache-the-source-tokenizerjson-and-a-chat-template-that-takes-content-parts-2026-11-06) |
 | [granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) | 0.35B | chat | Galaxy S26 CPU 97.6 | — | [recipe](REPRODUCE.md#granite-40-h-350m-fp16--int8--and-the-start_token-lesson) |
 | [LFM2.5-350M](https://huggingface.co/litert-community/LFM2.5-350M) | 0.35B | chat | Galaxy S26 GPU 106.9 | M4 Max GPU 425.9 | [recipe](REPRODUCE.md#lfm25-350m--the-litert-lm-modelslfm2-configuration-replaces-the-vendor-template-and-the-4-section-export-needs-a-quantizer-that-keeps-every-section) |
 | [Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct) | 0.5B | chat | Galaxy S26 CPU 32.1–40.5 | M4 Max GPU 127.5 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |

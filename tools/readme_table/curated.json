@@ -189,6 +189,11 @@
     "group": 2,
     "recipe": "cards/ministral3-3b-reasoning-litert.md"
   },
+  "MNN-Pocket-0.3B": {
+    "task": "chat (en, zh), tool calls as JSON text",
+    "group": 1,
+    "recipe": "REPRODUCE.md#mnn-pocket-03b--a-03b-chatml-model-as-one-int8-file-litert-torchs-stock-export_hf-with-gpu-composites-prefill-signatures-of-128-and-1024-tokens-a-4096-token-kv-cache-the-source-tokenizerjson-and-a-chat-template-that-takes-content-parts-2026-11-06"
+  },
   "Mordant-3B-Think": {
     "task": "image-prompt writing, thinking",
     "group": 2,

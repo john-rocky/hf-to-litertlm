@@ -101,3 +101,4 @@ litert-community/Xiaomi-OCR-0
 litert-community/Qwen3-30B-A3B
 litert-community/Unlimited-OCR-2
 litert-community/Mage-VL-Cowork
+litert-community/MNN-Pocket-0.3B
