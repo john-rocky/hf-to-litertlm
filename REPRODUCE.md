@@ -4673,6 +4673,48 @@ The largest process was 10.5 GB resident (`/usr/bin/time -l`). Every section of 
   - The 2,048-token file: 64 / 62 / 63 on the GPU and 59 / 58 / 61 on the CPU.
   - Speed and the phone rows: the model card.
 
+### 2026-11-07 — the Qualcomm NPU file
+
+`mnn_pocket_work/npu/convert_mnn_pocket_0_3b_npu.sh` (key `mnn-pocket-0.3b-npu` of `scripts/reproduce_llm.sh`) builds `MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm` (374,213,768 B), the repository's file for the NPU of Snapdragon phones, with litert-torch's experimental `npu_export` for the HTP of the Snapdragon 8 Elite Gen 5 (SM8850):
+- stage 1 exports the float graph with the KV cache split in two, int8 weights with one scale per output channel (`dynamic_wi8_afp32`), one prefill signature of 128 tokens and a 2,048-token KV cache;
+- stage 2 runs 48 calibration prompts through that graph, 64 decode steps after each, and records every tensor's range;
+- stage 3 quantizes the activations to int16 on those ranges, over the int8 weights (static range quantization): in the prefill and decode graphs every operator's output is int16.
+
+There is no ahead-of-time step: LiteRT-LM compiles the file for the HTP each time an engine is created on the phone.
+
+```bash
+uv venv -p 3.14 .venv-mnn-npu
+uv pip install --python .venv-mnn-npu/bin/python -r mnn_pocket_work/npu/requirements.txt
+PY=$PWD/.venv-mnn-npu/bin/python REF=/path/to/MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm bash scripts/reproduce_llm.sh mnn-pocket-0.3b-npu
+```
+
+The script downloads and checks the source's files as the int8 script does, clones litert-torch at commit `6d4c622c9a3aade4d411a1e859c6bbe571d38ee0` and applies `mnn_pocket_work/npu/litert_torch_6d4c622_split_cache_mask.diff`, writes the LlmMetadata pbtext (`mnn_pocket_work/make_pbtext.py --model-type qwen2p5 --max-num-tokens 2048`), builds the calibration set, runs the three stages with the rope range step between stages 2 and 3, and lists the sections of the result with their header items; with `REF=` it compares them with the published file's and exits 1 on any difference. Output: `out/mnn-pocket-0.3b-npu/MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm`; every command and its output: `out/mnn-pocket-0.3b-npu/recipe.log`.
+
+Run as written on 2026-11-07 on a Mac M4 Max:
+- from a clean clone of this repository at the commit of these scripts;
+- in a new environment made by the two `uv` lines (66 packages, Python 3.14.6);
+- with the download path of the script.
+
+It took 330 s: the download, stage 1 in 45 s, stage 2 in 197 s, stage 3 in 6 s, and the comparison. The largest process was 9.2 GB resident (`/usr/bin/time -l`). Every section of the rebuilt file, its bytes and its header items, equals the published file's (table below). The two files differ in 36 bytes, all inside the 696-byte header (the uuid and the creation time the packer writes), so the file's own sha256 differs on every run. On the way, the calibration set and the four files of stage 2's ranges came out equal, byte for byte, to the ones the published file was built from.
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm` | TFLiteModel (tf_lite_prefill_decode: prefill_128 with 1,477 operators, decode with 1,376) | 312,871,696 | `b090d45a06b9473f64b2f35115d7ce7514e3d6fcae837fcb94499b2ad60390e7` |
+|  | TFLiteModel (tf_lite_embedder: decode_embedder, prefill_embedder_128) | 60,297,136 | `45dc923b047d07bcc001ad8c82809c43e1c1c69558ebca5101751ebf84c2c86a` |
+|  | TFLiteModel (tf_lite_aux: the rotary tables, the masks and the cache updates of prefill and decode) | 108,344 | `57d44384846bae64c15a7c0deb8f87b03599416be81f97bf3477dd938b89987b` |
+|  | HF_Tokenizer_Zlib (unpacks to the source `tokenizer.json`, 4,766,512 B, `466e9968…`) | 880,362 | `5ec4e839e9e772d16aa46fdc4a92f6d6ab2cf6983ee4522e67c5387b5cf773e4` |
+|  | LlmMetadataProto (model type `qwen2p5`, the template `templates/mnn_pocket_0_3b.jinja`, stop tokens 65512 `<\|im_end\|>` and 65510 `<\|endoftext\|>`, TOP_P sampler k 20 / p 0.8 / temperature 0.8, max_num_tokens 2048, no start token) | 3,208 | `cdb90d7dfbdfcdc65826684d30987701a4b40ab71a7138a31225f67070bb0c1f` |
+(The sha256 of each section's bytes as stored in the file. Stage 3 packs no ExecutorMetadataProto section.)
+
+- **The environment.** `mnn_pocket_work/npu/requirements.txt` holds the 66 packages of the export environment (Python 3.14), among them ai-edge-quantizer 0.9.0, ai-edge-litert 2.2.0, litert-converter 0.4.0, litert-lm-builder 0.17.0, torch 2.13.0, torchao 0.18.0 and transformers 5.14.1. litert-torch is not one of them: the script puts the cloned tree first on `PYTHONPATH`, and the tree reads its version (0.10.0) from its own `version.py`.
+- **The mask patch.** Each of the model's 2 key-value heads serves 7 query heads. `npu_export` at this commit adds the attention mask to the logits after repeating it 7 times, which in the 128-token prefill against the 2,048-token cache is an int16 operand of 3,899,392 bytes. The patch adds the mask once by broadcast instead, an operand of 557,056 bytes; decode keeps the repetition. On the SM8850 NPU an int16 ADD operand above 1 MiB was added to the wrong rows ([litert-torch#1184](https://github.com/google-ai-edge/litert-torch/issues/1184)).
+- **The calibration set.** 48 prompts, each one user message rendered by transformers' `apply_chat_template` with `templates/mnn_pocket_0_3b.jinja` and the generation prompt (stage 2 then runs without a second formatting pass):
+  - 32 questions of GSM8K's training split (rows 0–31 of `openai/gsm8k`, config `main`, from the Hugging Face datasets server) in the 4-shot chain-of-thought form of the model card's GSM8K check (`mnn_pocket_work/npu/cot4_prefix.txt`);
+  - the first 16 prompts of `npu_export`'s `sample_calibration_prompts.json`.
+  - They are 158–465 tokens long, 16,400 in all. `make_calib.py` stops when the set differs from the one the published file was built from (sha256 `148f81d3…`).
+- **The rope range.** The aux section's two rope graphs quantize the token position, and the angles computed from it, to int16 too. With stage 2's own ranges, a position past the largest one the calibration reached (511 in `prefill_rope_128`, 527 in `decode_rope`) saturates there, and every later token gets that position's rotation. `rope_calib_range.py` sets the top of those 11 ranges to 2,047.9375 = 32,767 / 16 before stage 3, so the int16 step is exactly 1/16 and every position 0–2,047 of the cache is exact. Every other range is stage 2's.
+- **On the phone.** The file runs with LiteRT-LM's NPU executor, which needs the Android command-line tool and the Qualcomm libraries built from source; how, and the results on a Galaxy S26: the model card.
+
 ## granite-speech-5.0-2b — speech in, text out through one `generic_model` `.litertlm` file: the log-mel front end, the conformer and the Q-Former projector as one audio encoder graph with fp16 weights for a 36-second window, and the 40-layer Granite language model with int8 weights (2026-11-06)
 
 `granite_speech_2b_work/convert_granite_speech_2b.sh` converts [ibm-granite/granite-speech-5.0-2b](https://huggingface.co/ibm-granite/granite-speech-5.0-2b) at commit `98160169` into the file of [litert-community/granite-speech-5.0-2b](https://huggingface.co/litert-community/granite-speech-5.0-2b), `granite-speech-5.0-2b.litertlm` (2,846,558,336 B). The model (Apache-2.0, `GraniteSpeechForConditionalGeneration`, 2.3 B parameters) has a 16-layer conformer speech encoder (80 log-mels, two frames stacked per row, 50 rows per second, attention in 200-row blocks), a 2-layer Q-Former that turns each 15-row window into 3 tokens (10 audio tokens per second), and a 40-layer dense Granite language model (hidden size 2048, 16 query and 4 key-value heads, a 100,353-token vocabulary). LiteRT-LM 0.19.1 runs the file through its generic audio path with no change.
