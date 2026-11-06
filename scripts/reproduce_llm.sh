@@ -47,6 +47,7 @@ reproduce() {
   qwen3-1.7b)          CACHE=4096 $EXPORT Qwen/Qwen3-1.7B out/$key templates/qwen3_think.jinja BOCTAV4 ;;  # ship dropped→private
   qwen3-4b-thinking)   EXTERNALIZE_EMBEDDER=1 CACHE=4096 $EXPORT Qwen/Qwen3-4B-Thinking-2507 out/$key templates/qwen3_think.jinja BOCTAV4_128 ;;  # block128 ONLY
   qwen3-0.6b-wi4b32)   bash qwen3_work/export_qwen3_06b_wi4b32.sh out/$key ;;  # litert-community/Qwen3-0.6B's Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm (2026-09-20 refresh): stock litert-torch main 731ef0a export_hf with the GPU composites, pbtext pinned to a8178d7d (PY=<a litert-torch main venv>; the 0.9.4 wheel lacks --use_swiglu_composite); REF=<published file> compares every section
+  mnn-pocket-0.3b)     PY=$PY bash mnn_pocket_work/convert_mnn_pocket_0_3b.sh out/$key; echo "REPRODUCED $key -> out/$key/MNN-Pocket-0.3B_int8.litertlm"; return ;;  # litert-community/MNN-Pocket-0.3B (2026-11-06): stock litert-torch 0.10.0 export_hf, int8 channelwise, GPU composites, prefill 128 / 1,024, KV 4,096, the source tokenizer.json, templates/mnn_pocket_0_3b.jinja (content parts + an empty-messages guard); PY = an env from mnn_pocket_work/requirements.txt (litert-lm-builder 0.18.1); REF=<published file> compares every section
   r1-distill-qwen-1.5b) CACHE=4096 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;
   r1-distill-qwen-7b)  CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-7B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;  # desktop-only
   smollm3-3b)          CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT HuggingFaceTB/SmolLM3-3B out/$key templates/smollm3_think.jinja BOCTAV4 ;;
@@ -111,7 +112,7 @@ reproduce() {
   echo "REPRODUCED $key -> out/$key/model.litertlm"
 }
 
-KEYS="agents-a1-4b qwen35-0.8b-gpu-composite qwen35-4b-3d-coder-kv16k qwen35-4b-3d-coder-kv32k fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-0.6b-wi4b32 qwen3-1.7b qwen3-4b-thinking \
+KEYS="agents-a1-4b mnn-pocket-0.3b qwen35-0.8b-gpu-composite qwen35-4b-3d-coder-kv16k qwen35-4b-3d-coder-kv32k fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-0.6b-wi4b32 qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b spark-x2.6-1.7b spark-x2.6-4b"
 
