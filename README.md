@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 104 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 105 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -211,6 +211,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [LFM3-Omni-2B](https://huggingface.co/litert-community/LFM3-Omni-2B-LiteRT) | 2.17B | questions about a picture or a recording (en); speech output through LiteRT graphs | Galaxy S26 GPU 27.0 | M4 Max GPU 84.3–139.0 | [recipe](REPRODUCE.md#lfm3-omni-2b--text-one-picture-and-audio-in-through-one-generic_model-litertlm-file-the-decoder-rescaled-per-input-channel-then-dynamic-int8-and-speech-out-as-litert-graphs-for-a-host-loop-with-the-depth-decoder-of-a-whole-speech-frame-in-one-graph-for-the-phone-gpu-2026-10-29-the-one-frame-graph-2026-11-01) |
 | [VibeVoice-ASR-BitNet](https://huggingface.co/litert-community/VibeVoice-ASR-BitNet) | 2.2B | speech to text | Galaxy S26 GPU 36.1 | M4 Max GPU 138.6 | [card](cards/vibevoice-asr-bitnet-litert.md) |
 | [decider-2b-vision](https://huggingface.co/litert-community/decider-2b-vision-LiteRT) | 2.21324B | decisions from an image with calibrated option probabilities (System One) | Galaxy S26 GPU 8.6 | — | [recipe](REPRODUCE.md#decider-2b-vision-mapika--a-vision-system-one-model-on-the-qwen35-2b-hybrid-rail-the-authors-m-rope-positions-are-derived-inside-the-graph-2026-09-29) |
+| [granite-speech-5.0-2b](https://huggingface.co/litert-community/granite-speech-5.0-2b) | 2.31B | speech to text and speech translation (en, fr, de, es, pt, ja) | Galaxy S26 GPU 14.8 | M4 Max GPU 84.2 | [recipe](REPRODUCE.md#granite-speech-50-2b--speech-in-text-out-through-one-generic_model-litertlm-file-the-log-mel-front-end-the-conformer-and-the-q-former-projector-as-one-audio-encoder-graph-with-fp16-weights-for-a-36-second-window-and-the-40-layer-granite-language-model-with-int8-weights-2026-11-06) |
 | [VibeVoice-ASR-Streaming-1.5B](https://huggingface.co/litert-community/VibeVoice-ASR-Streaming-1.5B) | 2.8B | streaming speech to text | Galaxy S26 CPU 46.5 | M4 Max GPU 139.6 | [card](cards/vibevoice-asr-streaming-1.5b-litert.md) |
 | [Shieldstral-1.0-3B](https://huggingface.co/litert-community/Shieldstral-1.0-3B) | 3B | safety classifier, text + image | Galaxy S26 GPU 10.8 | — | [recipe](REPRODUCE.md#shieldstral-10-3b-a-single-token-safety-classifier-not-a-chat-model) |
 <!-- models-table:end -->

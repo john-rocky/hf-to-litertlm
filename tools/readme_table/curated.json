@@ -511,5 +511,10 @@
     "task": "chat, thinking (LiteRT-LM built from source)",
     "group": 1,
     "recipe": "REPRODUCE.md#qwen3-30b-a3b--a-48-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-03"
+  },
+  "granite-speech-5.0-2b": {
+    "task": "speech to text and speech translation (en, fr, de, es, pt, ja)",
+    "group": 4,
+    "recipe": "REPRODUCE.md#granite-speech-50-2b--speech-in-text-out-through-one-generic_model-litertlm-file-the-log-mel-front-end-the-conformer-and-the-q-former-projector-as-one-audio-encoder-graph-with-fp16-weights-for-a-36-second-window-and-the-40-layer-granite-language-model-with-int8-weights-2026-11-06"
   }
 }
