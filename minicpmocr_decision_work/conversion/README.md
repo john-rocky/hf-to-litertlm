@@ -61,12 +61,12 @@ Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memor
 
 ## The NPU files
 
-The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph on the default kernel form (step 1 without `--form`), exported with `--sum-after in_proj_z,q_proj --suffix _z`: each of those bias-free linears (18 `in_proj_z` and 6 `q_proj`) becomes a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it, and the export writes `out/graphs/decide_L<L>_z_f16sfc.tflite`, a graph this repository does not ship. The f16s form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
+The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph, exported with `--sum-after in_proj_z,q_proj --suffix _z` (the 256-, 512- and 1,024-token files also with step 1's `--form R64+sp+ec+dd+vs6+bt+cv`, the 384- and 768-token files on the default kernel form, without it): each of those bias-free linears (18 `in_proj_z` and 6 `q_proj`) becomes a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it, and the export writes `out/graphs/decide_L<L>_z_f16sfc.tflite`, a graph this repository does not ship. The f16s form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
 
 ```bash
 docker build --platform linux/amd64 -t npu-aot-qc:2.2.0-full conversion/npu      # with QAIRT at conversion/npu/qairt_data/
 
-PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 256 --variant f16s --sum-after in_proj_z,q_proj --suffix _z      # out/graphs/decide_L256_z_f16sfc.tflite
+PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 256 --form R64+sp+ec+dd+vs6+bt+cv --variant f16s --sum-after in_proj_z,q_proj --suffix _z      # out/graphs/decide_L256_z_f16sfc.tflite
 docker run --rm --platform linux/amd64 --cpus 4 --memory 26g --memory-swap 26g -v "$PWD/out/graphs":/m:ro -v "$PWD/conversion/npu":/s:ro \
   -v "$PWD/out/npu":/w npu-aot-qc:2.2.0-full \
   python /s/aot_compile_sm8850.py /m/decide_L256_z_f16sfc.tflite /w/z_L256 qualcomm_log_level=verbose
@@ -79,7 +79,7 @@ docker run --rm --platform linux/amd64 --cpus 4 --memory 16g --memory-swap 16g -
 python3 conversion/npu/aot_check.py out/npu/w_N400
 ```
 
-The other files take another `--L` (512 and 1,024 for the decision files) or `--N`. `--memory` is the container's limit, and a longer file needs a higher one. The file to ship is `out/npu/<tag>/<name>_Qualcomm_SM8850_apply_plugin.tflite`, as `npu/sm8850/<name>_SM8850.tflite`.
+The other files take another `--L` (384, 512, 768 and 1,024 for the decision files, with `--form R64+sp+ec+dd+vs6+bt+cv` for 512 and 1,024) or `--N`. `--memory` is the container's limit, and a longer file needs a higher one: the files in `npu/sm8850/` were compiled with 26, 28, 30, 30 and 32 GB, for 256, 384, 512, 768 and 1,024 tokens. The file to ship is `out/npu/<tag>/<name>_Qualcomm_SM8850_apply_plugin.tflite`, as `npu/sm8850/<name>_SM8850.tflite`.
 
 ## The checks
 
