@@ -1,0 +1,41 @@
+--- a/litert_torch/generative/export_hf/core/split_cache/attention.py
++++ b/litert_torch/generative/export_hf/core/split_cache/attention.py
+@@ -74,19 +74,30 @@
+   logits1 = bmm_fn(query, key)
+   logits = torch.cat([logits0, logits1], dim=-1)
+ 
+-  _, _, gt, _ = logits.shape
++  b0, bk, gt, s = logits.shape
+   g = gt // t
+   if softcap is not None:
+     logits = torch.tanh(logits / softcap)
+     logits = logits * softcap
+ 
+-  if g != 1:
+-    mask_to_bc = []
+-    for _ in range(g):
+-      mask_to_bc.append(mask)
+-    mask = torch.cat(mask_to_bc, dim=-2)  # 1, 1, gt, s
+-
+-  padded_logits = logits + mask
++  if g != 1 and t > 1:
++    # Prefill: broadcast the 1, 1, t, s mask over the g query heads instead of
++    # concatenating it g times: logits row gi * t + ti gets mask row ti either
++    # way, and the mask the ADD reads stays 2 B x t x s in int16 (the Qualcomm
++    # HTP mis-pairs rows of an ADD operand above 1 MiB, litert-torch#1184;
++    # MNN-Pocket-0.3B: 14 query heads on 2 KV heads, prefill 128, cache 2048 =
++    # 3,899,392 B concatenated, 557,056 B broadcast).
++    padded_logits = (logits.reshape(b0 * bk, g, t, s) + mask).reshape(
++        b0, bk, gt, s
++    )
++  elif g != 1:
++    # Decode (t == 1): the mask concatenated g times as before (2 B x g x s in
++    # int16, far under the 1 MiB line). A broadcast here (reshape - add -
++    # reshape) matches the Qualcomm plugin's decode MHA pass, which divides
++    # the query head count read on axis 1 (1 in decode) by the KV heads.
++    padded_logits = logits + torch.cat([mask] * g, dim=-2)
++  else:
++    padded_logits = logits + mask
+   probs = F.softmax(padded_logits, dim=-1).type_as(key)
+   probs0, probs1 = probs[..., :-t], probs[..., -t:]
+ 
