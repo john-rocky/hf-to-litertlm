@@ -55,16 +55,16 @@ On 2026-11-06 the steps ran again in four new work directories, on the snapshot 
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
 |---|---|---|---|---|
 | `multi_decide_L4096_f16sfc.tflite` | blank record | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | the same bytes |
-| `decide_L256_z_f16sfc.tflite` | blank record (the input of the compile below, not in this repository) | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | the same bytes |
+| `decide_L256_z_f16sfc.tflite` | blank record, from the second copy (the input of the compile below, not in this repository) | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | the same bytes |
 | `npu/sm8850/decide_L256_z_f16sfc_SM8850.tflite` | the compile of the row above | `92da77945c400ed5faf64108a00f83626225b5ea0d9746584c928b7f91724e25` | `92da77945c400ed5faf64108a00f83626225b5ea0d9746584c928b7f91724e25` | the same bytes |
 | `tower_N784_fp16fc.tflite` | blank record | `4d6cdc7130641db90a9036b8ec18187703de2218e631ca95db1a43ce080e6642` | `4d6cdc7130641db90a9036b8ec18187703de2218e631ca95db1a43ce080e6642` | the same bytes |
 | `decide_L384_f16sfc.tflite` | blank record | `c93ddd7239325ca92aa84f8fa681e610f07709228ae792afb20a16e12794e832` | `c93ddd7239325ca92aa84f8fa681e610f07709228ae792afb20a16e12794e832` | the same bytes |
-| `decide_L256_z_f16sfc.tflite` | blank record (the input of `npu/sm8850/decide_L256_z_f16sfc_SM8850.tflite`, not in this repository) | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | the same bytes |
+| `decide_L256_z_f16sfc.tflite` | blank record, from the fourth copy (the input of `npu/sm8850/decide_L256_z_f16sfc_SM8850.tflite`, not in this repository) | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | the same bytes |
 <!-- dayof7:end -->
 
 ### 2026-11-05: the other files
 
-On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran from a clean copy of the scripts of that day in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). The table keeps the rows of the files in this repository: the tables, one tower and the multi-signature tower file. The scripts of that day are this repository's but for `export_decide.py`'s new option `--sum-after`, `export_multi.py`'s new option `--variant`, the kernel forms `bt` and `cv` (`kernel_q35.py`, `patch_q35.py` and the new `conv_layout.py`), and the host's precision per graph (`host/decide_host/load.py`, and the two examples that print it or name their cache by it).
+On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran from a clean copy of the scripts of that day in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). The table keeps the rows of the files in this repository: the tables, one tower and the multi-signature tower file. The scripts of that day are this repository's but for `export_decide.py`'s new option `--sum-after`, `export_multi.py`'s new option `--variant`, the kernel forms `bt` and `cv` (`kernel_q35.py`, `patch_q35.py` and the new `conv_layout.py`), and the host's precision per graph (`host/decide_host/load.py`, and the two examples that print it or name their cache by it), and its `conversion/README.md` was an earlier version.
 
 <!-- dayof:begin -->
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
@@ -100,7 +100,7 @@ Each number on the model card comes from a file that a command of `conversion/RE
 |---|---|---|
 | The reference: the author's code in float32 on the CPU, its AUROC and the official examples | `ref_run.py --set A`, `ref_run.py --examples`, then `judge.py summary` | `results/ref/A__base__fp32__dw.jsonl`, `results/ref/examples__fp32__dw.json` |
 | Agreement on the Mac, one family of records | `run_set.py --set A`, then `judge.py compare` | `results/gate/<tag>.jsonl` and the JSON that `judge.py` prints |
-| Two sets of files on the same records: the same outputs bit for bit, or the largest difference of the score | `run_set.py --set A` for each set, or `run_replay.py` for each phone run, then the two files' rows compared by record | `results/gate/<tag>.jsonl`; the replays' `.jsonl` |
+| Two sets of files on the same records: the same outputs bit for bit, or the largest difference of the score | `run_set.py --set A` for each set, or `run_replay.py` for each phone run, then the two sets' rows compared by record (no script in this repository) | `results/gate/<tag>.jsonl`; the replays' `.jsonl` |
 | The three official examples, on the CPU and on Metal | `examples/run_example.py --check --out <file>`; `run_set.py --set examples`, then `judge.py p1` | that file; `results/gate/examples__*.json` |
 | A graph against the author's numbers, the host not in the path; GPU precision | `check_graph.py` with `--acc cpu,gpu_f32,gpu_default` | `results/check_<file stem>.json` |
 | A multi-signature file against the single files, its load and its memory | `multi_check.py` | `results/multi_check_*.json` |
