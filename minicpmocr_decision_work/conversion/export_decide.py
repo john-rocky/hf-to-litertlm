@@ -89,6 +89,27 @@ def padded_inputs(z, L: int, hidden: int = 2048) -> dict:
     return {"embeds": e, "valid": v, "cos": c.astype(np.float32), "sin": s.astype(np.float32)}
 
 
+def apply_sum_after(model, owners):
+    """The named bias-free linears as a batch-1 BmmLinear (m = 1, K = the linear's input width): the converter then writes the FC and a
+    size-1 SUM behind it, so the sigmoid that reads the linear reads the SUM instead of the FC. The same numbers at float32; on the
+    Qualcomm HTP the scores of the NPU files move closer to the GPU's. Returns the count of linears replaced, by name and shape."""
+    import torch
+
+    import kernel_q35 as Kq
+
+    counts = {}
+    for layer in model.layers:
+        for parent in list(layer.modules()):
+            for name, child in list(parent.named_children()):
+                if type(child) is torch.nn.Linear and child.bias is None and name in owners:
+                    N, Kd = child.weight.shape
+                    setattr(parent, name, Kq.BmmLinear(child, Kd))
+                    key = f"{name} K{Kd} N{N}"
+                    counts[key] = counts.get(key, 0) + 1
+    assert counts, f"no linear named {owners}"
+    return counts
+
+
 def footprint_sampler(stop, rec, every=5.0):
     while not stop.wait(every):
         m = lrt.memory()
@@ -106,6 +127,7 @@ def main():
     ap.add_argument("--suffix", default="", help="a variant's file names (the variant's module is set by --form)")
     ap.add_argument("--form", default="", help="another kernel form than decide_graph.FORM")
     ap.add_argument("--variant", default="", choices=("", "f16s", "zba", "head", "xb"), help="other forms of the graph: files decide_<tag>_<variant>32 / <variant>fc, record export_decide_<tag>_<variant>.json; xb = the plain module, another bucket set kept apart")
+    ap.add_argument("--sum-after", default="", help="comma list of linear names: a size-1 SUM behind each (the NPU files: in_proj_z,q_proj); use with --suffix")
     a = ap.parse_args()
     if a.path == "lightweight":
         os.environ["RESOURCE_CONSTANT_NUMEL_THRESHOLD"] = str(THRESHOLD)
@@ -138,6 +160,8 @@ def main():
     form = a.form or G.FORM
     rec["form"] = form
     rec["form_apply"] = G.apply_form(model, form)
+    if a.sum_after:
+        rec["sum_after"] = apply_sum_after(model, set(a.sum_after.split(",")))
     rec["variant"] = v
     if v == "f16s":
         rec["variant_apply"] = G.apply_f16s(model)

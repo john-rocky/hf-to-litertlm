@@ -36,10 +36,10 @@ The commands are in `conversion/README.md`. Every export ran with `PYTHONHASHSEE
 
 1. Snapshot: an anonymous `hf download` of the pinned revision, checked against the Hub's file list.
 2. Tables: `make_tables.py` writes `tables/tables.safetensors`, three tensors as bfloat16 bits as they are in the source's `model.safetensors`: the token embeddings, the picture position table and the score weights. The host reads them; no graph holds them.
-3. Decision files: `export_decide.py --L <L> --variant f16s` for 256, 512, 1,024 and 2,048 tokens, and `--L 4096 --qblock 1024 --variant f16s` for 4,096 (the full-attention layers' queries in blocks of 1,024, which bounds the memory of their scores). Each exports `decide_graph.py` at float32 with its final norm in the f16s form (`apply_f16s`: the norm's input times 2^-4, its epsilon times 4^-4, its reciprocal square root capped at the value for a zero input) and casts its fully connected weights to float16 with ai-edge-quantizer (`fp16fc.py`); the activations stay float32. They write `decide_L<L>[_qb1024]_f16sfc.tflite`. Without `--variant f16s` the same commands write the plain form, `decide_L<L>[_qb1024]_fp16fc.tflite`, which this repository does not ship; at float32 the two forms gave the same outputs bit for bit on the records the card names.
-4. Towers: `export_tower.py --N <N>` for 400, 576, 1,024, 1,600 and 2,304 patches, and `--N 4096 --qblock 1024` for 4,096. `tower_graph.py`, the same cast.
-5. The two multi-signature files: `export_multi.py --variant f16s` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches). They write `multi_decide_L4096_f16sfc.tflite` and `multi_tower_N4096_fp16fc.tflite`. The tower file was named `multi_tower_phone_fp16fc.tflite` in the reports of the checks: the same bytes.
-6. NPU files: `conversion/npu/aot_compile_sm8850.py` compiles a decision file of step 3 for the SM8850 in the image of `conversion/npu/Dockerfile`, and `conversion/npu/aot_check.py` reads the compile. `export_tower.py --N <N> --variant f16s` writes a tower with scaled norms for the same compile, a form this repository does not ship.
+3. Decision files: `export_decide.py --L <L> --variant f16s` for 256, 384, 512, 768, 1,024, 1,536, 2,048 and 3,072 tokens, and `--L 4096 --qblock 1024 --variant f16s` for 4,096 (the full-attention layers' queries in blocks of 1,024, which bounds the memory of their scores). Each exports `decide_graph.py` at float32 with its final norm in the f16s form (`apply_f16s`: the norm's input times 2^-4, its epsilon times 4^-4, its reciprocal square root capped at the value for a zero input) and casts its fully connected weights to float16 with ai-edge-quantizer (`fp16fc.py`); the activations stay float32. They write `decide_L<L>[_qb1024]_f16sfc.tflite`. Without `--variant f16s` the same commands write the plain form, `decide_L<L>[_qb1024]_fp16fc.tflite`, which this repository does not ship; at float32 the two forms gave the same outputs bit for bit on the records the card names.
+4. Towers: `export_tower.py --N <N>` for 400, 576, 784, 1,024, 1,296, 1,600, 1,936, 2,304 and 3,136 patches, and `--N 4096 --qblock 1024` for 4,096. `tower_graph.py`, the same cast.
+5. The two multi-signature files: `export_multi.py --variant f16s` (the decision graphs for 256, 512, 1,024, 2,048 and 4,096 tokens over one copy of the weights) and `export_multi_tower.py` (the towers for 400, 576, 1,024, 1,600, 2,304 and 4,096 patches). They write `multi_decide_L4096_f16sfc.tflite` and `multi_tower_N4096_fp16fc.tflite`.
+6. NPU files: `export_decide.py --L <L> --variant f16s --sum-after in_proj_z,q_proj --suffix _z` for 256, 512 and 1,024 tokens writes `decide_L<L>_z_f16sfc.tflite`, the decision graph of step 3 with each of those 24 bias-free linears as a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it; this repository does not ship these graphs. `conversion/npu/aot_compile_sm8850.py` compiles one for the SM8850 in the image of `conversion/npu/Dockerfile`, and `conversion/npu/aot_check.py` reads the compile. `export_tower.py --N <N> --variant f16s` writes a tower with scaled norms for the same compile, a form this repository does not ship.
 7. Checks and timing: see `conversion/README.md`.
 8. The shipped set: the graphs are the work directory's `out/graphs/` files under the same names; `npu/sm8850/<name>_SM8850.tflite` is the compile's `<name>_Qualcomm_SM8850_apply_plugin.tflite`. `SHA256SUMS` lists every file.
 
@@ -47,20 +47,24 @@ The commands are in `conversion/README.md`. Every export ran with `PYTHONHASHSEE
 
 With no fixtures in place an export takes a blank record of seeded random values as its sample and compares its float32 file with its module alone. With the fixtures in place it takes a fixture record and compares both with the author's numbers. The sample only carries the shapes through the export.
 
-### 2026-11-06: the decision files
+### 2026-11-06: the decision files and the NPU files
 
-On 2026-11-06 the steps ran again from a clean copy of this repository's `conversion/`, `host/` and `examples/` folders, in a new work directory, on the pinned snapshot (its files checked against the Hub's file list). One single decision file and the multi-signature decision file were rebuilt; the other decision files come from the same script with another `--L`.
+On 2026-11-06 the steps ran again in a new work directory, on the snapshot downloaded on 2026-11-05 (its files checked again against the Hub's file list), from a copy of this repository's `conversion/`, `host/` and `examples/` folders made that morning: its `conversion/export_decide.py` did not have `--sum-after` yet and its `conversion/README.md` was an earlier version; its other files are the ones here. One single decision file and the multi-signature decision file were rebuilt; the other decision files come from the same script with another `--L`. Later that day, the 256-token NPU file's input graph was exported and compiled again in another new work directory, from a new copy of the same folders that differed from the files here only in an earlier `conversion/README.md`. Then, from a third copy, identical to the files here, in a third new work directory, the 384-token decision file and the 784-patch tower were exported again; the other half-step files come from the same scripts with another `--L` or `--N`.
 
 <!-- dayof7:begin -->
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
 |---|---|---|---|---|
 | `decide_L256_f16sfc.tflite` | blank record | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
 | `multi_decide_L4096_f16sfc.tflite` | blank record | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | `14f6fbb19a11b6c91bb87e11bed87095f160e5c2ffd1b16b34ed2597e9ab4ada` | the same bytes |
+| `decide_L256_z_f16sfc.tflite` | blank record (the input of the compile below, not in this repository) | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | `7128f6d4603e191341e9fecdc4e0025c14c37249f76aa06c41885f6237308576` | the same bytes |
+| `npu/sm8850/decide_L256_z_f16sfc_SM8850.tflite` | the compile of the row above | `92da77945c400ed5faf64108a00f83626225b5ea0d9746584c928b7f91724e25` | `92da77945c400ed5faf64108a00f83626225b5ea0d9746584c928b7f91724e25` | the same bytes |
+| `decide_L384_f16sfc.tflite` | blank record | `a8133c4ab884c4db816dd6b9e4125746b2c9af0f10171fafb05385428b5864e5` | `a8133c4ab884c4db816dd6b9e4125746b2c9af0f10171fafb05385428b5864e5` | the same bytes |
+| `tower_N784_fp16fc.tflite` | blank record | `4d6cdc7130641db90a9036b8ec18187703de2218e631ca95db1a43ce080e6642` | `4d6cdc7130641db90a9036b8ec18187703de2218e631ca95db1a43ce080e6642` | the same bytes |
 <!-- dayof7:end -->
 
 ### 2026-11-05: the other files
 
-On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran from a clean copy of the scripts of that day in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). The table keeps the rows of the files in this repository: the tables, one tower, the multi-signature tower file, and the 256-token decision file with its NPU compile; the multi-signature tower file's blank-record row ran under its earlier name. The scripts of that day are this repository's but for `export_multi.py`'s new option `--variant` and the host's precision per graph (`host/decide_host/load.py`, and the two examples that print it or name their cache by it).
+On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the multi-signature files' second export, the steps ran from a clean copy of the scripts of that day in a new work directory, with an anonymous download of the pinned snapshot (with `HF_HUB_DISABLE_XET=1`, checked against the Hub's file list). The table keeps the rows of the files in this repository: the tables, one tower, the multi-signature tower file and the 256-token decision file. The scripts of that day are this repository's but for `export_multi.py`'s new option `--variant` and the host's precision per graph (`host/decide_host/load.py`, and the two examples that print it or name their cache by it).
 
 <!-- dayof:begin -->
 | File | Export sample | Rebuilt SHA-256 | Shipped SHA-256 | Result |
@@ -69,8 +73,7 @@ On 2026-11-05, and past midnight into 2026-11-06 for the last checks and the mul
 | `tower_N400_fp16fc.tflite` | blank record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
 | `multi_tower_N4096_fp16fc.tflite` | blank record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
 | `tower_N400_fp16fc.tflite` | fixture record | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | `4e66c14e26780c61b7b18f62469cfe41054268912973881e862e8ec2b194f244` | the same bytes |
-| `decide_L256_f16sfc.tflite` | fixture record (the input of the compile below) | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
-| `npu/sm8850/decide_L256_f16sfc_SM8850.tflite` | the compile of the row above | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` | the same bytes |
+| `decide_L256_f16sfc.tflite` | fixture record | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | `bc22d87912df27ab8b7faec4707794067d108fce1a6667e1ff457334fc9fceaa` | the same bytes |
 | `multi_tower_N4096_fp16fc.tflite` | fixture record | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | `6b071a7b40c367134578229d5cad9c8a3f9d85578cf80612ff437cc35aad3181` | the same bytes |
 <!-- dayof:end -->
 
@@ -83,12 +86,11 @@ The files in `npu/sm8850/` are the files that ran on the Galaxy S26: their SHA-2
 <!-- npu:begin -->
 | File | Input graph (SHA-256) | Ops in one partition | (i) estimate, KiB | (ii) session, bytes | Bytes | SHA-256 |
 |---|---|---:|---:|---:|---:|---|
-| `decide_L256_f16sfc_SM8850.tflite` | `decide_L256_f16sfc.tflite` (`bc22d87912df27ab…`) | 5,915 / 5,915 | 2,742,904 | 2,902,213,120 | 2,783,922,048 | `646be785d0f7e26c89d85259d875df608b15e535fa13fa642666741bb35c04ed` |
-| `decide_L1024_f16sfc_SM8850.tflite` | `decide_L1024_f16sfc.tflite` (`2fa06fec44afd9b8…`) | 13,475 / 13,475 | 2,920,688 | 3,180,470,784 | 2,882,094,976 | `b6ce69bfd9346a2c96599b59171075ba051bcb865d4dd4484c7ffea05f5d1c37` |
+| `decide_L256_z_f16sfc_SM8850.tflite` | `decide_L256_z_f16sfc.tflite` (`7128f6d4603e1913…`) | 5,939 / 5,939 | 2,743,128 | 2,902,680,064 | 2,784,159,616 | `92da77945c400ed5faf64108a00f83626225b5ea0d9746584c928b7f91724e25` |
+| `decide_L512_z_f16sfc_SM8850.tflite` | `decide_L512_z_f16sfc.tflite` (`a041ef9645b71ca7…`) | 8,459 / 8,459 | 2,793,872 | 2,992,668,672 | 2,822,580,096 | `2df677ae2f8eb24c5ddac804e5445d84182a875f52a03056ff344d7f20a22088` |
+| `decide_L1024_z_f16sfc_SM8850.tflite` | `decide_L1024_z_f16sfc.tflite` (`035eb382935abc70…`) | 13,499 / 13,499 | 2,906,800 | 3,167,367,168 | 2,883,213,184 | `6722d6447b4088e3442e87721850ea9b41d97de51115d0f8cf79ab0755025538` |
 
-The input graphs are this repository's `decide_L256_f16sfc.tflite` and `decide_L1024_f16sfc.tflite`, the same SHA-256. On 2026-11-05 a compile in the image of `conversion/npu/Dockerfile`, from the rebuilt input graph, gave the shipped SHA-256 of `decide_L256_f16sfc_SM8850.tflite`; the others were not compiled again.
-
-A 512-token file, `decide_L512_f16sfc_SM8850.tflite` (2,819,958,656 bytes, SHA-256 `e1556ac9380d1a828abdf714fa87f784b98eee19016825b062bc3b8f322b1203`), was compiled the same way and ran on the phone. It is not in this repository: its scores are outside the tolerance (see the model card).
+The input graphs `decide_L256_z_f16sfc.tflite`, `decide_L512_z_f16sfc.tflite` and `decide_L1024_z_f16sfc.tflite` are not in this repository: `export_decide.py --L <L> --variant f16s --sum-after in_proj_z,q_proj --suffix _z` writes them, for 256, 512 and 1,024 tokens (step 6). On 2026-11-06 a compile in the image of `conversion/npu/Dockerfile`, from the rebuilt input graph, gave the shipped SHA-256 of `decide_L256_z_f16sfc_SM8850.tflite`. The others were not compiled again.
 <!-- npu:end -->
 
 ## Where the numbers come from

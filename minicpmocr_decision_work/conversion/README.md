@@ -39,11 +39,11 @@ hf download openbmb/MiniCPM-OCR-Jev --revision a0ed278eb6aa1f333a711665ab610055a
 python3 conversion/make_tables.py
 
 # 1. the decision files, in the f16s form (out/graphs/decide_L<L>[_qb1024]_f16sfc.tflite, results/export_decide_*_f16s.json)
-for L in 256 512 1024 2048; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L --variant f16s; done
+for L in 256 384 512 768 1024 1536 2048 3072; do PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L $L --variant f16s; done
 PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 4096 --qblock 1024 --variant f16s
 
 # 2. the towers (out/graphs/tower_N<N>[_qb1024]_fp16fc.tflite, results/export_tower_*.json)
-for N in 400 576 1024 1600 2304; do PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N $N; done
+for N in 400 576 784 1024 1296 1600 1936 2304 3136; do PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N $N; done
 PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N 4096 --qblock 1024
 
 # 3. the two multi-signature files (the decision file in the f16s form, the tower file in the plain form)
@@ -59,16 +59,16 @@ Each export writes its record to `results/` (seconds, bytes, SHA-256, peak memor
 
 ## The NPU files
 
-The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph, the form of step 1. That form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
+The files in `npu/sm8850/` are compiled ahead of time for the NPU of the Qualcomm SM8850 (Galaxy S26), from the `--variant f16s` form of the graph, the form of step 1, exported with `--sum-after in_proj_z,q_proj --suffix _z`: each of those bias-free linears (18 `in_proj_z` and 6 `q_proj`) becomes a batch-1 matrix product, so that the converter puts a size-1 SUM between the linear and the sigmoid that reads it, and the export writes `out/graphs/decide_L<L>_z_f16sfc.tflite`, a graph this repository does not ship. The f16s form scales the input of the norms that leave float16's range by a power of two (`apply_f16s` in `decide_graph.py`; for the tower, `F16S_BLOCK_LOG2` and `F16S_MERGER_LOG2` in `tower_graph.py`, a form this repository does not ship), so a graph in float32 gives the same values. The compile runs in a linux/amd64 image with ai-edge-litert 2.2.0, its Qualcomm compiler plugin and QAIRT 2.47.0, Qualcomm's SDK, which is not in this repository (`npu/Dockerfile` says where it goes). `npu/aot_check.py` checks a compile against the NPU's two memory limits.
 
 ```bash
 docker build --platform linux/amd64 -t npu-aot-qc:2.2.0-full conversion/npu      # with QAIRT at conversion/npu/qairt_data/
 
-# out/graphs/decide_L256_f16sfc.tflite from step 1
+PYTHONHASHSEED=0 $EXPORT conversion/export_decide.py --L 256 --variant f16s --sum-after in_proj_z,q_proj --suffix _z      # out/graphs/decide_L256_z_f16sfc.tflite
 docker run --rm --platform linux/amd64 --cpus 4 --memory 26g --memory-swap 26g -v "$PWD/out/graphs":/m:ro -v "$PWD/conversion/npu":/s:ro \
   -v "$PWD/out/npu":/w npu-aot-qc:2.2.0-full \
-  python /s/aot_compile_sm8850.py /m/decide_L256_f16sfc.tflite /w/s_L256 qualcomm_log_level=verbose
-python3 conversion/npu/aot_check.py out/npu/s_L256
+  python /s/aot_compile_sm8850.py /m/decide_L256_z_f16sfc.tflite /w/z_L256 qualcomm_log_level=verbose
+python3 conversion/npu/aot_check.py out/npu/z_L256
 
 PYTHONHASHSEED=0 $EXPORT conversion/export_tower.py --N 400 --variant f16s       # out/graphs/tower_N400_f16sfc.tflite
 docker run --rm --platform linux/amd64 --cpus 4 --memory 16g --memory-swap 16g -v "$PWD/out/graphs":/m:ro -v "$PWD/conversion/npu":/s:ro \
@@ -77,7 +77,7 @@ docker run --rm --platform linux/amd64 --cpus 4 --memory 16g --memory-swap 16g -
 python3 conversion/npu/aot_check.py out/npu/w_N400
 ```
 
-The other files take another `--L` or `--N`. `--memory` is the container's limit, and a longer file needs a higher one. The file to ship is `out/npu/<tag>/<name>_Qualcomm_SM8850_apply_plugin.tflite`, as `npu/sm8850/<name>_SM8850.tflite`.
+The other files take another `--L` (512 and 1,024 for the decision files) or `--N`. `--memory` is the container's limit, and a longer file needs a higher one. The file to ship is `out/npu/<tag>/<name>_Qualcomm_SM8850_apply_plugin.tflite`, as `npu/sm8850/<name>_SM8850.tflite`.
 
 ## The checks
 
@@ -106,6 +106,8 @@ $EXPORT conversion/run_set.py . --backend litert --form f16sfc --tower-form fp16
 python3 -I conversion/judge.py . compare A__base__f16s__gpu_default_towerf32
 python3 -I conversion/judge.py . p1 examples__f16s__gpu_default_towerf32
 # on the CPU: --form f16sfc --tower-form fp16fc --acc cpu --tag A__base__f16s__cpu
+# the Mac's rows that the phones' lines compare with: the plain decision files (export_decide.py without --variant) and the towers, at float32 on Metal
+$EXPORT conversion/run_set.py . --backend litert --form fp16fc --acc gpu_f32 --set A --tag A__base__fp16fc__gpu_f32
 
 # the controls on 36 records: another candidate's text (R1), the two pictures swapped (R2), another original picture (R4).
 # judge.py red also prints R3, read from the base rows with no run of its own: the logits one position before the pooled token. It does not move the reference's AUROC, so it is not one of the controls.
