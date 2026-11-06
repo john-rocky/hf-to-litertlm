@@ -150,29 +150,45 @@ preset config ships in the repo). Four stages: ① export → ② calibrate → 
 quantize → ④ QNN AOT compile. **For a JIT bundle, stop after stage ③** — the
 `model_srq.litertlm` it produces is the distributable artifact.
 
-Two things you need to know:
+Two things you need to know (stage ② no longer needs a patch: the `KeyError: 'valid_mask'`
+that [litert-torch PR #1178](https://github.com/google-ai-edge/litert-torch/pull/1178)
+worked around is fixed on `main` since `d49f1ba6`, 2026-08-24):
 
-1. **Stage ② needs an open fix.** On current `main`, calibration dies on the first prompt
-   with `KeyError: 'valid_mask'` — including for the gemma-3-270m preset that ships in the
-   repo. The fix is
-   [litert-torch PR #1178](https://github.com/google-ai-edge/litert-torch/pull/1178)
-   (open, not merged); apply it as a patch until it lands.
-2. **Keep the decode mask concat under 1 MiB.** On SM8850 we observed a size threshold:
-   once the decode mask concat output crosses 1 MiB, the HTP applies the mask to the wrong
-   rows and quality collapses (gemma-3-270m: 12/45 on our gate at cache length 1024 or
-   960, vs 29/45 at 896; fp32 reference 28/45). The failure is identical on the AOT and
-   JIT paths, so it cannot be dodged by compiling differently — observed on SM8850,
-   reported upstream:
+1. **Keep the prefill mask concat under 1 MiB, or add the mask by broadcast.** On SM8850
+   with QAIRT 2.47 we observed a size threshold: once the prefill graph's mask concat
+   output crosses 1 MiB, the HTP applies the mask to the wrong rows and quality collapses
+   (gemma-3-270m: 12/45 on our gate at cache length 1024 or 960, vs 29/45 at 896; fp32
+   reference 28/45). The failure is identical on the AOT and JIT paths — observed on
+   SM8850, reported upstream:
    [litert-torch #1184](https://github.com/google-ai-edge/litert-torch/issues/1184).
-   **For gemma-3-270m, set the KV cache length to 896**, not the preset's 1024.
+   **For gemma-3-270m, set the KV cache length to 896**, not the preset's 1024. The
+   MNN-Pocket-0.3B recipe keeps a 2,048-token cache instead: its patch to
+   `split_cache/attention.py` adds the mask by broadcast over the query heads, with no
+   concat. QAIRT 2.50.0.260828 runs the issue's two-op reproducer correctly; a context
+   compiled with 2.47 stays wrong on the 2.50 runtime, and we have not re-run a full
+   bundle on 2.50.
+2. **Check the rotary-position ranges before stage ③.** Stage ③ also quantizes the small
+   rotary-position graphs (`prefill_rope_*`, `decode_rope`) to int16, at the range stage ②
+   recorded. A position past the largest one the calibration reached is clipped to it, so
+   every later token gets that position's rotation. Read the max of the `input_pos` and
+   rotary entries in stage ②'s file for the aux section
+   (`Section5_TFLiteModel_tf_lite_aux.tflite.json` for these models); if it is below the
+   cache's last position, raise it before stage ③. MNN-Pocket-0.3B's calibration
+   ended at 511 and 527 on a 2,048-token cache, and 31 of its first 40 GSM8K replies on a
+   Galaxy S26 ran to the 1,024-token cap; with the 11 rope maxima set to 2,047.9375
+   (`mnn_pocket_work/npu/rope_calib_range.py`, a scale of exactly 1/16), 10 of 40 did.
+   The published gemma-3-270m file is clipped at 359 in decode and 383 in the prefill.
 
 **Quality gate before shipping:** an SRQ export is not automatically parity. Gate it on
-device against the fp32 reference before publishing. Of the two models we have run through
-this pipeline: gemma-3-270m (cache 896) passes and is published —
+device against the fp32 reference before publishing. Published from this pipeline:
+gemma-3-270m (cache 896) —
 [mlboydaisuke/gemma-3-270m-it-NPU-LiteRT](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT)
-(the card carries the measured numbers and the gate results); Qwen3-0.6B currently
-produces garbage on **both** the AOT and JIT paths (a pipeline quality issue, not a JIT
-one) and is withheld.
+(the card carries the measured numbers and the gate results; its rotary positions are
+clipped as in item 2) — and MNN-Pocket-0.3B (JIT, cache 2,048) —
+[litert-community/MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B)
+(recipe in `mnn_pocket_work/npu/`, see `REPRODUCE.md`). Qwen3-0.6B produced garbage on
+**both** the AOT and JIT paths when we ran it (a pipeline quality issue, not a JIT one)
+and is withheld.
 
 ---
 
