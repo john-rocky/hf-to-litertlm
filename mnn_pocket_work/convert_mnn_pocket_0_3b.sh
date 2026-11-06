@@ -17,9 +17,13 @@
 #   pbtext    OUTDIR/LlmMetadataProto.pbtext from templates/mnn_pocket_0_3b.jinja (mnn_pocket_work/make_pbtext.py)
 #   int8      `python -m litert_torch.generative.export_hf` with the flags below, PYTHONHASHSEED=0 (the exporter writes the
 #             stop tokens in the iteration order of a set)
-#   sections  type, size and sha256 of every section of the file (nemotron_bolt_work/sections.py); with REF=<a published
-#             MNN-Pocket-0.3B_int8.litertlm> also the comparison section by section (exit 1 on any difference). The
-#             packer writes a new uuid and creation time into the header, so the file's own sha256 differs on every run
+#   act       only with ACT=fp32 (or fp16): declare that GPU activation type on the TFLiteModel section
+#             (scripts/set_activation_type.py: an unpack / pack with the litert-lm CLI named by LITERT_LM, read back; the
+#             section bytes stay the same). Without ACT the file declares none and LiteRT-LM's GPU runs it in fp16
+#   sections  type, header items, size and sha256 of every section of the file (mnn_pocket_work/sections_items.py); with
+#             REF=<a published MNN-Pocket-0.3B_int8.litertlm> also the comparison section by section, header items
+#             included (exit 1 on any difference). The packer writes a new uuid and creation time into the header, so
+#             the file's own sha256 differs on every run
 # Interpreter (env, required):
 #   PY = the python of an environment made from mnn_pocket_work/requirements.txt (Python 3.13; litert-torch 0.10.0,
 #        ai-edge-quantizer 0.10.1, ai-edge-litert 2.3.0, litert-converter 0.5.0, litert-lm-builder 0.18.1, torch 2.14.1,
@@ -27,6 +31,9 @@
 #          uv venv -p 3.13 .venv-mnn-pocket && uv pip install --python .venv-mnn-pocket/bin/python -r mnn_pocket_work/requirements.txt
 #        litert-lm-builder 0.19.0 and 0.19.1 do not have litert_lm_builder.TfLiteModelType, which litert-torch 0.10.0
 #        packs the bundle with (AttributeError at the "Package model" step).
+#   LITERT_LM (step act only) = a litert-lm CLI from its own environment (litert-lm 0.19.1 needs litert-lm-builder
+#        0.19.1, which the export environment cannot hold):
+#          uv venv -p 3.13 .venv-litert-lm && uv pip install --python .venv-litert-lm/bin/python litert-lm==0.19.1
 set -euo pipefail
 R=$(cd "$(dirname "$0")/.." && pwd); W=$R/mnn_pocket_work
 [ $# -ge 1 ] || { echo "usage: $0 OUTDIR [STEP...]"; exit 2; }
@@ -38,7 +45,9 @@ FILES=(config.json generation_config.json model.safetensors tokenizer.json token
   added_tokens.json vocab.json merges.txt chat_template.jinja)
 NAME=MNN-Pocket-0.3B_int8.litertlm
 SNAP=$OUT/hf_cache/models--${REPO//\//--}/snapshots/$REV
-STEPS=("$@"); [ ${#STEPS[@]} -gt 0 ] || STEPS=(fetch shim pbtext int8 sections)
+ACT=${ACT:-}
+case "$ACT" in ""|fp32|fp16) ;; *) echo "ACT must be fp32, fp16 or empty"; exit 2 ;; esac
+STEPS=("$@"); [ ${#STEPS[@]} -gt 0 ] || { STEPS=(fetch shim pbtext int8); [ -n "$ACT" ] && STEPS+=(act); STEPS+=(sections); }
 mkdir -p "$OUT/.done"
 LOG=$OUT/recipe.log
 run() { echo "### CMD: $*" | tee -a "$LOG"; "$@" 2>&1 | tee -a "$LOG"; return "${PIPESTATUS[0]}"; }
@@ -84,11 +93,17 @@ for step in "${STEPS[@]}"; do
       ls -l "$OUT/$NAME" | tee -a "$LOG"
       run shasum -a 256 "$OUT/$NAME"
       ;;
+    act)
+      [ -n "$ACT" ] || { echo "step act needs ACT=fp32 or ACT=fp16"; exit 2; }
+      run "$PY" "$R/scripts/set_activation_type.py" "$OUT/$NAME" "$OUT/act.tmp.litertlm" --type "$ACT" --litert-lm "${LITERT_LM:-litert-lm}"
+      mv "$OUT/act.tmp.litertlm" "$OUT/$NAME"
+      run shasum -a 256 "$OUT/$NAME"
+      ;;
     sections)
       if [ -n "${REF:-}" ]; then
-        run "$PY" "$R/nemotron_bolt_work/sections.py" "$OUT/$NAME" "$REF"
+        run "$PY" "$W/sections_items.py" "$OUT/$NAME" "$REF"
       else
-        run "$PY" "$R/nemotron_bolt_work/sections.py" "$OUT/$NAME"
+        run "$PY" "$W/sections_items.py" "$OUT/$NAME"
       fi
       ;;
     *) echo "unknown step $step"; exit 2 ;;
