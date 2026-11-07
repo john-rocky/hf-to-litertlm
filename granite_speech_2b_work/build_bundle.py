@@ -5,7 +5,8 @@ runtime change), the shape of funasr_nano_work/build_bundle.py.
   sections: LlmMetadata (GenericModel + audio fields + a chat template that takes content parts), ExecutorMetadata
             (the KV state buffers, from the LM export), HF tokenizer (the repo's tokenizer.json bytes), EMBEDDER +
             PREFILL_DECODE (the LM export), AUDIO_ENCODER_HW (export_encoder.py: single signature `encode`, `audio` f32
-            [1,3600,160] -> `features` f32 [1,360,2048] + `mask` uint8 [1,360]).
+            [1,3600,160] -> `features` f32 [1,360,2048] + `mask` uint8 [1,360]; with --win-s 24 an encoder of
+            export_encoder6.py: [1,2400,160] -> [1,240,2048] + [1,240]).
 
 The runtime contract (LiteRT-LM v0.19.1 source):
   * runtime/conversation/model_data_processor/multimodal_processor_helper.cc: the rendered prompt is split by
@@ -18,8 +19,8 @@ The runtime contract (LiteRT-LM v0.19.1 source):
   * support/preprocessor/audio_preprocessor_miniaudio.cc + audio_preprocessor_utils.cc: skip_mel frames the miniaudio
     f32 PCM (int16 / 32768) into [T, 160], the partial last frame zero padded.
   * audio_executor_utils.cc / audio_litert_compiled_model_executor.cc: without an adapter section the encoder is
-    streaming, window = input dims[-2] = 3600 frames, valid tokens = last non-zero entry of `mask` + 1, input buffers
-    cleared for each 3600-frame chunk, chunks concatenated without overlap.
+    streaming, window = input dims[-2] (3600 frames for 36 s), valid tokens = last non-zero entry of `mask` + 1,
+    input buffers cleared for each chunk of that many frames, chunks concatenated without overlap.
   * runtime/engine/engine_settings.cc: a start token only if the metadata has one (none here: the source's
     tokenizer_config has add_bos_token false), stop tokens from the metadata.
 
@@ -30,7 +31,7 @@ section unpacked again, the tokenizer section = the repo's tokenizer.json bytes,
 files.
 
   python build_bundle.py --src <snapshot dir> --enc <encoder.tflite> --lm <dir with the LM export's files> \
-      --out <name>.litertlm
+      --out <name>.litertlm [--cache 4096] [--win-s 36]
 """
 import argparse
 import hashlib
@@ -189,6 +190,8 @@ def main():
                                                 "executor_metadata.pb")
     ap.add_argument("--out", required=True, help="output .litertlm")
     ap.add_argument("--cache", type=int, default=4096)
+    ap.add_argument("--win-s", type=int, default=C.WIN_S, help="the encoder's window in seconds (its signature is "
+                                                                "checked against it)")
     ap.add_argument("--id-check-wav", default="", help="clip for the processor id check (default: the repo's "
                                                        "multilingual_sample.wav)")
     ap.add_argument("--prefer-act", default=None, choices=["fp16", "fp32", "fp32_fp16"],
@@ -212,9 +215,10 @@ def main():
 
     enc = Path(args.enc)
     e = sig_io(enc)
-    want = {"encode": {"inputs": {"audio": {"dtype": "float32", "shape": [1, C.WIN_FRAMES, C.HOP]}},
-                       "outputs": {"features": {"dtype": "float32", "shape": [1, C.OUT_TOKENS, 2048]},
-                                   "mask": {"dtype": "uint8", "shape": [1, C.OUT_TOKENS]}}}}
+    wf = args.win_s * C.SR // C.HOP  # runtime frames per window; 10 frames per audio token
+    want = {"encode": {"inputs": {"audio": {"dtype": "float32", "shape": [1, wf, C.HOP]}},
+                       "outputs": {"features": {"dtype": "float32", "shape": [1, wf // 10, 2048]},
+                                   "mask": {"dtype": "uint8", "shape": [1, wf // 10]}}}}
     assert e == want, e
     rep["encoder_io"] = e
     embedder = find_one(args.lm, r"embedder")

@@ -1,6 +1,6 @@
 # granite-speech-5.0-2b → one `.litertlm` for LiteRT-LM's generic audio path
 
-These scripts convert IBM's [granite-speech-5.0-2b](https://huggingface.co/ibm-granite/granite-speech-5.0-2b) (Apache-2.0; a 16-layer conformer speech encoder, a 2-layer Q-Former projector and a 40-layer dense Granite language model, 2.3 B parameters) at commit `98160169` into `granite-speech-5.0-2b.litertlm`, the file of [litert-community/granite-speech-5.0-2b](https://huggingface.co/litert-community/granite-speech-5.0-2b). The released LiteRT-LM runtime (0.19.1) runs it with no change: the runtime frames 16 kHz PCM into 160-sample frames, runs the bundled audio encoder on a 36-second window, and puts its embeddings into the prompt at `<|audio|>`.
+These scripts convert IBM's [granite-speech-5.0-2b](https://huggingface.co/ibm-granite/granite-speech-5.0-2b) (Apache-2.0; a 16-layer conformer speech encoder, a 2-layer Q-Former projector and a 40-layer dense Granite language model, 2.3 B parameters) at commit `98160169` into `granite-speech-5.0-2b.litertlm`, the file of [litert-community/granite-speech-5.0-2b](https://huggingface.co/litert-community/granite-speech-5.0-2b). The released LiteRT-LM runtime (0.19.1) runs it with no change: the runtime frames 16 kHz PCM into 160-sample frames, runs the bundled audio encoder on a 36-second window, and puts its embeddings into the prompt at `<|audio|>`. `convert_granite_speech_2b_ekv2048.sh` writes the repo's second file, `granite-speech-5.0-2b_ekv2048.litertlm`: the same model with the audio encoder written again so that the GPU runs it, a 24-second window, and a 2,048-token KV cache ([below](#the-second-file-granite-speech-50-2b_ekv2048litertlm)).
 
 ```bash
 uv venv -p 3.13 .venv-gs2b
@@ -21,6 +21,9 @@ PY=$PWD/.venv-gs2b/bin/python RT_PY=$PWD/.venv-gs2b-rt/bin/python \
 | `port.py` | the audio path (front end, conformer, Q-Former, projector) as one PyTorch module |
 | `export_encoder.py` | exports `port.py` to TFLite (fp32), then the fp16-weight file |
 | `build_bundle.py` | the `.litertlm`: metadata, template, tokenizer, the three graphs, with checks |
+| `convert_granite_speech_2b_ekv2048.sh` | the steps of the second file, `granite-speech-5.0-2b_ekv2048.litertlm` |
+| `port6.py` | the audio path written again for the GPU and NPU delegates: every tensor at rank 4 or lower, no GATHER_ND, BROADCAST_TO or DIV |
+| `export_encoder6.py` | exports `port6.py` for a 24 s window, makes its batched matrix products rank 4 again (`tools/gpu_graph/tfl_rank4.py`), then the fp16-weight file; checks the operators and ranks, and each window against the eager modules |
 | `fetch_clips.py`, `transcribe.py`, `reference_hf.py`, `compare.py` | the transcription check: six clips through the file and through the source model in transformers |
 | `requirements.txt`, `requirements-runtime.txt` | the two environments (the export, and litert-lm 0.19.1) |
 
@@ -40,3 +43,29 @@ The converter names every tensor after its module path (`port.GraniteSpeechAudio
 ## The bundle
 
 `generic_model` with `audio_enabled`, `delimiter_regex` `(<\|audio\|>)`, `audio_token_regex` `<\|audio\|>`, `skip_mel_spectrogram_extraction` (the front end is in the graph), frame and hop 160, `audio_input_scale` 1.0 (LiteRT-LM's defaults are 512 / 160 / 32768 when unset). No start token: the source's tokenizer has `add_bos_token` false and its BOS is `<|end_of_text|>`. Stop token 100257 `<|end_of_text|>`. The template renders the repo's `chat_template.jinja` on string content and also takes the list of content parts LiteRT-LM passes for a message with audio (`USER: <|audio|>{text}\n ASSISTANT:`). The tokenizer section holds the repo's `tokenizer.json` bytes. fp32 activations are declared on every TFLite section (`prefer_activation_type`), which LiteRT-LM's GPU executor follows when the app sets no activation type.
+
+## The second file: `granite-speech-5.0-2b_ekv2048.litertlm`
+
+```bash
+PY=$PWD/.venv-gs2b/bin/python RT_PY=$PWD/.venv-gs2b-rt/bin/python \
+  bash granite_speech_2b_work/convert_granite_speech_2b_ekv2048.sh out/granite-speech-5.0-2b
+```
+
+The same two environments; `REF=<the published granite-speech-5.0-2b_ekv2048.litertlm>` adds the same two comparisons. The two scripts can share an OUTDIR: the steps they have in common (download, the standalone language model, the clips, the transformers transcripts) then run once. Three things differ from the first file:
+
+- **The audio encoder** is `port6.py` exported for a 24 s window (`audio` [1, 2400, 160] → `features` [1, 240, 2048] + `mask` uint8 [1, 240]), with fp16 weights computed in fp32 as before. LiteRT-LM 0.19.1's GPU delegate refuses `port.py`'s graph (GATHER_ND and BROADCAST_TO are not supported, CONCATENATION and RESHAPE reach rank 5, a SELECT_V2 broadcasts its condition, a MEAN has two constant inputs), so the first file runs its audio encoder on the CPU only; this one runs on the GPU as well as the CPU.
+- **The KV cache** holds 2,048 tokens instead of 4,096 (`CACHE=2048` in the export, `max_num_tokens` 2048 in the metadata); the audio takes 10 of them per second, the prompt and the reply the rest.
+- **No activation type is declared.** LiteRT-LM 0.19.1 then uses its defaults on the GPU (`runtime/engine/engine_settings.cc`): fp16 activations for the language model, fp32 for the audio encoder.
+
+## The GPU form of the audio encoder (`port6.py`)
+
+`port6.py` computes what `port.py` computes, and `export_encoder6.py` checks it window by window on the source repo's `multilingual_sample.wav` (cos ≥ 0.9999999 against the eager `port.py`). The rewrite:
+
+- **Lengths without a division or a gather.** The clip length, the frame and encoder-row masks and the token count are worked out in the input's own 160-sample rows: per row "has a non-zero sample" and "last non-zero offset", a suffix-any by shift-and-max steps, and the one-hot of the last non-zero row. Every value is an integer up to 1,800 or a 0 / 1 flag, so it is exact in fp16 too.
+- **The STFT's reflection padding without a gather.** Frames are cut from the zero-padded input by static slices; the reflection at the start is a constant linear map of the first 320 samples; at the end it touches at most two frames, which a one-hot matrix product picks, a reflection matrix built from comparisons maps, and the transposed one-hot product adds back.
+- **Attention at rank 4.** Blocks and heads share one axis, `[1, blocks × heads, 200, 128]`. The Shaw relative positions come from the Transformer-XL skew (q times the row-flipped table with a leading zero row, then reshape, drop a row, reshape, keep 200 columns) instead of `port.py`'s gather of q times the table by a [200, 200] index.
+- **The depthwise convolution as a 2-D convolution** on `[1, C, 1, T]`, so its zero padding is on axis 2 of a rank-4 tensor: on the GPU a rank-3 PAD on a middle axis returns rows shifted by one ([LiteRT#9272](https://github.com/google-ai-edge/LiteRT/issues/9272)).
+- **Zeroing by MUL** with a 0 / 1 mask instead of SELECT_V2.
+- **The Q-Former's input-independent parts as constants.** The learned query's LayerNorm and layer 0's self-attention are computed once at load (fp32); layer 0's cross-attention scores are a fully connected layer with the query folded into a block-diagonal weight, so no tensor broadcasts the query.
+
+litert-torch writes each matrix product of two batch-1 rank-4 operands as a rank-3 BATCH_MATMUL. `tools/gpu_graph/tfl_rank4.py rewrite --rules bmm --unique-names` makes the 38 of them rank-4 products again, with a RESHAPE on each side (the same function on the CPU), so the GPU places both operands the same way; a graph with rank-3 attention products was computed wrong on the GPU ([LiteRT#8619](https://github.com/google-ai-edge/LiteRT/issues/8619)). The fp32 file then has 2,474 operators, the fp16 file 2,674, none of them GATHER, GATHER_ND, BROADCAST_TO, SELECT, SELECT_V2, DIV or custom, and no tensor above rank 4. As with `port.py`, the converter names every tensor after its module path (`port6.GraniteSpeechAudioGraph6/…`).
