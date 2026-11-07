@@ -93,6 +93,7 @@ indistinguishable.
 An NPU LLM bundle from this repo is a **static-range-quantized (SRQ)** `.litertlm`. It
 contains only the quantized model — no precompiled QNN context — so it is hosted and
 downloaded like any other bundle, and the device compiles it at load time.
+A file compiled ahead of time for one SoC (MNN-Pocket-0.3B's `_qualcomm_sm8850_ekv2048.litertlm`) carries the compiled QNN context instead: it is compiled for that SoC alone (we have run it only there), and the phone does not compile it (Startup cost).
 
 What actually lands on the NPU, measured on SM8850:
 
@@ -113,6 +114,8 @@ and scores 29/45 on our 45-prompt gate vs 28/45 for the fp32 reference.
 The LLM runtime currently has **no compile cache wired up**, so **every load recompiles
 the model**: ≈16 s for gemma-3-270m, ≈43 s for a 0.6B model (SM8850, LiteRT-LM 0.16-line
 build). This is per process start, not per prompt. Plan your UX around it.
+
+**Compiling ahead of time for the SoC removes the compile.** MNN-Pocket-0.3B on a Galaxy S26 (SM8850; the command-line tools of LiteRT-LM v0.19.1 built from the tag, QAIRT 2.47): the NPU file created its engine in 27.6–29.2 s over two sessions and peaked at 3.43 GB (VmHWM); the same file compiled ahead of time for the SM8850 (`mnn_pocket_work/npu/aot_sm8850.sh`) created it in 0.27 s, peaked at 0.17 GB, and gave the NPU file's replies character for character (blank lines at the end of a reply not compared) on 8 short questions, two three-turn conversations and 40 GSM8K questions. In one session it decoded 157.7 tokens/s after a 1,024-token prompt against the NPU file's 147.5; part of that may come from the CPU, capped harder while the NPU file compiled, or from the two compiles, which differ (one context with weight sharing at O3 against the phone's two). We ship both: the NPU file, which the phone compiles for its own NPU (we have run it only on the Galaxy S26), and the SoC file for the phone we measured. Run the SoC file without the compiler plugin: left in the folder, it gave the same reply, but the plugin tried to compile the small graphs, QNN printed errors, and the engine took 0.37 s instead of 0.27 s (one run each). To check a rebuild, `mnn_pocket_work/npu/aot_compare.py A B` reads two files section by section and prints `SAME BYTES`, `SAME COMPUTATION` or `DIFFERENT`; the SM8850 file rebuilt `SAME BYTES` on every section (the file's own sha256 differs in the header) (REPRODUCE.md, 2026-11-07).
 
 ### App wiring
 
@@ -141,6 +144,10 @@ adb shell "cd $D && export LD_LIBRARY_PATH=\$D:\$D/jit && \
 Check the same delegate lines as in §2, plus
 `1 compiler plugins were applied successfully: Qualcomm compiler plugin`. Note that
 `--min_log_severity=3` hides both; capture the verdict logs at default severity.
+
+### Pixel phones (Google Tensor)
+
+LiteRT-LM's NPU executor (v0.19.1) gives LiteRT one model with the prefill and decode signatures; LiteRT's plugin step makes at least one partition per signature, and the Google Tensor compiler plugin's on-device compile refuses more than one: `ODC mode does not support multiple subgraphs` (`litert/vendors/google_tensor/compiler/compiler_plugin.cc` L1257–1261 at LiteRT `dcb657e8`). In the open-source LiteRT-LM v0.19.1 these bundles therefore have no on-device-compile route to a Pixel's NPU; LiteRT's Google Tensor plugin and dispatch targets are also tagged `nobuilder` / `no_oss` in the open-source tree, and our build of them stopped in analysis. We read this in the source and have not run it. A single-graph model got as far as the Pixel's compiler through LiteRT 2.3.0 from Maven and was refused on an op, not on its subgraph count (§4d).
 
 ---
 
