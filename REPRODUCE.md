@@ -4812,3 +4812,35 @@ Run as written on 2026-11-07 from a clean clone of this repository with the scri
 - **The KV cache.** `CACHE=2048` sets the export's cache length, so the prefill and decode graphs and the executor metadata's 80 state buffers hold 2,048 positions; `build_bundle.py --cache 2048` writes `max_num_tokens` 2048. The embedder graph does not depend on it: its section is the first file's bytes.
 - **No activation type.** The first file declares fp32 on every TFLite section; this one declares none, so LiteRT-LM 0.19.1 uses its defaults on the GPU (`runtime/engine/engine_settings.cc`: the text executor fp16, the audio executor fp32).
 - Word and character error rates on 220 clips, the GPU rows and the speed of this file: the model card.
+
+## gemma-3-270m-it (Qualcomm NPU, SRQ, compiled on the device) — the RoPE ranges raised to the cache end
+
+`gemma-3-270m-it_npu-srq_c896_rope1024.litertlm` in
+[mlboydaisuke/gemma-3-270m-it-NPU-LiteRT](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT) (2026-11-07,
+456,853,286 B, sha256 `4b4740f58f0c45ebed3057e88161473e0fcec1e8eaf9a6d5be239e0725ca0434`) is the repository's first file
+(`gemma-3-270m-it_npu-srq_c896.litertlm`, sha256 `baafebc1…`) with one step added between stages 2 and 3. Stages 1 and 2
+are the first file's ([docs/android-npu.md](docs/android-npu.md) section 4: litert-torch `8379afb` plus PR #1178, the
+gemma3-270m SM8850 preset, `cache_length=896`, the first 10 prompts of `sample_calibration_prompts.json`, 32 decode
+steps). Stage 2 reached position 383 in `prefill_rope_128` and 359 in `decode_rope`; the step sets the max of the 15 rope
+entries at those values to 1,023.96875 (= 32767 / 32), so stage 3 gives them a scale of exactly 1/32 and every position
+of the 896-token cache is represented exactly.
+
+```bash
+# RUN = the npu_export run directory of stages 1-2 (exported/model.litertlm, calib_bounds/)
+python3 gemma3_270m_npu/rope_calib_range_c896.py $RUN/calib_bounds $RUN/calib_bounds_rope
+PYTHONPATH=/path/to/litert-torch python3 gemma3_270m_npu/stage3_only.py \
+  $RUN/exported/model.litertlm $RUN/calib_bounds_rope $RUN/srq_rope/model_srq.litertlm
+```
+
+| section | sha256 in the 2026-11-07 file | against the first file |
+|---|---|---|
+| TFLiteModel (prefill_128, decode) | `df7aa274ceed8543cd977b42818ed56fb71df5ad012f20b5ce67e159094c462b` | equal |
+| TFLiteModel (embedder) | `9bfaf4c3488ae8723896061094dc53c2a8256d3003934f54600e4846d908c3f5` | equal |
+| TFLiteModel (aux: rope, masks, cache updates) | `2568742120e02e784c28bcabb4953b3db31f5d228bf55799cb13649dcf55b2ff` | 11 int16 scales of the rope graphs (0.0116886 and 0.0109561 → 0.03125) |
+| HF_Tokenizer | `ccf930adb9b537fd1ddee4fbdd45f8b8bed972d0eee03d02f4710e55bc028eba` | equal |
+| LlmMetadata (template, stop tokens) | `6944a98d29bc2a908685040e9c88adbfe4eb4f5b226a0f0a77cc1dafab6f455f` | equal |
+
+Checked on 2026-11-07: the rope step, run from this tree on the first file's stage-2 directory, writes the four files the
+published file was built from byte for byte (the aux file's sha256 `4bb4a909…` → `75aa33bc…`), and stage 3 from them
+gives the sections above. Two stage-3 builds from the same inputs differ in the file's creation timestamp and UUID only.
+On a Galaxy S26: the model card.

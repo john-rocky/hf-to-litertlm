@@ -187,14 +187,18 @@ worked around is fixed on `main` since `d49f1ba6`, 2026-08-24):
    ended at 511 and 527 on a 2,048-token cache, and 31 of its first 40 GSM8K replies on a
    Galaxy S26 ran to the 1,024-token cap; with the 11 rope maxima set to 2,047.9375
    (`mnn_pocket_work/npu/rope_calib_range.py`, a scale of exactly 1/16), 10 of 40 did.
-   The published gemma-3-270m file is clipped at 359 in decode and 383 in the prefill.
+   The first gemma-3-270m file (`gemma-3-270m-it_npu-srq_c896.litertlm`) is clipped at 359 in decode and 383 in the
+   prefill; `gemma-3-270m-it_npu-srq_c896_rope1024.litertlm` (2026-11-07) has its 15 rope maxima set to 1,023.96875
+   (`gemma3_270m_npu/rope_calib_range_c896.py`, a scale of exactly 1/32; stage 3 alone: `gemma3_270m_npu/stage3_only.py`,
+   `REPRODUCE.md`), and on a Galaxy S26 its replies to 40 long GSM8K prompts follow the fp32 model's further than the
+   first file's on 24 and less far on 4.
 
 **Quality gate before shipping:** an SRQ export is not automatically parity. Gate it on
 device against the fp32 reference before publishing. Published from this pipeline:
 gemma-3-270m (cache 896) —
 [mlboydaisuke/gemma-3-270m-it-NPU-LiteRT](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT)
-(the card carries the measured numbers and the gate results; its rotary positions are
-clipped as in item 2) — and MNN-Pocket-0.3B (JIT, cache 2,048) —
+(the card carries the measured numbers and the gate results; its recommended file has the rotary ranges raised as
+in item 2, and the first, clipped file stays beside it) — and MNN-Pocket-0.3B (JIT, cache 2,048) —
 [litert-community/MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B)
 (recipe in `mnn_pocket_work/npu/`, see `REPRODUCE.md`). Qwen3-0.6B produced garbage on
 **both** the AOT and JIT paths when we ran it (a pipeline quality issue, not a JIT one)
