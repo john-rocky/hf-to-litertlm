@@ -4680,7 +4680,7 @@ The largest process was 10.5 GB resident (`/usr/bin/time -l`). Every section of 
 - stage 2 runs 48 calibration prompts through that graph, 64 decode steps after each, and records every tensor's range;
 - stage 3 quantizes the activations to int16 on those ranges, over the int8 weights (static range quantization): in the prefill and decode graphs every operator's output is int16.
 
-There is no ahead-of-time step: LiteRT-LM compiles the file for the HTP each time an engine is created on the phone.
+There is no ahead-of-time step: LiteRT-LM compiles the file for the HTP each time an engine is created on the phone. The SM8850 file of the next entry is this file compiled ahead of time for one chip.
 
 ```bash
 uv venv -p 3.14 .venv-mnn-npu
@@ -4714,6 +4714,39 @@ It took 553 s (another run the same day, at the previous commit, took 360 s): th
   - They are 158–465 tokens long, 16,400 in all. `make_calib.py` stops when the set differs from the one the published file was built from (sha256 `148f81d3…`).
 - **The rope range.** The aux section's two rope graphs quantize the token position, and the angles computed from it, to int16 too. With stage 2's own ranges, a position past the largest one the calibration reached (511 in `prefill_rope_128`, 527 in `decode_rope`) saturates there, and every later token gets that position's rotation. `rope_calib_range.py` sets the top of those 11 ranges to 2,047.9375 = 32,767 / 16 before stage 3, so the int16 step is exactly 1/16 and every position 0–2,047 of the cache is exact. Every other range is stage 2's.
 - **On the phone.** The file runs with LiteRT-LM's NPU executor, which needs the Android command-line tool and the Qualcomm libraries built from source; how, and the results on a Galaxy S26: the model card.
+
+### 2026-11-07 — the SM8850 file
+
+`mnn_pocket_work/npu/aot_sm8850.sh` (key `mnn-pocket-0.3b-npu-sm8850` of `scripts/reproduce_llm.sh`) builds `MNN-Pocket-0.3B_qualcomm_sm8850_ekv2048.litertlm` (380,374,152 B): the published NPU file (`MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm`, sha256 `e8af457e…`) compiled ahead of time for the HTP of the Snapdragon 8 Elite Gen 5 (SM8850), so that the phone loads compiled code instead of compiling the file each time an engine is created. The compile is the LiteRT-LM NPU compiler of litert-torch at commit `6d4c622` (`compile_litertlm`, backend `qualcomm`, SoC `SM8850`, the compiler's own options for that backend, and `disable_aux_compilation=True`, so the small graphs of the aux section stay as they are and run on the phone's CPU), in a container of the image that `lfm3audio_work/npu/Dockerfile` builds: linux/amd64, ai-edge-litert 2.2.0 and ai-edge-litert-sdk-qualcomm 2.2.0 with the QAIRT 2.47.0.260601 SDK. QAIRT is Qualcomm's SDK under Qualcomm's license and is not in this repository; the Dockerfile's header says where it goes.
+
+```bash
+docker build --platform linux/amd64 -t npu-aot-qc:2.2.0-full lfm3audio_work/npu
+REF=/path/to/MNN-Pocket-0.3B_qualcomm_sm8850_ekv2048.litertlm bash scripts/reproduce_llm.sh mnn-pocket-0.3b-npu-sm8850
+```
+
+The script checks that the image's QAIRT is 2.47.0 build 260601114230, downloads the NPU file from the repository at revision `d95e1d8d` and checks its sha256, clones litert-torch at commit `6d4c622c9a3aade4d411a1e859c6bbe571d38ee0` and checks the sha256 of the three files of its NPU compiler, the only files of the tree it uses (the image has no torch, so `aot_stage4.py` imports the compiler with its parent packages left empty), installs litert-lm-builder 0.17.0, absl-py 2.5.0 and tomli 2.4.1 into the container from their platform-independent wheels, copies the input in and reads its sha256 back, and runs `aot_stage4.py`, which calls `compile_litertlm` and keeps the compiler plugin's output (`apply_plugin_1.log`). With `REF=` it compares the result with that file by `aot_compare.py` in the same container and exits 1 unless the two are the same computation. Output: `out/mnn-pocket-0.3b-npu-sm8850/MNN-Pocket-0.3B_qualcomm_sm8850_ekv2048.litertlm`; every command and its output: `out/mnn-pocket-0.3b-npu-sm8850/recipe.log`.
+
+`aot_compare.py A B` reads the two files section by section (type, header items, size, sha256). A TFLite section whose bytes differ is compared as a model: operator codes, every subgraph's tensors (name, type, shape, quantization, constant bytes) and operators (inputs, outputs, options), the signatures, the metadata, and each dispatch operator's compiled code, the bytes at its offset, byte for byte. Its last line is `SAME BYTES` (every section equal), `SAME COMPUTATION` (compiled sections that differ only in where their parts sit and in the `LiteRtStamp` metadata) or `DIFFERENT`, with each difference listed.
+
+Run as written on 2026-11-07 on a Mac M4 Max:
+- from a clean clone of this repository at the commit of these scripts;
+- with the image of `lfm3audio_work/npu/Dockerfile` (image id `22f53e13a629…`), run as linux/amd64 by Docker Desktop;
+- with the download path of the script (its download line run first, on its own, in 54 s) and `REF=` set to the published file.
+
+It took 93 s after the download: the compile 60 s, at a memory peak of 4.0 GB in the container. Every section of the rebuilt file, the compiled main graph included, equals the published file's byte for byte (`SAME BYTES`; table below). The two files differ in 43 bytes, all inside the 696-byte header: the uuid and the creation time the packer writes, so the file's own sha256 differs on every run. The compiler plugin's output has the same 438 lines as the one the published file was built with, apart from times, addresses and paths.
+
+| file | section | bytes | sha256 |
+|---|---|---|---|
+| `MNN-Pocket-0.3B_qualcomm_sm8850_ekv2048.litertlm` | TFLiteModel (tf_lite_prefill_decode, compiled: prefill_128 and decode, each one dispatch operator over one compiled context of 319,000,576 bytes) | 319,038,992 | `d605a263501a5bbf3841c8ebb47a3b38bafd68941e631752deda162cffa9447c` |
+|  | TFLiteModel (tf_lite_embedder; the NPU file's section) | 60,297,136 | `45dc923b047d07bcc001ad8c82809c43e1c1c69558ebca5101751ebf84c2c86a` |
+|  | TFLiteModel (tf_lite_aux; the NPU file's section) | 108,344 | `57d44384846bae64c15a7c0deb8f87b03599416be81f97bf3477dd938b89987b` |
+|  | HF_Tokenizer_Zlib (the NPU file's section) | 880,362 | `5ec4e839e9e772d16aa46fdc4a92f6d6ab2cf6983ee4522e67c5387b5cf773e4` |
+|  | LlmMetadataProto (the NPU file's section) | 3,208 | `cdb90d7dfbdfcdc65826684d30987701a4b40ab71a7138a31225f67070bb0c1f` |
+(The sha256 of each section's bytes as stored in the file.)
+
+- **The compiled graph.** The compiler plugin takes all 1,477 operators of prefill_128 and all 1,376 of decode, each signature as one partition, and compiles them with QAIRT's optimization level O3 into one context with weight sharing: the two dispatch operators point to the same 319,000,576 bytes. The phone's own compile of the NPU file makes two contexts instead, one per signature.
+- **The other sections** are the NPU file's, byte for byte: the embedder and aux graphs stay TFLite and run on the phone's CPU.
+- **On the phone.** The file runs with LiteRT-LM's NPU executor, the dispatch library and the QNN libraries of QAIRT 2.47.0.260601, without the compiler plugin, and only on the SM8850; how, and the results on a Galaxy S26: the model card.
 
 ## granite-speech-5.0-2b — speech in, text out through one `generic_model` `.litertlm` file: the log-mel front end, the conformer and the Q-Former projector as one audio encoder graph with fp16 weights for a 36-second window, and the 40-layer Granite language model with int8 weights (2026-11-06)
 
