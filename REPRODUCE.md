@@ -4730,10 +4730,10 @@ The script checks that the image's QAIRT is 2.47.0 build 260601114230, downloads
 
 Run as written on 2026-11-07 on a Mac M4 Max:
 - from a clean clone of this repository at the commit of these scripts;
-- with the image of `lfm3audio_work/npu/Dockerfile` (image id `22f53e13a629…`), run as linux/amd64 by Docker Desktop;
+- with an image built earlier from `lfm3audio_work/npu/Dockerfile` (2026-08-20, image id `22f53e13a629…`; the `docker build` line was not re-run that day), run as linux/amd64;
 - with the download path of the script (its download line run first, on its own, in 54 s) and `REF=` set to the published file.
 
-It took 93 s after the download: the compile 60 s, at a memory peak of 4.0 GB in the container. Every section of the rebuilt file, the compiled main graph included, equals the published file's byte for byte (`SAME BYTES`; table below). The two files differ in 43 bytes, all inside the 696-byte header: the uuid and the creation time the packer writes, so the file's own sha256 differs on every run. The compiler plugin's output has the same 438 lines as the one the published file was built with, apart from times, addresses and paths.
+It took 93 s after the download: the compile 60 s, at a memory peak of 4.0 GB in the container. Every section of the rebuilt file, the compiled main graph included, equals the published file's byte for byte (`SAME BYTES`; table below). The two files have the same size and differ only in the header, which holds the uuid and the creation time the packer writes, so the rebuilt file's own sha256 differs from the published one. The compiler plugin's output has the same 438 lines as the one the published file was built with, apart from times, addresses and paths.
 
 | file | section | bytes | sha256 |
 |---|---|---|---|
@@ -4746,7 +4746,7 @@ It took 93 s after the download: the compile 60 s, at a memory peak of 4.0 GB in
 
 - **The compiled graph.** The compiler plugin takes all 1,477 operators of prefill_128 and all 1,376 of decode, each signature as one partition, and compiles them with QAIRT's optimization level O3 into one context with weight sharing: the two dispatch operators point to the same 319,000,576 bytes. The phone's own compile of the NPU file makes two contexts instead, one per signature.
 - **The other sections** are the NPU file's, byte for byte: the embedder and aux graphs stay TFLite and run on the phone's CPU.
-- **On the phone.** The file runs with LiteRT-LM's NPU executor, the dispatch library and the QNN libraries of QAIRT 2.47.0.260601, without the compiler plugin, and only on the SM8850; how, and the results on a Galaxy S26: the model card.
+- **On the phone.** The file runs with LiteRT-LM's NPU executor, the dispatch library and the QNN libraries of QAIRT 2.47.0.260601, without the compiler plugin. It is compiled for the SM8850, and we have run it only on that chip; how, and the results on a Galaxy S26: the model card.
 
 ## granite-speech-5.0-2b — speech in, text out through one `generic_model` `.litertlm` file: the log-mel front end, the conformer and the Q-Former projector as one audio encoder graph with fp16 weights for a 36-second window, and the 40-layer Granite language model with int8 weights (2026-11-06)
 
