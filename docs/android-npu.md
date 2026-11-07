@@ -163,8 +163,9 @@ worked around is fixed on `main` since `d49f1ba6`, 2026-08-24):
    [litert-torch #1184](https://github.com/google-ai-edge/litert-torch/issues/1184).
    **For gemma-3-270m, set the KV cache length to 896**, not the preset's 1024. The
    MNN-Pocket-0.3B recipe keeps a 2,048-token cache instead: its patch to
-   `split_cache/attention.py` adds the mask by broadcast over the query heads, with no
-   concat. QAIRT 2.50.0.260828 runs the issue's two-op reproducer correctly; a context
+   `split_cache/attention.py` adds the prefill graph's mask by broadcast over the query
+   heads, with no concat (the decode graph keeps its concat, 28,686 bytes, far under the
+   line). QAIRT 2.50.0.260828 runs the issue's two-op reproducer correctly; a context
    compiled with 2.47 stays wrong on the 2.50 runtime, and we have not re-run a full
    bundle on 2.50.
 2. **Check the rotary-position ranges before stage ③.** Stage ③ also quantizes the small
