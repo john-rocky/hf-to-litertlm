@@ -75,6 +75,7 @@
           "file": {"type": "string", "pattern": "\\.litertlm$"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
           "size_bytes": {"type": "integer", "minimum": 1},
+          "context_length": {"type": "integer", "minimum": 1},
           "quantization": {"type": "string"},
           "backends": {
             "type": "array",

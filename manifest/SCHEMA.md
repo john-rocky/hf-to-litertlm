@@ -139,10 +139,13 @@ Readers treat an absent or unknown value as no statement.
 
 ## `variants[]` — one entry per `.litertlm` file
 
+Order: the curated file's `variants` as it lists them (its first is the default a reader takes), then any other file of the repo by name.
+
 | field | source | meaning |
 |---|---|---|
 | `file` | — | file name in the repo |
 | `sha256`, `size_bytes` | *(derived)* | from HF LFS metadata — verify after download |
+| `context_length` | *(derived)* | this file's own `max_num_tokens` from its LlmMetadata (files of one model can differ only in the KV length); `model.context_length` is the first variant's |
 | `quantization` | curated | recipe, honestly stated (e.g. `int4 block-32 linears, fp32 activations`) |
 | `backends` | curated (checked against bundle `backend_constraint` when present) | backends this file is *verified to generate* on — not merely load |
 | `default_backend` | curated | what to pick with no device knowledge |

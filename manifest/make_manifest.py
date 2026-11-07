@@ -379,8 +379,13 @@ def main():
   if args.only_curated:
     files = {n: f for n, f in files.items() if n in curated_variants}
 
+  # the decided order: the curated file's variants as it lists them (its first = the default the reader takes), then
+  # any other file of the repo by name. Before 2026-11-07 every manifest went by file name, so a repo whose
+  # recommended file sorts later (MNN-Pocket-0.3B: `_int8.litertlm` before `_int8_ekv2048.litertlm`) could not say so.
+  order = [n for n in curated_variants if n in files] + sorted(n for n in files if n not in curated_variants)
   variants, model_meta, controls = [], None, {}
-  for name, f in sorted(files.items()):
+  for name in order:
+    f = files[name]
     lfs = f.get("lfs") or {}
     v = {"file": name}
     if lfs.get("oid"):
@@ -429,6 +434,13 @@ def main():
         print(f"WARN {name}: curated backends {sorted(extra)} outside bundle "
               f"backend_constraint {sorted(allowed)}", file=sys.stderr)
     v.update(cv)
+    if llm_meta is not None and llm_meta.max_num_tokens:
+      # each variant's own context length, read out of its bundle (two files of one model can differ only in the KV
+      # length); a curated value never replaces it
+      if "context_length" in cv and cv["context_length"] != llm_meta.max_num_tokens:
+        print(f"WARN {name}: curated context_length {cv['context_length']} replaced by the bundle's "
+              f"{llm_meta.max_num_tokens}", file=sys.stderr)
+      v["context_length"] = llm_meta.max_num_tokens
     if args.public:
       strip_evidence(v)
     variants.append(v)
@@ -440,6 +452,7 @@ def main():
   model.setdefault("display_name", args.repo.split("/")[-1])
   if model_meta is not None:
     if model_meta.max_num_tokens:
+      # the first variant's in the decided order (the default); variants[].context_length has each file's own
       model["context_length"] = model_meta.max_num_tokens
     all_sections = [sec for var in variants for sec in var.get("sections", [])]
     model["capabilities"] = derive_capabilities(model_meta, all_sections)
