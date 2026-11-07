@@ -51,6 +51,7 @@ reproduce() {
   mnn-pocket-0.3b-attn-kv4096) ATTN=1 TYPE=generic_model KV=4096 PY=$PY bash mnn_pocket_work/convert_mnn_pocket_0_3b.sh out/$key; echo "REPRODUCED $key -> out/$key/MNN-Pocket-0.3B_int8.litertlm"; return ;;  # litert-community/MNN-Pocket-0.3B, the file of 2026-11-07 that replaced the first one: the same export with the attention composites (qkv_norm_rope, sdpa) and model type generic_model, KV 4,096; PY / REF as for mnn-pocket-0.3b
   mnn-pocket-0.3b-attn-kv2048) ATTN=1 TYPE=generic_model KV=2048 PY=$PY bash mnn_pocket_work/convert_mnn_pocket_0_3b.sh out/$key; echo "REPRODUCED $key -> out/$key/MNN-Pocket-0.3B_int8_ekv2048.litertlm"; return ;;  # the same repo's MNN-Pocket-0.3B_int8_ekv2048.litertlm (2026-11-07): as mnn-pocket-0.3b-attn-kv4096 with KV 2,048 (--cache_length and max_num_tokens)
   mnn-pocket-0.3b-npu) PY=$PY bash mnn_pocket_work/npu/convert_mnn_pocket_0_3b_npu.sh out/$key; echo "REPRODUCED $key -> out/$key/MNN-Pocket-0.3B_qualcomm_npu_ekv2048.litertlm"; return ;;  # the same repo's Qualcomm NPU file (SM8850): litert-torch npu_export stages 1-3 at commit 6d4c622 + mnn_pocket_work/npu's mask patch and rope range; PY = an environment of mnn_pocket_work/npu/requirements.txt (Python 3.14)
+  mnn-pocket-0.3b-npu-sm8850) bash mnn_pocket_work/npu/aot_sm8850.sh out/$key; echo "REPRODUCED $key -> out/$key/MNN-Pocket-0.3B_qualcomm_sm8850_ekv2048.litertlm"; return ;;  # the same repo's SM8850 file (2026-11-07): the published NPU file compiled ahead of time for the SM8850 in docker (the image of lfm3audio_work/npu/Dockerfile, QAIRT 2.47.0); with REF= it compares the result with the published file by aot_compare.py and exits 1 unless they are the same computation
   r1-distill-qwen-1.5b) CACHE=4096 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;
   r1-distill-qwen-7b)  CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT deepseek-ai/DeepSeek-R1-Distill-Qwen-7B out/$key templates/deepseek_r1_simple.jinja BOCTAV4 ;;  # desktop-only
   smollm3-3b)          CACHE=4096 EXTERNALIZE_EMBEDDER=1 $EXPORT HuggingFaceTB/SmolLM3-3B out/$key templates/smollm3_think.jinja BOCTAV4 ;;
@@ -115,7 +116,7 @@ reproduce() {
   echo "REPRODUCED $key -> out/$key/model.litertlm"
 }
 
-KEYS="agents-a1-4b mnn-pocket-0.3b mnn-pocket-0.3b-attn-kv4096 mnn-pocket-0.3b-attn-kv2048 mnn-pocket-0.3b-npu qwen35-0.8b-gpu-composite qwen35-4b-3d-coder-kv16k qwen35-4b-3d-coder-kv32k fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-0.6b-wi4b32 qwen3-1.7b qwen3-4b-thinking \
+KEYS="agents-a1-4b mnn-pocket-0.3b mnn-pocket-0.3b-attn-kv4096 mnn-pocket-0.3b-attn-kv2048 mnn-pocket-0.3b-npu mnn-pocket-0.3b-npu-sm8850 qwen35-0.8b-gpu-composite qwen35-4b-3d-coder-kv16k qwen35-4b-3d-coder-kv32k fastcontext-4b granite42-3b minicpm5-2b s1-mini nanbeige4.1-3b nanbeige4.2-3b olmo2-1b olmo2-7b polaris-4b qwen3-0.6b-wi4b32 qwen3-1.7b qwen3-4b-thinking \
 r1-distill-qwen-1.5b r1-distill-qwen-7b smollm3-3b twil-lm3 jan-nano vibethinker-3b falcon3-3b llama32-3b \
 ministral3-3b ministral3-3b-reasoning phi4-mini-reasoning qwen25-3b spark-x2.5-1.7b spark-x2.5-4b spark-x2.6-1.7b spark-x2.6-4b"
 
