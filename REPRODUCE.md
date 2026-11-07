@@ -4695,7 +4695,7 @@ Run as written on 2026-11-07 on a Mac M4 Max:
 - in a new environment made by the two `uv` lines (66 packages, Python 3.14.6);
 - with the download path of the script.
 
-It took 360 s: the download, stage 1 in 44 s, stage 2 in 224 s, stage 3 in 16 s, and the comparison. The largest process was 9.2 GB resident (`/usr/bin/time -l`). Every section of the rebuilt file, its bytes and its header items, equals the published file's (table below). The two files differ in 40 bytes, all inside the 696-byte header: the uuid and the creation time the packer writes (the count changes from run to run with the characters the old and new strings share), so the file's own sha256 differs on every run. On the way, the calibration set and the four files of stage 2's ranges came out equal, byte for byte, to the ones the published file was built from.
+It took 553 s (another run the same day, at the previous commit, took 360 s): the download, stage 1 in 50 s, stage 2 in 410 s, stage 3 in 7 s, and the comparison. The largest process was 9.2 GB resident (`/usr/bin/time -l`). Every section of the rebuilt file, its bytes and its header items, equals the published file's (table below). The two files differ in 40 bytes, all inside the 696-byte header: the uuid and the creation time the packer writes (the count changes from run to run with the characters the old and new strings share), so the file's own sha256 differs on every run. On the way, the calibration set and the four files of stage 2's ranges came out equal, byte for byte, to the ones the published file was built from.
 
 | file | section | bytes | sha256 |
 |---|---|---|---|
