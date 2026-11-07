@@ -3846,6 +3846,84 @@ Env (`scripts/requirements-venv-*.txt`, every package pinned, the same files as 
 
 **Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats.
 
+## Phonon-2 (TDT speech recognition, five-value encoder → LiteRT: fp16 for the GPU and the NPU, int8 for the CPU)
+
+[`phonon2_work/`](phonon2_work/) converts [FermionResearch/Phonon-2](https://huggingface.co/FermionResearch/Phonon-2) (Fermion Research's English model derived from NVIDIA's parakeet-tdt-0.6b-v3: the encoder's linear weights re-trained to five values per output row, {0, ±lo, ±hi}, the other large weights as 6-bit tables, all in one container file) into plain LiteRT `.tflite` graphs: a log-mel front end and an encoder for each window length (10, 20 and 30 s) and one TDT decoder (`predict` / `joint`), with the greedy TDT loop on the host. The graphs are the ones of the parakeet-redux and parakeet-ultra entries above (`scripts/r2_graphs.py`, `r4_graphs.py`, the same bytes as `parakeet_ultra_work/scripts/`); the weights are Phonon-2's. No NeMo and no author's runtime: the reference is transformers' `ParakeetForTDT`, loaded strictly with the tensors the author's own reader (`fermion_container.py`) expands from the container, raised to float32. Published: [litert-community/Phonon-2](https://huggingface.co/litert-community/Phonon-2) (GPU / NPU set 3.68 GB, CPU set 1.95 GB, with an Android runner).
+
+```sh
+cd phonon2_work
+# three Python 3.12.11 environments at the versions that made the published files (scripts/requirements-venv-*.txt = uv pip freeze, macOS arm64)
+uv venv -p 3.12.11 .venv-ref && uv pip install -p .venv-ref -r scripts/requirements-venv-ref.txt
+uv venv -p 3.12.11 .venv-lt && uv pip install -p .venv-lt -r scripts/requirements-venv-lt.txt
+uv venv -p 3.12.11 .venv-q && uv pip install -p .venv-q -r scripts/requirements-venv-q.txt
+# inputs at pinned revisions (scripts/dl_targets.tsv: URL, local path, bytes, sha256 of the weights and the test sets)
+.venv-ref/bin/hf download FermionResearch/Phonon-2 --revision 3e6ab3a81d73b4d424ff34cc72535deb606378ef --local-dir hf/phonon2
+.venv-ref/bin/hf download nvidia/parakeet-tdt-0.6b-v3 --revision 541d1f99c6b0c3cd0b11a95167540bb8edefd82b --include "*.json" --local-dir hf/orig
+curl --create-dirs -L -o data/librispeech/test.clean-00000-of-00001.parquet \
+  https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/de79e57adf9983993bcc72586d7313460825f5eb/librispeech/test.clean-00000-of-00001.parquet
+# the container: the tar holds four files at its root; model.fermion is what the reader takes (the two sha256 are in the repo's config.json)
+echo "98125795b6dda72f5c6eee9ba33d19815df65dcb18b50a357bf9f73c9935309e  hf/phonon2/phonon-2.bps.tar.zst" | shasum -a 256 -c -
+mkdir -p hf/phonon2/unpacked/model_phonon2_c4c_int6
+zstd -dc hf/phonon2/phonon-2.bps.tar.zst | tar -xf - -C hf/phonon2/unpacked/model_phonon2_c4c_int6
+echo "4b6bfa3a12cc3c4e0a54f2ab3ec4ca7a842b09e5c7ecfc8e7ca0ac6cc8c11468  hf/phonon2/unpacked/model_phonon2_c4c_int6/model.fermion" | shasum -a 256 -c -
+.venv-ref/bin/python -I scripts/prep_librispeech.py data/librispeech/test.clean-00000-of-00001.parquet data/sets/librispeech-test-clean
+.venv-ref/bin/python -I scripts/make_subset.py data/sets/librispeech-test-clean --every 32     # S32: 82 utterances
+# the reference against the author's own `reference_transformers.py` call sequence (processor → generate) on 3 files (ids and text equal, results/r1/ref_check.json)
+.venv-ref/bin/python -I scripts/p1_ref.py check --n 3
+# the PyTorch reference on S32: 30 s windows + valid-length mask (out/s32_ii/*.npz: mel, encoder output, tokens; 83 windows)
+.venv-ref/bin/python -I scripts/p1_s32.py --threads 6
+# graphs (litert-torch 0.9.4): mel30 / mel10 / mel20, the decoder, the float32 encoders of the three windows; then the rank-3 attention matmuls lifted to rank 4
+.venv-lt/bin/python -I scripts/p1_build.py --only mel30,mel10,mel20,dec,enc30_fp32,enc20_fp32,enc10_fp32
+for n in enc30_fp32 enc20_fp32 enc10_fp32; do
+  .venv-q/bin/python -I scripts/r2_fb.py lift out/r1/${n}_raw.tflite out/r1/$n.tflite --json results/r1/lift_$n.json && rm out/r1/${n}_raw.tflite
+done
+# the decoder with int8 weights (ai-edge-quantizer dynamic_wi8_afp32)
+.venv-q/bin/python -I scripts/p1_dec8.py make
+# the token check on S32 (float32 encoders of the three windows + the float32 decoder: prints tokens_equal 83 of 83 windows, results/r1/p0_fp32_cpu_bkt.json)
+.venv-q/bin/python -I scripts/p1_p0.py --form fp32 --buckets 10,20,30
+# the CPU encoders: int8 weights per output channel on the linear layers and the two 1x1 convolutions of the subsampling, int8 activations at run time (ai-edge-quantizer dynamic_wi8_afp32's op config on FULLY_CONNECTED and CONV_2D only: the depthwise convolutions and the position tables stay float32)
+for b in 30 20 10; do .venv-q/bin/python -I scripts/p1_q8f.py int8f out/r1/enc${b}_fp32.tflite out/r1/enc${b}_int8f.tflite --ops FULLY_CONNECTED,CONV_2D --json results/r1/quant_int8f_$b.json; done
+for n in mel10 mel20 mel30 dec dec_int8 enc10_fp32 enc20_fp32 enc30_fp32 enc10_int8f enc20_int8f enc30_int8f; do
+  .venv-q/bin/python -I scripts/r2_fb.py census out/r1/$n.tflite --json results/r1/census_$n.json
+done
+# the LayerNorm-rescaled encoders (results/r1/fix.json, shipped here: the k of each of the 120 LayerNorms, x · 2^-k; the second block below makes it again) and their float16 forms
+.venv-lt/bin/python -I scripts/p1_build.py --only enc30_fp32s,enc20_fp32s,enc10_fp32s
+for n in enc30_fp32s enc20_fp32s enc10_fp32s; do
+  .venv-q/bin/python -I scripts/r2_fb.py lift out/r1/${n}_raw.tflite out/r1/$n.tflite --json results/r1/lift_$n.json && rm out/r1/${n}_raw.tflite
+done
+for b in 30 20 10; do .venv-q/bin/python -I scripts/r2_half.py out/r1/enc${b}_fp32s.tflite out/r1/enc${b}_fp16ws.tflite --json results/r1/fp16ws_$b.json; done
+for n in enc10_fp32s enc20_fp32s enc30_fp32s enc10_fp16ws enc20_fp16ws enc30_fp16ws; do
+  .venv-q/bin/python -I scripts/r2_fb.py census out/r1/$n.tflite --json results/r1/census_$n.json
+done
+# signatures read back from the census files, then bytes and sha256 of every file (results/r1/files.sha256)
+.venv-q/bin/python -I scripts/p1_contract.py
+```
+
+Run as printed in a clean checkout on 2026-11-08 (macOS 27 on an Apple M4 Max, the three environments made with uv from `scripts/requirements-venv-*.txt`, `out/` on a USB hard disk): the commands took 33 minutes with uv's package cache already warm (the three installs took 1 s each) and the largest process was 14.0 GiB resident; all 17 files under `out/r1/` (20.0 GB) came out byte for byte equal to our own build, among them the ten published `.tflite` files (the mel graphs, the `f16` and `i8` encoders and the int8 decoder) byte for byte the published ones (sha256, `results/r1/files.sha256`), and the token check printed 83 of 83 windows; `tokenizer.json` is the original's file. Only the raw encoder exports before the lift depend on how they are run: an encoder exported after another graph in the same process gets the same weight buffers placed in another order in the file, and the lift writes them back in index order.
+
+Published names: `out/r1/enc{10,20,30}_fp16ws` → `phonon2_encoder_{10,20,30}s_f16.tflite`, `out/r1/enc{10,20,30}_int8f` → `phonon2_encoder_{10,20,30}s_i8.tflite`, `out/r1/mel{10,20,30}` → `phonon2_mel_{10,20,30}s.tflite` (no weights: the same bytes as parakeet-redux's and parakeet-ultra's mel files), `out/r1/dec_int8` → `phonon2_decoder_i8.tflite`; `tokenizer.json` is the original's (`hf/orig/tokenizer.json`, Phonon-2's repo has none at its root). The Android runner in that repo is parakeet-ultra's, unchanged: [`parakeet_ultra_work/runner/`](parakeet_ultra_work/runner/) (`ultra_asr_runner_p.cc`, `build_android.sh`, `tdt_text.py`); it reads the model files from its arguments.
+
+Env (`scripts/requirements-venv-*.txt`, every package pinned, the same files as parakeet-redux's and parakeet-ultra's): `.venv-ref` = torch 2.14.1 + transformers 5.20.2 + tokenizers 0.23.3 + pyarrow + soundfile; `.venv-lt` = litert-torch 0.9.4 + torch 2.13.0 + transformers 5.20.2 + litert-converter 0.4.0; `.venv-q` = ai-edge-litert 2.3.0 + ai-edge-quantizer 0.10.0 + soundfile. Python 3.12.11, uv, and the `zstd` command for the tar.
+
+**The container.** `model.fermion` holds 723 records: 264 five-value matrices (the 11 linear modules of each of the 24 conformer layers; per weight a sign trit −/0/+, five to a byte, per non-zero weight one bit for lo or hi, and per row the two magnitudes lo and hi as fp16), 35 int6 tables (q × a fp16 scale per row: the depthwise convolutions, parts of the subsampling, the encoder's projector, the decoder and the joint head), 424 fp16 tensors. `scripts/p1_ref.py` loads the author's `fermion_container.py` by its file path and does what the author's `reference_transformers.py` does with the result: the pointwise convolutions stored as [O, I] become [O, I, 1], the BatchNorm counters stored as fp16 infinity become 0, and stock `ParakeetForTDT` then takes the 723 tensors with no missing and no unexpected key (627,008,134 parameters).
+
+**Float16 needs a LayerNorm rescale.** In Phonon-2's encoder the squared deviation inside the first LayerNorm reaches 59,451,440 over the 91 windows of the range pass, beyond fp16's largest value 65,504; with every value rounded to fp16 the first LayerNorm's square goes non-finite and the three test windows decode to no tokens at all. Each of the 120 LayerNorms takes x · 2^-k and eps · 4^-k (k = 3–8: 73 at 3, 35 at 4, 6 at 5, 1 at 6, 5 at 8; drawn from Phonon-2's own activations rather than taken from parakeet-ultra); the three windows then decode to the reference's tokens, every square stays at 1,014.5 or less over the same windows, and in float32 the rescaled graph's output is bit-identical to the plain one's (12 windows per window length through LiteRT on the CPU). The float16 weights are the checkpoint's own values behind DEQUANTIZE: of the 240 five-value linear weights 168 are as stored, 48 at exactly ½ (the feed-forward second linears) and 24 are the `k_proj` weights times the folded attention scale, rounded to fp16 (relative error up to 4.9e-4); the 28 int6 tables rounded to fp16 move by up to 5.0e-4; no non-zero weight becomes 0. To draw `results/r1/fix.json` again:
+
+```sh
+for f in librispeech/test.other-00000-of-00001 voxpopuli/test-00000-of-00004 voxpopuli/test-00001-of-00004 voxpopuli/test-00002-of-00004 voxpopuli/test-00003-of-00004; do curl --create-dirs -L -o data/$f.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/de79e57adf9983993bcc72586d7313460825f5eb/$f.parquet; done
+.venv-ref/bin/python -I scripts/prep_librispeech.py data/librispeech/test.other-00000-of-00001.parquet data/sets/librispeech-test-other
+.venv-ref/bin/python -I scripts/prep_parts.py data/sets/voxpopuli data/voxpopuli/test-00000-of-00004.parquet data/voxpopuli/test-00001-of-00004.parquet data/voxpopuli/test-00002-of-00004.parquet data/voxpopuli/test-00003-of-00004.parquet
+.venv-ref/bin/python -I scripts/p1_diag.py --budget-s 3000 --threads 6
+```
+
+Run the same day from the clean checkout, these four commands took 5 minutes and the largest process was 16.5 GiB resident: the range pass took the same 91 windows and wrote a `results/r1/fix.json` equal to the shipped one in all 1,344 values but one, the seconds its second pass took (`post_fix.seconds`); the k of the 120 LayerNorms are the same.
+
+**The CPU form is lossy.** Int8 with one scale per channel does not hold a row's five values exactly: each matrix's median relative error of its five-value weights is 0.17 % at the median of the 240 matrices, and 0.445 % of the lo weights in the rows that also hold hi weights become 0. Its word error rate on LibriSpeech test-clean, test-other, `voxpopuli` and `voxpopuli_cleaned_aa` is at most 0.023 points above the float32 reference's (the largest gap: `voxpopuli_cleaned_aa`). Its depthwise convolutions stay float32 so that XNNPACK runs them: 3 of the encoder's 3,390 nodes stay outside XNNPACK in LiteRT 2.3.0 on a Mac.
+
+**Decoding is TDT, not CTC.** The text of a window is `tokenizers` `Tokenizer.decode(ids, skip_special_tokens=True)` on the window's token ids, repeated ids kept; transformers' `ParakeetTokenizer._decode` by default groups repeated ids (the CTC rule) and drops real repeats.
+
+**VoxPopuli is two sets.** `hf-audio/open-asr-leaderboard` holds `voxpopuli` (1,842 clips, references from parliamentary records) and `voxpopuli_cleaned_aa` (628 of those clips with the same audio, 626 of their references different). The leaderboard's run takes the second ([`nemo_asr/run_parakeet.sh`](https://github.com/huggingface/open_asr_leaderboard/blob/a768a2c7d3b911dcdddd1a0b5c39fec4ae21336a/nemo_asr/run_parakeet.sh#L35)), and its [`benchmark_fitting/score_voxpopuli_ref_errors.py`](https://github.com/huggingface/open_asr_leaderboard/blob/a768a2c7d3b911dcdddd1a0b5c39fec4ae21336a/benchmark_fitting/score_voxpopuli_ref_errors.py) says why: the first set's references "derive from parliamentary records rather than from the audio, so some spans they contain were not spoken". The float32 PyTorch reference on whole utterances gives 2.458 on `voxpopuli_cleaned_aa` and 6.896 on `voxpopuli` (word error rate, the leaderboard's formula); Phonon-2's card lists 2.46 under the name VoxPopuli.
+
 ## nemotron-3.5-asr-streaming-0.6b (cache-aware streaming RNN-T speech recognition → LiteRT: 320 ms chunks with the caches as graph inputs and outputs; fp16 weights for a phone's CPU, GPU and NPU, fp32 for the desktop example)
 
 [`nemotron_asr_stream_work/`](nemotron_asr_stream_work/) converts [nvidia/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b) (a cache-aware FastConformer encoder with an RNN-T decoder and a language prompt, 40 language-locales) into plain LiteRT `.tflite` graphs for 320 ms streaming (lookahead 3 = 4 encoder frames per chunk): a log-mel front end (`mel_first` / `mel`), the subsampling with its convolution caches (`pre_first` / `pre`), the 24-layer conformer in one graph with its attention and convolution caches as inputs and outputs (`conformer`), and the RNN-T decoder (`predict` / `joint`), with the chunking and the greedy RNN-T loop on the host. No NeMo: the graphs are plain PyTorch modules (`scripts/graphs.py`) that read the checkpoint's safetensors, checked against transformers' `Nemotron3_5AsrForRNNT` streaming generation. Two more conformer files are for a phone's CPU and NPU: one with each layer's relative-position matmul written as a fully connected layer, so that XNNPACK runs 4,090 of its 4,093 nodes in float16 arithmetic on the CPU, all but the three concatenations at its end (`scripts/export_r3_fc.py`), and one with the subsampling and the conformer in one graph for the NPU (`scripts/export_r4_fused.py`, `scripts/graphs_r4.py`). Published: [litert-community/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/litert-community/nemotron-3.5-asr-streaming-0.6b) (with an Android runner).
