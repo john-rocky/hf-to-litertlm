@@ -11,8 +11,10 @@
 #   tree       litert-torch at commit 6d4c622c9a3aade4d411a1e859c6bbe571d38ee0 cloned into OUTDIR/litert-torch, with
 #              litert_torch_6d4c622_split_cache_mask.diff applied (the prefill attention mask added to the logits by
 #              broadcast instead of a 7-fold concatenation, so the int16 mask the ADD reads stays under 1 MiB:
-#              557,056 B instead of 3,899,392 B; the HTP adds an operand above 1 MiB to the wrong rows,
-#              https://github.com/google-ai-edge/litert-torch/issues/1184), the patched file's sha256 checked
+#              557,056 B instead of 3,899,392 B; on the SM8850 HTP with QAIRT 2.47, a concatenation whose output
+#              is above 1 MiB and feeds an ADD is added to the wrong rows, and QAIRT 2.50.0.260828 runs that
+#              two-operation case correctly, https://github.com/google-ai-edge/litert-torch/issues/1184), the
+#              patched file's sha256 checked
 #   pbtext     OUTDIR/LlmMetadataProto.pbtext (mnn_pocket_work/make_pbtext.py: model type qwen2p5, max_num_tokens 2048,
 #              the chat template templates/mnn_pocket_0_3b.jinja)
 #   calib      OUTDIR/calib/ALL.jsonl, the 48 calibration prompts (make_calib.py; checked against the published file's)
