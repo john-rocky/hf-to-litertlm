@@ -516,5 +516,10 @@
     "task": "speech to text and speech translation (en, fr, de, es, pt, ja)",
     "group": 4,
     "recipe": "REPRODUCE.md#granite-speech-50-2b--speech-in-text-out-through-one-generic_model-litertlm-file-the-log-mel-front-end-the-conformer-and-the-q-former-projector-as-one-audio-encoder-graph-with-fp16-weights-for-a-36-second-window-and-the-40-layer-granite-language-model-with-int8-weights-2026-11-06"
+  },
+  "gemma-3-270m-it-NPU": {
+    "task": "chat, Qualcomm NPU only (compiled on the device)",
+    "group": 1,
+    "recipe": "REPRODUCE.md#gemma-3-270m-it-qualcomm-npu-srq-compiled-on-the-device--the-rope-ranges-raised-to-the-cache-end"
   }
 }
