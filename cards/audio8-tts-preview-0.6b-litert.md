@@ -125,16 +125,17 @@ Per generated frame the two AR graphs cost 12.3 + 9.7 = 22 ms on the CPU, i.e. a
 
 ### Galaxy S26, one call of the codec decoder (a C++ runner on the LiteRT CompiledModel API, not published)
 
-The same phone on 2026-11-02, LiteRT 2.2.0 CompiledModel API. A value is the median time per call (writing the input codes, running, reading the samples back) after two warm-up calls, with the number of timed calls and the range in parentheses. CPU: XNNPACK, 4 threads. GPU: the LiteRT GPU accelerator (OpenCL) at its default precision (float16), with the CPU for the operators it does not take. Each row started at thermal status 0 with no CPU frequency cap.
+The same phone, LiteRT 2.2.0 CompiledModel API, measured again on 2026-11-08. A value is the median time per call (writing the input codes, running, reading the samples back) of the first calls from a rested phone: one call on one input, then three timed calls, in each of two runs. The number of timed calls and the range are in parentheses. GPU: the LiteRT GPU accelerator (OpenCL) at its default precision (float16), with the CPU (XNNPACK, 4 threads, read from the runner's process in every run) for the operators it does not take.
 
 | graph | backend | time per call |
 |---|---|---:|
-| `codec_decoder_fp16_T128.tflite` | GPU (OpenCL, 972 of 1,105 ops) | 937.6 ms per 5.9 s (8, 915.2 to 953.9) |
-| `codec_decoder_fp16_T192.tflite` | GPU (OpenCL, 972 of 1,105 ops) | 1,426.1 ms per 8.9 s (8, 1,406.1 to 1,444.8) |
-| `codec_decoder_int8_T128.tflite` (the app does not use this file) | CPU | 2,974.6 ms per 5.9 s (5, 2,958.3 to 3,014.2) |
+| `codec_decoder_fp16_T128.tflite` | GPU (OpenCL, 972 of 1,105 ops) | 941.7 ms per 5.9 s (6, 933.7 to 949.1) |
+| `codec_decoder_fp16_T192.tflite` | GPU (OpenCL, 972 of 1,105 ops) | 1,411.7 ms per 8.9 s (6, 1,402.9 to 1,419.3) |
+| `codec_decoder_int8_T128.tflite` (the app does not use this file) | CPU, 4 threads | no value (below) |
 
-- On the GPU, the output correlates with the Mac CPU output at 0.9998 or more on the English and the Japanese test codes, and at 0.015 or less with the GPU's own output for all-zero codes. The CPU row gives the Mac CPU output exactly.
-- During the CPU row the large cores were capped at 4.07 GHz at the lowest (4.74 GHz uncapped).
+- This table's earlier version gave the CPU row on one thread, not four (2,974.6 ms): our runner passed the thread count under an option name that LiteRT 2.2.0 does not read.
+- The CPU row has no value: on four threads the phone lowered the clock limit of its large cores 0.6 to 1.9 s after the graph was ready, before the first timed call ended, in all four runs.
+- On the GPU, the output correlates with the Mac CPU output at 0.9998 or more on the English and the Japanese test codes, and at 0.015 or less with the GPU's own output for all-zero codes (2026-11-02). On one thread the CPU file gave the Mac CPU output exactly.
 
 ## Limitations
 
