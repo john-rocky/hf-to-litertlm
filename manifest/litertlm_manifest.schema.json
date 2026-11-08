@@ -21,6 +21,7 @@
         "parameters_b": {"type": "number"},
         "license": {"type": "string"},
         "context_length": {"type": "integer", "minimum": 1},
+        "stateful": {"type": "boolean"},
         "capabilities": {
           "type": "object",
           "properties": {
@@ -59,7 +60,9 @@
             "notes": {"type": "string"},
             "temperature": {"type": "number"},
             "top_k": {"type": "integer", "minimum": 1},
-            "top_p": {"type": "number"}
+            "top_p": {"type": "number"},
+            "max_num_tokens": {"type": "integer", "minimum": 1},
+            "request_timeout_s": {"type": "integer", "minimum": 1}
           }
         }
       }
@@ -131,6 +134,24 @@
             }
           },
           "known_issues": {"type": "array", "items": {"type": "string"}},
+          "checked": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["device", "os", "backend", "runtime", "runs", "date"],
+              "properties": {
+                "device": {"type": "string"},
+                "os": {"enum": ["android", "ios", "macos", "windows", "linux"]},
+                "backend": {"enum": ["cpu", "gpu", "npu"]},
+                "runtime": {"type": "string"},
+                "top_k": {"type": "integer", "minimum": 1},
+                "top_p": {"type": "number"},
+                "temperature": {"type": "number"},
+                "runs": {"type": "integer", "minimum": 1},
+                "date": {"type": "string", "format": "date"}
+              }
+            }
+          },
           "sections": {
             "type": "array",
             "items": {

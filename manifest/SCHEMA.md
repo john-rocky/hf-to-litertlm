@@ -1,6 +1,6 @@
 # litertlm_manifest.json — a deployment manifest for `.litertlm` model repos
 
-**Status: v0.1 draft (2026-08-24; 0.1.3 as of 2026-10-07).** One `litertlm_manifest.json` at the root of a Hugging Face
+**Status: v0.1 draft (2026-08-24; 0.1.4 as of 2026-11-08).** One `litertlm_manifest.json` at the root of a Hugging Face
 model repo describes every `.litertlm` file the repo ships: which backends each file targets,
 which file a given device should pick, what it needs (runtime version, RAM), and how fast it
 actually runs — with measured numbers, not claims.
@@ -75,7 +75,8 @@ parse error.
 | `capabilities.thinking` | *(derived)* | `{declared, channel:{start,end}}` from bundle `channels` |
 | `capabilities.thinking.control` | *(derived, 0.1.3+)* | `switch`, `always`, `never` or `model` — what the bundle's template does about thinking; see [below](#capabilitiesthinkingcontrol--what-the-template-does-about-thinking) |
 | `capabilities.channels` | *(derived, 0.1.1+)* | the bundle's **full** declared channel set, `[{name, start, end, is_reasoning?}]` — the header's `channels` block is a generic named list (a model may declare e.g. tool-call markers there, though nothing shipped today does); `thinking` keeps mirroring the first channel for 0.1.0 readers |
-| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints). Readers take keys by name and ignore what they don't consume |
+| `stateful` | curated *(0.1.4+)* | `true` when the model keeps recurrent state (short convolution, gated delta-net, Mamba / SSM layers) that a new conversation on the same engine can inherit from the previous one (LiteRT-LM #3165): start each conversation on a fresh engine. Evidence: the architecture, or a probe that reuses an engine. Absent = no statement |
+| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints), and since 0.1.4 `max_num_tokens` (integer — the token budget an app gives the engine, prompt and output together; at most the chosen variant's `context_length`) and `request_timeout_s` (integer — seconds one request may run before a server gives up, for slow devices and thinking models). Readers take keys by name and ignore what they don't consume |
 
 ## `capabilities.vision` / `.audio` — what the file takes as input
 
@@ -154,6 +155,7 @@ Order: the curated file's `variants` as it lists them (its first is the default 
 | `requirements` | curated | `{peak_ram_mb?, platform_notes[]}` |
 | `measured[]` | curated | see below |
 | `known_issues[]` | curated | short, factual, with upstream links where they exist |
+| `checked[]` | curated *(0.1.4+)* | device checks with a named sampler — see below |
 | `sections` | *(derived)* | bundle section table: type, size, `model_type`, `backend_constraint` |
 
 **Resolution rule:** an explicitly requested backend is a *filter*, not a preference — a resolver
@@ -190,6 +192,26 @@ Every row states its conditions and its provenance; a row without them does not 
   under a variant (measured rows and any other curated block) and the converter keeps them in its
   own records.
 
+## `checked[]` rows — a device check, not a benchmark *(0.1.4+)*
+
+A `checked` row says the file generated correct output on one device, with the sampler the row
+names, `runs` times. The shape:
+
+```json
+{
+  "device": "<device name>", "os": "android", "backend": "gpu", "runtime": "<LiteRT-LM version>",
+  "top_k": 20, "top_p": 0.95, "temperature": 0.6, "runs": 3, "date": "<YYYY-MM-DD>"
+}
+```
+
+- `os` takes the `recommended[].platform` values; `backend` is `cpu`, `gpu` or `npu`; `runs` is at
+  least 1. `device`, `os`, `backend`, `runtime`, `runs` and `date` are required.
+- `top_k`, `top_p` and `temperature` are the values the runs used. A row without them says nothing
+  about a sampler (for example an NPU path whose sampler the app cannot set).
+- A row whose sampler differs from `session_defaults` does not cover those defaults: a reader that
+  lists files only after a check compares the two, so changing the defaults means checking again.
+- `measured[]` rows are speed, not checks: they carry no sampler.
+
 ## Versioning
 
 `manifest_schema` is semver-style; the current line is `0.1.x`. While the schema is 0.x, the
@@ -198,8 +220,10 @@ is removed, renamed, or changed in meaning short of `0.2.0`. `0.1.1` adds
 `model.capabilities.channels[]` (the full bundle channel mirror) and declares
 `session_defaults`' in-the-wild keys; both are optional, so 0.1.0 manifests stay valid. `0.1.2` adds
 `measured[].load_s` and `measured[].peak_memory_mb`, also optional. `0.1.3` adds
-`model.capabilities.thinking.control`, optional as well. Readers should pin a supported
-range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
+`model.capabilities.thinking.control`, optional as well. `0.1.4` adds `model.stateful` and
+`variants[].checked[]`, and declares `session_defaults.max_num_tokens` and
+`session_defaults.request_timeout_s`; all are optional, so 0.1.3 manifests stay valid.
+Readers should pin a supported range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
 manifest fails validation rather than half-parsing, and both reference readers refuse it at
 parse time.
 
