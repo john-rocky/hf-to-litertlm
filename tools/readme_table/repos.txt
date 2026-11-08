@@ -90,6 +90,7 @@ litert-community/Qwen3.8-27B
 litert-community/WeVisOne-VL-2B
 litert-community/NVIDIA-Nemotron-3.5-Bolt-E4B
 litert-community/LFM3-1.7B-LiteRT
+litert-community/LFM3-1.7B-Base-LiteRT
 litert-community/MiniCPM-OCR-1.0
 litert-community/LFM3-Audio-2B-LiteRT
 litert-community/LFM3-VL-2B-LiteRT

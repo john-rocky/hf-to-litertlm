@@ -144,6 +144,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29"
   },
+  "LFM3-1.7B-Base": {
+    "task": "text continuation and few-shot prompts (the pre-trained base of LFM3-1.7B)",
+    "group": 1,
+    "recipe": "REPRODUCE.md#lfm3-17b-base--the-lfm3-17b-recipe-on-the-pre-trained-weights-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-11-08"
+  },
   "LFM3-Audio-2B": {
     "task": "speech to text, questions about audio (en); speech output through LiteRT graphs",
     "group": 4,
