@@ -15,7 +15,9 @@ wrote the card). A row: n, card_quote, printed, sources, op, fmt, note.
      minmax_of_max_gb (the same, kB as decimal GB) |
      maxdelta (values = dev, ref, dev, ref...; the largest dev - ref) | maxdelta_ceil2 (that, rounded up to 0.01) |
      ncsv (the number of comma-separated items) | word (an integer as an English word) | join | str |
-     present (every source matched: printed = fmt) | equal (every source one value, all equal: printed = fmt);
+     present (every source matched: printed = fmt) | equal (every source one value, all equal, and that value is the
+     printed number, as text or as a number: printed = fmt) | agree (every source one value, all equal: printed = fmt;
+     a wording the agreement carries, such as 'the same bytes');
   4. fmt = a Python format spec for the number(s) (join: 'SPEC|SEP'; minmax: 'SPEC|SEP'); a trailing '×' is appended
      as text. The formatted value must equal printed.
   python3 tools/card_facts/facts_check.py [card/README.md] [card/facts.tsv]      (run from the directory the source
@@ -92,7 +94,12 @@ def apply(op, vals, fmt, per=None):
         return fmt1(min(tops), spec) + sep + fmt1(max(tops), spec)
     if op == "present":  # every source matched: the claim's wording (fmt) stands
         return fmt if per and all(per) else "absent"
-    if op == "equal":  # every source gave one value and all are the same
+    if op == "equal":  # every source gave one value, all the same, and that value is what the card prints
+        if not (per and all(len(v) == 1 for v in per) and len({v[0] for v in per}) == 1):
+            return "differ"
+        v = per[0][0]
+        return fmt if str(v) == fmt or num(fmt) == v else f"agree on {v!r}, not on {fmt!r}"
+    if op == "agree":  # every source gave one value and all are the same (a wording: printed = fmt)
         return fmt if per and all(len(v) == 1 for v in per) and len({v[0] for v in per}) == 1 else "differ"
     if op == "ncsv":
         assert len(vals) == 1, vals

@@ -1,6 +1,6 @@
 # card_facts — check every number of a model card against the files it came from
 
-`facts_check.py` reads a table with one row per number on a card (`card/facts.tsv`), finds each row's quote in the card (`card/README.md`), reads the value again from the files the row names (JSON, logs, TSV) and prints PASS or FAIL for each row. It shares no code with whatever wrote the card or the result files, so a number copied wrong, rounded wrong or taken from the wrong run fails. Python 3, standard library only. [`tools/card_verify.py`](../card_verify.py) does the same job with a checks file written in Python; this tool takes a table and no code. The card of [litert-community/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/litert-community/nemotron-3.5-asr-streaming-0.6b) was checked this way: 283 rows, 283 PASS.
+`facts_check.py` reads a table with one row per number on a card (`card/facts.tsv`), finds each row's quote in the card (`card/README.md`), reads the value again from the files the row names (JSON, logs, TSV) and prints PASS or FAIL for each row. It shares no code with whatever wrote the card or the result files, so a number copied wrong, rounded wrong or taken from the wrong run fails. Python 3, standard library only. [`tools/card_verify.py`](../card_verify.py) does the same job with a checks file written in Python; this tool takes a table and no code. The card of [litert-community/nemotron-3.5-asr-streaming-0.6b](https://huggingface.co/litert-community/nemotron-3.5-asr-streaming-0.6b) was checked this way: 283 rows, each matching its files.
 
 ## Run
 
@@ -35,7 +35,7 @@ Tab-separated, with a header line; one row per number; lines that start with `#`
 
 A value that reads as a number once its commas are removed becomes that number. The values of all the sources of a row are taken in order.
 
-## Ops (31)
+## Ops (32)
 
 | op | result |
 |---|---|
@@ -67,7 +67,8 @@ A value that reads as a number once its commas are removed becomes that number. 
 | `word` | the single value as an English word (one to ten) |
 | `join` | every value formatted with SPEC, joined by SEP |
 | `present` | `fmt` itself when every source matched, `absent` otherwise (write the claim's wording in both `fmt` and `printed`) |
-| `equal` | `fmt` itself when every source gave one value and all are equal, `differ` otherwise |
+| `equal` | `fmt` itself when every source gave one value, all are equal, and that value is the printed number (as text, or as a number once its commas are removed); `agree on V, not on 'P'` or `differ` otherwise |
+| `agree` | `fmt` itself when every source gave one value and all are equal, `differ` otherwise: for a wording the agreement carries (`the same bytes`; write it in both `fmt` and `printed`). This is what `equal` did before it compared the value with `printed`, so a table written for that `equal` needs `agree` on its wording rows |
 
 ## Example
 
