@@ -110,7 +110,7 @@ def main():
                 c = ", ".join(f"{k} ({n})" for k, n in v["consumers"].items())
                 L.append(f"| {r['model_type']} | {d} | {v['tensors']:,} | {v['unique_bytes']:,} | {mib(v['unique_bytes'])} | {c} |")
         fl = [(r["model_type"], f) for r in brk["sections"] for f in r["float_ext"]]
-        L += ["", f"- DW_INT8_EXTERNAL={brk.get('dw_int8_external', 'not checked')} (INT8 per-channel DEPTHWISE_CONV_2D "
+        L += ["", f"- DW_INT8_EXTERNAL={brk.get('dw_int8_external', 'not checked')} (INT8 per-channel DEPTHWISE_CONV_2D or CONV_2D "
               "filters in a weights section; LiteRT's GPU delegate refuses them, so any count above 0 fails the tensor check)"]
         L += [f"- FLOAT_EXTERNAL={'yes' if brk['float_external'] else 'no'}"
               + (" — float tensors in a weights section (WebGPU's streamed loading takes INT8 / INT4 / INT2 external "

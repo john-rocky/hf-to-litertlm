@@ -14,7 +14,7 @@ A model type given with --ext and --blob is an externalized section; these are c
   * payload: ORIG buffer bytes = NEW buffer bytes kept + bytes of the buffers the tool cleared;
   * every external buffer belongs to the group `tflite_weights` (the name LiteRT-LM binds the TFLiteWeights section
     to), starts 64-byte aligned and ends inside BLOB; BLOB size = the highest offset + length;
-  * no DEPTHWISE_CONV_2D filter (input 1) that is INT8 / UINT8 with per-channel scales is in BLOB: LiteRT's GPU
+  * no DEPTHWISE_CONV_2D or CONV_2D filter (input 1) that is INT8 / UINT8 with per-channel scales is in BLOB: LiteRT's GPU
     delegate refuses such a filter as an external buffer ("Unsupported quantization scale size"), so the file would get
     no GPU engine (DW_INT8_EXTERNAL=<count> is printed either way).
 Written, not checked: externalized tensors by dtype (FLOAT_EXTERNAL=yes when a float dtype went to the blob; the
@@ -248,7 +248,8 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
                 for c in tc:
                     r[3][c] += 1
                 q = tx.Quantization()
-                if "DEPTHWISE_CONV_2D@1" in tc and dtype in INT8S and q is not None and q.ScaleLength() > 1:
+                if any(c in ("DEPTHWISE_CONV_2D@1", "CONV_2D@1") for c in tc) and dtype in INT8S and q is not None \
+                        and q.ScaleLength() > 1:
                     n_el = 1
                     for d in shape_of(tx):
                         n_el *= max(d, 0)
@@ -264,7 +265,7 @@ def check_externalized(mt, orig, new, blob, min_bytes, mark_bytes):
                     bad("tensor lost its data (buffer cleared)", f"sg{sg_i}:t{t_i}")
     n_ext = sum(v[0] for v in by_dtype.values())
     if dw_int8:
-        why.append(f"{len(dw_int8)} INT8 per-channel DEPTHWISE_CONV_2D filters in the weights blob (largest "
+        why.append(f"{len(dw_int8)} INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters in the weights blob (largest "
                    f"{max(dw_int8):,} elements): LiteRT's GPU delegate refuses them as external buffers, no GPU engine; "
                    f"keep them inline with --num_elements_threshold >= {max(dw_int8)}")
     if bad_t:

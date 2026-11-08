@@ -16,7 +16,7 @@
 #                                 path); default 0 = every TFLiteModel section is externalized
 #     --num-elements-threshold N  the tool's --num_elements_threshold: tensors of N elements or fewer stay in the graph;
 #                                 default 256 (the tool's own). Per section it is raised to the largest INT8 / UINT8
-#                                 per-channel DEPTHWISE_CONV_2D filter (lib/dw_floor.py): LiteRT's GPU delegate refuses
+#                                 per-channel DEPTHWISE_CONV_2D or CONV_2D filter (lib/dw_floor.py): LiteRT's GPU delegate refuses
 #                                 such a filter as an external buffer, and the file would get no GPU engine
 #     --executor-metadata auto|off  auto = a bundle with a prefill_decode section and no ExecutorMetadata section gets
 #                                 one generated from the signatures (lib/executor_skeleton.py); default off
@@ -289,12 +289,12 @@ while IFS=$'\t' read -r idx mt inp; do
   fl=$("$PY" -I "$LIB/dw_floor.py" "$inp" 2> "$LG/dw_floor_$mt.err") || fail 1 "dw_floor.py failed on $mt ($LG/dw_floor_$mt.err)"
   fmax=$(echo "$fl" | cut -f1); fn=$(echo "$fl" | cut -f2)
   if [ "$FAULT" = depthwise ]; then
-    log "XR_FAULT=depthwise: $fn INT8 per-channel DEPTHWISE_CONV_2D filters, threshold left at $th (dry run of exit 5)"
+    log "XR_FAULT=depthwise: $fn INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters, threshold left at $th (dry run of exit 5)"
   elif [ "$fmax" -gt "$th" ]; then
     th=$fmax
-    log "section $idx $mt: $fn INT8 per-channel DEPTHWISE_CONV_2D filters (largest $fmax elements): threshold $THRESH -> $th, they stay in the graph"
+    log "section $idx $mt: $fn INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters (largest $fmax elements): threshold $THRESH -> $th, they stay in the graph"
   fi
-  kv "threshold_$mt" "$th (asked $THRESH; INT8 per-channel DEPTHWISE_CONV_2D filters: $fn, largest $fmax elements)"
+  kv "threshold_$mt" "$th (asked $THRESH; INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters: $fn, largest $fmax elements)"
   pytool "$LG/externalize_$mt.log" litert.tools.externalize_tflite_flatbuffer --input_model "$inp" --output_dir "$od" \
     --group_name tflite_weights --num_elements_threshold "$th" || fail 1 "the tool failed on $mt ($LG/externalize_$mt.log)"
   if [ -s "$od/tflite_weights" ]; then
