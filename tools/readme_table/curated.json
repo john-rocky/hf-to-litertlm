@@ -517,6 +517,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#qwen3-30b-a3b--a-48-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-03"
   },
+  "Qwen3-Coder-30B-A3B-Instruct": {
+    "task": "code, tool calls (LiteRT-LM built from source)",
+    "group": 1,
+    "recipe": "REPRODUCE.md#qwen3-coder-30b-a3b-instruct--the-qwen3-30b-a3b-decoder-steps-with-the-sources-chat-template-rewritten-for-litert-lm-the-xml-tool-call-patterns-and-the-generic_model-type-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-09"
+  },
   "granite-speech-5.0-2b": {
     "task": "speech to text and speech translation (en, fr, de, es, pt, ja)",
     "group": 4,
