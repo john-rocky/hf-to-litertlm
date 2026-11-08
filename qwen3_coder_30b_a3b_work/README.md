@@ -90,11 +90,12 @@ Every model run used the runtime build above (`litert_lm_advanced_main`) on an A
   each with and without the generation prompt: the template gives the text that the source's template gives through
   transformers' `apply_chat_template`, with string content and with typed parts, and LiteRT-LM 0.19.1's own renderer
   gives the same text (16 of 16).
-- **The real weights, first two layers.** Layers 0-1 + final norm + lm_head with fp32 experts, 162 positions of four
-  prompts, against Transformers in fp32: the CPU picks Transformers' top-1 at every position with a largest logit
-  difference of 2.5e-5, and the router picks the same 8 experts at every position of both layers; WebGPU (fp32),
-  every position, 4.0e-5. Quantized as shipped, the two layers on WebGPU equal Transformers run on the dequantized
-  weights at every position (4.2e-5).
+- **The real weights, first two layers.** Layers 0-1 + final norm + lm_head with fp32 experts, four prompts through
+  the decode signature (162 positions) and both prefill signatures (83 positions each), against Transformers in fp32:
+  the CPU picks Transformers' top-1 at every position with a largest logit difference of 2.5e-5, and the router picks
+  the same 8 experts at every position of both layers; WebGPU (fp32), every position, 4.0e-5. Quantized as shipped,
+  the two layers on WebGPU equal Transformers run on the dequantized weights at every position of the decode
+  signature (4.2e-5).
 - **The reference.** Transformers with the bf16 weights, computed in fp32 on the CPU, greedy, with
   `repetition_penalty` 1.0: the checkpoint's `generation_config.json` sets 1.05, transformers applies it in greedy
   decoding too, and LiteRT-LM's metadata has no such setting. Its greedy replies to three questions, teacher-forced
