@@ -1,6 +1,6 @@
 # litertlm_manifest.json — a deployment manifest for `.litertlm` model repos
 
-**Status: v0.1 draft (2026-08-24; 0.1.4 as of 2026-11-08).** One `litertlm_manifest.json` at the root of a Hugging Face
+**Status: v0.1 draft (2026-08-24; 0.1.5 as of 2026-11-08).** One `litertlm_manifest.json` at the root of a Hugging Face
 model repo describes every `.litertlm` file the repo ships: which backends each file targets,
 which file a given device should pick, what it needs (runtime version, RAM), and how fast it
 actually runs — with measured numbers, not claims.
@@ -76,7 +76,29 @@ parse error.
 | `capabilities.thinking.control` | *(derived, 0.1.3+)* | `switch`, `always`, `never` or `model` — what the bundle's template does about thinking; see [below](#capabilitiesthinkingcontrol--what-the-template-does-about-thinking) |
 | `capabilities.channels` | *(derived, 0.1.1+)* | the bundle's **full** declared channel set, `[{name, start, end, is_reasoning?}]` — the header's `channels` block is a generic named list (a model may declare e.g. tool-call markers there, though nothing shipped today does); `thinking` keeps mirroring the first channel for 0.1.0 readers |
 | `stateful` | curated *(0.1.4+)* | `true` when the model keeps recurrent state (short convolution, gated delta-net, Mamba / SSM layers) that a new conversation on the same engine can inherit from the previous one (LiteRT-LM #3165): start each conversation on a fresh engine. Evidence: the architecture, or a probe that reuses an engine. Absent = no statement |
-| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints), and since 0.1.4 `max_num_tokens` (integer — the token budget an app gives the engine, prompt and output together; at most the chosen variant's `context_length`) and `request_timeout_s` (integer — seconds one request may run before a server gives up, for slow devices and thinking models). Readers take keys by name and ignore what they don't consume |
+| `session_defaults` | curated | knobs a wrapper should set that the engine cannot infer. An **open object**; declared keys (all optional): `max_output_tokens_min` (integer — a FLOOR on the output-token budget, e.g. `2048` for reasoning models, never a cap), `notes` (string — curated guidance worth surfacing), `temperature`/`top_k`/`top_p` (sampler hints), and since 0.1.4 `max_num_tokens` (integer — the token budget an app gives the engine, prompt and output together; at most the chosen variant's `context_length`) and `request_timeout_s` (integer — seconds one request may run before a server gives up, for slow devices and thinking models); since 0.1.5 `source` (one word for where the sampler hints came from: `generation_config`, `readme` or `code_example`; see [below](#session_defaults-sampler-hints--where-they-come-from)). Readers take keys by name and ignore what they don't consume |
+
+## `session_defaults` sampler hints — where they come from
+
+`temperature`, `top_k` and `top_p` are the source model's own advice, not ours. Since 0.1.5 the
+generator looks them up in the source model (`model.base_model`) at its current commit and takes
+the first of three places:
+
+| `source` | where | example |
+|---|---|---|
+| `generation_config` | the source model's `generation_config.json` | `"temperature": 0.7, "top_k": 20, "top_p": 0.8` |
+| `readme` | the text of the source model's card | "Generation parameters: `temperature: 0.1`, `top_k: 50`" |
+| `code_example` | a code example in that card | `generate(..., temperature=0.8, top_p=0.8, top_k=20)` |
+
+- Only the values written there are copied: a card that names `temperature` and `top_k` gives
+  those two keys and no `top_p`. Values of other kinds (`repetition_penalty`, `min_p`) are not
+  carried.
+- Nothing found, or more than one value for one key in the place that has values (a card with
+  one setting for thinking and another without), writes no sampler key and no `source`: an app
+  keeps its own defaults. A person who picks a value puts it in the curated file with its
+  `source`; curated sampler keys win over the lookup.
+- A number outside the range a sampler takes (`top_k` 1 to 1000, `top_p` above 0 up to 1,
+  `temperature` 0 to 2) is not a value: a card's `"temperature": 22` is a weather example.
 
 ## `capabilities.vision` / `.audio` — what the file takes as input
 
@@ -151,7 +173,7 @@ Order: the curated file's `variants` as it lists them (its first is the default 
 | `backends` | curated (checked against bundle `backend_constraint` when present) | backends this file is *verified to generate* on — not merely load |
 | `default_backend` | curated | what to pick with no device knowledge |
 | `min_runtime_version` | curated | earliest LiteRT-LM release the file is verified on |
-| `recommended[]` | curated | `{platform, device_class?, backend, reason}` — the fastest *verified* choice per platform/device class |
+| `recommended[]` | curated | `{platform, device_class?, soc?, backend, reason}` — the fastest *verified* choice per platform/device class; `soc` *(0.1.5+)* is the chip the row was measured on, see [below](#recommendedsoc--the-chip-a-row-was-measured-on-015) |
 | `requirements` | curated | `{peak_ram_mb?, platform_notes[]}` |
 | `measured[]` | curated | see below |
 | `known_issues[]` | curated | short, factual, with upstream links where they exist |
@@ -164,6 +186,18 @@ the caller didn't ask for.
 Variants with no listed backends cannot be candidates, even if a caller constructed or mutated
 the manifest without parsing. Return `null` when no candidates remain; never invent a backend
 from a default or recommendation.
+
+## `recommended[].soc` — the chip a row was measured on *(0.1.5+)*
+
+`device_class` is text for people ("flagship (Galaxy S26, Adreno)"). `soc` is the same row's chip
+as Android reports it in `Build.SOC_MODEL` on the phone the row's numbers come from, for example
+`SM8850` on the Galaxy S26. It is optional; a row without it is not tied to a chip.
+
+- An Android reader compares it with its own `Build.SOC_MODEL`, ignoring case, and does not parse
+  `device_class`.
+- When a variant has several `android` rows and none names the reader's chip, the rows are about
+  other chips: take `default_backend`, not the first row.
+- The reference readers in `readers/` do not read `soc` yet.
 
 ## `measured[]` rows — the honesty rules
 
@@ -212,6 +246,53 @@ names, `runs` times. The shape:
   lists files only after a check compares the two, so changing the defaults means checking again.
 - `measured[]` rows are speed, not checks: they carry no sampler.
 
+## The model card block *(0.1.5+)*
+
+The same run of the generator writes a `litert_lm:` block for the repo's model card, to paste into
+the YAML front matter of its `README.md`. The Hub returns the front matter in its model list
+(`GET /api/models?author=…&expand=cardData`), so an app that lists many repos reads every repo's
+defaults in one call instead of fetching each manifest. The block is a projection of the
+manifest, with the manifest's names and nesting. One variant of `litert-community/MNN-Pocket-0.3B`:
+
+```yaml
+litert_lm:
+  manifest_schema: "0.1.5"
+  session_defaults:
+    top_k: 20
+    top_p: 0.8
+    temperature: 0.8
+    source: code_example
+  stateful: false
+  capabilities:
+    vision: false
+    audio: false
+    thinking:
+      declared: false
+      control: never
+  variants:
+    - file: MNN-Pocket-0.3B_int8.litertlm
+      backends: [cpu, gpu]
+      default_backend: cpu
+      recommended:
+        - platform: android
+          device_class: "flagship (Galaxy S26, Adreno)"
+          soc: SM8850
+          backend: gpu
+      context_length: 4096
+      min_runtime_version: "0.19.1"
+      checked: []
+```
+
+- From `model`, at the top level of the block: `session_defaults` (the sampler hints and
+  `source`, `max_num_tokens`, `request_timeout_s`, `max_output_tokens_min`), `stateful`, and
+  `capabilities.vision`, `.audio`, `.thinking.declared` and `.thinking.control`.
+- From each variant: `file`, `backends`, `default_backend`, `recommended[]` without `reason`,
+  `context_length`, `min_runtime_version` and `checked[]` (an empty list = no check yet).
+- Not in the block: `sha256` and `size_bytes` (the Hub's API gives them) and the curated prose
+  (`reason`, `notes`, `requirements`, `measured[]`, `known_issues[]`). They stay in the manifest.
+- Strings that YAML would read as something else are quoted (`"0.19.1"`, dates). The generator
+  reads the block back with PyYAML and stops if it does not come back as written.
+
 ## Versioning
 
 `manifest_schema` is semver-style; the current line is `0.1.x`. While the schema is 0.x, the
@@ -223,6 +304,9 @@ is removed, renamed, or changed in meaning short of `0.2.0`. `0.1.1` adds
 `model.capabilities.thinking.control`, optional as well. `0.1.4` adds `model.stateful` and
 `variants[].checked[]`, and declares `session_defaults.max_num_tokens` and
 `session_defaults.request_timeout_s`; all are optional, so 0.1.3 manifests stay valid.
+`0.1.5` adds `variants[].recommended[].soc` and declares `session_defaults.source`; both are
+optional, so 0.1.4 manifests stay valid. The model card block of the same release is written
+next to the manifest, not inside it.
 Readers should pin a supported range; the JSON Schema enforces the 0.1 line via the `manifest_schema` pattern, so a 0.2
 manifest fails validation rather than half-parsing, and both reference readers refuse it at
 parse time.

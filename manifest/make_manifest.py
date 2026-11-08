@@ -7,12 +7,28 @@ two HTTP range requests per file, no weight download. Curated fields (quantizati
 recommendations, measured rows, known issues) come from a hand-verified JSON
 passed via --curated (see manifest/examples/ for finished manifests). The output is validated against manifest/litertlm_manifest.schema.json.
 
-Usage (needs: pip install litert-lm-builder jsonschema jinja2):
+The sampler hints in session_defaults (top_k, top_p, temperature) come from the
+source model (model.base_model) at its current commit, the first of: its
+generation_config.json, the text of its model card, a code example in that card;
+session_defaults.source names which (0.1.5). Only values written there are
+copied; with none found, or with several values for one key, no sampler key is
+written. Sampler keys in the curated file win over the lookup.
+
+The same run writes the model card's `litert_lm:` block (0.1.5): the YAML key an
+app reads from the Hub's model list (cardData) without fetching the manifest. It
+is a projection of the manifest (SCHEMA.md, "The model card block"); paste it
+into the card's YAML front matter.
+
+Usage (needs: pip install litert-lm-builder jsonschema jinja2; pyyaml to read the
+block back):
     python manifest/make_manifest.py litert-community/LFM2.5-1.2B-Instruct
     ... --public          # strip every private `evidence` pointer for publication
     ... --local-file F    # parse a local bundle instead of range-reading HF
     ... --no-hub --local-file NAME=PATH [...]   # a repo not on the Hub yet: the files
                           # are the --local-file ones; nothing is requested from the Hub
+                          # (no sampler lookup either)
+    ... --card-out PATH   # where the card block goes (default: next to the manifest)
+    ... --no-sampler-lookup   # keep session_defaults as curated
 
 """
 import argparse
@@ -23,6 +39,7 @@ import json
 import pathlib
 import re
 import sys
+import urllib.error
 import urllib.request
 
 import jinja2
@@ -330,6 +347,247 @@ def model_thinking_control(controls):
   control = next(iter(controls.values()))[0]
   return CONTROL_UNSWITCHED if control == UNSWITCHED else control
 
+# session_defaults' sampler hints (0.1.5): where they are looked up, in order,
+# and the word session_defaults.source takes for each.
+SAMPLER_KEYS = ("top_k", "top_p", "temperature")
+SAMPLER_SOURCES = ("generation_config", "readme", "code_example")
+# A key name in a card: `temperature`, `top_k` / `top-k` / `topk` / `Top K`.
+SAMPLER_NAMES = {
+    "temperature": re.compile(r"(?i)(?<![A-Za-z0-9_])temperature(?![A-Za-z0-9_(])"),
+    "top_k": re.compile(r"(?i)(?<![A-Za-z0-9_])top[ _-]?k(?![A-Za-z0-9_(])"),
+    "top_p": re.compile(r"(?i)(?<![A-Za-z0-9_])top[ _-]?p(?![A-Za-z0-9_(])"),
+}
+# What may stand between the name and its number (`temperature: 0.1`,
+# `temperature=0.8`, `"temperature": 0.7`, `| temperature | 0.7 |`, `temperature of
+# 0.7`), and the number. A number that goes on (`0.6-0.8`, `25°C`, `90%`) is not
+# a value.
+SAMPLER_VALUE = re.compile(
+    r"""\s*[`'"*]*\s*(?:[:=|]|is\b|of\b|set\s+to\b|to\b|at\b)?\s*[`'"*]*\s*"""
+    r"""(-?\d+(?:\.\d+)?)(?!\d)(?!\.\d)(?!\s*(?:°|%|[-–~]\s*\d))""")
+
+def sampler_value(key, raw):
+  """The value as the manifest takes it, or None when it is not a sampler value
+  (top_k a whole number from 1 to 1000, top_p above 0 up to 1, temperature 0 to
+  2: a card's `"temperature": 22` is a weather example, not a sampler)."""
+  if isinstance(raw, bool) or not isinstance(raw, (int, float, str)):
+    return None
+  try:
+    num = float(raw)
+  except ValueError:
+    return None
+  if key == "top_k":
+    return int(num) if num == int(num) and 1 <= num <= 1000 else None
+  if key == "top_p":
+    return num if 0 < num <= 1 else None
+  return num if 0 <= num <= 2 else None
+
+def sampler_from_config(cfg):
+  """The sampler keys a generation_config.json writes, as written."""
+  values = {}
+  for key in SAMPLER_KEYS:
+    if key in cfg:
+      value = sampler_value(key, cfg[key])
+      if value is not None:
+        values[key] = value
+  return values
+
+def readme_parts(text):
+  """(prose, code): the card's lines outside and inside fenced code blocks, as
+  (line number, text); the YAML front matter is neither."""
+  lines = text.splitlines()
+  start = 0
+  if lines and lines[0].strip() == "---":
+    for i in range(1, len(lines)):
+      if lines[i].strip() == "---":
+        start = i + 1
+        break
+  prose, code, fence = [], [], None
+  for n in range(start, len(lines)):
+    line = lines[n]
+    m = re.match(r"\s*(```+|~~~+)", line)
+    if m and (fence is None or m.group(1)[0] == fence[0]):
+      fence = None if fence else m.group(1)
+      continue
+    (code if fence else prose).append((n + 1, line))
+  return prose, code
+
+def sampler_mentions(lines):
+  """{key: {value: [line numbers]}} for every sampler value the lines write."""
+  found = {}
+  for n, line in lines:
+    for key, name in SAMPLER_NAMES.items():
+      for m in name.finditer(line):
+        v = SAMPLER_VALUE.match(line, m.end())
+        if not v:
+          continue
+        value = sampler_value(key, v.group(1))
+        if value is not None:
+          found.setdefault(key, {}).setdefault(value, []).append(n)
+  return found
+
+def hub_get(url):
+  """(HTTP status, body or None). 401 / 403 (a gated repo) and 404 are answers."""
+  try:
+    with urllib.request.urlopen(url, timeout=120) as r:
+      return r.status, r.read()
+  except urllib.error.HTTPError as e:
+    return e.code, None
+
+def lookup_sampler(base_model):
+  """(values, source, notes) for the source model at its current commit: the
+  first of its generation_config.json, its card's text, a code example in its
+  card. Several values for one key in that place = nothing (the card says
+  more than one thing; a person picks and puts it in the curated file)."""
+  status, body = hub_get(f"https://huggingface.co/api/models/{base_model}")
+  if status != 200:
+    return {}, None, [f"{base_model}: HTTP {status} for the model, no sampler lookup"]
+  sha = json.loads(body).get("sha")
+  if not sha:
+    return {}, None, [f"{base_model}: no commit in the model info, no sampler lookup"]
+  at = f"{base_model}@{sha}"
+  notes = []
+  status, body = hub_get(
+      f"https://huggingface.co/{base_model}/resolve/{sha}/generation_config.json")
+  if status == 200:
+    try:
+      values = sampler_from_config(json.loads(body))
+    except ValueError:
+      values = {}
+      notes.append(f"{at}: generation_config.json is not JSON")
+    if values:
+      return values, "generation_config", notes + [f"{at}: generation_config.json"]
+    notes.append(f"{at}: generation_config.json has no sampler key")
+  else:
+    notes.append(f"{at}: HTTP {status} for generation_config.json")
+  status, body = hub_get(f"https://huggingface.co/{base_model}/resolve/{sha}/README.md")
+  if status != 200:
+    return {}, None, notes + [f"{at}: HTTP {status} for README.md"]
+  prose, code = readme_parts(body.decode("utf-8", errors="replace"))
+  for source, lines in (("readme", prose), ("code_example", code)):
+    found = sampler_mentions(lines)
+    if not found:
+      continue
+    where = "; ".join(f"{k} " + ", ".join(f"{v} (l.{','.join(map(str, ns))})"
+                                          for v, ns in vs.items())
+                      for k, vs in found.items())
+    if any(len(vs) > 1 for vs in found.values()):
+      return {}, None, notes + [
+          f"{at}: README.md ({source}) gives more than one value for a key — {where}; "
+          "no sampler written (put the one to use in the curated session_defaults "
+          "with its source)"]
+    values = {k: next(iter(vs)) for k, vs in found.items()}
+    return values, source, notes + [f"{at}: README.md ({source}) — {where}"]
+  return {}, None, notes + [f"{at}: README.md names no sampler value"]
+
+# The model card block (0.1.5): the `litert_lm:` key of the card's YAML front
+# matter, which the Hub's model list returns as cardData.litert_lm. A projection
+# of the manifest: the same names and nesting (model.* at the top, variants[] as
+# they are) for what an app sets before a download; what the Hub's API already
+# gives (sha256, size) and the curated prose (reason, notes, measured,
+# known_issues, requirements) stay in the manifest.
+BLOCK_SESSION_KEYS = ("top_k", "top_p", "temperature", "source", "max_num_tokens",
+                      "request_timeout_s", "max_output_tokens_min")
+BLOCK_VARIANT_KEYS = ("file", "backends", "default_backend", "recommended",
+                      "context_length", "min_runtime_version", "checked")
+BLOCK_RECOMMENDED_KEYS = ("platform", "device_class", "soc", "backend")
+BLOCK_CHECKED_KEYS = ("device", "os", "backend", "runtime", "top_k", "top_p",
+                      "temperature", "runs", "date")
+
+def card_block(manifest):
+  """{"litert_lm": {...}} for the manifest."""
+  model = manifest["model"]
+  block = {"manifest_schema": manifest["manifest_schema"]}
+  sd = model.get("session_defaults") or {}
+  sd = {k: sd[k] for k in BLOCK_SESSION_KEYS if k in sd}
+  if sd:
+    block["session_defaults"] = sd
+  if "stateful" in model:
+    block["stateful"] = model["stateful"]
+  caps = model.get("capabilities")
+  if caps:
+    out = {k: caps[k] for k in ("vision", "audio") if k in caps}
+    thinking = caps.get("thinking") or {}
+    thinking = {k: thinking[k] for k in ("declared", "control") if k in thinking}
+    if thinking:
+      out["thinking"] = thinking
+    if out:
+      block["capabilities"] = out
+  variants = []
+  for v in manifest["variants"]:
+    b = {}
+    for k in BLOCK_VARIANT_KEYS:
+      if k == "recommended" and k in v:
+        b[k] = [{kk: r[kk] for kk in BLOCK_RECOMMENDED_KEYS if kk in r}
+                for r in v[k]]
+      elif k == "checked":
+        # an empty list says no check yet; a reader that lists files only after
+        # a check folds such a file
+        b[k] = [{kk: r[kk] for kk in BLOCK_CHECKED_KEYS if kk in r}
+                for r in v.get(k, [])]
+      elif k in v:
+        b[k] = v[k]
+    variants.append(b)
+  block["variants"] = variants
+  return {"litert_lm": block}
+
+YAML_PLAIN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]*")
+YAML_RESERVED = {"y", "n", "yes", "no", "on", "off", "true", "false", "null"}
+
+def yaml_scalar(v):
+  if isinstance(v, bool):
+    return "true" if v else "false"
+  if isinstance(v, int):
+    return str(v)
+  if isinstance(v, float):
+    s = repr(v)
+    if not re.fullmatch(r"-?\d+\.\d+", s):
+      raise ValueError(f"card block: no plain YAML number for {v!r}")
+    return s
+  if isinstance(v, str):
+    if YAML_PLAIN.fullmatch(v) and v.lower() not in YAML_RESERVED:
+      return v
+    # a JSON string is a YAML double-quoted scalar ("0.19.1", "2026-11-08", ...)
+    return json.dumps(v, ensure_ascii=False)
+  raise TypeError(f"card block: {type(v).__name__} value {v!r}")
+
+def yaml_lines(obj, indent=0):
+  pad = " " * indent
+  out = []
+  for k, v in obj.items():
+    if isinstance(v, dict) and not v:
+      out.append(f"{pad}{k}: {{}}")
+    elif isinstance(v, dict):
+      out.append(f"{pad}{k}:")
+      out.extend(yaml_lines(v, indent + 2))
+    elif isinstance(v, list) and not v:
+      out.append(f"{pad}{k}: []")
+    elif isinstance(v, list) and all(not isinstance(x, (dict, list)) for x in v):
+      out.append(f"{pad}{k}: [" + ", ".join(yaml_scalar(x) for x in v) + "]")
+    elif isinstance(v, list) and all(isinstance(x, dict) and x for x in v):
+      out.append(f"{pad}{k}:")
+      for item in v:
+        sub = yaml_lines(item, indent + 4)
+        sub[0] = f"{pad}  - " + sub[0][indent + 4:]
+        out.extend(sub)
+    elif isinstance(v, (list, dict)):
+      raise TypeError(f"card block: {k} holds a shape the block does not use")
+    else:
+      out.append(f"{pad}{k}: {yaml_scalar(v)}")
+  return out
+
+def card_block_yaml(block):
+  """The block as YAML text, read back with PyYAML when it is installed."""
+  text = "\n".join(yaml_lines(block)) + "\n"
+  try:
+    import yaml
+  except ImportError:
+    print("WARN: pyyaml not installed — the card block was not read back",
+          file=sys.stderr)
+    return text
+  if yaml.safe_load(text) != block:
+    sys.exit("card block: the YAML does not read back as the block")
+  return text
+
 def main():
   ap = argparse.ArgumentParser()
   ap.add_argument("repo")
@@ -350,6 +608,12 @@ def main():
                        "first upload): the file list is the --local-file "
                        "names with the local sizes instead of the Hub tree, "
                        "and every derived field is read from the local files")
+  ap.add_argument("--card-out", default=None,
+                  help="where to write the model card's litert_lm: block "
+                       "(default: next to the manifest, *__card_block.yaml)")
+  ap.add_argument("--no-sampler-lookup", action="store_true",
+                  help="do not look up the source model's sampler; "
+                       "session_defaults stays as curated")
   args = ap.parse_args()
 
   mdir = pathlib.Path(__file__).resolve().parent
@@ -460,8 +724,36 @@ def main():
     if control is not None:
       model["capabilities"]["thinking"]["control"] = control
 
+  # 0.1.5: the sampler hints and the word for where they came from
+  sd = dict(model.get("session_defaults") or {})
+  if any(k in sd for k in SAMPLER_KEYS):
+    if sd.get("source") not in SAMPLER_SOURCES:
+      print("WARN: curated session_defaults has sampler keys but no source "
+            f"(one of {', '.join(SAMPLER_SOURCES)})", file=sys.stderr)
+    print("sampler: curated — " + ", ".join(
+        f"{k} {sd[k]}" for k in SAMPLER_KEYS if k in sd), file=sys.stderr)
+  elif args.no_hub or args.no_sampler_lookup:
+    print("sampler: not looked up (--no-hub / --no-sampler-lookup)", file=sys.stderr)
+  elif not model.get("base_model"):
+    print("WARN: no model.base_model in the curated file — no sampler lookup",
+          file=sys.stderr)
+  else:
+    values, source, notes = lookup_sampler(model["base_model"])
+    for line in notes:
+      print(f"sampler: {line}", file=sys.stderr)
+    if values:
+      sd.update(values)
+      sd["source"] = source
+      model["session_defaults"] = sd
+      print("sampler: " + ", ".join(f"{k} {values[k]}" for k in SAMPLER_KEYS
+                                    if k in values) + f" from {source}",
+            file=sys.stderr)
+    else:
+      print("sampler: none written (the app keeps its own defaults)",
+            file=sys.stderr)
+
   manifest = {
-      "manifest_schema": "0.1.3",
+      "manifest_schema": "0.1.5",
       "repo": args.repo,
       "generated": datetime.date.today().isoformat(),
       "generator": "make_manifest.py",
@@ -482,6 +774,15 @@ def main():
   out.parent.mkdir(parents=True, exist_ok=True)
   out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
   print(out)
+
+  # 0.1.5: the model card's litert_lm: block, from the manifest just written
+  block_text = card_block_yaml(card_block(manifest))
+  card_out = pathlib.Path(args.card_out) if args.card_out else (
+      out.with_name(out.name.replace("__litertlm_manifest.json", "")
+                    .removesuffix(".json") + "__card_block.yaml"))
+  card_out.parent.mkdir(parents=True, exist_ok=True)
+  card_out.write_text(block_text)
+  print(card_out)
 
 if __name__ == "__main__":
   main()

@@ -62,7 +62,8 @@
             "top_k": {"type": "integer", "minimum": 1},
             "top_p": {"type": "number"},
             "max_num_tokens": {"type": "integer", "minimum": 1},
-            "request_timeout_s": {"type": "integer", "minimum": 1}
+            "request_timeout_s": {"type": "integer", "minimum": 1},
+            "source": {"enum": ["generation_config", "readme", "code_example"]}
           }
         }
       }
@@ -95,6 +96,7 @@
               "properties": {
                 "platform": {"enum": ["android", "ios", "macos", "windows", "linux"]},
                 "device_class": {"type": "string"},
+                "soc": {"type": "string", "minLength": 1},
                 "backend": {"enum": ["cpu", "gpu", "npu"]},
                 "reason": {"type": "string"}
               }
