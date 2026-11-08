@@ -9,7 +9,7 @@ reference_transformers.py `container_state_dict` + `load_model`, written here in
     value becomes 0, a finite one int(), as an int64 (BatchNorm in eval never reads it)
   - the kernel-1 pointwise convs were stored squeezed [O, I]; stock wants [O, I, 1]
 The container reader is the author's fermion_container.py, loaded by file path (json + numpy only, no network, no pickle);
-hf/phonon2 is never the cwd nor on sys.path. Run this file's users with `python -I`.
+hf/phonon2 is never the cwd nor on sys.path. Run this file's users with `python -I`. Another model's folders: PHONON_HF_DIR (under hf/, default phonon2) and PHONON_UNPACK_DIR (under its unpacked/, default model_phonon2_c4c_int6).
 
 Arithmetic fp32 on the CPU. Feature extractor = the original repo's processor_config.json,
 generation config = the original's generation_config.json (the author's reference reads both from the base repo too).
@@ -42,8 +42,8 @@ sys.path.insert(0, HERE)
 
 K = os.path.dirname(HERE)
 ORIG = os.path.join(K, "hf", "orig")
-READER = os.path.join(K, "hf", "phonon2", "fermion_container.py")
-CONTAINER = os.path.join(K, "hf", "phonon2", "unpacked", "model_phonon2_c4c_int6", "model.fermion")
+READER = os.path.join(K, "hf", os.environ.get("PHONON_HF_DIR", "phonon2"), "fermion_container.py")
+CONTAINER = os.path.join(os.path.dirname(READER), "unpacked", os.environ.get("PHONON_UNPACK_DIR", "model_phonon2_c4c_int6"), "model.fermion")
 BLANK = 8192
 SR = 16000
 _TK = None

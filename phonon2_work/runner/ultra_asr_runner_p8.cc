@@ -1,0 +1,1186 @@
+// ultra_asr_runner_p8: ultra_asr_runner_p7 with deeper queues and a second encoder chosen by the bucket. Without the new flags
+// (and at --pipeline-depth 1 or 2) it runs as ultra_asr_runner_p7 does, stdout included, except the runner= line, which names
+// this build and adds enc2_buckets=.
+//   --pipeline-depth N: 1 to 16 (p7: 1 or 2; the default stays 2). With --pipeline 2 and a second encoder each encoder's in-order
+//     input and output queues hold up to N windows, so the faster encoder runs up to N windows ahead while the slower one
+//     computes its window (the decode stage still takes the windows back in input order). --pipeline 1 / 2 without a second
+//     encoder: the same queues, N deep.
+//   --enc2-buckets S[,S...] (with --enc2-accel, instead of --enc2-every / --enc2-take): every window whose bucket label is one of
+//     the S goes to encoder 2, every other window to encoder 1 = the split is fixed by the input (a window's bucket is the
+//     smallest one that holds it). Each S must be a bucket label of the run (30, 10 / 20 / 5 for --mel10 / --mel20 / --mel5, the
+//     --mel-bucket S as written); a label not in the table, an empty list, or --enc2-every / --enc2-take beside it is refused.
+//     The window record's "enc" and the burst summary keep p7's form; the summary adds "enc2_buckets" (enc2_every and
+//     enc2_take print 0 in this mode).
+// ultra_asr_runner_p7: ultra_asr_runner_p6 with buckets named by the encoder file and a second encoder worker. Without the new
+// flags it runs as ultra_asr_runner_p6 does (the --pipeline 0, 1 and 2 code paths are p6's), stdout included, except the
+// runner= line, which names this build and the new flags.
+//   --mel-bucket S=FILE (repeatable): one more window bucket of S seconds (S as written in the signature name, e.g. 7.5) with
+//     its mel graph FILE. With --enc-all the bucket's encoder is the signature enc<S> of that file; without it the pair needs
+//     --enc-bucket S=FILE (an encoder file of its own). The mel graph's frames must be the smallest multiple of 8 at or above
+//     100 x S (the encoder's 8x downsampling). Buckets are added after p6's (--mel10 / --mel20 / --mel5), in command-line order;
+//     a window still goes to the smallest bucket whose mel audio input holds it. A bucket's label is S for these, and the
+//     encoder's seconds (Tm / 100, an integer) for p6's buckets: the window record's "bucket", windows_per_bucket's keys
+//     (p6's 10 / 20 / 30, and 5 when present, plus every other label, ascending) and the latency phase's bucket= print it.
+//   --enc2-accel cpu|gpu|gpu+cpu|npu|npu+cpu --enc2-all FILE --enc2-every K [--enc2-take M] [--enc2-threads N]
+//     [--enc2-gpu-precision P]: a second encoder (FILE: a signature enc<label> for every bucket; compiled last, on its own
+//     accelerator, threads and GPU precision; --gpu-share-constants, --gpu-cache-dir and --burst apply to it too). Needs
+//     --pipeline 2: the mel stage hands window s of the pass (s = 0, 1, ... in input order, the warm-up not counted) to
+//     encoder 2 when floor((s + 1) M / K) > floor(s M / K) (M of every K windows, spread evenly; default M = 1), else to
+//     encoder 1 (model[0], --accel). Each encoder has a thread and in-order input and output queues of --pipeline-depth
+//     windows; a third queue carries the pass's order, so the decode stage takes the windows back in input order. Each
+//     window record says which encoder computed it ("enc":1 or 2); the burst summary adds the windows and encoder ms of
+//     each. The warm-up runs fixture 000 through encoder 2 too (a warmup2 line); the latency phase uses encoder 1 only.
+// ultra_asr_runner_p6: ultra_asr_runner_p5 with a three-stage burst pass and GPU options. Without the new flags it runs as
+// ultra_asr_runner_p5 does (the --pipeline 0 and 1 code paths are p5's), stdout included, plus the gpu_* lines of GPU models.
+//   --pipeline 2: the burst pass in three stages joined by two in-order queues: the mel stage (a thread) reads each file,
+//     cuts its windows and runs the bucket's mel graph into the window's own copy of the features and masks; the encoder
+//     stage (a second thread) runs the bucket's encoder on that copy into the window's own copy of the encoder output; the
+//     decode stage (the main thread) runs the TDT loop of each window in the same order and prints the file's line once its
+//     last window is decoded. Each queue holds up to --pipeline-depth windows (file ends, stops and the end of the pass do
+//     not count), across file boundaries, as --pipeline 1's queue does. The per-window stamps, burst_wall_ms (the first
+//     window's mel start to the last window's loop end) and rtf_wall keep their definitions; a --pipeline 2 window also
+//     prints t_mel1 (its mel end) and t_enc0 (its encoder start). The warm-up run and the latency phase stay serial.
+//   --gpu-share-constants 0|1 (default 0 = the option unset, the runtime's default): 1 adds enable_constant_tensors_sharing =
+//     true to the encoder's gpu_options (one copy of a constant that several signatures read).
+//   --gpu-cache-dir DIR: the encoder's GPU serialization dir and program cache: serialization_dir = DIR, model_cache_key = the
+//     graph file's name without .tflite, serialize_program_cache = true.
+//   Key names as LiteRT 2.3.0's gpu_options TOML parser reads them (litert/c/options/litert_gpu_options.cc); the GPU
+//   accelerator reads the first gpu_options entry of the options (ml_drift_delegate_create.cc), so every key goes in one
+//   payload. Per GPU model: a `gpu_options model[k]` line (the values passed; unset = the runtime's default), a
+//   `gpu_metrics model[k]` line after the compile (the metrics the GPU accelerator reports: constant and intermediate
+//   memory bytes) and, with --gpu-cache-dir, `gpu_cache` lines listing DIR's files before and after the compile and at the end.
+//   --profile 0|1 (default 0): 1 sets enable_profiling = true in the encoder graphs' runtime options and, in the latency phase,
+//     runs LiteRT's profiler around each encoder round (XNNPACK reports each of its operators as a delegate event): per round
+//     a `profile` line (ms per op class: FULLY_CONNECTED, CONV_2D, BATCH_MATMUL, DEPTHWISE_CONV_2D, OTHER; the delegate node),
+//     then `profile_summary` (the medians) and one `profile_tag` line per event tag. The profiled rounds' ms include the
+//     profiler's own cost: a probe, not a timing leg.
+// ultra_asr_runner_p5: ultra_asr_runner_p (parakeet-ultra's runner) with an optional 5 s window bucket (--model5 / --mel5, also
+// spelled --enc5) and an encoder file that holds every bucket as a signature (--enc-all). Without those flags it runs as
+// ultra_asr_runner_p does, stdout included.
+// ultra_asr_runner_p: redux_asr_runner_b (the parakeet-redux card's runner) with a pipelined burst pass, for the
+// parakeet-ultra LiteRT files on Android (and macOS), written against the LiteRT 2.3.0 C API (CompiledModel).
+// --pipeline 0 (default) is redux_asr_runner_b's serial burst pass: per window mel -> encoder -> TDT loop, one thread.
+// --pipeline 1 splits the burst pass into two threads joined by an in-order queue of encoded windows: stage A (a second
+// thread) reads each file, cuts its windows and runs mel + encoder; stage B (the main thread) runs the TDT loop of each
+// window in the same order and prints the file's line once its last window is decoded. Stage A runs up to
+// --pipeline-depth (1 or 2) encoded windows ahead of stage B, across file boundaries (file i+1's mel + encoder while
+// file i's last windows decode). Each window's TDT loop starts from blank with a zero state in both modes, so the
+// tokens do not depend on the mode. The warm-up run and the latency phase stay serial.
+// The burst summary also gives burst_wall_ms (from the first window's mel start to the last window's loop end) and
+// rtf_wall = burst_wall_ms / 1000 / the summed audio seconds: with --pipeline 1 the per-stage ms overlap and rtf_burst
+// (their sum) counts the overlap twice, so a pipelined run is read by rtf_wall.
+// One process loads the graphs of up to three window buckets and the decoder:
+//   model[0] = the 30 s encoder (--model; on the accelerator of --accel: cpu | gpu | gpu+cpu | npu | npu+cpu),
+//   model[1] = the 30 s mel front end (--mel; CPU), model[2] = the decoder (--dec; CPU; signatures predict and joint),
+//   model[3] / model[4] = the 10 s encoder / mel pair (--model10 / --mel10, optional),
+//   model[5] / model[6] = the 20 s pair (--model20 / --mel20, optional; model[3] / model[4] when there is no 10 s pair),
+//   then the 5 s pair (--enc5 / --mel5, optional).
+// --enc-all FILE instead of --model and the bucket encoders: one encoder file whose signatures are enc30, and enc20 / enc10 /
+// enc5 for the pairs asked for (model[0] holds them all; each --melN then comes alone, in the same order). A bucket's mel
+// graph is still its own file: --mel, and --mel10 / --mel20 / --mel5 for the signatures to use.
+// The 30 s encoder is compiled first, so the Environment's first accelerated load is an encoder's; the mel graphs and
+// the decoder get kLiteRtHwAcceleratorCpu.
+// Each file is cut into 30 s windows of --window-samples (479,840 samples; the last one shorter; a window under
+// --min-window-samples = 320 samples is skipped and has no text). Each window goes to the smallest bucket whose mel
+// audio input holds it (10 s: n <= 160,000 samples, 20 s: n <= 320,000, else the 30 s pair), then mel -> encoder -> the
+// greedy TDT loop on the host: the predictor starts from blank (8192); token = argmax of the first 8193 logits, duration
+// = argmax of the last 5 (durations 0..4); blank with duration 0 advances one frame; --max-symbols non-blank symbols on
+// one frame advance one frame; token 3 (eos) stops the window (--eos -1: never); the loop stops at the valid encoder
+// frames of the mel graph's frame_mask, or after 10 x 375 steps.
+//
+// usage: ultra_asr_runner_p6 --accel cpu|gpu|gpu+cpu|npu|npu+cpu [--gpu-precision default|fp16|fp32|fp16acc32] [--burst 0|1]
+//            [--pipeline 0|1|2] [--pipeline-depth 1|2] (default 0 / 2) [--gpu-share-constants 0|1] [--gpu-cache-dir DIR]
+//            --libdir DIR [--cache-dir DIR] --fixtures DIR --count N [--warmup W] [--rounds R] [--ab-fixture ID]
+//            [--dump full|none] --out DIR --model ENC30.tflite --mel MEL30.tflite --dec DEC.tflite
+//            [--model10 ENC10.tflite --mel10 MEL10.tflite] [--model20 ENC20.tflite --mel20 MEL20.tflite]
+//            [--enc5 ENC5.tflite --mel5 MEL5.tflite]
+//            or --enc-all ENC_ALL.tflite --mel MEL30.tflite --dec DEC.tflite [--mel10 MEL10.tflite] [--mel20 MEL20.tflite] [--mel5 MEL5.tflite]
+//            [--threads N] [--mel-threads N] [--dec-threads N] (XNNPACK threads of the encoder's CPU part, the mel
+//            graphs and the decoder; defaults 4, --threads, --threads)
+//            [--window-samples 479840] [--min-window-samples 320] [--max-symbols 10] [--eos 3|-1]
+//        ultra_asr_runner_p ... --probe SIGNATURE (one graph: --model's SIGNATURE on DIR/<id3>_<input name>.f32)
+// --burst 1 (default) asks the Qualcomm HTP for its burst performance mode (npu); it does not switch the burst pass.
+// --libdir: the directory of the LiteRT runtime libraries (libLiteRt.so; libLiteRtClGlAccelerator.so for gpu; the
+// Qualcomm dispatch and compiler plugin libraries and the QNN HTP libraries for npu+cpu, which compiles the encoder for
+// the HTP on the phone the first time and keeps the result in --cache-dir).
+// --fixtures DIR: DIR/index.tsv (one line per file: id3 <TAB> name <TAB> file [<TAB> anything]; id3 = 000, 001, ...;
+// a line starting with # is skipped) and the audio files it names: 16 kHz WAV, PCM 16-bit (value / 32768) or IEEE
+// float 32-bit (several channels are averaged), or raw little-endian float32 samples. --count N reads 000 .. N-1; file
+// 000 is run once more first as a warm-up (not counted).
+// stdout: one JSON line per file ({"kind":"utt"}: the token ids "tok", their encoder frame "frame" = window x 375 + the
+// frame in the window, their duration "dur", per-window details "win" with the stage stamps t_mel0 / t_enc1 / t_dec0 /
+// t_dec1 = ms since the first window's mel start, and the stage times in ms), then {"kind":"burst_summary"} (rtf_burst
+// = the summed stage ms / the summed audio seconds, the loads excluded; burst_wall_ms, rtf_wall) and a
+// parity_summary line. Stage ms = input write + run + output read back (mel, encoder) and the whole loop (every predict
+// / joint call with its writes and reads, the argmax). Text: tdt_text.py decodes each window's tokens with the
+// tokenizer and joins the non-empty window texts with one space.
+// --dump full also writes <out>/model0/<id3>.f32 per file: n_windows, n_tokens, truncated, valid encoder frames, then
+// (token, window x 375 + frame, duration) x 1024, -1 padded, as float32.
+// Latency phase (--rounds > 0) on file --ab-fixture: per bucket, the encoder W + R calls and the mel graph R calls on its
+// first window, and the whole loop on the 30 s window R times; `summary model[k]` lines.
+// Also printed: pid= first, compile_start / compile_end model[k] wall_ms= around each compile, FATAL lines on stdout,
+// LiteRT's own log on stderr, done wall_ms= at the end.
+#include <dirent.h>
+#include <unistd.h>
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <condition_variable>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <map>
+#include <set>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+#include <sys/stat.h>
+#include <time.h>
+#include "litert/c/litert_common.h"
+#include "litert/c/litert_compiled_model.h"
+#include "litert/c/litert_environment.h"
+#include "litert/c/litert_environment_options.h"
+#include "litert/c/litert_layout.h"
+#include "litert/c/litert_metrics.h"
+#include "litert/c/litert_model.h"
+#include "litert/c/litert_model_types.h"
+#include "litert/c/litert_opaque_options.h"
+#include "litert/c/litert_options.h"
+#include "litert/c/litert_profiler.h"
+#include "litert/c/litert_profiler_event.h"
+#include "litert/c/litert_tensor_buffer.h"
+#include "litert/c/litert_tensor_buffer_requirements.h"
+#include "litert/c/litert_tensor_buffer_types.h"
+namespace {
+using Clock = std::chrono::steady_clock;
+#define LRT_CHECK(expr) do { LiteRtStatus _st = (expr); if (_st != kLiteRtStatusOk) { std::fprintf(stderr, "ERROR: %s failed: %d (%s)\n", #expr, (int)_st, LiteRtGetStatusString(_st)); std::printf("FATAL %s status=%d\n", #expr, (int)_st); std::fflush(stdout); std::exit(2); } } while (0)
+constexpr int kVocab = 8193;          // token logits (blank = 8192 included)
+constexpr int kBlank = 8192;
+constexpr int kDurations = 5;         // duration logits; durations [0, 1, 2, 3, 4] = the index
+constexpr int kMaxRecTokens = 1024;   // tokens kept per fixture in the dump record
+constexpr int kRecElems = 4 + 3 * kMaxRecTokens;
+const char* kContract = "v3";         // the file contract this build follows (v3: the 10 / 20 / 30 s bucket graphs)
+constexpr int kT30 = 375;             // encoder frames of a 30 s window: the dump's frame = window * kT30 + frame
+
+void DeleteCStringPayload(void* p) { delete[] static_cast<char*>(p); }
+double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
+double Median(std::vector<double> v) { std::sort(v.begin(), v.end()); size_t n = v.size(); return n ? ((n % 2) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2])) : 0.0; }
+long long WallMs() { struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts); return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000; }
+bool ReadFile(const std::string& path, std::vector<uint8_t>& b) {
+  FILE* f = std::fopen(path.c_str(), "rb"); if (!f) return false;
+  std::fseek(f, 0, SEEK_END); long sz = std::ftell(f); std::fseek(f, 0, SEEK_SET);
+  b.resize(sz > 0 ? (size_t)sz : 0); bool ok = b.empty() || std::fread(b.data(), 1, b.size(), f) == b.size(); std::fclose(f); return ok;
+}
+bool WriteFloatFile(const std::string& path, const float* v, size_t n) {
+  FILE* f = std::fopen(path.c_str(), "wb"); if (!f) return false;
+  bool ok = std::fwrite(v, 4, n, f) == n; std::fclose(f); return ok;
+}
+uint16_t U16(const uint8_t* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+uint32_t U32(const uint8_t* p) { return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24); }
+// 16 kHz mono audio -> float32 samples. WAV: PCM 16-bit (/ 32768) or IEEE float 32-bit (also WAVE_FORMAT_EXTENSIBLE);
+// more than one channel is averaged. Any other file: raw little-endian float32.
+bool ReadAudio(const std::string& path, std::vector<float>& x, std::string& fmt) {
+  std::vector<uint8_t> b; if (!ReadFile(path, b)) { fmt = "unreadable"; return false; }
+  if (b.size() < 12 || std::memcmp(b.data(), "RIFF", 4) != 0 || std::memcmp(b.data() + 8, "WAVE", 4) != 0) {
+    if (b.size() % 4) { fmt = "raw size not a multiple of 4"; return false; }
+    x.resize(b.size() / 4); std::memcpy(x.data(), b.data(), b.size()); fmt = "raw_f32"; return true;
+  }
+  int tag = -1, ch = 0, bits = 0; uint32_t rate = 0; const uint8_t* data = nullptr; size_t dlen = 0;
+  for (size_t p = 12; p + 8 <= b.size();) {
+    uint32_t len = U32(b.data() + p + 4); const uint8_t* c = b.data() + p + 8;
+    if (p + 8 + (size_t)len > b.size()) len = (uint32_t)(b.size() - p - 8);
+    if (std::memcmp(b.data() + p, "fmt ", 4) == 0 && len >= 16) {
+      tag = U16(c); ch = U16(c + 2); rate = U32(c + 4); bits = U16(c + 14);
+      if (tag == 0xFFFE && len >= 26) tag = U16(c + 24);  // the sub-format GUID's first two bytes
+    } else if (std::memcmp(b.data() + p, "data", 4) == 0) { data = c; dlen = len; }
+    p += 8 + (size_t)len + (len & 1);
+  }
+  if (!data || ch < 1 || rate != 16000) { fmt = "wav without data / not 16 kHz (rate " + std::to_string(rate) + ")"; return false; }
+  size_t frames;
+  if (tag == 1 && bits == 16) {
+    frames = dlen / (2 * (size_t)ch); x.assign(frames, 0.f);
+    for (size_t i = 0; i < frames; ++i) { float s = 0; for (int k = 0; k < ch; ++k) s += (float)(int16_t)U16(data + 2 * (i * ch + k)) / 32768.0f; x[i] = ch == 1 ? s : s / (float)ch; }
+    fmt = "wav_pcm16";
+  } else if (tag == 3 && bits == 32) {
+    frames = dlen / (4 * (size_t)ch); x.assign(frames, 0.f);
+    for (size_t i = 0; i < frames; ++i) { float s = 0; for (int k = 0; k < ch; ++k) { float v; std::memcpy(&v, data + 4 * (i * ch + k), 4); s += v; } x[i] = ch == 1 ? s : s / (float)ch; }
+    fmt = "wav_f32";
+  } else { fmt = "wav format " + std::to_string(tag) + " / " + std::to_string(bits) + " bit"; return false; }
+  if (ch > 1) fmt += "_mean" + std::to_string(ch);
+  return true;
+}
+void AddToml(LiteRtOptions options, const char* identifier, const std::string& toml) {
+  char* payload = new char[toml.size() + 1]; std::memcpy(payload, toml.data(), toml.size()); payload[toml.size()] = '\0';
+  LiteRtOpaqueOptions opaque = nullptr; LRT_CHECK(LiteRtCreateOpaqueOptions(identifier, payload, DeleteCStringPayload, &opaque)); LRT_CHECK(LiteRtAddOpaqueOptions(options, opaque));
+}
+std::string Dims(const LiteRtRankedTensorType& t) {
+  std::string s = "["; for (unsigned i = 0; i < t.layout.rank; ++i) { if (i) s += ","; s += std::to_string(t.layout.dimensions[i]); } return s + "]";
+}
+const char* TypeName(LiteRtElementType e) { return e == kLiteRtElementTypeFloat32 ? "f32" : e == kLiteRtElementTypeInt32 ? "i32" : e == kLiteRtElementTypeInt64 ? "i64" : "other"; }
+
+struct Sig {  // one signature of a compiled model: its tensors in signature order and their managed buffers
+  LiteRtParamIndex index = 0; std::string key;
+  std::vector<std::string> in_names, out_names; std::vector<LiteRtRankedTensorType> in_types, out_types;
+  std::vector<size_t> in_elems, out_elems; std::vector<LiteRtTensorBuffer> ins, outs;
+  int In(const std::vector<std::string>& names) const { for (auto& n : names) for (size_t i = 0; i < in_names.size(); ++i) if (in_names[i] == n) return (int)i; return -1; }
+  int Out(const std::vector<std::string>& names) const { for (auto& n : names) for (size_t i = 0; i < out_names.size(); ++i) if (out_names[i] == n) return (int)i; return -1; }
+};
+struct M {
+  std::string path, role; LiteRtModel model = nullptr; LiteRtOptions opts = nullptr; LiteRtCompiledModel cm = nullptr;
+  std::vector<Sig> sigs; double compile_ms = 0; bool fully = false, non_cpu_fully = false;
+  Sig& S(const std::string& key) {
+    for (auto& s : sigs) if (s.key == key) return s;
+    if (key.empty() && sigs.size() == 1) return sigs[0];
+    std::printf("FATAL %s: no signature '%s' (has", role.c_str(), key.c_str()); for (auto& s : sigs) std::printf(" %s", s.key.c_str()); std::printf(")\n"); std::fflush(stdout); std::exit(2);
+  }
+};
+// the tensor index by the contract's name (several spellings accepted); else the only tensor with that element count
+int Pick(const Sig& s, bool input, const std::vector<std::string>& names, size_t elems, const char* what) {
+  int i = input ? s.In(names) : s.Out(names);
+  if (i < 0) {
+    const auto& e = input ? s.in_elems : s.out_elems; int hit = -1, n = 0;
+    for (size_t k = 0; k < e.size(); ++k) if (e[k] == elems) { hit = (int)k; ++n; }
+    if (n == 1) i = hit;
+  }
+  if (i < 0 || (input ? s.in_elems[i] : s.out_elems[i]) != elems) {
+    std::printf("FATAL signature %s: %s %s (%zu elements) not found by name or a unique element count; tensors:", s.key.c_str(), input ? "input" : "output", what, elems);
+    const auto& nm = input ? s.in_names : s.out_names; const auto& e = input ? s.in_elems : s.out_elems;
+    for (size_t k = 0; k < nm.size(); ++k) std::printf(" %s(%zu)", nm[k].c_str(), e[k]);
+    std::printf("\n"); std::fflush(stdout); std::exit(2);
+  }
+  return i;
+}
+void Write(LiteRtTensorBuffer b, const void* src, size_t bytes) { void* h = nullptr; LRT_CHECK(LiteRtLockTensorBuffer(b, &h, kLiteRtTensorBufferLockModeWrite)); std::memcpy(h, src, bytes); LRT_CHECK(LiteRtUnlockTensorBuffer(b)); }
+void Read(LiteRtTensorBuffer b, void* dst, size_t bytes) { void* h = nullptr; LRT_CHECK(LiteRtLockTensorBuffer(b, &h, kLiteRtTensorBufferLockModeRead)); std::memcpy(dst, h, bytes); LRT_CHECK(LiteRtUnlockTensorBuffer(b)); }
+double Run(M& m, Sig& s) { auto t = Clock::now(); LRT_CHECK(LiteRtRunCompiledModel(m.cm, s.index, s.ins.size(), s.ins.data(), s.outs.size(), s.outs.data())); return Ms(t, Clock::now()); }
+std::vector<std::string> Split(const std::string& s, char sep) { std::vector<std::string> r; size_t p = 0; while (p <= s.size()) { size_t q = s.find(sep, p); if (q == std::string::npos) q = s.size(); r.push_back(s.substr(p, q - p)); p = q + 1; } return r; }
+std::string JsonStr(const std::string& s) { std::string o = "\""; for (char c : s) { if (c == '"' || c == '\\') { o += '\\'; o += c; } else if ((unsigned char)c < 0x20) { char b[8]; std::snprintf(b, sizeof b, "\\u%04x", c); o += b; } else o += c; } return o + "\""; }
+template <class T> std::string JsonArr(const std::vector<T>& v) { std::string o = "["; for (size_t i = 0; i < v.size(); ++i) { if (i) o += ","; o += std::to_string(v[i]); } return o + "]"; }
+std::string F(double v, int prec = 3) { char b[64]; std::snprintf(b, sizeof b, "%.*f", prec, v); return b; }
+// the regular files of a directory, sorted by name: "files=N bytes=B name:bytes,..." (the GPU program cache's record)
+std::string DirList(const std::string& dir) {
+  DIR* d = opendir(dir.c_str()); if (!d) return "files=0 bytes=0 (no dir)";
+  std::vector<std::pair<std::string, long long>> v; struct dirent* e;
+  while ((e = readdir(d)) != nullptr) {
+    std::string n = e->d_name; if (n == "." || n == "..") continue;
+    struct stat st{}; if (stat((dir + "/" + n).c_str(), &st) == 0 && S_ISREG(st.st_mode)) v.push_back({n, (long long)st.st_size});
+  }
+  closedir(d); std::sort(v.begin(), v.end());
+  long long tot = 0; std::string s; for (auto& p : v) { tot += p.second; s += (s.empty() ? "" : ",") + p.first + ":" + std::to_string(p.second); }
+  return "files=" + std::to_string(v.size()) + " bytes=" + std::to_string(tot) + (s.empty() ? "" : " " + s);
+}
+std::string AnyStr(const LiteRtAny& a) {
+  switch (a.type) {
+    case kLiteRtAnyTypeBool: return a.bool_value ? "true" : "false";
+    case kLiteRtAnyTypeInt: return std::to_string(a.int_value);
+    case kLiteRtAnyTypeReal: return F(a.real_value, 6);
+    case kLiteRtAnyTypeString: return a.str_value ? a.str_value : "";
+    default: return "?";
+  }
+}
+// --profile: the op class of a profiled event's tag (XNNPACK's operator names, e.g. "Fully Connected (NC, QD8, F32, QC8W)", or a TFLite op name)
+const char* kOpClasses[] = {"FULLY_CONNECTED", "CONV_2D", "BATCH_MATMUL", "DEPTHWISE_CONV_2D", "OTHER"};
+int OpClass(const std::string& t) {
+  auto has = [&](const char* s) { return t.find(s) != std::string::npos; };
+  if (has("Fully Connected") || has("FULLY_CONNECTED")) return 0;
+  if (has("Batch Matrix Multiply") || has("BATCH_MATMUL")) return 2;
+  if (has("DWConv") || has("Depthwise") || has("DEPTHWISE")) return 3;
+  if (has("Convolution") || has("CONV_2D")) return 1;
+  return 4;
+}
+// the GPU program cache key of a graph: its file name without the directory and .tflite
+std::string CacheKey(const std::string& path) {
+  std::string n = path.substr(path.find_last_of('/') == std::string::npos ? 0 : path.find_last_of('/') + 1);
+  if (n.size() > 7 && n.compare(n.size() - 7, 7, ".tflite") == 0) n.resize(n.size() - 7);
+  return n;
+}
+}  // namespace
+
+int main(int argc, char** argv) {
+  std::string accel = "cpu", gpu_precision = "fp32", libdir, cache_dir, fixtures, out_dir, dump = "full", probe;
+  std::string enc_path, mel_path, dec_path, ab_fixture = "000", enc10_path, mel10_path, enc20_path, mel20_path, enc5_path, mel5_path, enc_all_path;
+  int burst = 1, threads = 4, mel_threads = 0, dec_threads = 0, pipeline = 0, pipeline_depth = 2; long warmup = 2, rounds = 8, count = 0, win = 479840, min_win = 320, max_symbols = 10, eos = 3;
+  int gpu_share = 0, profile = 0; std::string gpu_cache_dir;
+  // p7: --mel-bucket / --enc-bucket S=FILE (label, file) in command-line order; the second encoder
+  std::vector<std::pair<std::string, std::string>> mel_buckets, enc_buckets;
+  std::string enc2_accel, enc2_all_path, enc2_gpu_precision; long enc2_every = 0, enc2_take = 1; int enc2_threads = 0;
+  std::string enc2_buckets_arg; bool enc2_every_set = false, enc2_take_set = false, enc2_buckets_set = false;  // p8
+  auto label_file = [](const std::string& v, const char* flag) -> std::pair<std::string, std::string> {
+    const size_t q = v.find('='); char* end = nullptr; const double s = q == std::string::npos ? 0.0 : std::strtod(v.substr(0, q).c_str(), &end);
+    if (q == std::string::npos || q == 0 || q + 1 >= v.size() || !(s > 0.0) || end == nullptr || *end != '\0') { std::fprintf(stderr, "%s takes S=FILE (S: seconds > 0), got %s\n", flag, v.c_str()); std::exit(1); }
+    return {v.substr(0, q), v.substr(q + 1)};
+  };
+  for (int i = 1; i < argc; ++i) {
+    std::string f = argv[i];
+    auto next = [&](const char* what) -> const char* { if (i + 1 >= argc) { std::fprintf(stderr, "missing value for %s\n", what); std::exit(1); } return argv[++i]; };
+    if (f == "--accel") accel = next("--accel");
+    else if (f == "--gpu-precision") gpu_precision = next("--gpu-precision");
+    else if (f == "--burst") burst = std::atoi(next("--burst"));
+    else if (f == "--pipeline") pipeline = std::atoi(next("--pipeline"));
+    else if (f == "--pipeline-depth") pipeline_depth = std::atoi(next("--pipeline-depth"));
+    else if (f == "--gpu-share-constants") gpu_share = std::atoi(next("--gpu-share-constants"));
+    else if (f == "--gpu-cache-dir") gpu_cache_dir = next("--gpu-cache-dir");
+    else if (f == "--profile") profile = std::atoi(next("--profile"));
+    else if (f == "--libdir") libdir = next("--libdir");
+    else if (f == "--cache-dir") cache_dir = next("--cache-dir");
+    else if (f == "--fixtures") fixtures = next("--fixtures");
+    else if (f == "--count") count = std::strtol(next("--count"), nullptr, 10);
+    else if (f == "--warmup") warmup = std::strtol(next("--warmup"), nullptr, 10);
+    else if (f == "--rounds") rounds = std::strtol(next("--rounds"), nullptr, 10);
+    else if (f == "--ab-fixture") ab_fixture = next("--ab-fixture");
+    else if (f == "--out") out_dir = next("--out");
+    else if (f == "--dump") dump = next("--dump");
+    else if (f == "--model") enc_path = next("--model");
+    else if (f == "--mel") mel_path = next("--mel");
+    else if (f == "--dec") dec_path = next("--dec");
+    else if (f == "--model10") enc10_path = next("--model10");
+    else if (f == "--mel10") mel10_path = next("--mel10");
+    else if (f == "--model20") enc20_path = next("--model20");
+    else if (f == "--mel20") mel20_path = next("--mel20");
+    else if (f == "--enc5" || f == "--model5") enc5_path = next("--enc5");
+    else if (f == "--mel5") mel5_path = next("--mel5");
+    else if (f == "--enc-all") enc_all_path = next("--enc-all");
+    else if (f == "--threads") threads = std::atoi(next("--threads"));
+    else if (f == "--mel-threads") mel_threads = std::atoi(next("--mel-threads"));
+    else if (f == "--dec-threads") dec_threads = std::atoi(next("--dec-threads"));
+    else if (f == "--window-samples") win = std::strtol(next("--window-samples"), nullptr, 10);
+    else if (f == "--min-window-samples") min_win = std::strtol(next("--min-window-samples"), nullptr, 10);
+    else if (f == "--max-symbols") max_symbols = std::strtol(next("--max-symbols"), nullptr, 10);
+    else if (f == "--eos") eos = std::strtol(next("--eos"), nullptr, 10);
+    else if (f == "--probe") probe = next("--probe");
+    else if (f == "--mel-bucket") mel_buckets.push_back(label_file(next("--mel-bucket"), "--mel-bucket"));
+    else if (f == "--enc-bucket") enc_buckets.push_back(label_file(next("--enc-bucket"), "--enc-bucket"));
+    else if (f == "--enc2-accel") enc2_accel = next("--enc2-accel");
+    else if (f == "--enc2-all") enc2_all_path = next("--enc2-all");
+    else if (f == "--enc2-every") { enc2_every = std::strtol(next("--enc2-every"), nullptr, 10); enc2_every_set = true; }
+    else if (f == "--enc2-take") { enc2_take = std::strtol(next("--enc2-take"), nullptr, 10); enc2_take_set = true; }
+    else if (f == "--enc2-buckets") { enc2_buckets_arg = next("--enc2-buckets"); enc2_buckets_set = true; }
+    else if (f == "--enc2-threads") enc2_threads = std::atoi(next("--enc2-threads"));
+    else if (f == "--enc2-gpu-precision") enc2_gpu_precision = next("--enc2-gpu-precision");
+    else { std::fprintf(stderr, "unknown flag %s\n", f.c_str()); return 1; }
+  }
+  const bool asr = probe.empty();
+  const bool enc_all = !enc_all_path.empty();
+  if (enc_all) {
+    // the shared chain always passes --model <leg graph>: it may name the same file, nothing else
+    if ((!enc_path.empty() && enc_path != enc_all_path) || !enc10_path.empty() || !enc20_path.empty() || !enc5_path.empty()) { std::fprintf(stderr, "--enc-all replaces --model (unless it names the same file), --model10, --model20 and --enc5\n"); return 1; }
+    if (!asr) { std::fprintf(stderr, "--probe takes no --enc-all\n"); return 1; }
+    enc_path = enc_all_path;
+  }
+  if (enc_path.empty() || libdir.empty() || fixtures.empty() || out_dir.empty() || count < 1 || (asr && (mel_path.empty() || dec_path.empty()))) {
+    std::fprintf(stderr, "need --model, --libdir, --fixtures, --count, --out (and --mel, --dec unless --probe)\n"); return 1;
+  }
+  if (accel != "cpu" && accel != "gpu" && accel != "gpu+cpu" && accel != "npu" && accel != "npu+cpu") { std::fprintf(stderr, "unknown --accel %s\n", accel.c_str()); return 1; }
+  if (!enc_all && (enc10_path.empty() != mel10_path.empty() || enc20_path.empty() != mel20_path.empty() || enc5_path.empty() != mel5_path.empty())) { std::fprintf(stderr, "--model10 needs --mel10, --model20 needs --mel20 and --enc5 needs --mel5 (and back)\n"); return 1; }
+  if (!asr && !(enc10_path.empty() && enc20_path.empty() && enc5_path.empty())) { std::fprintf(stderr, "--probe takes no bucket graphs\n"); return 1; }
+  if ((pipeline != 0 && pipeline != 1 && pipeline != 2) || pipeline_depth < 1 || pipeline_depth > 16) { std::fprintf(stderr, "--pipeline takes 0, 1 or 2, --pipeline-depth 1 to 16\n"); return 1; }
+  if (gpu_share != 0 && gpu_share != 1) { std::fprintf(stderr, "--gpu-share-constants takes 0 or 1\n"); return 1; }
+  if (profile != 0 && profile != 1) { std::fprintf(stderr, "--profile takes 0 or 1\n"); return 1; }
+  // p7: the second encoder and the named buckets
+  const bool enc2_on = !enc2_accel.empty() || !enc2_all_path.empty();
+  if (enc2_on) {
+    if (enc2_accel != "cpu" && enc2_accel != "gpu" && enc2_accel != "gpu+cpu" && enc2_accel != "npu" && enc2_accel != "npu+cpu") { std::fprintf(stderr, "--enc2-accel takes cpu, gpu, gpu+cpu, npu or npu+cpu (got '%s')\n", enc2_accel.c_str()); return 1; }
+    if (enc2_all_path.empty() || !asr || pipeline != 2) { std::fprintf(stderr, "--enc2-accel needs --enc2-all and --pipeline 2 (and no --probe)\n"); return 1; }
+    if (enc2_buckets_set) {  // p8: the split by bucket label, never beside the split by count
+      if (enc2_every_set || enc2_take_set) { std::fprintf(stderr, "--enc2-buckets replaces --enc2-every and --enc2-take\n"); return 1; }
+      enc2_every = 0; enc2_take = 0;
+    } else if (enc2_every < 2 || enc2_take < 1 || enc2_take >= enc2_every) { std::fprintf(stderr, "--enc2-every K needs K >= 2 and --enc2-take M 1 <= M < K (or --enc2-buckets)\n"); return 1; }
+    if (enc2_threads <= 0) enc2_threads = threads;
+    if (enc2_gpu_precision.empty()) enc2_gpu_precision = gpu_precision;
+  } else if (enc2_threads > 0 || !enc2_gpu_precision.empty() || enc2_every != 0 || enc2_take != 1 || enc2_buckets_set) { std::fprintf(stderr, "--enc2-every, --enc2-take, --enc2-buckets, --enc2-threads and --enc2-gpu-precision need --enc2-accel\n"); return 1; }
+  // p8: --enc2-buckets S[,S...]: each S a bucket label of this run (p6's 30 / 10 / 20 / 5 by the --melN flags, the --mel-bucket S)
+  std::set<std::string> enc2_bset;
+  if (enc2_buckets_set) {
+    std::set<std::string> table = {"30"};
+    if (!mel10_path.empty()) table.insert("10");
+    if (!mel20_path.empty()) table.insert("20");
+    if (!mel5_path.empty()) table.insert("5");
+    for (auto& p : mel_buckets) table.insert(p.first);
+    std::string cur; std::vector<std::string> parts;
+    for (char ch : enc2_buckets_arg + ",") { if (ch == ',') { parts.push_back(cur); cur.clear(); } else cur += ch; }
+    for (auto& l : parts) {
+      if (l.empty() || !table.count(l)) {
+        std::string t; for (auto& x : table) t += (t.empty() ? "" : ",") + x;
+        std::fprintf(stderr, "--enc2-buckets: '%s' is not a bucket label of this run (%s)\n", l.c_str(), t.c_str()); return 1;
+      }
+      enc2_bset.insert(l);
+    }
+  }
+  if (!asr && !(mel_buckets.empty() && enc_buckets.empty())) { std::fprintf(stderr, "--probe takes no bucket graphs\n"); return 1; }
+  if (enc_all && !enc_buckets.empty()) { std::fprintf(stderr, "--enc-all replaces --enc-bucket\n"); return 1; }
+  if (!enc_all) {  // each --mel-bucket S pairs with one --enc-bucket S, in the same order
+    bool pairs = mel_buckets.size() == enc_buckets.size();
+    for (size_t i = 0; pairs && i < mel_buckets.size(); ++i) pairs = mel_buckets[i].first == enc_buckets[i].first;
+    if (!pairs) { std::fprintf(stderr, "without --enc-all each --mel-bucket S=FILE needs --enc-bucket S=FILE, in the same order\n"); return 1; }
+  }
+  const bool any_gpu = accel == "gpu" || accel == "gpu+cpu" || enc2_accel == "gpu" || enc2_accel == "gpu+cpu";
+  if ((gpu_share || !gpu_cache_dir.empty()) && !any_gpu) { std::fprintf(stderr, "--gpu-share-constants and --gpu-cache-dir need --accel (or --enc2-accel) gpu or gpu+cpu\n"); return 1; }
+  if (!gpu_cache_dir.empty() && gpu_cache_dir.find_first_of("\"\n") != std::string::npos) { std::fprintf(stderr, "--gpu-cache-dir: no quote or newline\n"); return 1; }
+  const int n_models_p6 = !asr ? 1 : enc_all ? 3 + (mel10_path.empty() ? 0 : 1) + (mel20_path.empty() ? 0 : 1) + (mel5_path.empty() ? 0 : 1)
+                                             : 3 + (enc10_path.empty() ? 0 : 2) + (enc20_path.empty() ? 0 : 2) + (enc5_path.empty() ? 0 : 2);
+  // p7: the named buckets' graphs after p6's, then the second encoder (the last model)
+  const int n_bucket_models = n_models_p6 + (int)mel_buckets.size() * (enc_all ? 1 : 2);
+  const int n_models = n_bucket_models + (enc2_on ? 1 : 0);
+  if (mel_threads <= 0) mel_threads = threads;
+  if (dec_threads <= 0) dec_threads = threads;
+  ::mkdir(out_dir.c_str(), 0775);
+  std::printf("pid=%d accel=%s gpu_precision=%s burst=%d models=%d fixtures=%ld warmup=%ld rounds=%ld ab_fixture=%s libdir=%s cache_dir=%s dump=%s threads=%d mel_threads=%d dec_threads=%d mode=%s window_samples=%ld min_window_samples=%ld max_symbols=%ld eos=%ld pipeline=%d pipeline_depth=%d contract=%s wall_ms=%lld\n",
+              (int)getpid(), accel.c_str(), gpu_precision.c_str(), burst, n_models, count, warmup, rounds, ab_fixture.c_str(), libdir.c_str(), cache_dir.c_str(), dump.c_str(), threads, mel_threads, dec_threads,
+              asr ? "asr" : ("probe:" + probe).c_str(), win, min_win, max_symbols, eos, pipeline, pipeline_depth, kContract, WallMs());
+  {
+    std::string mb; for (auto& p : mel_buckets) mb += (mb.empty() ? "" : ",") + p.first + ":" + p.second;
+    std::string eb; for (auto& p : enc_buckets) eb += (eb.empty() ? "" : ",") + p.first + ":" + p.second;
+    std::string e2b; for (auto& l : enc2_bset) e2b += (e2b.empty() ? "" : ",") + l;
+    std::printf("runner=ultra_asr_runner_p8 gpu_share_constants=%d gpu_cache_dir=%s profile=%d mel_buckets=%s enc_buckets=%s enc2_accel=%s enc2_all=%s enc2_every=%ld enc2_take=%ld enc2_threads=%d enc2_gpu_precision=%s enc2_buckets=%s\n",
+                gpu_share, gpu_cache_dir.empty() ? "-" : gpu_cache_dir.c_str(), profile, mb.empty() ? "-" : mb.c_str(), eb.empty() ? "-" : eb.c_str(), enc2_on ? enc2_accel.c_str() : "-",
+                enc2_on ? enc2_all_path.c_str() : "-", enc2_on ? enc2_every : 0L, enc2_on ? enc2_take : 0L, enc2_on ? enc2_threads : 0, enc2_on ? enc2_gpu_precision.c_str() : "-",
+                e2b.empty() ? "-" : e2b.c_str());
+  }
+  std::fflush(stdout);
+  if (!gpu_cache_dir.empty()) ::mkdir(gpu_cache_dir.c_str(), 0775);
+  // --- environment: runtime lib dir (GPU accelerator), dispatch + compiler plugin dirs (NPU), JIT cache dir ---
+  std::vector<LiteRtEnvOption> env_opts;
+  auto add_env = [&](LiteRtEnvOptionTag tag, const std::string& v) { LiteRtEnvOption o{}; o.tag = tag; o.value.type = kLiteRtAnyTypeString; o.value.str_value = v.c_str(); env_opts.push_back(o); };
+  add_env(kLiteRtEnvOptionTagRuntimeLibraryDir, libdir);
+  add_env(kLiteRtEnvOptionTagDispatchLibraryDir, libdir);
+  add_env(kLiteRtEnvOptionTagCompilerPluginLibraryDir, libdir);
+  if (!cache_dir.empty()) { ::mkdir(cache_dir.c_str(), 0775); add_env(kLiteRtEnvOptionTagCompilerCacheDir, cache_dir); }
+  LiteRtEnvironment env = nullptr;
+  LRT_CHECK(LiteRtCreateEnvironment((int)env_opts.size(), env_opts.data(), &env));
+  const LiteRtHwAcceleratorSet hw_enc = accel == "npu" ? kLiteRtHwAcceleratorNpu : accel == "npu+cpu" ? (LiteRtHwAcceleratorSet)(kLiteRtHwAcceleratorNpu | kLiteRtHwAcceleratorCpu)
+                                       : accel == "gpu" ? kLiteRtHwAcceleratorGpu : accel == "gpu+cpu" ? (LiteRtHwAcceleratorSet)(kLiteRtHwAcceleratorGpu | kLiteRtHwAcceleratorCpu)
+                                       : kLiteRtHwAcceleratorCpu;
+  const int prec = gpu_precision == "default" ? (int)kLiteRtDelegatePrecisionDefault : gpu_precision == "fp16" ? (int)kLiteRtDelegatePrecisionFp16
+                 : gpu_precision == "fp16acc32" ? (int)kLiteRtDelegatePrecisionFp16WithFp32Accum : (int)kLiteRtDelegatePrecisionFp32;
+  // p7: the second encoder's accelerator and GPU precision (the same spellings as --accel / --gpu-precision)
+  const LiteRtHwAcceleratorSet hw_enc2 = enc2_accel == "npu" ? kLiteRtHwAcceleratorNpu : enc2_accel == "npu+cpu" ? (LiteRtHwAcceleratorSet)(kLiteRtHwAcceleratorNpu | kLiteRtHwAcceleratorCpu)
+                                        : enc2_accel == "gpu" ? kLiteRtHwAcceleratorGpu : enc2_accel == "gpu+cpu" ? (LiteRtHwAcceleratorSet)(kLiteRtHwAcceleratorGpu | kLiteRtHwAcceleratorCpu)
+                                        : kLiteRtHwAcceleratorCpu;
+  const int prec2 = enc2_gpu_precision == "default" ? (int)kLiteRtDelegatePrecisionDefault : enc2_gpu_precision == "fp16" ? (int)kLiteRtDelegatePrecisionFp16
+                  : enc2_gpu_precision == "fp16acc32" ? (int)kLiteRtDelegatePrecisionFp16WithFp32Accum : (int)kLiteRtDelegatePrecisionFp32;
+  std::vector<M> ms(n_models);
+  ms[0].path = enc_path; ms[0].role = asr ? "enc" : "probe";
+  if (asr) { ms[1].path = mel_path; ms[1].role = "mel"; ms[2].path = dec_path; ms[2].role = "dec"; }
+  {  // the bucket graphs: model[3] / [4] = enc10 / mel10, then enc20 / mel20 (model[3] / [4] when there is no 10 s pair)
+    size_t k = 3;
+    if (enc_all) {  // the bucket mel graphs alone: model[0] holds every encoder signature
+      if (!mel10_path.empty()) { ms[k].path = mel10_path; ms[k].role = "mel10"; k += 1; }
+      if (!mel20_path.empty()) { ms[k].path = mel20_path; ms[k].role = "mel20"; k += 1; }
+      if (!mel5_path.empty()) { ms[k].path = mel5_path; ms[k].role = "mel5"; k += 1; }
+    } else {
+    if (!enc10_path.empty()) { ms[k].path = enc10_path; ms[k].role = "enc10"; ms[k + 1].path = mel10_path; ms[k + 1].role = "mel10"; k += 2; }
+    if (!enc20_path.empty()) { ms[k].path = enc20_path; ms[k].role = "enc20"; ms[k + 1].path = mel20_path; ms[k + 1].role = "mel20"; k += 2; }
+    if (!enc5_path.empty()) { ms[k].path = enc5_path; ms[k].role = "enc5"; ms[k + 1].path = mel5_path; ms[k + 1].role = "mel5"; }
+    }
+  }
+  std::vector<std::string> model_label(n_models);  // p7: the label of a --mel-bucket / --enc-bucket model ("" for p6's models)
+  {  // p7: the named buckets after p6's graphs (with --enc-all their mel graphs alone, else encoder / mel pairs), then the second encoder
+    size_t k = (size_t)n_models_p6;
+    for (size_t i = 0; i < mel_buckets.size(); ++i) {
+      const std::string& s = mel_buckets[i].first;
+      if (!enc_all) { ms[k].path = enc_buckets[i].second; ms[k].role = "enc" + s; model_label[k] = s; k += 1; }
+      ms[k].path = mel_buckets[i].second; ms[k].role = "mel" + s; model_label[k] = s; k += 1;
+    }
+    if (enc2_on) { ms[k].path = enc2_all_path; ms[k].role = "enc2"; }
+  }
+  const int e2k = enc2_on ? n_models - 1 : -1;  // the second encoder's model index
+  for (size_t k = 0; k < ms.size(); ++k) {  // model[0] (the accelerated one) first
+    M& m = ms[k]; const bool is_enc = k == 0 || m.role.rfind("enc", 0) == 0;
+    const bool is_e2 = (int)k == e2k;  // p7: the second encoder (its own accelerator, threads and GPU precision)
+    const LiteRtHwAcceleratorSet hw = is_e2 ? hw_enc2 : is_enc ? hw_enc : kLiteRtHwAcceleratorCpu;
+    const int prec_m = is_e2 ? prec2 : prec;
+    LRT_CHECK(LiteRtCreateModelFromFile(env, m.path.c_str(), &m.model));
+    LiteRtParamIndex n_sig = 0; LRT_CHECK(LiteRtGetNumModelSignatures(m.model, &n_sig));
+    for (LiteRtParamIndex si = 0; si < n_sig; ++si) {
+      Sig s; s.index = si; LiteRtSignature sig = nullptr; LRT_CHECK(LiteRtGetModelSignature(m.model, si, &sig));
+      const char* key = nullptr; LRT_CHECK(LiteRtGetSignatureKey(sig, &key)); s.key = key ? key : "";
+      LiteRtParamIndex n_in = 0, n_out = 0; LRT_CHECK(LiteRtGetNumSignatureInputs(sig, &n_in)); LRT_CHECK(LiteRtGetNumSignatureOutputs(sig, &n_out));
+      s.in_types.resize(n_in); s.out_types.resize(n_out); s.in_elems.assign(n_in, 0); s.out_elems.assign(n_out, 0);
+      for (LiteRtParamIndex i = 0; i < n_in; ++i) {
+        LiteRtTensor t = nullptr; LRT_CHECK(LiteRtGetSignatureInputTensorByIndex(sig, i, &t)); LRT_CHECK(LiteRtGetRankedTensorType(t, &s.in_types[i])); LRT_CHECK(LiteRtGetNumLayoutElements(&s.in_types[i].layout, &s.in_elems[i]));
+        const char* nm = nullptr; LRT_CHECK(LiteRtGetSignatureInputName(sig, i, &nm)); s.in_names.push_back(nm ? nm : "");
+        std::printf("model[%zu] %s sig[%u]=%s input[%u] name=%s type=%s dims=%s elems=%zu\n", k, m.role.c_str(), (unsigned)si, s.key.c_str(), (unsigned)i, s.in_names.back().c_str(), TypeName(s.in_types[i].element_type), Dims(s.in_types[i]).c_str(), s.in_elems[i]);
+      }
+      for (LiteRtParamIndex o = 0; o < n_out; ++o) {
+        LiteRtTensor t = nullptr; LRT_CHECK(LiteRtGetSignatureOutputTensorByIndex(sig, o, &t)); LRT_CHECK(LiteRtGetRankedTensorType(t, &s.out_types[o])); LRT_CHECK(LiteRtGetNumLayoutElements(&s.out_types[o].layout, &s.out_elems[o]));
+        const char* nm = nullptr; LRT_CHECK(LiteRtGetSignatureOutputName(sig, o, &nm)); s.out_names.push_back(nm ? nm : "");
+        std::printf("model[%zu] %s sig[%u]=%s output[%u] name=%s type=%s dims=%s elems=%zu\n", k, m.role.c_str(), (unsigned)si, s.key.c_str(), (unsigned)o, s.out_names.back().c_str(), TypeName(s.out_types[o].element_type), Dims(s.out_types[o]).c_str(), s.out_elems[o]);
+      }
+      m.sigs.push_back(s);
+    }
+    LRT_CHECK(LiteRtCreateOptions(&m.opts));
+    LRT_CHECK(LiteRtSetOptionsHardwareAccelerators(m.opts, hw));
+    AddToml(m.opts, "runtime_options_string", std::string("enable_profiling = ") + (profile && is_enc ? "true" : "false") + "\nerror_reporter_mode = 1\n");
+    const int nt = is_e2 ? enc2_threads : is_enc ? threads : m.role.rfind("mel", 0) == 0 ? mel_threads : dec_threads;
+    if (hw & kLiteRtHwAcceleratorCpu) AddToml(m.opts, "xnnpack", "num_threads = " + std::to_string(nt) + "\n");
+    const bool gpu_model = (hw & kLiteRtHwAcceleratorGpu) != 0;
+    if (gpu_model) {  // one gpu_options payload with every key (the accelerator reads the first gpu_options entry)
+      std::string gt = "precision = " + std::to_string(prec_m) + "\n";
+      if (gpu_share) gt += "enable_constant_tensors_sharing = true\n";
+      const std::string key = CacheKey(m.path);
+      if (!gpu_cache_dir.empty()) gt += "serialization_dir = \"" + gpu_cache_dir + "\"\nmodel_cache_key = \"" + key + "\"\nserialize_program_cache = true\n";
+      AddToml(m.opts, "gpu_options", gt);
+      std::printf("gpu_options model[%zu] role=%s precision=%d enable_constant_tensors_sharing=%s serialization_dir=%s model_cache_key=%s serialize_program_cache=%s\n", k, m.role.c_str(), prec_m,
+                  gpu_share ? "true" : "unset", gpu_cache_dir.empty() ? "unset" : gpu_cache_dir.c_str(), gpu_cache_dir.empty() ? "unset" : key.c_str(), gpu_cache_dir.empty() ? "unset" : "true");
+      if (!gpu_cache_dir.empty()) std::printf("gpu_cache model[%zu] when=before_compile dir=%s %s\n", k, gpu_cache_dir.c_str(), DirList(gpu_cache_dir).c_str());
+    }
+    if ((hw & kLiteRtHwAcceleratorNpu) && burst) AddToml(m.opts, "qualcomm", "htp_performance_mode = 2\n");  // kLiteRtQualcommHtpPerformanceModeBurst
+    std::printf("compile_start model[%zu] wall_ms=%lld\n", k, WallMs()); std::fflush(stdout);
+    auto c0 = Clock::now(); LRT_CHECK(LiteRtCreateCompiledModel(env, m.model, m.opts, &m.cm)); m.compile_ms = Ms(c0, Clock::now());
+    std::printf("compile_end model[%zu] wall_ms=%lld\n", k, WallMs()); std::fflush(stdout);
+    if (gpu_model) {  // informational: what the GPU accelerator reports after the compile (not fatal)
+      LiteRtMetrics mt = nullptr; std::string s; int nm = 0;
+      const LiteRtStatus s0 = LiteRtCompiledModelStartMetricsCollection(m.cm, 0);
+      const LiteRtStatus s1 = s0 == kLiteRtStatusOk ? LiteRtCreateMetrics(&mt) : s0;
+      const LiteRtStatus s2 = s1 == kLiteRtStatusOk ? LiteRtCompiledModelStopMetricsCollection(m.cm, mt) : s1;
+      if (s2 == kLiteRtStatusOk && LiteRtGetNumMetrics(mt, &nm) == kLiteRtStatusOk)
+        for (int i = 0; i < nm; ++i) { LiteRtMetric x{}; if (LiteRtGetMetric(mt, i, &x) == kLiteRtStatusOk) s += " " + std::string(x.name ? x.name : "?") + "=" + AnyStr(x.value); }
+      if (mt) LiteRtDestroyMetrics(mt);
+      std::printf("gpu_metrics model[%zu] role=%s status=%d/%d/%d n=%d%s\n", k, m.role.c_str(), (int)s0, (int)s1, (int)s2, nm, s.c_str());
+      if (!gpu_cache_dir.empty()) std::printf("gpu_cache model[%zu] when=after_compile dir=%s %s\n", k, gpu_cache_dir.c_str(), DirList(gpu_cache_dir).c_str());
+      std::fflush(stdout);
+    }
+    // informational only: a status other than ok is printed, not fatal
+    LiteRtStatus fs = LiteRtCompiledModelIsFullyAccelerated(m.cm, &m.fully);
+    LiteRtStatus ns = LiteRtCompiledModelIsNonCpuFullyAccelerated(m.cm, &m.non_cpu_fully);
+    if (fs != kLiteRtStatusOk || ns != kLiteRtStatusOk) std::printf("model[%zu] accelerated query status fully=%d non_cpu=%d\n", k, (int)fs, (int)ns);
+    for (auto& s : m.sigs) {
+      s.ins.assign(s.in_types.size(), nullptr); s.outs.assign(s.out_types.size(), nullptr);
+      for (size_t i = 0; i < s.ins.size(); ++i) { LiteRtTensorBufferRequirements r = nullptr; LRT_CHECK(LiteRtGetCompiledModelInputBufferRequirements(m.cm, s.index, i, &r)); LRT_CHECK(LiteRtCreateManagedTensorBufferFromRequirements(env, &s.in_types[i], r, &s.ins[i])); }
+      for (size_t o = 0; o < s.outs.size(); ++o) { LiteRtTensorBufferRequirements r = nullptr; LRT_CHECK(LiteRtGetCompiledModelOutputBufferRequirements(m.cm, s.index, o, &r)); LRT_CHECK(LiteRtCreateManagedTensorBufferFromRequirements(env, &s.out_types[o], r, &s.outs[o])); }
+    }
+    std::printf("model[%zu]=%s role=%s accel=%s signatures=%zu compile_ms=%.1f fully_accelerated=%s non_cpu_fully_accelerated=%s\n", k, m.path.c_str(), m.role.c_str(),
+                hw == kLiteRtHwAcceleratorCpu ? "cpu" : is_e2 ? enc2_accel.c_str() : accel.c_str(), m.sigs.size(), m.compile_ms, m.fully ? "true" : "false", m.non_cpu_fully ? "true" : "false");
+    std::fflush(stdout);
+  }
+  const std::string mdir = out_dir + "/model0"; ::mkdir(mdir.c_str(), 0775);
+  auto id3 = [](long i) { char idbuf[24]; std::snprintf(idbuf, sizeof idbuf, "%03ld", i); return std::string(idbuf); };  // both pipeline stages call it
+
+  if (!asr) {  // --- probe: one signature of one graph on raw float32 input files ---
+    M& m = ms[0]; Sig& s = m.S(probe);
+    std::vector<std::vector<float>> in(s.ins.size());
+    auto load = [&](const std::string& id) -> bool {
+      for (size_t i = 0; i < s.ins.size(); ++i) {
+        std::vector<uint8_t> b; std::string p = fixtures + "/" + id + "_" + s.in_names[i] + ".f32";
+        if (!ReadFile(p, b) || b.size() != s.in_elems[i] * 4) { std::printf("FIXTURE_ERROR %s (%zu bytes, want %zu)\n", p.c_str(), b.size(), s.in_elems[i] * 4); std::fflush(stdout); return false; }
+        in[i].resize(s.in_elems[i]); std::memcpy(in[i].data(), b.data(), b.size());
+      }
+      return true;
+    };
+    std::vector<float> out0(s.out_elems[0]); double last_run = 0;
+    auto run_one = [&]() -> double {
+      auto t0 = Clock::now(); for (size_t i = 0; i < s.ins.size(); ++i) Write(s.ins[i], in[i].data(), s.in_elems[i] * 4);
+      last_run = Run(m, s); Read(s.outs[0], out0.data(), out0.size() * 4); return Ms(t0, Clock::now());
+    };
+    size_t nf_all = 0; double first = -1, sum = 0;
+    for (long fx = 0; fx < count; ++fx) {
+      std::string id = id3(fx); if (!load(id)) return 3;
+      if (fx == 0) first = run_one();
+      double t = run_one(); sum += t; size_t nf = 0; for (float v : out0) if (!std::isfinite(v)) ++nf; nf_all += nf;
+      if (dump == "full" && !WriteFloatFile(mdir + "/" + id + ".f32", out0.data(), out0.size())) { std::printf("WRITE_ERROR %s/%s.f32\n", mdir.c_str(), id.c_str()); return 3; }
+      std::printf("parity model[0] fixture %s ms=%.3f run_ms=%.3f nonfinite=%zu of=%zu out0[0..3]=%.6g,%.6g,%.6g,%.6g\n", id.c_str(), t, last_run, nf, out0.size(),
+                  out0.size() > 0 ? out0[0] : 0.f, out0.size() > 1 ? out0[1] : 0.f, out0.size() > 2 ? out0[2] : 0.f, out0.size() > 3 ? out0[3] : 0.f);
+      std::fflush(stdout);
+    }
+    std::printf("parity_summary model[0] %s fixtures=%ld nonfinite_values=%zu first_run_ms=%.1f mean_ms=%.3f outdir=%s\n", m.path.c_str(), count, nf_all, first, sum / count, mdir.c_str());
+    if (rounds > 0) {
+      if (!load(ab_fixture)) return 3;
+      std::printf("latency_start wall_ms=%lld\n", WallMs());
+      std::vector<double> v; size_t nfr = 0;
+      for (long w = 0; w < warmup; ++w) { double t = run_one(); std::printf("warmup %ld model[0] %.3f ms run_ms=%.3f\n", w, t, last_run); }
+      for (long r = 0; r < rounds; ++r) { double t = run_one(); v.push_back(t); for (float x : out0) if (!std::isfinite(x)) { ++nfr; break; } std::printf("round %ld model[0] write+run+readback_ms=%.3f run_ms=%.3f\n", r, t, last_run); std::fflush(stdout); }
+      std::printf("summary model[0] %s n=%zu median=%.3f min=%.3f max=%.3f nonfinite_rounds=%zu compile_ms=%.1f fully_accelerated=%s\n", m.path.c_str(), v.size(), Median(v),
+                  *std::min_element(v.begin(), v.end()), *std::max_element(v.begin(), v.end()), nfr, m.compile_ms, m.fully ? "true" : "false");
+    }
+  } else {  // --- ASR: mel<b> -> encoder<b> -> TDT loop per 30 s window, b = the window's bucket ---
+    M& dec = ms[2];
+    Sig& sp = dec.S("predict"); Sig& sj = dec.S("joint");
+    const int pi_tok = Pick(sp, true, {"token", "args_0"}, 1, "token");
+    const int pi_h = Pick(sp, true, {"h", "args_1"}, 1280, "h");
+    const int pi_c = Pick(sp, true, {"c", "args_2"}, 1280, "c");
+    const int po_dec = Pick(sp, false, {"dec_out", "output_0"}, 640, "dec_out");
+    const int po_h = Pick(sp, false, {"h_out", "h1", "new_h", "output_1"}, 1280, "h'");
+    const int po_c = Pick(sp, false, {"c_out", "c1", "new_c", "output_2"}, 1280, "c'");
+    const int ji_enc = Pick(sj, true, {"enc_frame", "args_0"}, 640, "enc_frame");
+    const int ji_dec = Pick(sj, true, {"dec_out", "args_1"}, 640, "dec_out");
+    const int jo_log = Pick(sj, false, {"logits", "output_0"}, kVocab + kDurations, "logits");
+    if (pi_h == pi_c || po_h == po_c || ji_enc == ji_dec) { std::printf("FATAL ambiguous tensor binding (names not in the contract)\n"); return 2; }
+    if (sp.in_types[pi_tok].element_type != kLiteRtElementTypeInt32) { std::printf("FATAL the token input must be int32\n"); return 2; }
+    // one bucket = an encoder and its mel graph: [0] = the 30 s pair (model[0] / model[1]), then the 10 s / 20 s pairs
+    struct Bucket {
+      int enc_k = 0, mel_k = 1, secs = 30; M* enc = nullptr; M* mel = nullptr; Sig* se = nullptr; Sig* sm = nullptr;
+      int mi_audio = -1, mi_valid = -1, mo_feat = -1, mo_melmask = -1, mo_framemask = -1, ei_feat = -1, ei_melmask = -1, eo_enc = -1;
+      size_t A = 0, T = 0, Tm = 0; std::vector<float> audio_win, feat, melmask, framemask, encv;
+      std::string label;  // p7: the bucket's label (the --mel-bucket S, else the encoder's seconds as p6 prints them)
+      Sig* se2 = nullptr; int ei2_feat = -1, ei2_melmask = -1, eo2_enc = -1;  // p7: the second encoder's signature enc<label>
+    };
+    std::vector<Bucket> bk;
+    auto add_bucket = [&](int ek, int mk, const std::string& enc_sig) -> bool {
+      Bucket b; b.enc_k = ek; b.mel_k = mk; b.enc = &ms[ek]; b.mel = &ms[mk]; b.se = &b.enc->S(enc_sig); b.sm = &b.mel->S("");
+      Sig& sm = *b.sm; Sig& se = *b.se;
+      // mel<b>: audio [1, 160 x Tm] f32 + valid samples [1] i32 -> features [1,128,Tm] + mel_mask [1,Tm] + frame_mask [1,T]
+      b.mi_audio = sm.In({"audio", "args_0"});  // else the largest float32 input
+      if (b.mi_audio < 0) for (size_t i = 0; i < sm.in_elems.size(); ++i) if (sm.in_types[i].element_type == kLiteRtElementTypeFloat32 && (b.mi_audio < 0 || sm.in_elems[i] > sm.in_elems[b.mi_audio])) b.mi_audio = (int)i;
+      if (b.mi_audio < 0) { std::printf("FATAL %s has no float32 audio input\n", b.mel->role.c_str()); return false; }
+      b.A = sm.in_elems[b.mi_audio];
+      b.T = se.out_elems.empty() ? 0 : se.out_elems[0] / 640; b.Tm = 8 * b.T; b.secs = (int)(b.Tm / 100);
+      b.mi_valid = Pick(sm, true, {"n_valid", "valid", "num_samples", "args_1"}, 1, "valid samples");
+      b.mo_feat = Pick(sm, false, {"features"}, 128 * b.Tm, "features");
+      b.mo_melmask = Pick(sm, false, {"mel_mask"}, b.Tm, "mel_mask");
+      b.mo_framemask = Pick(sm, false, {"frame_mask"}, b.T, "frame_mask");
+      b.ei_feat = Pick(se, true, {"features", "args_0"}, 128 * b.Tm, "features");
+      b.ei_melmask = Pick(se, true, {"mel_mask", "args_1"}, b.Tm, "mel_mask");
+      b.eo_enc = Pick(se, false, {"enc", "output_0"}, b.T * 640, "enc");
+      if (b.mi_audio == b.mi_valid || b.ei_feat == b.ei_melmask) { std::printf("FATAL ambiguous tensor binding (names not in the contract)\n"); return false; }
+      if (sm.in_types[b.mi_valid].element_type != kLiteRtElementTypeInt32) { std::printf("FATAL the valid-samples input must be int32\n"); return false; }
+      if (b.T == 0 || b.A < 160 * b.Tm) { std::printf("FATAL %s audio input %zu < 160 x %zu mel frames, or no encoder frames\n", b.mel->role.c_str(), b.A, b.Tm); return false; }
+      b.audio_win.assign(b.A, 0.f); b.feat.assign(128 * b.Tm, 0.f); b.melmask.assign(b.Tm, 0.f); b.framemask.assign(b.T, 0.f); b.encv.assign(b.T * 640, 0.f);
+      b.label = model_label[mk].empty() ? std::to_string(b.secs) : model_label[mk];
+      if (!model_label[mk].empty()) {  // p7: a --mel-bucket S graph has the smallest multiple of 8 at or above 100 x S mel frames
+        const long want = ((long)std::ceil(100.0 * std::strtod(model_label[mk].c_str(), nullptr) - 1e-9) + 7) / 8 * 8;
+        if ((long)b.Tm != want) { std::printf("FATAL bucket %s: the encoder has %zu mel frames, a %s s bucket needs %ld\n", b.label.c_str(), b.Tm, b.label.c_str(), want); return false; }
+      }
+      std::printf("binding bucket %ss model[%d] %s[%s] audio=%s(%zu) valid=%s -> features=%s mel_mask=%s frame_mask=%s | model[%d] %s[%s] features=%s mel_mask=%s -> enc=%s T=%zu\n",
+                  b.label.c_str(), mk, b.mel->role.c_str(), sm.key.c_str(), sm.in_names[b.mi_audio].c_str(), b.A, sm.in_names[b.mi_valid].c_str(), sm.out_names[b.mo_feat].c_str(),
+                  sm.out_names[b.mo_melmask].c_str(), sm.out_names[b.mo_framemask].c_str(), ek, b.enc->role.c_str(), se.key.c_str(), se.in_names[b.ei_feat].c_str(),
+                  se.in_names[b.ei_melmask].c_str(), se.out_names[b.eo_enc].c_str(), b.T);
+      bk.push_back(std::move(b)); return true;
+    };
+    if (!add_bucket(0, 1, enc_all ? "enc30" : "")) return 2;
+    const size_t n_bm = (size_t)n_bucket_models;  // p7: the bucket graphs end before the second encoder
+    if (enc_all) {  // model[3..] = the mel graphs alone, each with the signature its role names
+      for (size_t k = 3; k < n_bm; ++k) if (!add_bucket(0, (int)k, "enc" + ms[k].role.substr(3))) return 2;
+    } else {
+      for (size_t k = 3; k + 1 < n_bm; k += 2) if (!add_bucket((int)k, (int)k + 1, "")) return 2;
+    }
+    if (enc2_on) {  // p7: the second encoder's signature enc<label> of every bucket, bound as the first encoder's
+      M& m2 = ms[e2k];
+      for (Bucket& b : bk) {
+        b.se2 = &m2.S("enc" + b.label); Sig& s2 = *b.se2;
+        b.ei2_feat = Pick(s2, true, {"features", "args_0"}, 128 * b.Tm, "features");
+        b.ei2_melmask = Pick(s2, true, {"mel_mask", "args_1"}, b.Tm, "mel_mask");
+        b.eo2_enc = Pick(s2, false, {"enc", "output_0"}, b.T * 640, "enc");
+        if (b.ei2_feat == b.ei2_melmask) { std::printf("FATAL ambiguous tensor binding (names not in the contract)\n"); return 2; }
+        std::printf("binding bucket %ss enc2 model[%d] %s[%s] features=%s mel_mask=%s -> enc=%s T=%zu\n", b.label.c_str(), e2k, m2.role.c_str(), s2.key.c_str(),
+                    s2.in_names[b.ei2_feat].c_str(), s2.in_names[b.ei2_melmask].c_str(), s2.out_names[b.eo2_enc].c_str(), b.T);
+      }
+    }
+    if (enc2_buckets_set) {  // p8: every --enc2-buckets label names a bound bucket
+      for (auto& l : enc2_bset) { bool found = false; for (const Bucket& b : bk) found = found || b.label == l; if (!found) { std::printf("FATAL --enc2-buckets %s: no bucket with that label\n", l.c_str()); return 2; } }
+    }
+    if (bk[0].A < (size_t)win) { std::printf("FATAL mel30 audio input %zu < window %ld\n", bk[0].A, win); return 2; }
+    std::vector<size_t> by_size(bk.size()); for (size_t i = 0; i < bk.size(); ++i) by_size[i] = i;
+    std::sort(by_size.begin(), by_size.end(), [&](size_t a, size_t b) { return bk[a].A < bk[b].A; });
+    for (size_t i = 1; i < by_size.size(); ++i) if (bk[by_size[i]].A == bk[by_size[i - 1]].A) { std::printf("FATAL two buckets with the same audio input %zu\n", bk[by_size[i]].A); return 2; }
+    // the smallest bucket whose mel audio input holds the window (the 30 s pair holds every window)
+    auto pick_bucket = [&](long n) -> size_t { for (size_t i : by_size) if ((long)bk[i].A >= n) return i; return 0; };
+    std::printf("binding predict token=%s h=%s c=%s -> dec_out=%s h'=%s c'=%s | joint enc_frame=%s dec_out=%s -> logits=%s | buckets=%zu\n",
+                sp.in_names[pi_tok].c_str(), sp.in_names[pi_h].c_str(), sp.in_names[pi_c].c_str(), sp.out_names[po_dec].c_str(), sp.out_names[po_h].c_str(), sp.out_names[po_c].c_str(),
+                sj.in_names[ji_enc].c_str(), sj.in_names[ji_dec].c_str(), sj.out_names[jo_log].c_str(), bk.size());
+    std::fflush(stdout);
+    // fixture index: id3 -> (utterance id, file)
+    std::vector<std::string> fx_id, fx_file; {
+      std::vector<uint8_t> b; if (!ReadFile(fixtures + "/index.tsv", b)) { std::printf("FIXTURE_ERROR %s/index.tsv\n", fixtures.c_str()); return 3; }
+      for (auto& line : Split(std::string(b.begin(), b.end()), '\n')) {
+        if (line.empty() || line[0] == '#') continue; auto c = Split(line, '\t'); if (c.size() < 3) continue;
+        long i = std::strtol(c[0].c_str(), nullptr, 10); if ((long)fx_id.size() <= i) { fx_id.resize(i + 1); fx_file.resize(i + 1); }
+        fx_id[i] = c[1]; fx_file[i] = c[2];
+      }
+    }
+    std::vector<float> dec_out(640), h(1280), c(1280), logits(kVocab + kDurations);
+    double mel_run = 0, enc_run = 0, loop_run = 0;
+    // one window: mel<b> (+ timing) -> encoder<b> (+ timing) -> loop; returns the window's record pieces
+    struct Win { long samples = 0; int bucket = 30, T = kT30, mel_valid = 0, enc_valid = 0, steps = 0, cap_hits = 0, max_run = 0; bool eos = false; size_t nonfinite = 0, nonfinite_all = 0;
+                 double mel_ms = 0, enc_ms = 0, dec_ms = 0, mel_run_ms = 0, enc_run_ms = 0, dec_run_ms = 0;
+                 Clock::time_point t_mel0, t_enc1, t_dec0, t_dec1;  // mel start, encoder end, loop start, loop end
+                 Clock::time_point t_mel1, t_enc0;  // mel end, encoder start (set and printed by --pipeline 2 only)
+                 int enc_id = 0;  // p7: the encoder that computed the window (1 or 2; set and printed with a second encoder only)
+                 std::vector<int> tok, frame, dur; };
+    auto do_mel = [&](Bucket& b, const float* x, long n) -> double {
+      auto t0 = Clock::now(); std::fill(b.audio_win.begin(), b.audio_win.end(), 0.f); std::memcpy(b.audio_win.data(), x, n * 4);
+      int32_t nv = (int32_t)n; Write(b.sm->ins[b.mi_audio], b.audio_win.data(), b.A * 4); Write(b.sm->ins[b.mi_valid], &nv, 4);
+      mel_run = Run(*b.mel, *b.sm);
+      Read(b.sm->outs[b.mo_feat], b.feat.data(), b.feat.size() * 4); Read(b.sm->outs[b.mo_melmask], b.melmask.data(), b.melmask.size() * 4);
+      Read(b.sm->outs[b.mo_framemask], b.framemask.data(), b.framemask.size() * 4);
+      return Ms(t0, Clock::now());
+    };
+    // the encoder output goes to dst (b.encv.size() floats): the bucket's own encv in the serial pass, the queued window's
+    // copy in the pipelined one (stage A writes the next window of the same bucket while stage B reads this one)
+    auto do_enc = [&](Bucket& b, float* dst) -> double {
+      auto t0 = Clock::now(); Write(b.se->ins[b.ei_feat], b.feat.data(), b.feat.size() * 4); Write(b.se->ins[b.ei_melmask], b.melmask.data(), b.melmask.size() * 4);
+      enc_run = Run(*b.enc, *b.se); Read(b.se->outs[b.eo_enc], dst, b.encv.size() * 4); return Ms(t0, Clock::now());
+    };
+    auto predict = [&](int32_t tok) {
+      Write(sp.ins[pi_tok], &tok, 4); Write(sp.ins[pi_h], h.data(), 1280 * 4); Write(sp.ins[pi_c], c.data(), 1280 * 4);
+      loop_run += Run(dec, sp); Read(sp.outs[po_dec], dec_out.data(), 640 * 4); Read(sp.outs[po_h], h.data(), 1280 * 4); Read(sp.outs[po_c], c.data(), 1280 * 4);
+    };
+    auto do_loop = [&](const float* encv, size_t T, int valid_T, Win& w) -> double {  // encv = [T, 640] of the window
+      auto t0 = Clock::now(); loop_run = 0; w.tok.clear(); w.frame.clear(); w.dur.clear(); w.steps = 0; w.cap_hits = 0; w.max_run = 0; w.eos = false;
+      std::fill(h.begin(), h.end(), 0.f); std::fill(c.begin(), c.end(), 0.f); predict(kBlank);
+      int t = 0, on_frame = 0; const long max_steps = 10L * (long)kT30;  // max_symbols_per_step (10) x 375 frames, in every bucket
+      // argmax as torch / numpy: the first maximum, a NaN counts as the maximum (the first NaN wins)
+      auto argmax = [&](int lo, int n) { int bi = 0; for (int i = 1; i < n; ++i) { float v = logits[lo + i], m = logits[lo + bi]; if (std::isnan(m)) break; if (std::isnan(v) || v > m) bi = i; } return bi; };
+      while (t < valid_T && w.steps < max_steps) {
+        ++w.steps; const int tt = std::min(t, (int)T - 1);
+        Write(sj.ins[ji_enc], encv + (size_t)tt * 640, 640 * 4); Write(sj.ins[ji_dec], dec_out.data(), 640 * 4);
+        loop_run += Run(dec, sj); Read(sj.outs[jo_log], logits.data(), logits.size() * 4);
+        int tok = argmax(0, kVocab);
+        int d = argmax(kVocab, kDurations);
+        if (tok == kBlank && d == 0) d = 1;
+        if (tok != kBlank) {
+          w.tok.push_back(tok); w.frame.push_back(t); w.dur.push_back(d);
+          if (eos >= 0 && tok == eos) { w.eos = true; break; }
+          predict(tok);
+        }
+        if (d == 0) { on_frame += tok != kBlank ? 1 : 0; w.max_run = std::max(w.max_run, on_frame); if (max_symbols > 0 && on_frame >= max_symbols) { ++w.cap_hits; d = 1; } }
+        if (d > 0) on_frame = 0;
+        t += d;
+      }
+      w.dec_run_ms = loop_run; return Ms(t0, Clock::now());
+    };
+    // stage A of one window: mel<b> -> encoder<b> into encv (b.encv.size() floats), the valid frames and the non-finite count
+    auto mel_enc = [&](Bucket& b, const float* x, long n, Win& w, float* encv) {
+      w.t_mel0 = Clock::now();
+      w.samples = n; w.bucket = b.secs; w.T = (int)b.T; w.mel_ms = do_mel(b, x, n); w.mel_run_ms = mel_run;
+      w.mel_valid = 0; for (float v : b.melmask) w.mel_valid += v > 0.5f; w.enc_valid = 0; for (float v : b.framemask) w.enc_valid += v > 0.5f;
+      w.enc_ms = do_enc(b, encv); w.enc_run_ms = enc_run;
+      w.nonfinite = 0; w.nonfinite_all = 0;
+      for (size_t i = 0; i < b.encv.size(); ++i) if (!std::isfinite(encv[i])) { ++w.nonfinite_all; if (i / 640 < (size_t)w.enc_valid) ++w.nonfinite; }
+      w.t_enc1 = Clock::now();
+    };
+    // stage B of one window: the TDT loop over its valid encoder frames
+    auto dec_win = [&](const float* encv, size_t T, Win& w) { w.t_dec0 = Clock::now(); w.dec_ms = do_loop(encv, T, w.enc_valid, w); w.t_dec1 = Clock::now(); };
+    auto run_window = [&](const float* x, long n, Win& w) {
+      Bucket& b = bk[pick_bucket(n)];
+      mel_enc(b, x, n, w, b.encv.data());
+      dec_win(b.encv.data(), b.T, w);
+    };
+    struct Utt { std::string id; long samples = 0; std::string fmt; std::vector<Win> wins; int skipped = 0; double mel = 0, encm = 0, decm = 0; };
+    auto load_utt = [&](long fx, Utt& u, std::vector<float>& x) -> bool {
+      std::string fmt;
+      if (fx >= (long)fx_id.size() || fx_id[fx].empty()) { std::printf("FIXTURE_ERROR %s/index.tsv has no line %s\n", fixtures.c_str(), id3(fx).c_str()); return false; }
+      if (!ReadAudio(fixtures + "/" + fx_file[fx], x, fmt)) { std::printf("FIXTURE_ERROR %s/%s (%s)\n", fixtures.c_str(), fx_file[fx].c_str(), fmt.c_str()); return false; }
+      u = Utt(); u.id = fx_id[fx]; u.samples = (long)x.size(); u.fmt = fmt;
+      return true;
+    };
+    auto run_utt = [&](long fx, Utt& u) -> bool {
+      std::vector<float> x;
+      if (!load_utt(fx, u, x)) return false;
+      for (long s0 = 0; s0 < (long)x.size(); s0 += win) {
+        long n = std::min(win, (long)x.size() - s0);
+        if (n < min_win) { ++u.skipped; continue; }
+        Win w; run_window(x.data() + s0, n, w); u.mel += w.mel_ms; u.encm += w.enc_ms; u.decm += w.dec_ms; u.wins.push_back(w);
+      }
+      return true;
+    };
+    // --- the burst pass: one warm-up run of fixture 000 (not counted), then every fixture once ---
+    Utt u; double first = 0; { auto t0 = Clock::now(); if (!run_utt(0, u)) return 3; first = Ms(t0, Clock::now()); }
+    std::printf("warmup fixture 000 id=%s total_ms=%.3f\n", u.id.c_str(), first); std::fflush(stdout);
+    if (enc2_on) {  // p7: fixture 000's windows through the second encoder too (mel -> encoder 2; nothing decoded or counted)
+      M& m2 = ms[e2k]; std::vector<float> x; Utt u2; double ms2 = 0; int nw = 0; size_t nf2 = 0;
+      const auto t0 = Clock::now();
+      if (!load_utt(0, u2, x)) return 3;
+      for (long s0 = 0; s0 < (long)x.size(); s0 += win) {
+        const long n = std::min(win, (long)x.size() - s0); if (n < min_win) continue;
+        Bucket& b = bk[pick_bucket(n)]; Sig& s2 = *b.se2;
+        do_mel(b, x.data() + s0, n);
+        const auto t1 = Clock::now(); Write(s2.ins[b.ei2_feat], b.feat.data(), b.feat.size() * 4); Write(s2.ins[b.ei2_melmask], b.melmask.data(), b.melmask.size() * 4);
+        Run(m2, s2); Read(s2.outs[b.eo2_enc], b.encv.data(), b.encv.size() * 4); ms2 += Ms(t1, Clock::now()); ++nw;
+        for (float v : b.encv) if (!std::isfinite(v)) ++nf2;
+      }
+      std::printf("warmup2 fixture 000 id=%s enc2_accel=%s windows=%d enc2_ms=%.3f nonfinite_enc_all=%zu total_ms=%.3f\n", u2.id.c_str(), enc2_accel.c_str(), nw, ms2, nf2, Ms(t0, Clock::now()));
+      std::fflush(stdout);
+    }
+    double s_audio = 0, s_mel = 0, s_enc = 0, s_dec = 0; long n_win = 0, n_skip = 0, n_cap = 0, n_empty = 0, n_eos = 0; size_t nf_all = 0; int max_run_all = 0;
+    bool has5 = false; for (const Bucket& b : bk) if (b.secs == 5) has5 = true;
+    // p7: windows per bucket label (a window's bucket is known by its encoder frames T: one bucket per audio input size)
+    std::map<size_t, std::string> label_of_T; for (const Bucket& b : bk) label_of_T[b.T] = b.label;
+    auto label_of = [&](int T) -> std::string { auto it = label_of_T.find((size_t)T); return it == label_of_T.end() ? std::to_string(T) : it->second; };
+    std::map<std::string, long> per_label;
+    long n_by_enc[3] = {0, 0, 0}; double ms_by_enc[3] = {0, 0, 0}, run_by_enc[3] = {0, 0, 0};  // p7: windows and encoder ms of encoder 1 / 2
+    std::vector<float> rec(kRecElems);
+    Clock::time_point burst0{}, burst1{}; bool burst_started = false;  // the first window's mel start, the last window's loop end
+    auto rel = [&](Clock::time_point t) { return F(Ms(burst0, t), 1); };
+    // one finished file: its stdout line, the burst sums and its dump record (stage B in the pipelined pass)
+    auto emit = [&](long fx, const Utt& u) -> bool {
+      const std::string id = id3(fx);
+      for (const Win& w : u.wins) { if (!burst_started) { burst0 = w.t_mel0; burst_started = true; } burst1 = std::max(burst1, w.t_dec1); }
+      std::vector<int> tok, frame, dur; int enc_valid = 0; size_t nf = 0; int caps = 0, maxrun = 0, steps = 0; bool e = false;
+      std::string wj = "[";
+      for (size_t k = 0; k < u.wins.size(); ++k) {
+        const Win& w = u.wins[k];
+        for (size_t j = 0; j < w.tok.size(); ++j) { tok.push_back(w.tok[j]); frame.push_back((int)(k * kT30) + w.frame[j]); dur.push_back(w.dur[j]); }
+        enc_valid += w.enc_valid; nf += w.nonfinite; caps += w.cap_hits; maxrun = std::max(maxrun, w.max_run); steps += w.steps; e = e || w.eos;
+        ++per_label[label_of(w.T)];
+        if (k) wj += ",";
+        wj += "{\"w\":" + std::to_string(k) + ",\"bucket\":" + label_of(w.T) + ",\"T\":" + std::to_string(w.T) + ",\"samples\":" + std::to_string(w.samples) +
+              ",\"mel_valid\":" + std::to_string(w.mel_valid) + ",\"enc_valid\":" + std::to_string(w.enc_valid) +
+              ",\"n_tok\":" + std::to_string(w.tok.size()) + ",\"steps\":" + std::to_string(w.steps) + ",\"cap_hits\":" + std::to_string(w.cap_hits) + ",\"max_run\":" + std::to_string(w.max_run) +
+              ",\"eos\":" + (w.eos ? "true" : "false") + ",\"nonfinite_enc_valid\":" + std::to_string(w.nonfinite) + ",\"nonfinite_enc_all\":" + std::to_string(w.nonfinite_all) +
+              ",\"mel_ms\":" + F(w.mel_ms) + ",\"enc_ms\":" + F(w.enc_ms) + ",\"dec_ms\":" + F(w.dec_ms) + ",\"mel_run_ms\":" + F(w.mel_run_ms) + ",\"enc_run_ms\":" + F(w.enc_run_ms) + ",\"dec_run_ms\":" + F(w.dec_run_ms) +
+              ",\"t_mel0\":" + rel(w.t_mel0) + ",\"t_enc1\":" + rel(w.t_enc1) + ",\"t_dec0\":" + rel(w.t_dec0) + ",\"t_dec1\":" + rel(w.t_dec1) +
+              (pipeline == 2 ? ",\"t_mel1\":" + rel(w.t_mel1) + ",\"t_enc0\":" + rel(w.t_enc0) : std::string()) +
+              (enc2_on ? ",\"enc\":" + std::to_string(w.enc_id) : std::string()) + "}";
+      }
+      wj += "]";
+      const double sec = u.samples / 16000.0, tot = u.mel + u.encm + u.decm;
+      s_audio += sec; s_mel += u.mel; s_enc += u.encm; s_dec += u.decm; n_win += (long)u.wins.size(); n_skip += u.skipped; n_cap += caps; n_empty += tok.empty(); n_eos += e; nf_all += nf; max_run_all = std::max(max_run_all, maxrun);
+      std::printf("{\"kind\":\"utt\",\"fx\":\"%s\",\"id\":%s,\"fmt\":\"%s\",\"samples\":%ld,\"audio_s\":%.4f,\"windows\":%zu,\"skipped_windows\":%d,\"enc_valid\":%d,\"n_tok\":%zu,\"steps\":%d,\"cap_hits\":%d,\"max_run\":%d,\"eos\":%s,\"nonfinite_enc_valid\":%zu,"
+                  "\"mel_ms\":%.3f,\"enc_ms\":%.3f,\"dec_ms\":%.3f,\"total_ms\":%.3f,\"tok\":%s,\"frame\":%s,\"dur\":%s,\"win\":%s}\n",
+                  id.c_str(), JsonStr(u.id).c_str(), u.fmt.c_str(), u.samples, sec, u.wins.size(), u.skipped, enc_valid, tok.size(), steps, caps, maxrun, e ? "true" : "false", nf,
+                  u.mel, u.encm, u.decm, tot, JsonArr(tok).c_str(), JsonArr(frame).c_str(), JsonArr(dur).c_str(), wj.c_str());
+      std::fflush(stdout);
+      if (dump == "full") {
+        std::fill(rec.begin(), rec.end(), -1.f);
+        rec[0] = (float)u.wins.size(); rec[1] = (float)tok.size(); rec[2] = tok.size() > (size_t)kMaxRecTokens ? 1.f : 0.f; rec[3] = (float)enc_valid;
+        for (size_t j = 0; j < tok.size() && j < (size_t)kMaxRecTokens; ++j) { rec[4 + 3 * j] = (float)tok[j]; rec[5 + 3 * j] = (float)frame[j]; rec[6 + 3 * j] = (float)dur[j]; }
+        if (!WriteFloatFile(mdir + "/" + id + ".f32", rec.data(), rec.size())) { std::printf("WRITE_ERROR %s/%s.f32\n", mdir.c_str(), id.c_str()); return false; }
+      }
+      return true;
+    };
+    if (!pipeline) {  // serial: per window mel -> encoder -> loop on this thread
+      for (long fx = 0; fx < count; ++fx) {
+        if (!run_utt(fx, u)) return 3;
+        if (!emit(fx, u)) return 3;
+      }
+    } else if (pipeline == 2 && enc2_on) {
+      // p7: --pipeline 2 with a second encoder. The mel stage (a thread) runs as --pipeline 2's and hands window s of the pass
+      // (input order, from 0) to encoder 2 when floor((s + 1) M / K) > floor(s M / K), else to encoder 1; each encoder stage (a
+      // thread) has its own in-order input and output queues of --pipeline-depth windows. The order queue gets each window's
+      // encoder (after the window is in that encoder's input queue), the file ends, a stop and the end of the pass, in input
+      // order; the decode stage (this thread) follows it and takes each window from its encoder's output queue, whose next item
+      // is that window (both run in input order). Each graph runs on one thread only, as in --pipeline 2.
+      enum Kind3 { kWin3, kFileEnd3, kStop3, kDone3 };
+      struct Item3 { Kind3 kind = kWin3; long fx = 0, seq = 0; size_t bi = 0; int e = 0; Win w; std::vector<float> feat, melmask, encv; Utt u; };
+      struct Queue3 {
+        std::mutex mu; std::condition_variable cv; std::deque<Item3> q; long windows = 0, depth = 2;
+        void push(Item3&& it) {
+          std::unique_lock<std::mutex> lk(mu);
+          if (it.kind == kWin3) { cv.wait(lk, [&] { return windows < depth; }); ++windows; }
+          q.push_back(std::move(it)); cv.notify_all();
+        }
+        Item3 pop() {
+          std::unique_lock<std::mutex> lk(mu); cv.wait(lk, [&] { return !q.empty(); });
+          Item3 it = std::move(q.front()); q.pop_front(); if (it.kind == kWin3) --windows;
+          cv.notify_all(); return it;
+        }
+      };
+      Queue3 qin[2], qout[2], qord; qord.depth = 1L << 40;  // the order queue holds tokens only: it never makes the mel stage wait
+      for (int e = 0; e < 2; ++e) { qin[e].depth = pipeline_depth; qout[e].depth = pipeline_depth; }
+      auto to_enc2 = [&](long s) { return ((s + 1) * enc2_take) / enc2_every != (s * enc2_take) / enc2_every; };
+      std::thread stage_mel([&]() {
+        long seq = 0;
+        auto finish = [&](Kind3 k) { for (int e = 0; e < 2; ++e) { Item3 it; it.kind = k; qin[e].push(std::move(it)); } Item3 t; t.kind = k; qord.push(std::move(t)); };
+        for (long fx = 0; fx < count; ++fx) {
+          Item3 end; end.kind = kFileEnd3; end.fx = fx; std::vector<float> x;
+          if (!load_utt(fx, end.u, x)) { finish(kStop3); return; }
+          for (long s0 = 0; s0 < (long)x.size(); s0 += win) {
+            const long n = std::min(win, (long)x.size() - s0);
+            if (n < min_win) { ++end.u.skipped; continue; }
+            const size_t bi = pick_bucket(n); Bucket& b = bk[bi];
+            const int e = enc2_buckets_set ? (enc2_bset.count(b.label) ? 1 : 0) : (to_enc2(seq) ? 1 : 0);  // p8: by the bucket, else p7's M of every K
+            Item3 it; it.kind = kWin3; it.fx = fx; it.seq = seq; it.bi = bi; it.e = e; it.feat.resize(b.feat.size()); it.melmask.resize(b.melmask.size());
+            std::vector<float> fm(b.framemask.size()); Win& w = it.w;
+            w.t_mel0 = Clock::now(); w.samples = n; w.bucket = b.secs; w.T = (int)b.T; w.enc_id = e + 1;
+            // --pipeline 2's mel steps into the window's own buffers (b.audio_win is the mel stage's alone in this mode)
+            const auto t0 = Clock::now(); std::fill(b.audio_win.begin(), b.audio_win.end(), 0.f); std::memcpy(b.audio_win.data(), x.data() + s0, n * 4);
+            int32_t nv = (int32_t)n; Write(b.sm->ins[b.mi_audio], b.audio_win.data(), b.A * 4); Write(b.sm->ins[b.mi_valid], &nv, 4);
+            w.mel_run_ms = Run(*b.mel, *b.sm);
+            Read(b.sm->outs[b.mo_feat], it.feat.data(), it.feat.size() * 4); Read(b.sm->outs[b.mo_melmask], it.melmask.data(), it.melmask.size() * 4);
+            Read(b.sm->outs[b.mo_framemask], fm.data(), fm.size() * 4);
+            w.mel_ms = Ms(t0, Clock::now());
+            w.mel_valid = 0; for (float v : it.melmask) w.mel_valid += v > 0.5f; w.enc_valid = 0; for (float v : fm) w.enc_valid += v > 0.5f;
+            w.t_mel1 = Clock::now();
+            qin[e].push(std::move(it));
+            Item3 t; t.kind = kWin3; t.e = e; t.seq = seq; qord.push(std::move(t));  // after the window is in its encoder's queue
+            ++seq;
+          }
+          qord.push(std::move(end));
+        }
+        finish(kDone3);
+      });
+      auto enc_stage = [&](int e) {  // e = 0: encoder 1 (each bucket's model[0] signature), 1: encoder 2 (--enc2-all)
+        for (;;) {
+          Item3 it = qin[e].pop();
+          if (it.kind != kWin3) return;  // a stop or the end of the pass
+          Bucket& b = bk[it.bi]; Win& w = it.w; it.encv.resize(b.encv.size());
+          M& em = e ? ms[e2k] : *b.enc; Sig& se = e ? *b.se2 : *b.se;
+          const int fi = e ? b.ei2_feat : b.ei_feat, mi = e ? b.ei2_melmask : b.ei_melmask, oi = e ? b.eo2_enc : b.eo_enc;
+          w.t_enc0 = Clock::now();
+          const auto t0 = Clock::now(); Write(se.ins[fi], it.feat.data(), it.feat.size() * 4); Write(se.ins[mi], it.melmask.data(), it.melmask.size() * 4);
+          w.enc_run_ms = Run(em, se); Read(se.outs[oi], it.encv.data(), it.encv.size() * 4); w.enc_ms = Ms(t0, Clock::now());
+          w.nonfinite = 0; w.nonfinite_all = 0;
+          for (size_t i = 0; i < it.encv.size(); ++i) if (!std::isfinite(it.encv[i])) { ++w.nonfinite_all; if (i / 640 < (size_t)w.enc_valid) ++w.nonfinite; }
+          w.t_enc1 = Clock::now();
+          std::vector<float>().swap(it.feat); std::vector<float>().swap(it.melmask);
+          qout[e].push(std::move(it));
+        }
+      };
+      std::thread stage_enc1(enc_stage, 0), stage_enc2(enc_stage, 1);
+      bool ok = true; Utt cur;
+      for (bool more = true; more;) {
+        Item3 t = qord.pop();
+        switch (t.kind) {
+          case kWin3: {
+            Item3 it = qout[t.e].pop();
+            if (it.kind != kWin3 || it.seq != t.seq) { std::printf("FATAL encoder %d returned window %ld where the order queue has %ld\n", t.e + 1, it.seq, t.seq); std::fflush(stdout); std::_Exit(2); }
+            dec_win(it.encv.data(), bk[it.bi].T, it.w);
+            ++n_by_enc[t.e + 1]; ms_by_enc[t.e + 1] += it.w.enc_ms; run_by_enc[t.e + 1] += it.w.enc_run_ms;
+            cur.mel += it.w.mel_ms; cur.encm += it.w.enc_ms; cur.decm += it.w.dec_ms; cur.wins.push_back(std::move(it.w));
+            break;
+          }
+          case kFileEnd3:
+            t.u.wins = std::move(cur.wins); t.u.mel = cur.mel; t.u.encm = cur.encm; t.u.decm = cur.decm; cur = Utt();
+            if (!emit(t.fx, t.u)) { std::fflush(stdout); std::_Exit(3); }  // the other stages may be waiting on a queue
+            break;
+          case kStop3: ok = false; more = false; break;
+          case kDone3: more = false; break;
+        }
+      }
+      stage_mel.join(); stage_enc1.join(); stage_enc2.join();
+      if (!ok) return 3;
+    } else if (pipeline == 2) {
+      // three stages, two in-order queues: the mel stage (a thread) -> q1 -> the encoder stage (a second thread) -> q2 -> the
+      // decode stage (this thread). A window item carries its own copy of the mel outputs (features, mel mask) and of the
+      // encoder output, so a stage never reads a bucket buffer the stage before it is writing; each graph runs on one thread
+      // only (the mel graphs on the mel stage, the encoder signatures on the encoder stage, the decoder here). A queue makes
+      // its producer wait while --pipeline-depth windows are queued; file ends, a stop (the mel stage could not read a file;
+      // its FIXTURE_ERROR line is printed) and the end of the pass do not count and pass through the encoder stage in order.
+      enum Kind2 { kWin2, kFileEnd2, kStop2, kDone2 };
+      struct Item2 { Kind2 kind = kWin2; long fx = 0; size_t bi = 0; Win w; std::vector<float> feat, melmask, encv; Utt u; };
+      struct Queue2 {
+        std::mutex mu; std::condition_variable cv; std::deque<Item2> q; int windows = 0, depth = 2;
+        void push(Item2&& it) {
+          std::unique_lock<std::mutex> lk(mu);
+          if (it.kind == kWin2) { cv.wait(lk, [&] { return windows < depth; }); ++windows; }
+          q.push_back(std::move(it)); cv.notify_all();
+        }
+        Item2 pop() {
+          std::unique_lock<std::mutex> lk(mu); cv.wait(lk, [&] { return !q.empty(); });
+          Item2 it = std::move(q.front()); q.pop_front(); if (it.kind == kWin2) --windows;
+          cv.notify_all(); return it;
+        }
+      };
+      Queue2 q1, q2; q1.depth = pipeline_depth; q2.depth = pipeline_depth;
+      std::thread stage_mel([&]() {
+        for (long fx = 0; fx < count; ++fx) {
+          Item2 end; end.kind = kFileEnd2; end.fx = fx; std::vector<float> x;
+          if (!load_utt(fx, end.u, x)) { Item2 stop; stop.kind = kStop2; q1.push(std::move(stop)); return; }
+          for (long s0 = 0; s0 < (long)x.size(); s0 += win) {
+            const long n = std::min(win, (long)x.size() - s0);
+            if (n < min_win) { ++end.u.skipped; continue; }
+            const size_t bi = pick_bucket(n); Bucket& b = bk[bi];
+            Item2 it; it.kind = kWin2; it.fx = fx; it.bi = bi; it.feat.resize(b.feat.size()); it.melmask.resize(b.melmask.size());
+            std::vector<float> fm(b.framemask.size()); Win& w = it.w;
+            w.t_mel0 = Clock::now(); w.samples = n; w.bucket = b.secs; w.T = (int)b.T;
+            // do_mel's steps into the window's own buffers (b.audio_win is the mel stage's alone in this mode)
+            const auto t0 = Clock::now(); std::fill(b.audio_win.begin(), b.audio_win.end(), 0.f); std::memcpy(b.audio_win.data(), x.data() + s0, n * 4);
+            int32_t nv = (int32_t)n; Write(b.sm->ins[b.mi_audio], b.audio_win.data(), b.A * 4); Write(b.sm->ins[b.mi_valid], &nv, 4);
+            w.mel_run_ms = Run(*b.mel, *b.sm);
+            Read(b.sm->outs[b.mo_feat], it.feat.data(), it.feat.size() * 4); Read(b.sm->outs[b.mo_melmask], it.melmask.data(), it.melmask.size() * 4);
+            Read(b.sm->outs[b.mo_framemask], fm.data(), fm.size() * 4);
+            w.mel_ms = Ms(t0, Clock::now());
+            w.mel_valid = 0; for (float v : it.melmask) w.mel_valid += v > 0.5f; w.enc_valid = 0; for (float v : fm) w.enc_valid += v > 0.5f;
+            w.t_mel1 = Clock::now();
+            q1.push(std::move(it));
+          }
+          q1.push(std::move(end));
+        }
+        Item2 done; done.kind = kDone2; q1.push(std::move(done));
+      });
+      std::thread stage_enc([&]() {
+        for (bool more = true; more;) {
+          Item2 it = q1.pop();
+          if (it.kind == kWin2) {  // do_enc's steps from the window's own buffers into its own encoder output
+            Bucket& b = bk[it.bi]; Win& w = it.w; it.encv.resize(b.encv.size());
+            w.t_enc0 = Clock::now();
+            const auto t0 = Clock::now(); Write(b.se->ins[b.ei_feat], it.feat.data(), it.feat.size() * 4); Write(b.se->ins[b.ei_melmask], it.melmask.data(), it.melmask.size() * 4);
+            w.enc_run_ms = Run(*b.enc, *b.se); Read(b.se->outs[b.eo_enc], it.encv.data(), it.encv.size() * 4); w.enc_ms = Ms(t0, Clock::now());
+            w.nonfinite = 0; w.nonfinite_all = 0;
+            for (size_t i = 0; i < it.encv.size(); ++i) if (!std::isfinite(it.encv[i])) { ++w.nonfinite_all; if (i / 640 < (size_t)w.enc_valid) ++w.nonfinite; }
+            w.t_enc1 = Clock::now();
+            std::vector<float>().swap(it.feat); std::vector<float>().swap(it.melmask);
+          } else if (it.kind != kFileEnd2) {
+            more = false;  // a stop or the end of the pass: passed on, then this stage ends
+          }
+          q2.push(std::move(it));
+        }
+      });
+      bool ok = true; Utt cur;
+      for (bool more = true; more;) {
+        Item2 it = q2.pop();
+        switch (it.kind) {
+          case kWin2:
+            dec_win(it.encv.data(), bk[it.bi].T, it.w);
+            cur.mel += it.w.mel_ms; cur.encm += it.w.enc_ms; cur.decm += it.w.dec_ms; cur.wins.push_back(std::move(it.w));
+            break;
+          case kFileEnd2:
+            it.u.wins = std::move(cur.wins); it.u.mel = cur.mel; it.u.encm = cur.encm; it.u.decm = cur.decm; cur = Utt();
+            if (!emit(it.fx, it.u)) { std::fflush(stdout); std::_Exit(3); }  // the other stages may be waiting on a queue
+            break;
+          case kStop2: ok = false; more = false; break;
+          case kDone2: more = false; break;
+        }
+      }
+      stage_mel.join(); stage_enc.join();
+      if (!ok) return 3;
+    } else {
+      // stage A (a second thread) -> an in-order queue -> stage B (this thread). An item is an encoded window (with its
+      // own copy of the encoder output), the end of a file (its id, format, sample count, skipped windows), a stop
+      // (stage A could not read a file; its FIXTURE_ERROR line is printed) or the end of the pass. Stage A waits while
+      // --pipeline-depth encoded windows are queued; the other items do not count.
+      enum Kind { kWindow, kFileEnd, kStop, kDone };
+      struct Item { Kind kind = kWindow; long fx = 0; size_t T = 0; Win w; std::vector<float> encv; Utt u; };
+      std::mutex mu; std::condition_variable cv; std::deque<Item> q; int queued_windows = 0;
+      auto push = [&](Item&& it) {
+        std::unique_lock<std::mutex> lk(mu);
+        if (it.kind == kWindow) { cv.wait(lk, [&] { return queued_windows < pipeline_depth; }); ++queued_windows; }
+        q.push_back(std::move(it)); cv.notify_all();
+      };
+      auto pop = [&]() -> Item {
+        std::unique_lock<std::mutex> lk(mu); cv.wait(lk, [&] { return !q.empty(); });
+        Item it = std::move(q.front()); q.pop_front(); if (it.kind == kWindow) --queued_windows;
+        cv.notify_all(); return it;
+      };
+      std::thread stage_a([&]() {
+        for (long fx = 0; fx < count; ++fx) {
+          Item end; end.kind = kFileEnd; end.fx = fx; std::vector<float> x;
+          if (!load_utt(fx, end.u, x)) { Item stop; stop.kind = kStop; push(std::move(stop)); return; }
+          for (long s0 = 0; s0 < (long)x.size(); s0 += win) {
+            long n = std::min(win, (long)x.size() - s0);
+            if (n < min_win) { ++end.u.skipped; continue; }
+            Bucket& b = bk[pick_bucket(n)];
+            Item it; it.kind = kWindow; it.fx = fx; it.T = b.T; it.encv.resize(b.encv.size());
+            mel_enc(b, x.data() + s0, n, it.w, it.encv.data());
+            push(std::move(it));
+          }
+          push(std::move(end));
+        }
+        Item done; done.kind = kDone; push(std::move(done));
+      });
+      bool ok = true; Utt cur;
+      for (bool more = true; more;) {
+        Item it = pop();
+        switch (it.kind) {
+          case kWindow:
+            dec_win(it.encv.data(), it.T, it.w);
+            cur.mel += it.w.mel_ms; cur.encm += it.w.enc_ms; cur.decm += it.w.dec_ms; cur.wins.push_back(std::move(it.w));
+            break;
+          case kFileEnd:
+            it.u.wins = std::move(cur.wins); it.u.mel = cur.mel; it.u.encm = cur.encm; it.u.decm = cur.decm; cur = Utt();
+            if (!emit(it.fx, it.u)) { std::fflush(stdout); std::_Exit(3); }  // stage A may be waiting on the queue
+            break;
+          case kStop: ok = false; more = false; break;
+          case kDone: more = false; break;
+        }
+      }
+      stage_a.join();
+      if (!ok) return 3;
+    }
+    const double s_tot = s_mel + s_enc + s_dec;
+    const double burst_wall = burst_started ? Ms(burst0, burst1) : 0.0;
+    // p7: windows_per_bucket by label: p6's keys (10, 20, 30, and 5 when there is a 5 s bucket) and every bucket's label, ascending by seconds
+    std::string wpb; {
+      std::vector<std::pair<double, std::string>> keys;
+      auto add_key = [&](const std::string& l) { for (auto& k : keys) if (k.second == l) return; keys.push_back({std::strtod(l.c_str(), nullptr), l}); };
+      if (has5) add_key("5");
+      add_key("10"); add_key("20"); add_key("30");
+      for (const Bucket& b : bk) add_key(b.label);
+      std::sort(keys.begin(), keys.end());
+      for (auto& k : keys) wpb += (wpb.empty() ? "" : ",") + JsonStr(k.second) + ":" + std::to_string(per_label[k.second]);
+    }
+    std::string e2s;  // p7: the second encoder's share (with --enc2-accel only)
+    if (enc2_on) e2s = ",\"enc2_accel\":" + JsonStr(enc2_accel) + ",\"enc2_every\":" + std::to_string(enc2_every) + ",\"enc2_take\":" + std::to_string(enc2_take) +
+                       ",\"enc2_threads\":" + std::to_string(enc2_threads) + ",\"enc2_gpu_precision\":" + JsonStr(enc2_accel.rfind("gpu", 0) == 0 ? enc2_gpu_precision : "-") +
+                       ",\"enc1_windows\":" + std::to_string(n_by_enc[1]) + ",\"enc2_windows\":" + std::to_string(n_by_enc[2]) +
+                       ",\"enc1_ms\":" + F(ms_by_enc[1]) + ",\"enc2_ms\":" + F(ms_by_enc[2]) + ",\"enc1_run_ms\":" + F(run_by_enc[1]) + ",\"enc2_run_ms\":" + F(run_by_enc[2]);
+    if (enc2_on && enc2_buckets_set) { std::string l; for (auto& x : enc2_bset) l += (l.empty() ? "" : ",") + x; e2s += ",\"enc2_buckets\":" + JsonStr(l); }  // p8
+    std::printf("{\"kind\":\"burst_summary\",\"utterances\":%ld,\"windows\":%ld,\"skipped_windows\":%ld,\"audio_s\":%.4f,\"mel_ms\":%.3f,\"enc_ms\":%.3f,\"dec_ms\":%.3f,\"total_ms\":%.3f,\"rtf_burst\":%.6f,"
+                "\"rtf_mel\":%.6f,\"rtf_enc\":%.6f,\"rtf_dec\":%.6f,\"warmup_fx\":\"000\",\"warmup_ms\":%.3f,\"empty_hyp\":%ld,\"cap_hits\":%ld,\"max_run\":%d,\"eos\":%ld,\"nonfinite_enc_valid\":%zu,\"threads\":%d,\"mel_threads\":%d,\"dec_threads\":%d,\"accel\":\"%s\",\"gpu_precision\":\"%s\","
+                "\"buckets\":%zu,\"windows_per_bucket\":{%s},\"pipeline\":%d,\"pipeline_depth\":%d,\"burst_wall_ms\":%.3f,\"rtf_wall\":%.6f%s}\n",
+                count, n_win, n_skip, s_audio, s_mel, s_enc, s_dec, s_tot, s_tot / 1000.0 / s_audio, s_mel / 1000.0 / s_audio, s_enc / 1000.0 / s_audio, s_dec / 1000.0 / s_audio,
+                first, n_empty, n_cap, max_run_all, n_eos, nf_all, threads, mel_threads, dec_threads, accel.c_str(), accel.rfind("gpu", 0) == 0 ? gpu_precision.c_str() : "-",
+                bk.size(), wpb.c_str(), pipeline, pipeline_depth, burst_wall, burst_wall / 1000.0 / s_audio, e2s.c_str());
+    std::printf("parity_summary model[0] %s fixtures=%ld nonfinite_values=%zu first_run_ms=%.1f mean_ms=%.3f rtf_burst=%.6f outdir=%s\n", bk[0].enc->path.c_str(), count, nf_all, first, s_tot / count, s_tot / 1000.0 / s_audio, mdir.c_str());
+    std::fflush(stdout);
+    // --- latency phase on fixture --ab-fixture: the 30 s pair on its first window (model[0] / [1] / [2]),
+    // then each bucket encoder / mel graph on its first 10 s / 20 s (model[3..6]) ---
+    if (rounds > 0) {
+      long ab = std::strtol(ab_fixture.c_str(), nullptr, 10); std::vector<float> x; std::string fmt;
+      if (ab >= (long)fx_id.size() || fx_id[ab].empty() || !ReadAudio(fixtures + "/" + fx_file[ab], x, fmt) || (long)x.size() < min_win) { std::printf("FIXTURE_ERROR ab fixture %s\n", ab_fixture.c_str()); return 3; }
+      for (size_t bi = 0; bi < bk.size(); ++bi) {
+        Bucket& b = bk[bi];
+        const long n = std::min(bi == 0 ? win : (long)b.A, (long)x.size());
+        std::printf("latency_start wall_ms=%lld ab_fixture=%s id=%s window_samples=%ld bucket=%s\n", WallMs(), ab_fixture.c_str(), fx_id[ab].c_str(), n, b.label.c_str());
+        do_mel(b, x.data(), n); int ev = 0; for (float v : b.framemask) ev += v > 0.5f;
+        std::vector<double> ve, vm, vl; size_t nfr = 0; Win w;
+        for (long i = 0; i < warmup; ++i) { double t = do_enc(b, b.encv.data()); std::printf("warmup %ld model[%d] %.3f ms run_ms=%.3f\n", i, b.enc_k, t, enc_run); }
+        // --profile 1: LiteRT's profiler around each encoder round (started right before, stopped right after; start clears the buffer)
+        LiteRtProfiler prof = nullptr;
+        const bool prof_on = profile && LiteRtCompiledModelGetProfiler(b.enc->cm, &prof) == kLiteRtStatusOk && prof != nullptr;
+        if (profile && !prof_on) std::printf("profile model[%d] bucket=%s status=no_profiler\n", b.enc_k, b.label.c_str());
+        std::vector<std::vector<double>> pcls(7);  // per class (5), the delegate node (5), the run (6): ms per round
+        std::map<std::string, std::pair<std::vector<double>, int>> ptag;  // tag -> (ms per round, events in the last round)
+        for (long r = 0; r < rounds; ++r) {
+          if (prof_on) LiteRtStartProfiler(prof);
+          double t = do_enc(b, b.encv.data());
+          if (prof_on) LiteRtStopProfiler(prof);
+          ve.push_back(t); for (float v : b.encv) if (!std::isfinite(v)) { ++nfr; break; } std::printf("round %ld model[%d] write+run+readback_ms=%.3f run_ms=%.3f\n", r, b.enc_k, t, enc_run); std::fflush(stdout);
+          if (prof_on) {
+            int ne = 0; LiteRtGetNumProfilerEvents(prof, &ne); std::vector<ProfiledEventData> ev(ne > 0 ? ne : 0);
+            if (ne > 0 && LiteRtGetProfilerEvents(prof, ne, ev.data()) != kLiteRtStatusOk) ne = 0;
+            double cls[6] = {0, 0, 0, 0, 0, 0}; int n_del = 0, n_op = 0; std::map<std::string, std::pair<double, int>> tr;
+            for (int i = 0; i < ne; ++i) {
+              const std::string tag = ev[i].tag ? ev[i].tag : ""; const double ms = ev[i].elapsed_time_us / 1000.0;
+              if (ev[i].event_type == DELEGATE_PROFILED_OPERATOR_INVOKE_EVENT || ev[i].event_type == DELEGATE_OPERATOR_INVOKE_EVENT) { cls[OpClass(tag)] += ms; tr[tag].first += ms; ++tr[tag].second; ++n_del; }
+              else if (ev[i].event_type == OPERATOR_INVOKE_EVENT) {
+                if (tag.find("Delegate") != std::string::npos) cls[5] += ms;  // the delegate kernel node (its ops are the delegate events)
+                else { cls[OpClass(tag)] += ms; tr["op:" + tag].first += ms; ++tr["op:" + tag].second; ++n_op; }
+              }
+            }
+            for (int c = 0; c < 6; ++c) pcls[c].push_back(cls[c]);
+            pcls[6].push_back(enc_run);
+            for (auto& [tg, v] : tr) { auto& d = ptag[tg]; d.first.push_back(v.first); d.second = v.second; }
+            std::printf("profile model[%d] bucket=%s round=%ld events=%d delegate_ops=%d tflite_ops=%d run_ms=%.3f delegate_node_ms=%.3f", b.enc_k, b.label.c_str(), r, ne, n_del, n_op, enc_run, cls[5]);
+            for (int c = 0; c < 5; ++c) std::printf(" %s=%.3f", kOpClasses[c], cls[c]);
+            std::printf("\n"); std::fflush(stdout);
+          }
+        }
+        if (prof_on && !pcls[6].empty()) {
+          std::printf("profile_summary model[%d] bucket=%s rounds=%zu median_ms run=%.3f delegate_node=%.3f", b.enc_k, b.label.c_str(), pcls[6].size(), Median(pcls[6]), Median(pcls[5]));
+          for (int c = 0; c < 5; ++c) std::printf(" %s=%.3f", kOpClasses[c], Median(pcls[c]));
+          std::printf("\n");
+          std::vector<std::pair<double, std::string>> order; for (auto& [tg, d] : ptag) order.push_back({-Median(d.first), tg});
+          std::sort(order.begin(), order.end());
+          for (auto& [neg, tg] : order) std::printf("profile_tag model[%d] bucket=%s class=%s median_ms=%.3f rounds=%zu events_per_round=%d tag=%s\n", b.enc_k, b.label.c_str(), kOpClasses[OpClass(tg)], -neg, ptag[tg].first.size(), ptag[tg].second, JsonStr(tg).c_str());
+          std::fflush(stdout);
+        }
+        for (long i = 0; i < warmup; ++i) do_mel(b, x.data(), n);
+        for (long r = 0; r < rounds; ++r) { double t = do_mel(b, x.data(), n); vm.push_back(t); std::printf("round %ld model[%d] write+run+readback_ms=%.3f run_ms=%.3f\n", r, b.mel_k, t, mel_run); }
+        std::printf("summary model[%d] %s n=%zu median=%.3f min=%.3f max=%.3f nonfinite_rounds=%zu compile_ms=%.1f fully_accelerated=%s\n", b.enc_k, b.enc->path.c_str(), ve.size(), Median(ve),
+                    *std::min_element(ve.begin(), ve.end()), *std::max_element(ve.begin(), ve.end()), nfr, b.enc->compile_ms, b.enc->fully ? "true" : "false");
+        std::printf("summary model[%d] %s n=%zu median=%.3f min=%.3f max=%.3f nonfinite_rounds=0 compile_ms=%.1f fully_accelerated=%s\n", b.mel_k, b.mel->path.c_str(), vm.size(), Median(vm),
+                    *std::min_element(vm.begin(), vm.end()), *std::max_element(vm.begin(), vm.end()), b.mel->compile_ms, b.mel->fully ? "true" : "false");
+        if (bi == 0) {  // the whole loop on the 30 s window (the model[2] line)
+          do_enc(b, b.encv.data());
+          for (long i = 0; i < warmup; ++i) do_loop(b.encv.data(), b.T, ev, w);
+          for (long r = 0; r < rounds; ++r) { double t = do_loop(b.encv.data(), b.T, ev, w); vl.push_back(t); std::printf("round %ld model[2] write+run+readback_ms=%.3f run_ms=%.3f steps=%d tokens=%zu\n", r, t, w.dec_run_ms, w.steps, w.tok.size()); }
+          std::printf("summary model[2] %s n=%zu median=%.3f min=%.3f max=%.3f nonfinite_rounds=0 compile_ms=%.1f fully_accelerated=%s loop=whole_window enc_valid=%d\n", dec.path.c_str(), vl.size(), Median(vl),
+                      *std::min_element(vl.begin(), vl.end()), *std::max_element(vl.begin(), vl.end()), dec.compile_ms, dec.fully ? "true" : "false", ev);
+        }
+        std::fflush(stdout);
+      }
+    }
+  }
+  if (!gpu_cache_dir.empty()) { std::printf("gpu_cache when=before_destroy dir=%s %s\n", gpu_cache_dir.c_str(), DirList(gpu_cache_dir).c_str()); std::fflush(stdout); }
+  for (auto& m : ms) { for (auto& s : m.sigs) { for (auto b : s.outs) LiteRtDestroyTensorBuffer(b); for (auto b : s.ins) LiteRtDestroyTensorBuffer(b); } LiteRtDestroyCompiledModel(m.cm); LiteRtDestroyOptions(m.opts); LiteRtDestroyModel(m.model); }
+  LiteRtDestroyEnvironment(env);
+  if (!gpu_cache_dir.empty()) std::printf("gpu_cache when=after_destroy dir=%s %s\n", gpu_cache_dir.c_str(), DirList(gpu_cache_dir).c_str());
+  std::printf("done wall_ms=%lld\n", WallMs());
+  std::fflush(stdout);
+  return 0;
+}
