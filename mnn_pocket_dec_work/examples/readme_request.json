@@ -1,0 +1,13 @@
+{
+  "state": "The shoes arrived, but they are the wrong size. I want to send them back for an exchange. Payment and delivery were fine.",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this customer request?",
+      "criteria": {
+        "returns": "Returns, exchanges and refunds",
+        "billing": "Charges, invoices and payment problems"
+      }
+    }
+  }
+}

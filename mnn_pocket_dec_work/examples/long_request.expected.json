@@ -1,0 +1,42 @@
+{
+  "answers": {
+    "next_step": {
+      "type": "choice",
+      "probabilities": {
+        "page_payments": 0.31896998545712557,
+        "write_review": 0.21555576558748002,
+        "merge_guard": 0.24747728511122705,
+        "reply_tickets": 0.1402887089269445,
+        "close_incident": 0.07770825491722286
+      },
+      "choice": "page_payments"
+    },
+    "customer_money_at_risk": {
+      "type": "noul",
+      "probabilities": {
+        "false": 0.3404338937221151,
+        "true": 0.6595661062778849
+      },
+      "noul": 0.6595661062778849,
+      "decision": true
+    },
+    "severity": {
+      "type": "score",
+      "probabilities": {
+        "0": 0.03167365918787832,
+        "1": 0.1153910869583813,
+        "2": 0.6467545206714986,
+        "3": 0.20618073318224178
+      },
+      "score": 2.027442327848104,
+      "legend": {
+        "0": "Resolved; no further impact.",
+        "1": "Minor; cleanup only.",
+        "2": "Major; customer impact continues until an action is taken.",
+        "3": "Critical; the service is down."
+      }
+    }
+  },
+  "input_tokens": 1024,
+  "temperature": 1.1111832893308136
+}

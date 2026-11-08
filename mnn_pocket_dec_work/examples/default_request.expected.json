@@ -1,0 +1,38 @@
+{
+  "answers": {
+    "department": {
+      "type": "choice",
+      "probabilities": {
+        "billing": 0.1822708762804036,
+        "shipping": 0.4106426916105132,
+        "returns": 0.4070864321090833
+      },
+      "choice": "shipping"
+    },
+    "needs_human": {
+      "type": "noul",
+      "probabilities": {
+        "false": 0.683687418565652,
+        "true": 0.3163125814343481
+      },
+      "noul": 0.3163125814343481,
+      "decision": false
+    },
+    "urgency": {
+      "type": "score",
+      "probabilities": {
+        "0": 0.2025663174892786,
+        "1": 0.6462451363703442,
+        "2": 0.15118854614037727
+      },
+      "score": 0.9486222286510988,
+      "legend": {
+        "0": "No time pressure",
+        "1": "Routine",
+        "2": "Handle today"
+      }
+    }
+  },
+  "input_tokens": 85,
+  "temperature": 1.1111832893308136
+}

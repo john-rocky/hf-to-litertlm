@@ -1,0 +1,14 @@
+{
+  "answers": {
+    "department": {
+      "type": "choice",
+      "probabilities": {
+        "returns": 0.8639161838173487,
+        "billing": 0.13608381618265128
+      },
+      "choice": "returns"
+    }
+  },
+  "input_tokens": 60,
+  "temperature": 1.1111832893308136
+}

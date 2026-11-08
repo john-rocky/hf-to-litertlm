@@ -1,0 +1,36 @@
+MNN-Pocket-0.3B-Dec for LiteRT
+
+The LiteRT graphs in this repository are converted from taobao-mnn/MNN-Pocket-0.3B-Dec, revision
+dfbe0aed3abd4caed175b883a4b462ed35184fad (https://huggingface.co/taobao-mnn/MNN-Pocket-0.3B-Dec), Copyright 2026 Taobao
+and Tmall Group of Alibaba, licensed under the Apache License 2.0. LICENSE is that repository's LICENSE.txt.
+
+What the conversion changed: the LoRA adapter is folded into the backbone weights in float32; the decoder is written out as
+a plain PyTorch module and exported at fixed lengths; the FULLY_CONNECTED weights are stored as float16. The graphs come in
+three forms, described in conversion/README.md ("The forms"). In the *_fp16w and *_fp16w_npu files, the inputs of the
+RMSNorm layers named there are scaled by 2^-4 with their epsilon scaled by 4^-4, which is exact in float32. In the
+*_fp16w_npu files, SiLU is also written with EXP in place of LOGISTIC. In the *_fp16w_tensor files, every RMSNorm divides
+its input by 4 times the row's mean absolute value, with its epsilon divided by the square of that number, which is the
+same formula in exact arithmetic.
+
+The *_fp16w_npu_SM8850 files hold the *_fp16w_npu graph of the same length compiled ahead of time for the Qualcomm SM8850
+NPU: one DISPATCH_OP and a context binary that the Qualcomm compiler plugin of LiteRT (ai-edge-litert 2.3.0) made with
+Qualcomm's QAIRT SDK 2.50.0.260828. QAIRT is Qualcomm's SDK under Qualcomm's license and is not in this repository;
+conversion/README.md says where to get it, and conversion/npu/Dockerfile builds the compile image from it.
+
+tokenizer.json (base/tokenizer.json of that repository), decision_head.safetensors and temperature.json are that
+repository's files, unchanged. embedding.safetensors holds the bytes of model.embed_tokens.weight from its
+base/model.safetensors, unchanged, in a file of its own.
+
+host/pocket_dec_litert.py ports the request handling and the answers of that repository's inference.py. Changes: the head
+runs in numpy, the graphs have fixed lengths, and a request longer than the largest graph raises an error. That
+inference.py states that its encoding and pointer mechanism are adapted from the Kev architecture (Apache-2.0).
+
+examples/readme_request.json is the call in that repository's README and examples/default_request.json is the
+DEFAULT_REQUEST of its inference.py; examples/*.expected.json are that inference.py's answers.
+examples/long_request.json was written for this conversion, and everything in it is invented.
+
+conversion/dec_graph.py writes out the Qwen3 decoder of transformers (Apache License 2.0). The conversion used
+litert-torch, litert-converter, ai-edge-quantizer and LiteRT (ai-edge-litert), each licensed under the Apache License 2.0.
+
+The conversion scripts (conversion/, conversion/npu/ included), the Python host and the example runner in this repository
+are licensed under the Apache License 2.0 (LICENSE).

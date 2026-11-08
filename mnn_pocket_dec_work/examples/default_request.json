@@ -1,0 +1,27 @@
+{
+  "state": "I was charged twice for the same order. Please help.",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this request?",
+      "criteria": {
+        "billing": "Charges and payment problems",
+        "shipping": "Delivery and lost packages",
+        "returns": "Returns and refunds"
+      }
+    },
+    "needs_human": {
+      "type": "noul",
+      "instructions": "Does this request require a human agent?"
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this request?",
+      "criteria": [
+        "No time pressure",
+        "Routine",
+        "Handle today"
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+# Reference environment: Python 3.12. The original repository's requirements.txt (torch 2.8.0, transformers 4.57.1,
+# peft 0.19.1, safetensors 0.7.0, accelerate 1.14.0, numpy 1.26.4) with their dependencies, as installed for the shipped run.
+# Used by merge_lora.py and reference_examples.py.
+accelerate==1.14.0
+certifi==2026.10.23
+charset-normalizer==3.5.2
+filelock==4.2.9
+fsspec==2026.9.0
+hf-xet==1.8.0
+huggingface-hub==0.36.2
+idna==3.20
+jinja2==3.1.6
+markupsafe==3.0.4
+mpmath==1.3.0
+networkx==3.7
+numpy==1.26.4
+packaging==26.3
+peft==0.19.1
+psutil==7.2.2
+pyarrow==26.0.1
+pyyaml==6.0.3
+regex==2026.11.7
+requests==2.34.2
+safetensors==0.7.0
+setuptools==84.2.1
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.8.0
+tqdm==4.70.1
+transformers==4.57.1
+typing-extensions==4.16.0
+urllib3==2.8.0

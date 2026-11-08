@@ -1,0 +1,62 @@
+{
+  "state": {
+    "incident": "INC-20871 checkout latency and duplicate payments",
+    "service_owner": "payments platform team",
+    "region": "eu-west-1",
+    "customer_impact": "slow checkout for 31 minutes; 212 orders captured twice",
+    "log": [
+      "02:14 [pager] Alert fired: checkout-api p99 latency above 2.5 s for 5 minutes in eu-west-1.",
+      "02:16 [on-call] Acknowledged. Dashboards show the latency rise started at 02:07, right after the 02:05 deploy of checkout-api build 4812.",
+      "02:19 [on-call] Error rate is 0.8 % (normal is 0.1 %). Most errors are timeouts calling the payments service. Payments itself reports healthy.",
+      "02:23 [on-call] Connection pool on checkout-api is saturated: 200 of 200 connections in use, queue length growing. Build 4812 changed the pool size from 400 to 200 by mistake in the config map.",
+      "02:26 [on-call] Rolled back the config map to the previous revision. Pods are restarting one by one; three of twelve are on the old pool size so far.",
+      "02:31 [pager] Second alert: order-confirmation emails delayed, queue depth 18,000 and rising.",
+      "02:33 [on-call] Email delay is downstream of checkout: confirmations are only sent after payment capture, and captures are retrying. Not a separate fault.",
+      "02:38 [on-call] All twelve pods restarted. Pool usage dropped to 140 of 400. p99 latency back to 410 ms. Error rate 0.15 %.",
+      "02:41 [support] Customer support reports 37 tickets from users who were charged but saw an error page. Some of them retried and may have paid twice.",
+      "02:47 [on-call] Checked payments ledger: 212 orders have two successful captures within ten minutes between 02:07 and 02:38. Refunds are not automatic for this case.",
+      "02:52 [on-call] Email queue draining at about 1,500 per minute; expected to be empty around 03:05.",
+      "02:58 [finance] Finance asks for the list of duplicate captures before the morning settlement batch at 06:00, otherwise the duplicates settle and refunds take five to seven days.",
+      "03:04 [on-call] Exported the 212 orders to the incident document. Did not issue refunds yet: refund tooling needs approval from a payments engineer for batches over 50.",
+      "03:09 [on-call] Email queue empty. Latency and error rate normal for 30 minutes. Root cause: config change in build 4812 halved the connection pool. A guard rail to block pool sizes below 300 is proposed but not merged.",
+      "03:12 [on-call] Open items: approve and run the refund batch before 06:00, merge the guard rail, write the post-incident review, reply to the 37 support tickets."
+    ],
+    "current_time": "03:15",
+    "staff_on_shift": [
+      "one on-call engineer",
+      "one support lead"
+    ],
+    "payments_engineer_on_call": "not yet paged"
+  },
+  "questions": {
+    "next_step": {
+      "type": "choice",
+      "instructions": "What is the most important next step for the on-call engineer right now?",
+      "criteria": {
+        "page_payments": "Page the payments engineer to approve the refund batch before the 06:00 settlement.",
+        "write_review": "Start writing the post-incident review while the details are fresh.",
+        "merge_guard": "Merge the connection-pool guard rail so the fault cannot repeat.",
+        "reply_tickets": "Reply to the 37 support tickets one by one.",
+        "close_incident": "Close the incident: the service is healthy again."
+      }
+    },
+    "customer_money_at_risk": {
+      "type": "noul",
+      "instructions": "Is customer money still at risk if nobody acts in the next three hours?",
+      "criteria": {
+        "false": "The duplicate charges will be fixed without further action.",
+        "true": "The duplicate charges will settle and customers wait days for refunds."
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is this incident now, after the rollback?",
+      "criteria": [
+        "Resolved; no further impact.",
+        "Minor; cleanup only.",
+        "Major; customer impact continues until an action is taken.",
+        "Critical; the service is down."
+      ]
+    }
+  }
+}

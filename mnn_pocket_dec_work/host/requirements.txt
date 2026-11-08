@@ -1,0 +1,7 @@
+# Python host (host/pocket_dec_litert.py) and examples/run_examples.py; no PyTorch.
+# Checked with Python 3.14.6 on macOS (Apple silicon): python3 -m venv .venv && .venv/bin/pip install -r host/requirements.txt
+ai-edge-litert==2.3.0
+numpy==2.5.4
+tokenizers==0.23.3
+safetensors==0.8.0
+ml-dtypes==0.6.0
