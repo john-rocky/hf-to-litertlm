@@ -156,6 +156,19 @@ def strip_evidence(obj):
     for item in obj:
       strip_evidence(item)
 
+def merge_variant_io(caps, var_io):
+  """The model's vision / audio = true when one of its variants takes that input: the variant's own model type
+  declares it and the variant's own file has the encoder section (derive_capabilities per variant). The first
+  variant's model type alone decided it before, so a repo whose first file in the curated order is text-only
+  lost the vision of its VL file (Qwen3.5-0.8B and Qwen3.5-2B, once the curated order came first on 2026-11-07).
+  Thinking and channels stay the first variant's. `var_io` = [(vision, audio)] of the variants with an
+  LlmMetadata; empty = `caps` unchanged."""
+  if var_io:
+    caps["vision"] = any(v for v, _ in var_io)
+    caps["audio"] = any(a for _, a in var_io)
+  return caps
+
+
 def derive_capabilities(m, sections=None):
   """Capabilities from the LlmMetadata model type, gated by the bundle's sections when given:
   a text-only bundle packed with a family configuration that declares image / audio tokens
@@ -648,6 +661,7 @@ def main():
   # recommended file sorts later (MNN-Pocket-0.3B: `_int8.litertlm` before `_int8_ekv2048.litertlm`) could not say so.
   order = [n for n in curated_variants if n in files] + sorted(n for n in files if n not in curated_variants)
   variants, model_meta, controls = [], None, {}
+  var_io = []   # (vision, audio) of each variant: its own model type gated by its own sections
   for name in order:
     f = files[name]
     lfs = f.get("lfs") or {}
@@ -678,6 +692,8 @@ def main():
     for line in vision_section_warnings(name, sections):
       print(line, file=sys.stderr)
     if llm_meta is not None:
+      vc = derive_capabilities(llm_meta, sections)
+      var_io.append((vc["vision"], vc["audio"]))
       controls[name] = derive_thinking_control(llm_meta)
       control, basis = controls[name]
       print(f"WARN {name}: thinking control not derived — {basis}"
@@ -719,7 +735,7 @@ def main():
       # the first variant's in the decided order (the default); variants[].context_length has each file's own
       model["context_length"] = model_meta.max_num_tokens
     all_sections = [sec for var in variants for sec in var.get("sections", [])]
-    model["capabilities"] = derive_capabilities(model_meta, all_sections)
+    model["capabilities"] = merge_variant_io(derive_capabilities(model_meta, all_sections), var_io)
     control = model_thinking_control(controls)  # 0.1.3
     if control is not None:
       model["capabilities"]["thinking"]["control"] = control

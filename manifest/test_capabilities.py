@@ -149,5 +149,33 @@ class Capabilities(unittest.TestCase):
         sections, meta = mm.parse_bundle_header(fake_bundle(meta_fn(), types))
         self.assertEqual(caps(meta, sections), want, (meta_fn.__name__, types))
 
+class ModelCapabilities(unittest.TestCase):
+  """The model-level flag over several files: a repo whose first file in the curated order is text-only and whose
+  other file is a VL file (Qwen3.5-0.8B: `Qwen3.5-0.8B_int8` first, `Qwen3.5-0.8B-VL_int8` second) takes images."""
+
+  def model_io(self, files):
+    var_io = []
+    for meta, secs in files:
+      c = mm.derive_capabilities(meta, secs)
+      var_io.append((c["vision"], c["audio"]))
+    first, all_secs = files[0][0], [s for _, secs in files for s in secs]
+    c = mm.merge_variant_io(mm.derive_capabilities(first, all_secs), var_io)
+    return c["vision"], c["audio"]
+
+  def test_text_first_then_vl_file(self):
+    self.assertEqual(self.model_io([(generic_meta(), TEXT), (generic_meta(image=True), TEXT + VISION)]),
+                     (True, False))
+
+  def test_declared_but_no_file_has_the_section(self):
+    self.assertEqual(self.model_io([(lfm2_meta(), TEXT), (lfm2_meta(), TEXT)]), (False, False))
+
+  def test_section_in_a_file_whose_type_does_not_declare_it(self):
+    self.assertEqual(self.model_io([(generic_meta(image=True), TEXT), (generic_meta(), TEXT + VISION)]),
+                     (False, False))
+
+  def test_one_file_is_unchanged(self):
+    self.assertEqual(self.model_io([(gemma3n_meta(), TEXT + VISION + AUDIO)]), (True, True))
+
+
 if __name__ == "__main__":
   unittest.main(verbosity=2)
