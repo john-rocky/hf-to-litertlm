@@ -214,6 +214,11 @@
     "group": 2,
     "recipe": "cards/nanbeige4.2-3b-litert.md"
   },
+  "Nemotron-3-Nano-30B-A3B": {
+    "task": "chat, thinking",
+    "group": 1,
+    "recipe": "REPRODUCE.md#nemotron-3-nano-30b-a3b--a-52-layer-hybrid-decoder-mamba-2-mixture-of-experts-attention-written-with-the-litert-tensor-api-each-layers-128-squared-relu-experts-in-one-moe-custom-op-as-its-gelu_tanh-with-a-scaled-input-and-output-int4-blockwise-experts-int8-projections-and-lm_head-fp32-activations-a-4096-token-cache-for-litert-lm-0191-2026-11-10"
+  },
   "Nemotron-3-Nano-4B": {
     "task": "reasoning",
     "group": 2,
