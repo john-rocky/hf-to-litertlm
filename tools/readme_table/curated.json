@@ -522,6 +522,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#qwen3-coder-30b-a3b-instruct--the-qwen3-30b-a3b-decoder-steps-with-the-sources-chat-template-rewritten-for-litert-lm-the-xml-tool-call-patterns-and-the-generic_model-type-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-09"
   },
+  "Qwen3-32B": {
+    "task": "chat, thinking",
+    "group": 1,
+    "recipe": "REPRODUCE.md#qwen3-32b--a-dense-32b-as-one-int8-file-from-the-released-litert-torch-0100-an-f32-copy-of-the-checkpoint-the-fused-projections-written-once-as-a-file-gpu-composites-int8-per-channel-weights-int4-failed-the-accuracy-check-for-litert-lm-0191s-gpu-backend-2026-11-09"
+  },
   "granite-speech-5.0-2b": {
     "task": "speech to text and speech translation (en, fr, de, es, pt, ja)",
     "group": 4,
