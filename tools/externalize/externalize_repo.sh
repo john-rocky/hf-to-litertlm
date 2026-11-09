@@ -18,6 +18,11 @@
 #                                 default 256 (the tool's own). Per section it is raised to the largest INT8 / UINT8
 #                                 per-channel DEPTHWISE_CONV_2D or CONV_2D filter (lib/dw_floor.py): LiteRT's GPU delegate refuses
 #                                 such a filter as an external buffer, and the file would get no GPU engine
+#     --keep-float-inline         per section, raise the threshold to the largest FLOAT16 / FLOAT32 weight
+#                                 (lib/float_floor.py) so every float weight stays in the graph and only integer
+#                                 weights go to the weights section (FLOAT_EXTERNAL = no: LiteRT's WebGPU streamed
+#                                 loading takes only INT8 / INT4 / INT2 external weights); a file whose only weights
+#                                 are float then has nothing to externalize (exit 5). Default off
 #     --executor-metadata auto|off  auto = a bundle with a prefill_decode section and no ExecutorMetadata section gets
 #                                 one generated from the signatures (lib/executor_skeleton.py); default off
 #     --smoke-attachment PNG      the smoke asks about this image instead of the text question (vision bundles)
@@ -58,12 +63,14 @@ REPO=$1
 FILE=$2
 shift 2
 SOURCE= API_JSON= REVISION=main KEEP_MB=0 EXECMD=off ATTACH= NO_SMOKE=0 SMOKE_ONLY=0 W= S= KEEP_WORK=0 NO_HUB=0 THRESH=256
+KEEP_FLOAT=0
 need() { [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a value"; exit 2; }; }
 while [ $# -gt 0 ]; do
   case $1 in
     --source) need "$@"; SOURCE=$2; shift 2 ;;
     --no-hub) NO_HUB=1; shift ;;
     --num-elements-threshold) need "$@"; THRESH=$2; shift 2 ;;
+    --keep-float-inline) KEEP_FLOAT=1; shift ;;
     --api-json) need "$@"; API_JSON=$2; shift 2 ;;
     --revision) need "$@"; REVISION=$2; shift 2 ;;
     --keep-inline-under-mb) need "$@"; KEEP_MB=$2; shift 2 ;;
@@ -294,7 +301,17 @@ while IFS=$'\t' read -r idx mt inp; do
     th=$fmax
     log "section $idx $mt: $fn INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters (largest $fmax elements): threshold $THRESH -> $th, they stay in the graph"
   fi
-  kv "threshold_$mt" "$th (asked $THRESH; INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters: $fn, largest $fmax elements)"
+  ftxt=
+  if [ "$KEEP_FLOAT" = 1 ]; then
+    ff=$("$PY" -I "$LIB/float_floor.py" "$inp" 2> "$LG/float_floor_$mt.err") || fail 1 "float_floor.py failed on $mt ($LG/float_floor_$mt.err)"
+    gmax=$(echo "$ff" | cut -f1); gn=$(echo "$ff" | cut -f2); gk=$(echo "$ff" | cut -f3)
+    if [ "$gmax" -gt "$th" ]; then
+      th=$gmax
+      log "section $idx $mt: $gn float weights (largest $gmax elements): threshold -> $th, they stay in the graph (--keep-float-inline; integer weights kept with them: $gk)"
+    fi
+    ftxt="; float weights: $gn, largest $gmax elements, kept in the graph (--keep-float-inline) with $gk integer weights of more than 256 elements"
+  fi
+  kv "threshold_$mt" "$th (asked $THRESH; INT8 per-channel DEPTHWISE_CONV_2D / CONV_2D filters: $fn, largest $fmax elements$ftxt)"
   pytool "$LG/externalize_$mt.log" litert.tools.externalize_tflite_flatbuffer --input_model "$inp" --output_dir "$od" \
     --group_name tflite_weights --num_elements_threshold "$th" || fail 1 "the tool failed on $mt ($LG/externalize_$mt.log)"
   if [ -s "$od/tflite_weights" ]; then
