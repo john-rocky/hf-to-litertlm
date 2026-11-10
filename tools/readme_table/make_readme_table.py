@@ -125,7 +125,7 @@ def build():
         p = m["model"].get("parameters_b")
         phone, mac = best_rows(m, c.get("speed_skip", ()))
         label = "card" if c["recipe"].startswith("cards/") else "recipe"
-        rows.append((c["group"], p or 0, name.lower(), f"| [{name}](https://huggingface.co/{repo}) | {p:g}B | {c['task']} | "
+        rows.append((c["group"], p or 0, name.lower(), f"| [{name}](https://huggingface.co/{repo}) | {p:.3g}B | {c['task']} | "
                                           f"{phone} | {mac} | [{label}]({c['recipe']}) |"))
     if errors:
         sys.exit("refusing to write:\n  " + "\n  ".join(errors))
@@ -161,6 +161,8 @@ def main():
         return
     open(README, "w").write(new)
     print(f"README.md updated ({n} rows)")
+    import make_speed_chart  # the figure at the top of the README follows the table
+    make_speed_chart.main()
 
 
 if __name__ == "__main__":

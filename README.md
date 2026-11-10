@@ -1,117 +1,63 @@
 # hf-to-litertlm
 
-Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 113 published conversions below, each with
-measured speeds and a one-command reproduction.
+Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 113 published conversions below, most with speeds measured on a phone and a Mac.
 
-LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
-(`com.google.mediapipe:tasks-genai`), which is in maintenance-only mode. To try a published
-bundle on a Mac before it goes on a phone (needs [uv](https://docs.astral.sh/uv/)):
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/main/docs/images/speed-dark.svg">
+  <img alt="Scatter plot of decode speed against model size for the published conversions measured on a phone, colored by CPU, GPU or NPU. Speed falls as models get larger." src="docs/images/speed-light.svg" width="860">
+</picture>
+</p>
+
+If you want an open model in an Android or iPhone app, look for it in the [list of converted models](#converted-models) first. If it isn't there, [ask for it](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml) with the model's Hugging Face link. I reply on the issue with the bundle, the recipe and the measured numbers, or the reason it couldn't be converted. Two SDKs already load these files by repo name: [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) and [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai).
+
+## Try a published model
+
+On a Mac, before it goes on a phone (needs [uv](https://docs.astral.sh/uv/)):
 
 ```bash
-uvx litert-lm@0.18.0 run --from-huggingface-repo=litert-community/LFM2.5-1.2B-Instruct LFM2.5-1.2B-Instruct_int4_gpu.litertlm --prompt="What is 17 + 25? Answer briefly."
+uvx litert-lm@0.18.0 run \
+  --from-huggingface-repo=litert-community/LFM2.5-1.2B-Instruct \
+  LFM2.5-1.2B-Instruct_int4_gpu.litertlm \
+  --prompt="What is 17 + 25? Answer briefly."
 ```
 
-## Hugging Face model → `.litertlm` → phone
+To use a published bundle in an Android app, add [hfmodels-android](https://github.com/john-rocky/hfmodels-android) with one Gradle dependency and a few lines of Kotlin ([code](docs/apps.md#android)). In an iPhone app, it loads through [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm) ([code](docs/apps.md#iphone)).
+
+## Convert a finetune
 
 ```bash
-uv sync                                                    # the pinned toolchain (uv.lock) into .venv
-uv run python scripts/convert.py <org>/<model>             # -> out/<model>/<model>_int8.litertlm + <model>.lock.json
-uv run python scripts/verify_lock.py out/<model>/<model>.lock.json   # rebuild from the lock: MATCH = the same bytes
-uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"         # same bundle runs on a phone: see below
+uvx hf-to-litertlm <org>/<model>
 ```
 
-The same scripts run from PyPI without a clone: `uvx hf-to-litertlm <org>/<model>` converts on the `uv.lock` of the
-commit the package was built from and writes under `./out`; `uvx hf-to-litertlm verify <lock>` and
-`uvx hf-to-litertlm check <bundle>` run `verify_lock.py` and `check_bundle.py` (litert-lm 0.18.0, CPU: load + one echo
-prompt). The hybrid families and `--curated` need a clone; the package says so and names it
-([pypi/README.md](pypi/README.md)).
+That runs `convert.py` from PyPI and writes the bundle under `./out`. The hybrid families (granite-4.0-h, Falcon-H1, Zamba2 and Nemotron-H) need a clone, and the package tells you when:
 
-`convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
-pre-quantized repos) and gates every bundle before calling it done. The lock records the Hub
-commit, the sha256 of every file the export read, the export call and every package version
-([docs/one-command-lock.md](docs/one-command-lock.md)); a failure ends in one line,
-`FAIL <stage>: <op or first error line> -> next: <hint>`. When litert-lm 0.18 cannot render the model's chat template the way transformers does,
-`convert.py` edits it (`.get` → indexing, text parts → one string) and keeps the edit only if the prompt
-renders byte-identical on three test conversations (four when the template reads `enable_thinking`); the lock records
-the edit counts. Qwen3-1.7B, SmolLM2-1.7B-Instruct and
-gemma-4-E2B-it rebuild from their locks byte for byte (`bash scripts/verify_refs.sh`,
-[locks/refs/CHANGELOG.md](locks/refs/CHANGELOG.md)). To rebuild a published model
-instead: `bash scripts/reproduce_llm.sh <key>` or `bash scripts/reproduce_vlm.sh <key>`.
-
-In an Android app, a published bundle is one Gradle line and a few lines of Kotlin through
-[hfmodels-android](https://github.com/john-rocky/hfmodels-android)
-(`implementation("io.github.john-rocky.hfmodels:hfmodels-litertlm:0.1.1")`), pinned to the file
-and backend of its device record:
-
-```kotlin
-val models = HfModels(applicationContext)
-val chat = models.fromPretrained(
-    ModelRef("litert-community/LFM2.5-1.2B-Instruct", revision = "f45d8d8abe93bff4026efee20fa483150ce8e687", variant = "int4_gpu"),
-    Tasks.Chat, LoadOptions(backendPolicy = BackendPolicy.RequireProfile("gpu"))) { event -> Log.i("hfmodels", event.toString()) }
-val session = chat.createConversation(ConversationConfig(systemInstruction = Contents.of("You are a helpful assistant.")))
-session.stream(Contents.of("What is 17 + 25? Answer briefly.")).collect { message -> append(message.text) }
-withContext(NonCancellable) { models.closeAndJoin() }
+```bash
+git clone https://github.com/john-rocky/hf-to-litertlm
+cd hf-to-litertlm
+uv sync
+uv run python scripts/convert.py <org>/<model>
+uv run python scripts/verify_lock.py out/<model>/<model>.lock.json
+uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"
 ```
 
-In an iPhone app, a bundle loads through [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm)
-with `LiteRTChat(huggingFaceRepo:fileName:)`; the verified path for a fine-tune is its
-[recipe](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md).
+`verify_lock.py` rebuilds the bundle from its lock file and prints MATCH when the bytes are the same.
 
-**Want a model converted?** [Open a model request](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml)
-with its Hugging Face link. That is the whole ask. The bundle, the recipe, and the measured
-numbers come back on the issue, or the reason it could not be converted.
-
-**Run a published model on Android:** start with
-[LFM2.5-1.2B-Instruct](https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct) and the
-[hfmodels 0.1.1 install and first-reply guide](https://github.com/john-rocky/hfmodels-android#add-it).
-The guide fixes the model revision and GPU profile, includes the imports and cleanup,
-and shows the expected **42** reply and where to report a failure. Its tested target is
-a **Pixel 8a with 8 GB RAM, Android 16**; installation needs **API 31+, compileSdk 36**
-and a 736 MB download plus cache space. [Other SDK entry points](readers/README.md#sdk-entry-points)
-are listed separately with their verification scope.
-
-## Used in other projects
-
-- [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) — on-device LLM
-  inference for React Native on LiteRT-LM, on npm as
-  [`react-native-litert-lm`](https://www.npmjs.com/package/react-native-litert-lm). Since 0.7.0 its
-  `resolveFromManifest()` takes a repo name from the table above and picks the
-  `.litertlm` file, backend, sampler defaults, and stream channels from that repo's
-  [`litertlm_manifest.json`](#deployment-manifests), so a published bundle of a family its
-  engine knows (its README lists them) loads without a conversion step
-  ([source](https://github.com/hung-yueh/react-native-litert-lm/blob/568552814d9e512a09763b547261918dccd5224b/src/manifestResolver.ts)).
-- [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai) (formerly flutter_gemma) —
-  on-device AI for Flutter. Its LiteRT-LM package, on pub.dev as
-  [`flutter_edge_ai_litertlm`](https://pub.dev/packages/flutter_edge_ai_litertlm), has shipped
-  `LitertlmManifestResolver` since `flutter_gemma_litertlm` 1.6.0. `FlutterEdgeAi.resolveHuggingFace("<repo>")`
-  reads a repo's manifest and returns the `.litertlm` file that fits the platform, so a
-  published bundle from the table above installs in a Flutter app without a conversion step
-  ([source](https://github.com/DenisovAV/flutter_edge_ai/tree/712ff53881695c8866eb7a0ae56e9b72ee85dc12/packages/flutter_edge_ai_litertlm/lib/src/manifest)).
-- [local_assistant_v2](https://github.com/taslimmuhammed/local_assistant_v2) — an Android
-  assistant app with on-device memory search. Its EmbeddingGemma converter, which builds a
-  LiteRT-LM EmbeddingEngine bundle, follows the recipe in
-  [`embedding_engine_work/`](embedding_engine_work/)
-  ([source](https://github.com/taslimmuhammed/local_assistant_v2/blob/e352d9536fb86ff7f31b9b56258342db7dad9d2b/tools/embedder/convert_embeddinggemma.py)).
-
-Both manifest resolvers vendor the reference readers in [`readers/`](readers/) and were
-contributed from this repository as pull requests
-([#25](https://github.com/hung-yueh/react-native-litert-lm/pull/25),
-[#469](https://github.com/DenisovAV/flutter_edge_ai/pull/469)). The SDKs' maintainers merged
-them and now ship and maintain them.
+`convert.py` handles finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h, Falcon-H1 and Nemotron-H, and every dense architecture the stock exporter handles. LoRA and PEFT repos merge automatically. It refuses gated, remote-code and pre-quantized repos and says why. It then asks the finished bundle 8 test questions and reports a failure if fewer than 6 are right. [All the flags and steps](docs/convert.md) are in the docs.
 
 ## Converted models
 
-Decode speed is tokens per second, read from each repo's `litertlm_manifest.json`: the fastest
-verified backend per device class, compiled-model cache off, prefill and conditions in the
-manifest. A range is the spread across runs. A dash means no measured row for that class yet.
+The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OCR, speech to text and translation. Each speed is tokens per second on the fastest backend verified on that class of device, taken from the repo's `litertlm_manifest.json`. A range is the spread across runs, and a dash means not measured yet.
+
+<details>
+<summary>Show all the conversions</summary>
 
 <!-- models-table:start -->
 | Model | Params | Task | Phone: decode tok/s | Mac: decode tok/s | Recipe |
 |---|---:|---|---|---|---|
 | [LFM2.5-230M](https://huggingface.co/litert-community/LFM2.5-230M) | 0.23B | chat | iPhone 17 Pro GPU 161.7 | M4 Max GPU 561.2 | [recipe](REPRODUCE.md#lfm25-230m-the-smallest-decoder--a-template-the-runtime-cannot-parse-and-a-shape-that-kills-the-gpu-shader-compile) |
-| [gemma-3-270m-it-NPU](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT) | 0.268098B | chat, Qualcomm NPU only (compiled on the device) | Galaxy S26 NPU 190.8–192.9 | — | [recipe](REPRODUCE.md#gemma-3-270m-it-qualcomm-npu-srq-compiled-on-the-device--the-rope-ranges-raised-to-the-cache-end) |
-| [MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B) | 0.302831B | chat (en, zh), tool calls as JSON text | Galaxy S26 NPU 157.4–158.0 | M4 Max GPU 490.9 | [recipe](REPRODUCE.md#mnn-pocket-03b--a-03b-chatml-model-as-one-int8-file-litert-torchs-stock-export_hf-with-gpu-composites-prefill-signatures-of-128-and-1024-tokens-a-4096-token-kv-cache-the-source-tokenizerjson-and-a-chat-template-that-takes-content-parts-2026-11-06) |
+| [gemma-3-270m-it-NPU](https://huggingface.co/mlboydaisuke/gemma-3-270m-it-NPU-LiteRT) | 0.268B | chat, Qualcomm NPU only (compiled on the device) | Galaxy S26 NPU 190.8–192.9 | — | [recipe](REPRODUCE.md#gemma-3-270m-it-qualcomm-npu-srq-compiled-on-the-device--the-rope-ranges-raised-to-the-cache-end) |
+| [MNN-Pocket-0.3B](https://huggingface.co/litert-community/MNN-Pocket-0.3B) | 0.303B | chat (en, zh), tool calls as JSON text | Galaxy S26 NPU 157.4–158.0 | M4 Max GPU 490.9 | [recipe](REPRODUCE.md#mnn-pocket-03b--a-03b-chatml-model-as-one-int8-file-litert-torchs-stock-export_hf-with-gpu-composites-prefill-signatures-of-128-and-1024-tokens-a-4096-token-kv-cache-the-source-tokenizerjson-and-a-chat-template-that-takes-content-parts-2026-11-06) |
 | [granite-4.0-h-350m](https://huggingface.co/litert-community/granite-4.0-h-350m) | 0.35B | chat | Galaxy S26 CPU 97.6 | — | [recipe](REPRODUCE.md#granite-40-h-350m-fp16--int8--and-the-start_token-lesson) |
 | [LFM2.5-350M](https://huggingface.co/litert-community/LFM2.5-350M) | 0.35B | chat | Galaxy S26 GPU 106.9 | M4 Max GPU 425.9 | [recipe](REPRODUCE.md#lfm25-350m--the-litert-lm-modelslfm2-configuration-replaces-the-vendor-template-and-the-4-section-export-needs-a-quantizer-that-keeps-every-section) |
 | [Falcon-H1-0.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-0.5B-Instruct) | 0.5B | chat | Galaxy S26 CPU 32.1–40.5 | M4 Max GPU 127.5 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
@@ -127,8 +73,8 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Falcon-H1-1.5B-Deep-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Deep-Instruct) | 1.5B | chat | Galaxy S26 CPU 11.3–12.0 | M4 Max GPU 51.7 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Falcon-H1-1.5B-Instruct](https://huggingface.co/litert-community/Falcon-H1-1.5B-Instruct) | 1.5B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 102.9 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Qwen2.5-Coder-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-Coder-1.5B-Instruct) | 1.54B | code | Galaxy S26 CPU 27.0–29.7 | M4 Max GPU 137.8 | [recipe](REPRODUCE.md#qwen25-coder-15b-instruct--a-15b-code-model-at-112-gb-and-why-the-size-is-the-recipe) |
-| [LFM3-1.7B](https://huggingface.co/litert-community/LFM3-1.7B-LiteRT) | 1.7288B | local agents, tool calls (XML), optional thinking | Galaxy S26 CPU 35.5 | — | [recipe](REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29) |
-| [LFM3-1.7B-Base](https://huggingface.co/litert-community/LFM3-1.7B-Base-LiteRT) | 1.7288B | text continuation and few-shot prompts (the pre-trained base of LFM3-1.7B) | Galaxy S26 CPU 35.1 | — | [recipe](REPRODUCE.md#lfm3-17b-base--the-lfm3-17b-recipe-on-the-pre-trained-weights-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-11-08) |
+| [LFM3-1.7B](https://huggingface.co/litert-community/LFM3-1.7B-LiteRT) | 1.73B | local agents, tool calls (XML), optional thinking | Galaxy S26 CPU 35.5 | — | [recipe](REPRODUCE.md#lfm3-17b--a-short-convolution--sliding-window--global-attention-hybrid-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-10-29) |
+| [LFM3-1.7B-Base](https://huggingface.co/litert-community/LFM3-1.7B-Base-LiteRT) | 1.73B | text continuation and few-shot prompts (the pre-trained base of LFM3-1.7B) | Galaxy S26 CPU 35.1 | — | [recipe](REPRODUCE.md#lfm3-17b-base--the-lfm3-17b-recipe-on-the-pre-trained-weights-as-four-text-files-int4-on-the-mlp-gate-and-up-projections-with-int8-elsewhere-or-int8-everywhere-each-with-a-2048--or-4096-token-cache-2026-11-08) |
 | [LFM2-2.6B](https://huggingface.co/litert-community/LFM2-2.6B) | 2.57B | chat | Galaxy S26 GPU 27.8 | M4 Max GPU 163.8 | [recipe](REPRODUCE.md#lfm2-26b--a-model-that-reasons-when-it-chooses-a-thought-channel-kept-on-and-an-int4-zero-scale-fix-that-has-to-clear-the-blocks-too) |
 | [LFM2-2.6B-Exp](https://huggingface.co/litert-community/LFM2-2.6B-Exp) | 2.57B | chat | Galaxy S26 GPU 27.6 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#lfm2-26b-exp--lfm2-26bs-recipe-unchanged-for-a-checkpoint-that-reasons-although-its-card-does-not-say-so) |
 | [G9v3-3B](https://huggingface.co/litert-community/G9v3-3B) | 2.99B | chat | Galaxy S26 GPU 18.5 | M4 Max GPU 84.2 | [recipe](REPRODUCE.md#g9v3-3b--a-dense-3b-with-a-thinking-switch-gptq-calibrated-int4-on-a-mac-and-a-gpu-activation-type-declared-per-file) |
@@ -148,7 +94,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Qwen3.8-27B](https://huggingface.co/litert-community/Qwen3.8-27B) | 26.9B | chat | — | M4 Max GPU 18.2 | [recipe](REPRODUCE.md#2026-10-22--qwen38-27b-the-9b-hybrid-recipe-at-27b-exported-from-an-f32-copy-of-the-checkpoint-and-quantized-from-the-float-tflite-without-a-float-litertlm) |
 | [Qwen3-30B-A3B](https://huggingface.co/litert-community/Qwen3-30B-A3B) | 30.5B | chat, thinking (LiteRT-LM built from source) | — | M4 Max GPU 54.8 | [recipe](REPRODUCE.md#qwen3-30b-a3b--a-48-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-03) |
 | [Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/litert-community/Qwen3-Coder-30B-A3B-Instruct) | 30.5B | code, tool calls (LiteRT-LM built from source) | — | M4 Max GPU 54.9 | [recipe](REPRODUCE.md#qwen3-coder-30b-a3b-instruct--the-qwen3-30b-a3b-decoder-steps-with-the-sources-chat-template-rewritten-for-litert-lm-the-xml-tool-call-patterns-and-the-generic_model-type-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-09) |
-| [Nemotron-3-Nano-30B-A3B](https://huggingface.co/litert-community/Nemotron-3-Nano-30B-A3B) | 31.58B | chat, thinking | — | M4 Max GPU 74.6 | [recipe](REPRODUCE.md#nemotron-3-nano-30b-a3b--a-52-layer-hybrid-decoder-mamba-2-mixture-of-experts-attention-written-with-the-litert-tensor-api-each-layers-128-squared-relu-experts-in-one-moe-custom-op-as-its-gelu_tanh-with-a-scaled-input-and-output-int4-blockwise-experts-int8-projections-and-lm_head-fp32-activations-a-4096-token-cache-for-litert-lm-0191-2026-11-10) |
+| [Nemotron-3-Nano-30B-A3B](https://huggingface.co/litert-community/Nemotron-3-Nano-30B-A3B) | 31.6B | chat, thinking | — | M4 Max GPU 74.6 | [recipe](REPRODUCE.md#nemotron-3-nano-30b-a3b--a-52-layer-hybrid-decoder-mamba-2-mixture-of-experts-attention-written-with-the-litert-tensor-api-each-layers-128-squared-relu-experts-in-one-moe-custom-op-as-its-gelu_tanh-with-a-scaled-input-and-output-int4-blockwise-experts-int8-projections-and-lm_head-fp32-activations-a-4096-token-cache-for-litert-lm-0191-2026-11-10) |
 | [Qwen3-32B](https://huggingface.co/litert-community/Qwen3-32B) | 32.8B | chat, thinking | — | M4 Max GPU 11.9 | [recipe](REPRODUCE.md#qwen3-32b--a-dense-32b-as-one-int8-file-from-the-released-litert-torch-0100-an-f32-copy-of-the-checkpoint-the-fused-projections-written-once-as-a-file-gpu-composites-int8-per-channel-weights-int4-failed-the-accuracy-check-for-litert-lm-0191s-gpu-backend-2026-11-09) |
 | [Qwen3.5-35B-A3B](https://huggingface.co/litert-community/Qwen3.5-35B-A3B) | 35B | chat, thinking (LiteRT-LM built from source) | — | M4 Max CPU 5.8 | [recipe](REPRODUCE.md#qwen35-35b-a3b--the-40-layer-hybrid-moe-text-decoder-through-litert-torchs-export_hf-each-layers-256-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-10) |
 | [gpt-oss-120b](https://huggingface.co/litert-community/gpt-oss-120b) | 117B | chat, reasoning | — | M4 Max CPU 4.8 | [recipe](REPRODUCE.md#gpt-oss-120b--a-36-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-experts-in-one-moe-custom-op-with-int4-blockwise-weights-and-gelu-tanh-form-in-place-of-the-sources-clamped-swiglu-int8-attention-and-lm_head-a-4096-token-cache-for-litert-lm-0191-from-pypi-2026-11-10) |
@@ -185,14 +131,14 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [SmolVLM2-500M](https://huggingface.co/litert-community/SmolVLM2-500M) | 0.5B | chat + image | Galaxy S26 GPU 76.3 | M4 Max CPU 63.9 | [card](cards/smolvlm2-500m-litert.md) |
 | [Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) | 0.8B | chat; separate image file | iPhone 17 Pro GPU 65.8 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [OvisOCR2](https://huggingface.co/mlboydaisuke/OvisOCR2-LiteRT) | 0.85B | document OCR | iPhone 17 Pro GPU 48.5 | M4 Max GPU 140.9 | [recipe](REPRODUCE.md#ovisocr2--an-ocr-finetune-rides-the-08b-vision-rail-unchanged) |
-| [Xiaomi-OCR-0](https://huggingface.co/litert-community/Xiaomi-OCR-0) | 0.873439B | OCR: pages, text, tables, formulas, fields | iPhone 18 Pro GPU 71.8 | M4 Max CPU 41.2 | [recipe](REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-2026-11-03) |
+| [Xiaomi-OCR-0](https://huggingface.co/litert-community/Xiaomi-OCR-0) | 0.873B | OCR: pages, text, tables, formulas, fields | iPhone 18 Pro GPU 71.8 | M4 Max CPU 41.2 | [recipe](REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-2026-11-03) |
 | [PaddleOCR-VL-1.6](https://huggingface.co/litert-community/PaddleOCR-VL-1.6) | 0.9B | OCR, 109 languages | — | M4 Max GPU 208.3 | [card](cards/paddleocr-vl-1.6-litert.md) |
 | [InternVL3-1B](https://huggingface.co/litert-community/InternVL3-1B) | 1B | chat + image | Galaxy S26 GPU 84.4 | M4 Max CPU 94.0 | [card](cards/internvl3-1b-litert.md) |
 | [InternVL3_5-1B](https://huggingface.co/litert-community/InternVL3_5-1B) | 1B | chat + image | Galaxy S26 GPU 42.9 | M4 Max GPU 176.2 | [card](cards/internvl3_5-1b-litert.md) |
-| [MiniCPM-OCR-1.0](https://huggingface.co/litert-community/MiniCPM-OCR-1.0) | 1.30043B | OCR: text, tables, formulas, fields | Galaxy S26 CPU 43.5–45.0 | M4 Max GPU 139.3 | [recipe](REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-and-page-tiles-through-one-extra-context-variable-2026-10-29) |
-| [MiniCPM-V-4.7-1B](https://huggingface.co/litert-community/MiniCPM-V-4.7-1B) | 1.55448B | chat + image | iPhone 18 Pro GPU 73.7 | M4 Max GPU 158.4 | [recipe](REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token) |
+| [MiniCPM-OCR-1.0](https://huggingface.co/litert-community/MiniCPM-OCR-1.0) | 1.3B | OCR: text, tables, formulas, fields | Galaxy S26 CPU 43.5–45.0 | M4 Max GPU 139.3 | [recipe](REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-rail-and-page-tiles-through-one-extra-context-variable-2026-10-29) |
+| [MiniCPM-V-4.7-1B](https://huggingface.co/litert-community/MiniCPM-V-4.7-1B) | 1.55B | chat + image | iPhone 18 Pro GPU 73.7 | M4 Max GPU 158.4 | [recipe](REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token) |
 | [LFM2.5-VL-1.6B](https://huggingface.co/litert-community/LFM2.5-VL-1.6B) | 1.6B | chat + image | Galaxy S26 GPU 54.2 | M4 Max GPU 275.3 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
-| [LFM3-VL-2B](https://huggingface.co/litert-community/LFM3-VL-2B-LiteRT) | 1.91818B | questions about an image (en), optional thinking | Galaxy S26 GPU 37.9 | M4 Max GPU 179.0 | [recipe](REPRODUCE.md#lfm3-vl-2b--a-hybrid-vlm-as-a-fast_vlm-file-the-vision-tower-re-written-for-one-512--512-picture-with-the-runtimes-u8-input-taken-back-exactly-and-the-text-decoder-with-int4-or-fp16-weights-2026-10-29) |
+| [LFM3-VL-2B](https://huggingface.co/litert-community/LFM3-VL-2B-LiteRT) | 1.92B | questions about an image (en), optional thinking | Galaxy S26 GPU 37.9 | M4 Max GPU 179.0 | [recipe](REPRODUCE.md#lfm3-vl-2b--a-hybrid-vlm-as-a-fast_vlm-file-the-vision-tower-re-written-for-one-512--512-picture-with-the-runtimes-u8-input-taken-back-exactly-and-the-text-decoder-with-int4-or-fp16-weights-2026-10-29) |
 | [InternVL3-2B](https://huggingface.co/litert-community/InternVL3-2B) | 2B | chat + image | Galaxy S26 GPU 40.4 | M4 Max CPU 50.0 | [card](cards/internvl3-2b-litert.md) |
 | [InternVL3_5-2B](https://huggingface.co/litert-community/InternVL3_5-2B) | 2B | chat + image | Galaxy S26 GPU 21.6 | M4 Max GPU 137.2 | [card](cards/internvl3_5-2b-litert.md) |
 | [Ovis2.5-2B](https://huggingface.co/litert-community/Ovis2.5-2B) | 2B | chat + image | Galaxy S26 GPU 28.3 | M4 Max GPU 142.6 | [card](cards/ovis2_5-2b-litert.md) |
@@ -202,15 +148,15 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [WeVisOne-VL-2B](https://huggingface.co/litert-community/WeVisOne-VL-2B) | 2.44B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 22.5 | M4 Max GPU 117.0 | [recipe](REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25) |
 | [North-Micro-Vision-Instruct](https://huggingface.co/litert-community/North-Micro-Vision-Instruct) | 2.48B | chat + image, 11 languages | Galaxy S26 GPU 13.3 | M4 Max GPU 80.6 | [card](cards/north-micro-vision-instruct-litert.md) |
 | [LFM2.5-VL-3B](https://huggingface.co/litert-community/LFM2.5-VL-3B) | 3B | chat + image | Galaxy S26 GPU 27.0 | M4 Max GPU 143.2 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
-| [Unlimited-OCR-2](https://huggingface.co/litert-community/Unlimited-OCR-2) | 3.34398B | OCR: pages, text, tables, formulas | iPhone 18 Pro CPU 30.5–31.6 | M4 Max GPU 97.7–99.0 | [recipe](REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-pinned-and-128-ring-slots-2026-11-04) |
+| [Unlimited-OCR-2](https://huggingface.co/litert-community/Unlimited-OCR-2) | 3.34B | OCR: pages, text, tables, formulas | iPhone 18 Pro CPU 30.5–31.6 | M4 Max GPU 97.7–99.0 | [recipe](REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-pinned-and-128-ring-slots-2026-11-04) |
 | [InternVL3_5-4B](https://huggingface.co/litert-community/InternVL3_5-4B) | 4B | chat + image | Galaxy S26 GPU 13.3 | M4 Max GPU 86.5 | [card](cards/internvl3_5-4b-litert.md) |
 | [Mage-VL](https://huggingface.co/litert-community/Mage-VL) | 4.7B | chat + image | Galaxy S26 GPU 17.1 | M4 Max GPU 80.0 | [card](cards/magevl-litert.md) |
-| [Mage-VL-Cowork](https://huggingface.co/litert-community/Mage-VL-Cowork) | 4.74179B | GUI agent step: screenshot + instruction -> next action | iPhone 18 Pro GPU 35.2–35.3 | M4 Max GPU 94.3–94.8 | [recipe](REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-bundle-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04) |
-| [Muse-Glimmer-30B](https://huggingface.co/litert-community/Muse-Glimmer-30B-LiteRT) | 29.7766B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 18.3 | [recipe](REPRODUCE.md#muse-glimmer-30b--a-dense-52-layer-decoder-through-export_hf-behind-a-text-only-wrapper-int4-with-its-kv-cache-shortened-to-2048-tokens-in-the-int4-file-and-a-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
-| [Qwen2.5-VL-72B-Instruct](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT) | 73.4108B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 8.6 | [recipe](REPRODUCE.md#qwen25-vl-72b-instruct--the-80-layer-text-decoder-written-with-the-litert-tensor-api-one-tensor-at-a-time-int4-a-2048-token-cache-prefill-32--128--1024-and-the-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
+| [Mage-VL-Cowork](https://huggingface.co/litert-community/Mage-VL-Cowork) | 4.74B | GUI agent step: screenshot + instruction -> next action | iPhone 18 Pro GPU 35.2–35.3 | M4 Max GPU 94.3–94.8 | [recipe](REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-bundle-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04) |
+| [Muse-Glimmer-30B](https://huggingface.co/litert-community/Muse-Glimmer-30B-LiteRT) | 29.8B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 18.3 | [recipe](REPRODUCE.md#muse-glimmer-30b--a-dense-52-layer-decoder-through-export_hf-behind-a-text-only-wrapper-int4-with-its-kv-cache-shortened-to-2048-tokens-in-the-int4-file-and-a-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
+| [Qwen2.5-VL-72B-Instruct](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT) | 73.4B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 8.6 | [recipe](REPRODUCE.md#qwen25-vl-72b-instruct--the-80-layer-text-decoder-written-with-the-litert-tensor-api-one-tensor-at-a-time-int4-a-2048-token-cache-prefill-32--128--1024-and-the-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
 | [Tashkeel-350M-v2](https://huggingface.co/mlboydaisuke/Tashkeel-350M-v2-LiteRT) | 0.34B | Arabic diacritization | Galaxy S26 CPU 67.2–69.0 | M4 Max CPU 97.2 | [recipe](REPRODUCE.md#granite-40-h-finetune-intake-tashkeel-350m-v2--the-recipe-rides-derivatives-unchanged) |
 | [S1-mini](https://huggingface.co/mlboydaisuke/S1-mini-LiteRT) | 0.6B | ASR transcript normalization | iPhone 17 Pro GPU 32.0 | M4 Max GPU 144.6 | [card](cards/s1-mini-litert.md) |
-| [decider-0.8b](https://huggingface.co/litert-community/decider-0.8b-LiteRT) | 0.752393B | typed decisions with calibrated probabilities (System One) | Galaxy S26 CPU 36.9 | M4 Max CPU 42.5 | [recipe](REPRODUCE.md#decider-08b-mapika--a-system-one-decision-model-on-the-qwen35-08b-hybrid-rail-the-readout-is-the-recipe-2026-09-23) |
+| [decider-0.8b](https://huggingface.co/litert-community/decider-0.8b-LiteRT) | 0.752B | typed decisions with calibrated probabilities (System One) | Galaxy S26 CPU 36.9 | M4 Max CPU 42.5 | [recipe](REPRODUCE.md#decider-08b-mapika--a-system-one-decision-model-on-the-qwen35-08b-hybrid-rail-the-readout-is-the-recipe-2026-09-23) |
 | [Fun-ASR-Nano-2512](https://huggingface.co/litert-community/Fun-ASR-Nano-2512) | 0.83B | speech to text (zh / en / ja) | Galaxy S26 CPU 31.6 | M4 Max GPU 143.0 | [card](cards/fun-asr-nano-2512-litert.md) |
 | [LFM3-Audio-2B](https://huggingface.co/litert-community/LFM3-Audio-2B-LiteRT) | 2B | speech to text, questions about audio (en); speech output through LiteRT graphs | Galaxy S26 GPU 40.6 | M4 Max GPU 167.9 | [recipe](REPRODUCE.md#lfm3-audio-2b--speech-and-text-in-text-out-through-one-generic_model-litertlm-file-int4-decoder-audio-encoder-with-fp16-weights-and-speech-out-as-litert-graphs-for-a-host-loop-with-a-galaxy-s26-npu-file-for-the-depth-decoder-2026-10-29) |
 | [Confucius4-R2T2](https://huggingface.co/mlboydaisuke/Confucius4-R2T2-LiteRT) | 2.04B | streaming speech to text (zh / en / ja) | — | — | [card](cards/confucius4-r2t2-litert.md) |
@@ -218,248 +164,51 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Qwen3-ASR-1.7B](https://huggingface.co/litert-community/Qwen3-ASR-1.7B) | 2.04B | speech to text (scored on zh / en / ja) | Galaxy S26 CPU 25.3 | — | [card](cards/qwen3-asr-1.7b-litert.md) |
 | [LFM3-Omni-2B](https://huggingface.co/litert-community/LFM3-Omni-2B-LiteRT) | 2.17B | questions about a picture or a recording (en); speech output through LiteRT graphs | Galaxy S26 GPU 27.0 | M4 Max GPU 84.3–139.0 | [recipe](REPRODUCE.md#lfm3-omni-2b--text-one-picture-and-audio-in-through-one-generic_model-litertlm-file-the-decoder-rescaled-per-input-channel-then-dynamic-int8-and-speech-out-as-litert-graphs-for-a-host-loop-with-the-depth-decoder-of-a-whole-speech-frame-in-one-graph-for-the-phone-gpu-2026-10-29-the-one-frame-graph-2026-11-01) |
 | [VibeVoice-ASR-BitNet](https://huggingface.co/litert-community/VibeVoice-ASR-BitNet) | 2.2B | speech to text | Galaxy S26 GPU 36.1 | M4 Max GPU 138.6 | [card](cards/vibevoice-asr-bitnet-litert.md) |
-| [decider-2b-vision](https://huggingface.co/litert-community/decider-2b-vision-LiteRT) | 2.21324B | decisions from an image with calibrated option probabilities (System One) | Galaxy S26 GPU 8.6 | — | [recipe](REPRODUCE.md#decider-2b-vision-mapika--a-vision-system-one-model-on-the-qwen35-2b-hybrid-rail-the-authors-m-rope-positions-are-derived-inside-the-graph-2026-09-29) |
+| [decider-2b-vision](https://huggingface.co/litert-community/decider-2b-vision-LiteRT) | 2.21B | decisions from an image with calibrated option probabilities (System One) | Galaxy S26 GPU 8.6 | — | [recipe](REPRODUCE.md#decider-2b-vision-mapika--a-vision-system-one-model-on-the-qwen35-2b-hybrid-rail-the-authors-m-rope-positions-are-derived-inside-the-graph-2026-09-29) |
 | [granite-speech-5.0-2b](https://huggingface.co/litert-community/granite-speech-5.0-2b) | 2.31B | speech to text and speech translation (en, fr, de, es, pt, ja) | Galaxy S26 CPU 15.3 | M4 Max GPU 109.9 | [recipe](REPRODUCE.md#granite-speech-50-2b--speech-in-text-out-through-one-generic_model-litertlm-file-the-log-mel-front-end-the-conformer-and-the-q-former-projector-as-one-audio-encoder-graph-with-fp16-weights-for-a-36-second-window-and-the-40-layer-granite-language-model-with-int8-weights-2026-11-06) |
 | [VibeVoice-ASR-Streaming-1.5B](https://huggingface.co/litert-community/VibeVoice-ASR-Streaming-1.5B) | 2.8B | streaming speech to text | Galaxy S26 CPU 46.5 | M4 Max GPU 139.6 | [card](cards/vibevoice-asr-streaming-1.5b-litert.md) |
 | [Shieldstral-1.0-3B](https://huggingface.co/litert-community/Shieldstral-1.0-3B) | 3B | safety classifier, text + image | Galaxy S26 GPU 10.8 | — | [recipe](REPRODUCE.md#shieldstral-10-3b-a-single-token-safety-classifier-not-a-chat-model) |
 <!-- models-table:end -->
 
-Conversions published without a manifest (personal-namespace mirrors, desktop-only files) and
-the 11 non-chat conversions (encoders, embeddings, TTS, image generation) are in
-[REPRODUCE.md](REPRODUCE.md).
+</details>
 
-[`tools/coverage/COVERAGE.md`](tools/coverage/COVERAGE.md) lines this up against what people download: the Hub's 100 most-downloaded `text-generation` and 100 most-downloaded `image-text-to-text` models (30-day count, quantized re-uploads left out), each joined to the `litert-community` repos whose card names it as `base_model`, with what the conversion still lacks: a `.litertlm` file, a manifest, a file verified on GPU, external weights, image input. In the 2026-11-01 (UTC) fetch, 36 of the 200 have a conversion there and 4 lack none of these. `python3 tools/coverage/make_coverage_table.py` rebuilds it from the public Hub API.
-
-## What lives here
-
-1. **A finetune converter.** `python scripts/convert.py <org>/<model>`: one command from Hub
-   id to a gated bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
-   Falcon-H1, Nemotron-H/Nemotron-3-Nano, and every dense architecture the stock exporter
-   handles, about **2,670 tagged derivatives** on the Hub as of 2026-08-26. LoRA/PEFT repos
-   merge automatically. Broken models are refused with a machine-readable reason.
-2. **One-command reproductions** of every model in the table, with the full recipe record in
-   [REPRODUCE.md](REPRODUCE.md).
-3. **A deployment manifest**, `litertlm_manifest.json`, that every published repo ships, with
-   reference readers and a Google Play packer ([below](#deployment-manifests)).
-4. **An on-device check for converted graphs.** `tools/devicebench/` runs a graph on a shared Android
-   phone and keeps the record of every leg; [the agent skill](skills/android-device-gate/SKILL.md) walks through it.
-
-## Setup
-
-```bash
-pip install litert-torch ai-edge-quantizer "transformers==5.14.*" huggingface_hub litert-lm
-export PY=python    # scripts default to ~/venvs/ltconv040dev/bin/python; override with PY
-```
-
-One family needs a different stack: **Qwen3.5** exports only on litert-torch *main*
-(`pip install 'litert-torch @ git+https://github.com/google-ai-edge/litert-torch.git'` in a
-fresh venv — the released 0.9.4 ships the exportables but its output is degenerate).
-`convert.py` refuses with the exact install command when the installed toolchain can't
-convert the model honestly, so you can start without reading further.
-
-## Convert a finetune
-
-```bash
-python scripts/convert.py <org>/<model>              # -> out/<model>/ bundle + convert_report.json
-python scripts/convert.py <org>/<model> --int4       # proven int4 recipe (blockwise-32 OCTAV)
-python scripts/convert.py <org>/<model> --gate-script my_gate.py   # task-specific models
-python scripts/convert.py <org>/<model> --check      # entry gate only, exits 0/2, nothing downloaded
-```
-
-One run does five things:
-
-- **Entry gate.** Gated, remote-code, and pre-quantized repos — and pre-port Zamba2
-  serializations no modern stack can load — are refused with a structured JSON reason
-  before anything downloads. A repo that declares `auto_map` for a model_type transformers
-  now registers natively is *not* remote-code: the pinned library implementation loads and
-  the repo's Python is never imported, so it converts (measured on Nemotron-3-Nano-4B).
-- **Adapter merge.** A LoRA/PEFT repo is merged into its base first (subprocess-isolated);
-  the adapter's own tokenizer, chat template, and generation config win over the base's.
-- **Export.** Stock litert-torch defaults for dense models; pinned family recipes for the
-  architectures no released exporter converts (table below). The derivative's own chat
-  template is embedded verbatim. ≥3B models also get the reduced 7-signature prefill ladder,
-  on both the stock and the family-recipe path.
-- **Post-export guards.** A missing turn-end stop token is added; a spurious start token is
-  dropped when the tokenizer says `add_bos_token: False` (or bos == eos) and the template
-  never renders a leading BOS; the ExecutorMetadata section is retrofitted where the
-  exporter omits it.
-- **Exit gate.** `verify_quality.py` (8 questions, bar 6/8, think-aware budget) — or your
-  `--gate-script` for models the generic gate cannot certify (an Arabic diacritizer answers
-  no trivia). Exit 0 = converted and gated, 1 = converted but gate failed, 2 = refused.
-
-Routing is automatic, by `config.json` model_type. What the converter accepts, with the
-Hub derivative counts behind the coverage claim (recounted 2026-08-26 via `base_model`
-tags over the bases named in each row; mirrors included):
-
-| base family | bases | Hub finetunes + adapters | toolchain | path |
-|---|---|---:|---|---|
-| any dense arch the stock exporter handles | llama 3.x, qwen 2/2.5/3, smollm3, olmo2, phi, ministral, … | open-ended | default stack | stock export |
-| MiniCPM5 | 1B | 53 + 54 | default stack | stock export (plain llama rail) |
-| granite-4.1 (dense) | 3b | 20 + 15 | default stack | stock export; spurious-BOS guard fires (bos == eos) |
-| Hy-MT2 (hunyuan_v1_dense) | 1.8B | 10 + 1 | default stack | stock export after a bitwise-equal rope bake; duplicate-BOS guard fires |
-| Qwen3.5 | 0.8B / 2B / 4B | 1,214 + 928 | litert-torch *main* | stock export; CPU gate |
-| LFM2.5 | 350M / 1.2B / 2.6B | 210 + 94 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
-| granite-4.0-h | 350m / 1b | 24 + 4 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
-| Falcon-H1 | 0.5B / 1.5B / 1.5B-Deep / 3B | 14 + 2 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
-| Zamba2 | 1.2B / 2.7B | 3 + 0; the only real one is pre-port-serialized | pinned checkout | routed; pre-port checkpoints are refused with re-serialization instructions |
-| Nemotron-H | Nemotron-H-4B / Nemotron-3-Nano-4B | 19 + 14 | pinned checkout | family recipe (`HYBRID_RECIPE`); measured on Nemotron-3-Nano-4B ([shipped](https://huggingface.co/litert-community/Nemotron-3-Nano-4B)) |
-
-For `HYBRID_RECIPE` families the one-time checkout setup command is printed on refusal.
-The measurements behind each row — template byte-equality, greedy A/B against the HF
-reference, and three gate refusals of genuinely defective derivatives — are in
-[REPRODUCE.md](REPRODUCE.md).
-
-**iPhone.** A converted bundle loads in an existing iOS app through swift-litert-lm: [recipe](https://github.com/john-rocky/swift-litert-lm/blob/main/docs/recipe-hf-finetune-to-iphone.md) (one SwiftPM dependency, `LiteRTChat(huggingFaceRepo:fileName:)` or `LiteRTChat(modelFileURL:)`, stop and release, a verify command with its expected output).
-
-**VLM derivatives.** `bash scripts/ship_qwen2vl_derivative.sh <org>/<model>` builds the full
-bundle. Qwen2-VL derivatives train the vision tower too (measured: 339/391 vision tensors
-differ on the top derivative), so vision re-exports from the derivative's own weights. The
-script ends with a tokenizer-parity gate (`scripts/gate_specials.py`: every added-token special,
-Latin-1, emoji — the engine's encode against the upstream `tokenizer.json`). The 2026-08 failure
-on a format-exact derivative, first blamed on the runtime, was the bundle's own SentencePiece
-section; the gate is what catches it, and REPRODUCE.md carries the correction.
+Conversions without a manifest and the non-chat ones (encoders, embeddings, text to speech, image generation) are in [REPRODUCE.md](REPRODUCE.md).
 
 ## Speech recognition models
 
-A standalone speech recognition checkpoint converts with the same command. Today that is transformers'
-`ParakeetForTDT` (model_type `parakeet_tdt`): nvidia/parakeet-tdt-0.6b-v3 and finetunes saved with
-transformers. The model_type picks the route; `--task asr` names it.
-
-```bash
-uvx hf-to-litertlm nvidia/parakeet-tdt-0.6b-v3 --smoke               # the package from 0.1.2 on
-uv run python scripts/convert.py nvidia/parakeet-tdt-0.6b-v3 --smoke  # the same from a clone, today
-# -> out/parakeet-tdt-0.6b-v3/parakeet-tdt-0.6b-v3_int8.litertlm (614 MB) + .lock.json + convert_report.json
-```
-
-The file has the form of litert-torch [PR #1426](https://github.com/google-ai-edge/litert-torch/pull/1426):
-a Speech2TextMetadata section, the repo's own `tokenizer.json` and one `.tflite` with the `encode` /
-`decode` / `decode_1` signatures of litert-community's
-[parakeet-tdt-0.6b-v3](https://huggingface.co/litert-community/parakeet-tdt-0.6b-v3) file. MediaPipe's
-`AudioTranscriber` runs it (`pip install mediapipe==1.2.0 soundfile`), and LiteRT-LM's C++ `OmniEngine`
-reads the same sections; the `litert-lm` 0.19.0 Python package and CLI have no speech-to-text API.
-
-```python
-from mediapipe.tasks.python.audio import audio_transcriber
-from mediapipe.tasks.python.core import base_options
-import soundfile as sf
-
-audio, rate = sf.read("speech.wav", dtype="float32")
-if audio.ndim > 1:
-    audio = audio.mean(axis=1)  # the task takes mono samples
-options = audio_transcriber.AudioTranscriberOptions(
-    base_options=base_options.BaseOptions(model_asset_path="out/parakeet-tdt-0.6b-v3/parakeet-tdt-0.6b-v3_int8.litertlm"),
-    sample_rate_hz=rate)
-with audio_transcriber.AudioTranscriber.create_from_options(options) as transcriber:
-    print(transcriber.transcribe(audio, end_of_stream=True).text)
-```
-
-The gate transcribes LibriSpeech clips through that task on the CPU: `--smoke` one clip, by default 73
-clips with a word error rate of at most 0.10 (on a Mac, litert-community's own file scores 0.0609 on them
-and this route's file 0.0626). The export needs no NeMo. CTC, RNN-T, Whisper, Moonshine and the streaming
-Nemotron models are refused with the reason. The design, the field-by-field match with PR #1426 and the
-measurements: [docs/asr-route.md](docs/asr-route.md). `verify <lock>` rebuilds an ASR file to the same bytes
-like any other.
+The same command converts transformers' `ParakeetForTDT` checkpoints: nvidia/parakeet-tdt-0.6b-v3 and finetunes saved with transformers. MediaPipe's `AudioTranscriber` runs the file ([example](docs/convert.md#speech-recognition-models)).
 
 ## Reproduce a published model
 
 ```bash
-bash scripts/reproduce_llm.sh --list          # 25 LLM keys
+bash scripts/reproduce_llm.sh --list
 bash scripts/reproduce_llm.sh olmo2-1b        # -> out/olmo2-1b/model.litertlm
-bash scripts/reproduce_vlm.sh --list          # 13 VLMs
-bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
-The 2026-08 verification sweep executed every then-current LLM recipe end-to-end and gated
-it: **16/18 reproduced and passed** (the two exceptions are documented — one source repo
-went gated, one thinking model the strict gate over-flags). For one model the reproduced
-weights are **bit-identical** to the published artifact. Per-model recipes, caveats, and
-device measurements: [REPRODUCE.md](REPRODUCE.md); per-model cards: `cards/`.
-
-What the lists contain:
-
-- **`reproduce_llm.sh` (25)**: `llama32-3b`, `qwen3-1.7b`, `qwen3-4b-thinking`,
-  `qwen25-3b`, `ministral3-3b` (+`-reasoning`), `olmo2-1b`/`7b`, `smollm3-3b`, `twil-lm3`,
-  `phi4-mini-reasoning`, `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `nanbeige4.2-3b`,
-  `polaris-4b`, `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `s1-mini`,
-  `granite42-3b`, `minicpm5-2b`, `spark-x2.5-1.7b`, `spark-x2.5-4b`.
-- **`reproduce_vlm.sh` (13)**: `granite-docling-258m`, `internvl3-1b`,
-  `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl`, `north-micro-vision`,
-  `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`, `smolvlm2-2.2b`.
-- **Family recipes (22)** (one command each, documented per family in REPRODUCE.md):
-  granite-4.0-h-1b/-350m, granite-4.1-3b, Falcon-H1-0.5B/1.5B/1.5B-Deep/3B-Instruct,
-  Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, **Qwen3.5-0.8B/2B/4B**,
-  LFM2.5-1.2B-Instruct/-Thinking/-JP and 2.6B, MiniCPM5-1B / MiniCPM4-0.5B / MiniCPM4.1-8B,
-  Qwen2.5-Coder-1.5B-Instruct, Shieldstral-1.0-3B.
-- **Beyond chat (13)**: LFM2.5-Encoder-350M/-230M and the four 350M task encoders
-  (PII / policy-linter / prompt-router / spellchecker), LFM2.5-Embedding-350M,
-  LFM2.5-ColBERT-350M, granite-embedding-311m — plain LiteRT `.tflite` encoders — plus
-  Qwen3-TTS-12Hz-0.6B (speech), Bonsai-Image-ternary-4B (FLUX.2-klein image generation)
-  and Kev-0.8B/4B (typed questions answered with option probabilities, `kev_work/`),
-  which run as LiteRT graphs under host loops rather than `.litertlm` bundles.
+Each model's recipe and device measurements are in [REPRODUCE.md](REPRODUCE.md).
 
 ## Convert a new architecture
 
-- **A dense LLM** not listed: run the engine directly —
-  `EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/export_simple_template.py <hf_id> out/<name> templates/<t>.jinja BOCTAV4`
-  (pick a template from `templates/`; `FORCE_SPM=1` for thinking models with added tokens).
-  Then add a `case` to `scripts/reproduce_llm.sh` to keep it reproducible.
-- **A single-image VLM**: copy the closest `scripts/ship_*.sh` with its
-  `convert_*_vision.py` / `prep_*_decoder.py`, adjust dims and the image token.
-  `ovis_work/` shows how to make a dynamic-resolution (NaViT) vision tower export-able.
-- **A hybrid (SSM/attention) family**: the four pinned recipes under `granite_work/`,
-  `falcon_h1_work/`, `zamba2_work/`, and `nemotron_h_work/` are the working examples — each
-  is one litert-torch patch plus one driver script.
+A dense LLM starts from `scripts/export_simple_template.py`, a single-image VLM from the closest `scripts/ship_*.sh`, and a hybrid SSM and attention family from the recipes in `granite_work/`, `falcon_h1_work/`, `zamba2_work/` and `nemotron_h_work/`. The [details](docs/convert.md#convert-a-new-architecture) are in the docs.
 
-## int4 recipes
+## Setup
 
-Defined in `scripts/export_simple_template.py`:
-
-| recipe | what | when |
-|---|---|---|
-| `BOCTAV4` | blockwise-32 int4 + OCTAV optimal clipping + int8 embedding | best quality (Mac/Android) |
-| `BOCTAV4_128` | blockwise-128 variant | 4B models / iOS (~2 GiB section limit) |
-| `BMIX4[_128]` | blockwise int4 min-max + int8 embedding | GPTQ ingest, or when OCTAV isn't needed |
-
-OCTAV is data-free (no calibration set). `EXTERNALIZE_EMBEDDER=1` splits the embedding so 3B+
-models load under the iOS section limit; reasoning models use a thinking template and
-`CACHE=4096`.
+`uv sync` installs the exact package versions in `uv.lock`. A [pip install](docs/convert.md#setup) works too, and some families need another toolchain.
 
 ## Deployment manifests
 
-A `.litertlm` bundle carries the conversation contract in its header, but nothing
-machine-readable says which of a repo's files fits which device, backend, and RAM budget, at
-what measured speed. `manifest/` defines a repo-level `litertlm_manifest.json` for that
-deployment layer: [`manifest/SCHEMA.md`](manifest/SCHEMA.md) (spec),
-[`manifest/make_manifest.py`](manifest/make_manifest.py) (generator),
-[`manifest/examples/`](manifest/examples/) (finished manifests for two of the published repos — 60 repos ship one as of 2026-09-05), and [`readers/`](readers/) (dependency-free TypeScript and Dart reference readers).
-The schema is registered in [SchemaStore](https://www.schemastore.org/litertlm_manifest.json), so editors that use its catalog (VS Code, JetBrains, and others) validate and autocomplete any file named `litertlm_manifest.json` with no setup.
+Every repo in the list ships a `litertlm_manifest.json`, so an app can read which file fits a device, with its backend, RAM budget and measured speed. The format is in [manifest/SCHEMA.md](manifest/SCHEMA.md), and [readers/](readers/) has TypeScript and Dart code that reads it. The same file can [build a Google Play on-device AI pack](docs/manifests.md#deployment-manifests).
 
-The same manifest drives Google Play delivery: [`tools/play_ai_pack/`](tools/play_ai_pack/) turns
-it into a Play for On-device AI pack — one device group per manifest recommendation, the
-device-targeting XML, and a host app that fetches the pack and runs the file on the backend the
-manifest names.
+## Used in other projects
 
-## Audit an org's files
+- [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) takes a repo name from the list and picks the file, backend and sampler defaults from its manifest.
+- [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai) reads a repo's manifest and returns the `.litertlm` file that fits the platform.
+- [local_assistant_v2](https://github.com/taslimmuhammed/local_assistant_v2), an Android assistant app, converts EmbeddingGemma by the recipe in [`embedding_engine_work/`](embedding_engine_work/).
 
-[`tools/community_audit/`](tools/community_audit/) reads the header of every `.litertlm` file of a Hugging Face org (HTTP ranges, no weights) and writes one table of what each file carries: inline or external weights, the ExecutorMetadata section, vision and audio sections, the model type, whether the chat template reads `tools` and `enable_thinking`, the channels, the sampler, and flags for the files to rebuild. Each repo is read at a recorded commit, and `--pin` reads the same commits again, so a second read gives the same table. `run_check.py` runs a file from each of the most-downloaded repos, plus files named on the command line, on the CPU and the GPU (a text question, a tool-call exchange, and a photo question and thinking on and off where the file has them) and notes where the run and the header disagree. The current `litert-community` table is [`tools/community_audit/table/audit.md`](tools/community_audit/table/audit.md).
-
-## Layout
-
-| path | what |
-|---|---|
-| `scripts/convert.py` | the finetune converter (entry gate → export → guards → exit gate) |
-| `scripts/export_simple_template.py` | the LLM engine (template + quant recipe + env knobs) |
-| `scripts/reproduce_llm.sh` · `scripts/reproduce_vlm.sh` | one-command reproductions |
-| `scripts/ship_*.sh`, `convert_*_vision.py`, `prep_*_decoder*.py`, `build_*_bundle.py` | the VLM pipeline |
-| `granite_work/` `falcon_h1_work/` `zamba2_work/` `nemotron_h_work/` | pinned hybrid-family recipes |
-| `qwen35_work/` `lfm_work/` `minicpm_work/` … | per-family recipes and gates |
-| `templates/`, `recipes/` | chat templates + quant recipe JSONs |
-| `cards/` | model cards for the converted bundles |
-| [REPRODUCE.md](REPRODUCE.md) | the full measurement record behind every claim above |
+I wrote the two manifest resolvers and sent them as pull requests ([#25](https://github.com/hung-yueh/react-native-litert-lm/pull/25), [#469](https://github.com/DenisovAV/flutter_edge_ai/pull/469)), and both projects ship them now.
 
 ## License
 
 Code: Apache-2.0. Converted model bundles inherit their base model's license.
 
-This is an independent open-source project, not affiliated with or endorsed by Google.
-LiteRT and LiteRT-LM are Google projects; `.litertlm` names their runtime's bundle format.
+This is an independent open-source project, not affiliated with or endorsed by Google. LiteRT and LiteRT-LM are Google projects, and `.litertlm` is their runtime's bundle format.
