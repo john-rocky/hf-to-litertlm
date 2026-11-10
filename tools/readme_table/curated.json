@@ -39,6 +39,11 @@
     "group": 1,
     "recipe": "cards/fastcontext-4b-litert.md"
   },
+  "gpt-oss-120b": {
+    "task": "chat, reasoning",
+    "group": 1,
+    "recipe": "REPRODUCE.md#gpt-oss-120b--a-36-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-experts-in-one-moe-custom-op-with-int4-blockwise-weights-and-gelu-tanh-form-in-place-of-the-sources-clamped-swiglu-int8-attention-and-lm_head-a-4096-token-cache-for-litert-lm-0191-from-pypi-2026-11-10"
+  },
   "granite-4.0-h-1b": {
     "task": "chat",
     "group": 1,

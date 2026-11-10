@@ -1,0 +1,47 @@
+# Python 3.12. The full `pip freeze` of the venv that ran these steps on 2026-11-10 (pip made it from the direct pins
+# numpy 2.5.4, torch 2.14.0, transformers 5.22.2, flatbuffers 25.12.19, litert-lm-builder 0.19.1, protobuf 7.36.2,
+# huggingface_hub and safetensors). The 36-layer file's pack ran with the same numpy, torch, transformers and
+# flatbuffers, its bundle step with the same litert-lm-builder and protobuf.
+absl-py==2.5.1
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.16.0
+click==8.5.1
+filelock==4.2.10
+flatbuffers==25.12.19
+fsspec==2026.9.0
+h11==0.16.0
+hf-xet==1.8.0
+httpcore2==2.16.0
+httpx2==2.16.0
+huggingface_hub==2.4.0
+idna==3.20
+Jinja2==3.1.6
+litert-lm-builder==0.19.1
+markdown-it-py==4.2.0
+MarkupSafe==3.0.4
+mdurl==0.1.2
+mpmath==1.3.0
+networkx==3.7
+numpy==2.5.4
+packaging==26.3
+protobuf==7.36.2
+pydantic==2.14.3
+pydantic_core==2.50.4
+Pygments==2.21.0
+PyYAML==6.0.3
+regex==2026.11.9
+rich==15.0.0
+safetensors==0.8.0
+setuptools==84.2.1
+shellingham==1.5.4
+sympy==1.14.0
+tokenizers==0.23.3
+tomli==2.5.0
+torch==2.14.0
+tqdm==4.70.1
+transformers==5.22.2
+truststore==0.10.5
+typer==0.29.0
+typing-inspection==0.4.5
+typing_extensions==4.16.0

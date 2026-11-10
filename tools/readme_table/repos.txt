@@ -108,3 +108,4 @@ litert-community/MNN-Pocket-0.3B
 litert-community/granite-speech-5.0-2b
 mlboydaisuke/gemma-3-270m-it-NPU-LiteRT
 litert-community/Nemotron-3-Nano-30B-A3B
+litert-community/gpt-oss-120b

@@ -5206,3 +5206,19 @@ The steps are in [`nemotron3_nano_30b_a3b_work/`](nemotron3_nano_30b_a3b_work/) 
 What ran: the file was made on 2026-11-09 and 2026-11-10 by these steps, run one at a time, with copies of the Python scripts that differ from the ones here only in comments and in where `nh_bundle.py` finds its default template; the writer was built in a LiteRT clone at `dcb657e8` that carried the same patch content and the same graph source apart from comments and two flag help texts. These scripts have not yet been run from a clean checkout of this repository; this entry will say when that ran and what it gave.
 
 - How each part was checked: the README. Speeds and answers: the model card.
+
+## gpt-oss-120b — a 36-layer MoE decoder written with the LiteRT Tensor API: each layer's 128 experts in one `moe` custom op with int4 blockwise weights and GELU (tanh form) in place of the source's clamped SwiGLU, int8 attention and lm_head, a 4,096-token cache, for LiteRT-LM 0.19.1 from PyPI (2026-11-10)
+
+The steps are in [`gpt_oss_120b_work/`](gpt_oss_120b_work/) (its README). They convert [openai/gpt-oss-120b](https://huggingface.co/openai/gpt-oss-120b) at revision `b5c939de` (Apache License 2.0; 36 layers, 128 experts per layer of which 4 are used for each token, the experts stored in MXFP4) into the file of [litert-community/gpt-oss-120b](https://huggingface.co/litert-community/gpt-oss-120b), `gpt_oss_120b_mixed_int4_ekv4096.litertlm` (77,259,120,896 B). The decoder is written with the LiteRT Tensor API one tensor at a time, reading the checkpoint one layer at a time; no fp32 copy of the model is made. The `moe` op of LiteRT-LM 0.19.1 has GELU but not the source's clamped SwiGLU, so the experts use its `gelu_tanh` without the clamps; the README says how far that moves the hidden states and the next-token choice.
+
+| section | bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto (`template/gptoss_litertlm.pbtext`: the chat template with four edits for LiteRT-LM, the harmony headers as channels, stop tokens `<\|return\|>`, `<\|endoftext\|>` and `<\|call\|>`, the `TOP_P` sampler, the `generic_model` type, `max_num_tokens` 4096) | 17,182 | `bdb4745028d938737e60a37751156bbbc2c0f92e30a8d31df37565d931b842be` |
+| HF_Tokenizer_Zlib (unpacks to the checkpoint's `tokenizer.json`, `0614fe83…`) | 4,575,634 | `0b96dc243166cf8366138e3c2535d99cc21fbd45df1b47b32aa370e78909a4cb` |
+| TFLiteModel prefill_decode (`prefer_activation_type` fp32; signatures `prefill_128`, `prefill_1024`, `decode`; a 4,096-token cache) | 77,254,484,224 | `751c62a44f7faea7ae6e006324d3f99a2133b29f4feab8707c08fa50c2a8b899` |
+
+(The sha256 of each section's bytes as stored in the file; `gpt_oss_120b_work/tools/bundle_sections.py` prints this table. The whole file's sha256 is `13aa3c316a94579e51b2fd1d56beac89552025d31ef7d07d3e7a58028b11632c`; the container header carries a uuid and a creation time written at every build.)
+
+What ran: the file was made on 2026-11-09 and 2026-11-10 by these steps, run one at a time, with copies of these files that differ from the ones here only in comments, docstrings, help texts, the comment line `make_pbtext.py` writes at the top of the pbtext, and two defaults (the shard reader's wait for download markers, the overlay's checkout path); the pack step ran under `OMP_NUM_THREADS=4`, which the script now sets (torch's float32 RoPE tables depend on its thread count). The writer was built in a LiteRT clone at `dcb657e8` with the same patch and the same graph source apart from one flag help text and one comment. The script as committed here has not yet run end to end from a clean checkout of this repository; a run with `LAYERS=2`, its file compared tensor by tensor with the 120B file, is queued, and this entry will say when it ran and what it gave.
+
+- How each part was checked: the README. Speeds and answers: the model card.
