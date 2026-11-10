@@ -1,7 +1,7 @@
 # hf-to-litertlm
 
 Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM
-runtime (Android, iOS, macOS, Windows, Linux): 111 published conversions below, each with
+runtime (Android, iOS, macOS, Windows, Linux): 112 published conversions below, each with
 measured speeds and a one-command reproduction.
 
 LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API
@@ -151,6 +151,7 @@ manifest. A range is the spread across runs. A dash means no measured row for th
 | [Nemotron-3-Nano-30B-A3B](https://huggingface.co/litert-community/Nemotron-3-Nano-30B-A3B) | 31.58B | chat, thinking | — | M4 Max GPU 68.2 | [recipe](REPRODUCE.md#nemotron-3-nano-30b-a3b--a-52-layer-hybrid-decoder-mamba-2-mixture-of-experts-attention-written-with-the-litert-tensor-api-each-layers-128-squared-relu-experts-in-one-moe-custom-op-as-its-gelu_tanh-with-a-scaled-input-and-output-int4-blockwise-experts-int8-projections-and-lm_head-fp32-activations-a-4096-token-cache-for-litert-lm-0191-2026-11-10) |
 | [Qwen3-32B](https://huggingface.co/litert-community/Qwen3-32B) | 32.8B | chat, thinking | — | M4 Max GPU 11.9 | [recipe](REPRODUCE.md#qwen3-32b--a-dense-32b-as-one-int8-file-from-the-released-litert-torch-0100-an-f32-copy-of-the-checkpoint-the-fused-projections-written-once-as-a-file-gpu-composites-int8-per-channel-weights-int4-failed-the-accuracy-check-for-litert-lm-0191s-gpu-backend-2026-11-09) |
 | [gpt-oss-120b](https://huggingface.co/litert-community/gpt-oss-120b) | 117B | chat, reasoning | — | M4 Max CPU 4.8 | [recipe](REPRODUCE.md#gpt-oss-120b--a-36-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-experts-in-one-moe-custom-op-with-int4-blockwise-weights-and-gelu-tanh-form-in-place-of-the-sources-clamped-swiglu-int8-attention-and-lm_head-a-4096-token-cache-for-litert-lm-0191-from-pypi-2026-11-10) |
+| [Qwen3.5-122B-A10B](https://huggingface.co/litert-community/Qwen3.5-122B-A10B) | 122B | chat, thinking (LiteRT-LM built from source) | — | M4 Max CPU 3.7 | [recipe](REPRODUCE.md#qwen35-122b-a10b--a-48-layer-hybrid-moe-decoder-gated-deltanet-and-gated-attention-written-with-the-litert-tensor-api-each-layers-256-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-projections-and-lm_head-a-4096-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-10) |
 | [Falcon-H1-Tiny-R-0.6B](https://huggingface.co/litert-community/Falcon-H1-Tiny-R-0.6B) | 0.62B | reasoning | iPhone 17 Pro CPU 29.4 | M4 Max GPU 97.8 | [recipe](REPRODUCE.md#2026-09-01--falcon-h1-tiny-r-06b-the-familys-first-reasoning-ship-and-the-size-where-two-family-assumptions-break) |
 | [LFM2.5-1.2B-Thinking](https://huggingface.co/litert-community/LFM2.5-1.2B-Thinking) | 1.2B | reasoning | iPhone 17 Pro GPU 69.7 | M4 Max GPU 317.9 | [recipe](REPRODUCE.md#lfm25-family-hybrid-shortconv--attention) |
 | [Spark-X2.5-1.7B](https://huggingface.co/litert-community/Spark-X2.5-1.7B) | 1.71B | reasoning | Galaxy S26 GPU 17.4–17.8 | M4 Max GPU 103.6 | [recipe](REPRODUCE.md#spark-x25-17b--4b-sparkllm-team-thinking--a-remote-code-architecture-exported-by-patching-the-vendor-file-not-re-implementing-it) |

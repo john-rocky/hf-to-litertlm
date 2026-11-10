@@ -1,0 +1,84 @@
+--- a/tensor/backends/tflite/tflite_flatbuffer_conversion.h	2026-11-09 23:44:44
++++ b/tensor/backends/tflite/tflite_flatbuffer_conversion.h	2026-11-09 23:44:44
+@@ -65,6 +65,12 @@
+ 
+   // Saves the model to `path`.
+   absl::Status Save(absl::string_view path);
++
++  // Saves the model into `path` from byte `offset` on, without truncating the file: the bytes from `offset` on are the
++  // bytes Save(path) writes from 0 (the buffer offsets inside the model are relative to the model's start). `path`
++  // must not exist or be at most `offset` bytes long. For writing a model straight into its place in a container file
++  // whose other parts are written around it afterwards.
++  absl::Status SaveAt(absl::string_view path, uint64_t offset);
+ 
+   // Creates an interpreter from the model.
+   absl::StatusOr<std::vector<char>> CreateFlatbuffer();
+@@ -129,7 +135,7 @@
+   // is packed. Other constants remain in appended storage.
+   void PrepareBufferData();
+ 
+-  absl::Status WriteBufferData(std::ofstream& output_file);
++  absl::Status WriteBufferData(std::ofstream& output_file, uint64_t base = 0);
+ 
+  private:
+   absl::Status AddSignatureDef(std::string name, int subgraph_index);
+--- a/tensor/backends/tflite/tflite_flatbuffer_conversion.cc	2026-11-09 23:44:44
++++ b/tensor/backends/tflite/tflite_flatbuffer_conversion.cc	2026-11-09 23:44:44
+@@ -824,7 +824,8 @@
+   }
+ }
+ 
+-absl::Status ModelFactory::WriteBufferData(std::ofstream& output_file) {
++absl::Status ModelFactory::WriteBufferData(std::ofstream& output_file,
++                                           uint64_t base) {
+   if (!output_file) {
+     return absl::InternalError(
+         "Can't write buffer data to an invalid output file handle.");
+@@ -834,7 +835,8 @@
+       continue;  // Stored outside the appended buffer region.
+     }
+     LockedBufferSpan<const char> data = buffer.get()->Lock().As<const char>();
+-    output_file.seekp(build_info.serialization_offset);
++    output_file.seekp(static_cast<std::streamoff>(
++        base + build_info.serialization_offset));
+     output_file.write(data.data(), data.size());
+   }
+   // Extend the file to make sure that the last tensor buffer has at least
+@@ -1007,6 +1009,37 @@
+   return absl::OkStatus();
+ }
+ 
++absl::Status ModelFactory::SaveAt(absl::string_view path, uint64_t offset) {
++  {
++    std::ifstream probe(std::string(path), std::ios::binary | std::ios::ate);
++    if (probe.is_open() && static_cast<uint64_t>(probe.tellg()) > offset) {
++      return absl::InvalidArgumentError(
++          "SaveAt: the file is longer than the offset");
++    }
++  }
++  {
++    std::ofstream create(std::string(path), std::ios::binary | std::ios::app);
++    if (!create.is_open()) {
++      return absl::InvalidArgumentError("Could not open output file");
++    }
++  }
++  PrepareBufferData();
++  flatbuffers::FlatBufferBuilder fbb;
++  fbb.Finish(tflite::Model::Pack(fbb, &model_), tflite::ModelIdentifier());
++  LRT_TENSOR_RETURN_IF_ERROR(UpdateBufferData(fbb));
++  // in | out: the file is opened for update ("r+b"), not truncated.
++  std::ofstream output_file(std::string(path),
++                            std::ios::binary | std::ios::in | std::ios::out);
++  if (!output_file.is_open()) {
++    return absl::InvalidArgumentError("Could not open output file");
++  }
++  output_file.seekp(static_cast<std::streamoff>(offset));
++  output_file.write(reinterpret_cast<char*>(fbb.GetBufferPointer()),
++                    fbb.GetSize());
++  LRT_TENSOR_RETURN_IF_ERROR(WriteBufferData(output_file, offset));
++  return absl::OkStatus();
++}
++
+ absl::StatusOr<std::vector<char>> ModelFactory::CreateFlatbuffer() {
+   PrepareBufferData();
+   flatbuffers::FlatBufferBuilder fbb;

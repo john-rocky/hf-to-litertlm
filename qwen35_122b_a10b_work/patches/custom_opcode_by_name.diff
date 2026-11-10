@@ -1,0 +1,50 @@
+diff --git a/tensor/backends/tflite/tflite_flatbuffer_conversion.cc b/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
+index 3a92375..c7929ba 100644
+--- a/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
++++ b/tensor/backends/tflite/tflite_flatbuffer_conversion.cc
+@@ -23,6 +23,7 @@ limitations under the License.
+ #include <deque>
+ #include <fstream>
+ #include <ios>
++#include <map>
+ #include <memory>
+ #include <optional>
+ #include <string>
+@@ -620,8 +621,11 @@ absl::Status ModelFactory::Build() {
+     }
+   }
+ 
+-  // Maps an operator code to its index in `model.operator_codes`.
+-  std::unordered_map<tflite::BuiltinOperator, int> operator_codes;
++  // Maps an operator code to its index in `model.operator_codes`. CUSTOM ops are
++  // keyed by their custom code too: two different custom ops in one model need
++  // two operator codes.
++  std::map<std::pair<tflite::BuiltinOperator, std::string>, int>
++      operator_codes;
+   for (const graph::Operation* operation : execution_plan_) {
+     subgraph_scope_infos_[current_subgraph_idx].op_scope_ids.push_back(
+         GetOrRegisterScopeId(operation->scope));
+@@ -662,14 +666,20 @@ absl::Status ModelFactory::Build() {
+     LRT_TENSOR_ASSIGN_OR_RETURN(graph::TfLiteOpBuildInfo build_info,
+                                 tflite_op->ToTfLite(*operation));
+ 
+-    auto [it, inserted] = operator_codes.emplace(build_info.builtin_code, -1);
++    std::string custom_code_key;
++    if (build_info.builtin_code == tflite::BuiltinOperator_CUSTOM &&
++        build_info.custom_code != nullptr) {
++      custom_code_key = *build_info.custom_code;
++    }
++    auto [it, inserted] = operator_codes.emplace(
++        std::make_pair(build_info.builtin_code, custom_code_key), -1);
+     if (inserted) {
+       it->second = model_.operator_codes.size();
+       model_.operator_codes.push_back(
+           std::make_unique<tflite::OperatorCodeT>());
+       tflite::OperatorCodeT& operator_code = *model_.operator_codes.back();
+-      operator_code.builtin_code = it->first;
+-      operator_code.deprecated_builtin_code = it->first;
++      operator_code.builtin_code = it->first.first;
++      operator_code.deprecated_builtin_code = it->first.first;
+       if (build_info.builtin_code == tflite::BuiltinOperator_CUSTOM) {
+         operator_code.custom_code = *build_info.custom_code;
+       }
