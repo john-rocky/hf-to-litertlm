@@ -85,6 +85,8 @@ python bundle_section_check.py nemotron3_nano_30b_a3b_mixed_int4_ekv4096.litertl
   --tflite nemotronh.tflite --tokenizer ckpt/tokenizer.json
 ```
 
+The model repository's second file, `nemotron3_nano_30b_a3b_mixed_int4_ekv2048.litertlm` (a 2,048-token cache), is the same pack with `--cache=2048` in step 2 and that file name in step 3.
+
 On an Apple M4 Max the pack took 24 minutes (peak footprint 4.4 GB) and the writer and the bundle about 2 hours
 together, the checkpoint and the outputs on a USB disk.
 

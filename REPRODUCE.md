@@ -5203,6 +5203,8 @@ The steps are in [`nemotron3_nano_30b_a3b_work/`](nemotron3_nano_30b_a3b_work/) 
 
 (The sha256 of each section's bytes as stored in the file; `qwen3_30b_a3b_work/bundle_sections.py` prints this table. The whole file's sha256 is `8b9c106a975a079080cf0170a2babba182861922836b64797eb98fd82d53e38c`; the container header carries a uuid and a creation time written at every build.)
 
+The repository's second file, `nemotron3_nano_30b_a3b_mixed_int4_ekv2048.litertlm` (20,625,860,800 B, sha256 `b0bd9a61f9c168197f9c1135762f14d56c39e7f3feb3d71ef8f4b904ed5923f4`), is the same pack written with `--cache=2048` and bundled under that name (the README's steps 2 and 3). Its sections: LlmMetadataProto (`max_num_tokens` 2048) 10,945 B `a26dbdf574d7a13020aa182c2477b4ff7a6da112e807d156f24570a585342584`; ExecutorMetadataProto 3,913 B `8ecdab68c7aae18bdd13ad020a52a24302eb06be295dfc0ef0f6a2eac609bf21`; HF_Tokenizer_Zlib as above; TFLiteModel 20,622,993,600 B `9cf6e574685c174f57abe528aecb982abfd94e9cc8e06def658f26c775be5888`. It was made on 2026-11-10 by the same steps from the same pack.
+
 What ran: the file was made on 2026-11-09 and 2026-11-10 by these steps, run one at a time, with copies of the Python scripts that differ from the ones here only in comments and in where `nh_bundle.py` finds its default template; the writer was built in a LiteRT clone at `dcb657e8` that carried the same patch content and the same graph source apart from comments and two flag help texts. These scripts have not yet been run from a clean checkout of this repository; this entry will say when that ran and what it gave.
 
 - How each part was checked: the README. Speeds and answers: the model card.
