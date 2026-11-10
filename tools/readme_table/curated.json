@@ -542,6 +542,11 @@
     "group": 1,
     "recipe": "REPRODUCE.md#qwen35-122b-a10b--a-48-layer-hybrid-moe-decoder-gated-deltanet-and-gated-attention-written-with-the-litert-tensor-api-each-layers-256-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-projections-and-lm_head-a-4096-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-10"
   },
+  "Qwen3.5-35B-A3B": {
+    "task": "chat, thinking (LiteRT-LM built from source)",
+    "group": 1,
+    "recipe": "REPRODUCE.md#qwen35-35b-a3b--the-40-layer-hybrid-moe-text-decoder-through-litert-torchs-export_hf-each-layers-256-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-10"
+  },
   "granite-speech-5.0-2b": {
     "task": "speech to text and speech translation (en, fr, de, es, pt, ja)",
     "group": 4,

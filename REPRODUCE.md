@@ -5244,3 +5244,44 @@ Run on 2026-11-10 from a clean copy of `qwen35_122b_a10b_work/` as it is here, w
 
 - The file needs a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-10, stops on the CPU (`moe node #236 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The README points to the build of `qwen3_30b_a3b_work/` (LiteRT-LM `dab2e708` with LiteRT pull requests #11192 and #11188), which every check here ran on.
 - How each part was checked: the README. Speeds and answers: the model card.
+
+## Qwen3.5-35B-A3B — the 40-layer hybrid MoE text decoder through litert-torch's export_hf, each layer's 256 SiLU experts in one `moe` custom op with int4 blockwise weights, int8 attention and lm_head, a 4,096-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-10)
+
+The steps are in [`qwen35_35b_a3b_work/`](qwen35_35b_a3b_work/) (its README). They convert the text decoder of [Qwen/Qwen3.5-35B-A3B](https://huggingface.co/Qwen/Qwen3.5-35B-A3B) at revision `59d61f3c` (Apache License 2.0; 40 layers in the layout 10 × (3 × Gated DeltaNet + 1 × gated attention), 256 experts per layer of which 8 routed and 1 shared are used for each token) into the CPU file of [litert-community/Qwen3.5-35B-A3B](https://huggingface.co/litert-community/Qwen3.5-35B-A3B), `qwen35_35b_a3b_mixed_int4_cpu_ekv4096.litertlm` (27,607,274,288 B, sha256 `76493b2885e5a999c35d39f97138fee2ae4ee4249051699c888da59ef30e0f4e`).
+
+| section | bytes | sha256 |
+|---|---|---|
+| LlmMetadataProto (LiteRT-LM's `models/qwen3_5/LlmMetadataProto.pbtext` at v0.19.1 verbatim: the chat template inline, stop token `<\|im_end\|>`, the `generic_model` type, a `thought` channel, `max_num_tokens` 4096) | 4,446 | `0a70ae1fb2cd6d90bf41c299fd17d8cb550a675eb9300d107c03440ab43fb2c9` |
+| ExecutorMetadataProto (export_hf's `executor_metadata.pb`: the global KV, linear-attention and convolution state buffers) | 5,145 | `4236777f0765460350f4d5f950446d9c67bb9733b09b06c704c5b8c15c9ba9b7` |
+| HF_Tokenizer_Zlib (unpacks to the checkpoint's `tokenizer.json`, `5f9e4d49…`) | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+| TFLiteModel prefill_decode (`prefer_activation_type fp32`; prefill 128 and 1024, KV cache 4,096) | 27,603,604,272 | `9da69306e0bc11806d0a3c73ce24ef431f10769c0b911ee1bb97ac0221fd7082` |
+
+(The sha256 of each section's bytes as stored in the file.)
+
+Run on 2026-11-10 (13:35–14:48 JST) from a clean copy of this repository's `qwen35_35b_a3b_work/`, in a new Python 3.12 venv made by its README ("Steps"), with the checkpoint already on disk: `SNAP=<snapshot dir> bash reproduce.sh WORK_DIR`.
+
+- The result: the same computation, not the same bytes. The LlmMetadataProto, ExecutorMetadataProto and HF_Tokenizer_Zlib sections came out byte for byte as in the table. The TFLiteModel section came out the same size with sha256 `4835c7a44bc8f91017ee308521972144ac71a47b6c375f3249026a4865de7150`, the whole file with `a8cfd06907f35bd769713c74ed6bb6c74c90a1300c1dbebc5fc0d9addb6664a7`. The two files differ in two places only:
+  - the container header's uuid and creation time, which litert-lm-builder writes anew at every build, in the file's first 16,384 bytes (the first section starts there);
+  - inside the TFLiteModel section, 69,924 copies of one 12-character string. litert-torch names an extension it loads from a file `_litert_torch_ext_file_q35moe_ext_` followed by the first 12 hex digits of the sha256 of the file's absolute path, and the tensor names carry that name: `0a415b85e8ea` in the rebuild, `20c3c09acbc5` in the published file, which was exported with `q35moe_ext.py` at another path. Every buffer (all weights and constants) is byte-identical. [`tools/tfl_compare`](tools/tfl_compare/)'s `tfl_struct.py` reports the two sections structurally equal, and its must-differ control, the published file with one weight byte flipped, reports `DIFFERENT`.
+- Writing the published header and the published 12 characters into a copy of the rebuilt file gives the published file's sha256. A rebuild in another directory carries its own 12 characters; the check replaces whichever are there (run on 2026-11-10 on this run's rebuild):
+
+  ```bash
+  curl -L -r 0-16383 -o head.bin https://huggingface.co/litert-community/Qwen3.5-35B-A3B/resolve/5440af7d2a5b5d3785a9d533e27f65dc0566c165/qwen35_35b_a3b_mixed_int4_cpu_ekv4096.litertlm
+  cp -c WORK_DIR/qwen35_35b_a3b_mixed_int4_cpu_ekv4096.litertlm check.litertlm   # an APFS clone; cp --reflink=auto on Linux
+  python3 - check.litertlm head.bin <<'EOF'
+  import re, sys
+  pre = b"_litert_torch_ext_file_q35moe_ext_"
+  head = open(sys.argv[2], "rb").read()
+  assert len(head) == 16384, f"head.bin has {len(head)} bytes, not 16384"
+  with open(sys.argv[1], "r+b") as f:
+      region = f.read(64 << 20)  # the graph's tensor names sit in its first megabytes
+      region = re.sub(re.escape(pre) + rb"[0-9a-f]{12}", pre + b"20c3c09acbc5", region)
+      f.seek(0)
+      f.write(head + region[16384:])
+  EOF
+  shasum -a 256 check.litertlm   # 76493b2885e5a999c35d39f97138fee2ae4ee4249051699c888da59ef30e0f4e
+  ```
+
+- The environment: `requirements.txt` is the whole environment the conversion ran in (79 packages, frozen from it) with one difference, `backports-strenum` 1.2.8 for 1.3.1: 1.3.1 declares Python < 3.11 and pip does not install it on 3.12, and on Python 3.11 or later the packages that require it import `enum.StrEnum` instead. litert-torch is installed from source at `67f11e89` with `--no-deps`.
+- The file needs a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-10, refuses it on the CPU (`moe node #94 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The README has the build with LiteRT pull requests #11192 and #11188.
+- How each part was checked: the README. Speeds and answers: the model card.
