@@ -53,9 +53,9 @@ P = 15 (the fixed system turn, `user\n` and `<|vision_start|>`), G = 16 (the mer
 
 The flag is needed. Positions from p alone put a text-only prompt's tokens P … P + N − 1 on the image grid: that model answered 2 of 10 text questions correctly, against 8 with plain positions.
 
-## The cost that stays: text-only conversations past 270 tokens
+## The cost that stays: text-only conversations past 271 tokens
 
-A rule without state makes either picture conversations exact or long text-only conversations, not both. With the flag, a text-only conversation gets the original's positions up to token P + N − 1 = 270 and positions 240 lower after it: a 353-token summary request broke down after 7 tokens (the float32 original wrote 84). At 768 × 768 (G = 24, N = 576, D = 552) the exact range is 590 tokens. Two ways out, not taken for the published file: a separate file of the same checkpoint converted as a plain text-only model, or a decoder state that remembers whether the conversation holds a picture.
+A rule without state makes either picture conversations exact or long text-only conversations, not both. With the flag, a text-only conversation gets the original's positions up to token P + N − 1 = 270 and positions 240 lower after it: a 353-token summary request broke down after 7 tokens (the float32 original wrote 84). At 768 × 768 (G = 24, N = 576, D = 552) the exact range is 591 tokens. Two ways out, not taken for the published file: a separate file of the same checkpoint converted as a plain text-only model, or a decoder state that remembers whether the conversation holds a picture.
 
 ## The export
 
