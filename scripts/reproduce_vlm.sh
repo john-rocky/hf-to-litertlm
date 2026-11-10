@@ -9,9 +9,9 @@
 # See cards/<name>-litert.md for each model's details, and README.md for the recipe.
 set -euo pipefail
 # Pin the hash seed for every ship_*.sh below (the exporter writes the stop tokens in the iteration order of a set of
-# strings; see reproduce_llm.sh). A step that runs `python -I` ignores it: ship_wevisone.sh runs its decoder export
-# under -I, so the PYTHONHASHSEED=0 on that line has no effect either; that bundle's stop tokens do not come from the
-# export (wevisone_work/tools/build_wv_bundle.py writes them in a fixed order).
+# strings; see reproduce_llm.sh). A step that runs `python -I` ignores it: ship_wevisone.sh and ship_wevisone_4b.sh run
+# their decoder export under -I, so the PYTHONHASHSEED=0 on that line has no effect either; those bundles' stop tokens do
+# not come from the export (wevisone_work/tools/build_wv_bundle.py and its 4B copy write them in a fixed order).
 export PYTHONHASHSEED=0
 cd "$(dirname "$0")/.."
 
@@ -34,12 +34,13 @@ case "${1:-}" in
   smolvlm2-2.2b)         bash scripts/ship_smolvlm2_22b.sh ;;     # SigLIP + SmolLM2-1.7B (81 tokens)
   unlimited-ocr-2)       bash scripts/ship_unlimited_ocr_2.sh ;;  # static 1024 DeepEncoder (273 tokens) + DeepSeek-V2 MoE, static DASH, ring KV, int8
   wevisone-vl-2b)        bash scripts/ship_wevisone.sh ;;         # static-512 ViT + 8196-wide DeepStack rows + derived M-RoPE, fp16
+  wevisone-vl-4b)        bash scripts/ship_wevisone_4b.sh ;;      # static-512 ViT + 10244-wide DeepStack rows + derived M-RoPE, int4 b32 + GPU KV composites
   xiaomi-ocr-0)          bash scripts/ship_xiaomi_ocr_0.sh ;;     # static 1344x768 ViT (1,008 tokens) + Qwen3.5 hybrid int8
   --list|"")
     echo "VLM keys (fast_vlm single-image):"
     printf '  %s\n' granite-docling-258m internvl3-1b internvl3.5-1b internvl3.5-2b internvl3.5-4b \
       llava-onevision-0.5b mage-vl-cowork minicpm-ocr-1.0 north-micro-vision ovis2.5-2b paddleocr-vl-1.6 qwen2-vl-2b smolvlm2-500m smolvlm2-2.2b \
-      unlimited-ocr-2 wevisone-vl-2b xiaomi-ocr-0
+      unlimited-ocr-2 wevisone-vl-2b wevisone-vl-4b xiaomi-ocr-0
     echo; echo "each -> out/*-bundle/<Model>.litertlm ; details in cards/*-litert.md" ;;
   *) echo "unknown VLM key: '$1' (run --list)"; exit 2 ;;
 esac
