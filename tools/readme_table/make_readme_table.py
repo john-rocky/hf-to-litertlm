@@ -14,8 +14,8 @@ manifests, and the script refuses to write if a recipe link points at a missing 
 REPRODUCE.md heading that no longer exists.
 
   python3 tools/readme_table/make_readme_table.py            # print the table
-  python3 tools/readme_table/make_readme_table.py --write    # splice it into README.md
-  python3 tools/readme_table/make_readme_table.py --check    # exit 1 if README.md is stale
+  python3 tools/readme_table/make_readme_table.py --write    # splice it into README.md, update the counts in AGENTS.md and llms.txt
+  python3 tools/readme_table/make_readme_table.py --check    # exit 1 if any of the three is stale
 
 Adding a model: append its repo to repos.txt, add its entry to curated.json, run --write.
 """
@@ -25,11 +25,13 @@ import os
 import re
 import sys
 import urllib.request
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 README = os.path.join(ROOT, "README.md")
+AGENT_FILES = [os.path.join(ROOT, name) for name in ("AGENTS.md", "llms.txt")]
 REPRODUCE = os.path.join(ROOT, "REPRODUCE.md")
 START, END = "<!-- models-table:start -->", "<!-- models-table:end -->"
 HEADER = ["| Model | Params | Task | Phone: decode tok/s | Mac: decode tok/s | Recipe |",
@@ -142,11 +144,23 @@ def splice(readme, table, n):
     return f"{head}{START}\n" + "\n".join(table) + f"\n{END}{tail}"
 
 
+def agent_counts(path, text, table, n):
+    """The counts AGENTS.md and llms.txt state, taken from the rows of the README's table."""
+    orgs = Counter(re.search(r"huggingface\.co/([^/]+)/", row).group(1) for row in table[len(HEADER):])
+    for pattern, value in ((r"\d+( published conversions)", n),
+                           (r"\d+( in\s+\[?litert-community)", orgs["litert-community"]),
+                           (r"\d+( under\s+\[?mlboydaisuke)", orgs["mlboydaisuke"])):
+        text, found = re.subn(pattern, lambda m, v=value: f"{v}{m.group(1)}", text, count=1)
+        if not found:
+            sys.exit(f"{os.path.basename(path)} has no text matching {pattern}")
+    return text
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group()
-    g.add_argument("--write", action="store_true", help="rewrite README.md in place")
-    g.add_argument("--check", action="store_true", help="exit 1 if README.md differs from the generated table")
+    g.add_argument("--write", action="store_true", help="rewrite README.md in place and the counts in AGENTS.md and llms.txt")
+    g.add_argument("--check", action="store_true", help="exit 1 if README.md, AGENTS.md or llms.txt differs from the generated text")
     args = ap.parse_args()
     table, n = build()
     if not (args.write or args.check):
@@ -154,13 +168,20 @@ def main():
         return
     readme = open(README).read()
     new = splice(readme, table, n)
+    agents = {path: open(path).read() for path in AGENT_FILES}
+    counted = {path: agent_counts(path, text, table, n) for path, text in agents.items()}
     if args.check:
         if new != readme:
             sys.exit("README.md is stale: run make_readme_table.py --write")
-        print(f"README.md is current ({n} rows)")
+        for path in AGENT_FILES:
+            if counted[path] != agents[path]:
+                sys.exit(f"{os.path.basename(path)} is stale: run make_readme_table.py --write")
+        print(f"README.md, AGENTS.md and llms.txt are current ({n} rows)")
         return
     open(README, "w").write(new)
-    print(f"README.md updated ({n} rows)")
+    for path, text in counted.items():
+        open(path, "w").write(text)
+    print(f"README.md, AGENTS.md and llms.txt updated ({n} rows)")
     import make_speed_chart  # the figure at the top of the README follows the table
     make_speed_chart.main()
 

@@ -1,6 +1,6 @@
 # Using a bundle in an app
 
-LiteRT-LM is Google's recommended replacement for the MediaPipe LLM Inference API (`com.google.mediapipe:tasks-genai`), which is in maintenance-only mode.
+The MediaPipe LLM Inference API (`com.google.mediapipe:tasks-genai`) is deprecated. Since 0.10.33 [its source](https://github.com/google-ai-edge/mediapipe/blob/v0.10.35/mediapipe/tasks/java/com/google/mediapipe/tasks/genai/llminference/LlmInference.java) says "Migrate to LiteRT LM instead."
 
 ## Android
 
