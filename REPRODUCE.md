@@ -4773,6 +4773,34 @@ Run on 2026-11-03 from a clean checkout of this repository, with the scripts of 
 - The files need a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.0 from PyPI, run on 2026-11-03, refuses both on the CPU (`moe node #85 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The README has the build with LiteRT pull requests #11192 and #11188.
 - How each part was checked: the README. Speeds and answers: the model card.
 
+### 2026-11-11 update — the graph rewritten for the GPU (composites and a shorter router), the weights unchanged
+
+On 2026-11-11 both files of [litert-community/Qwen3-30B-A3B](https://huggingface.co/litert-community/Qwen3-30B-A3B) were replaced by the output of [`qwen3_30b_a3b_work/gpu_rewrite.py`](qwen3_30b_a3b_work/gpu_rewrite.py) (step 6 of its README) on the files above: it rewrites the TFLite graph in place and keeps the weights, the metadata and the tokenizer at the same bytes and offsets. The 2,048-token file then declares fp16 activations: [`scripts/set_activation_type_inplace.py`](scripts/set_activation_type_inplace.py) sets the header's `prefer_activation_type` item (2 bytes) and changes nothing else.
+
+```bash
+mkdir -p gpu
+python qwen3_30b_a3b_work/gpu_rewrite.py qwen3_30b_a3b_mixed_int4_ekv4096.litertlm gpu/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm \
+  --rope-theta 1000000 --src-sha256 d908241edce085394d6d444770ddc8998b5c55c3a499d36da5707103da9a8dc1 --report gpu_ekv4096.json
+python qwen3_30b_a3b_work/gpu_rewrite.py qwen3_30b_a3b_mixed_int4_ekv2048.litertlm gpu/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm \
+  --rope-theta 1000000 --src-sha256 a748069e80c09f377eb1cd4109a4e5aaae5f5658ada9da221c633dabf697c719 --report gpu_ekv2048.json
+mkdir -p fp16
+python scripts/set_activation_type_inplace.py gpu/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm \
+  fp16/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm --activation fp16
+```
+
+| file | sha256 before | sha256 after (published) | TFLiteModel section sha256 after |
+|---|---|---|---|
+| `qwen3_30b_a3b_mixed_int4_ekv4096.litertlm` | `d908241edce085394d6d444770ddc8998b5c55c3a499d36da5707103da9a8dc1` | `287eeb63cc347851ea54e46909f482f289b16db63da2c92f0cb3e2b860e1d699` (`gpu/`) | `486a3f2dab923618daba13f6610543f986f4a7868161c91835d88476d542a15b` |
+| `qwen3_30b_a3b_mixed_int4_ekv2048.litertlm` | `a748069e80c09f377eb1cd4109a4e5aaae5f5658ada9da221c633dabf697c719` | `51b287de2e87ff0e5afac312c92b92377e302db9d6a71f56cea2a20ee7434648` (`fp16/`; `gpu/`: `fd9a41b94c2a3a3fba98f8a5df70f1058408569d0a894e88913b32c0923e4b8f`) | `a652223c636e88b281fd735b348c14e66fac90a5090b186ce0753f04deed1429` (both) |
+
+The LlmMetadataProto and HF_Tokenizer_Zlib sections are the ones in the table above, and both files keep 20,650,316,480 B.
+
+Run on 2026-11-11 from a clean export of this repository at `d568570` (`git archive`), with the shipped files as input (the sha256 above, revision `f12ad63f` of the model repository), Python 3.12.11 with numpy 2.5.4, flatbuffers 25.12.19, ai-edge-litert 2.3.0 and litert-lm-builder 0.19.0, on a Mac M4 Max (128 GB, macOS 27.0) with the files on its internal SSD: `gpu_rewrite.py` took 37 s for the 4,096-token file, and its peak memory footprint was 0.23 GB for that file and 0.24 GB for the 2,048-token file (it reads the 16 MB graph structure and hashes both whole files for its asserts), and `set_activation_type_inplace.py` under a second; each output in the `sha256 after (published)` column is the published file byte for byte.
+
+- The new graph: `decode` from 3,621 to 1,546 ops (48 `odml.cache_update`, 96 `odml.runtime_bmm`, 97 `odml.rms_norm`, 96 `odml.qkv_norm_rope`), each prefill signature from 3,566 to 1,519; 15,505,120 B, before the weights at byte 15,579,264 of the TFLite section.
+- The files need the same runtime as before, the build in `qwen3_30b_a3b_work/README.md`: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-11 on the new files, refuses them on the CPU (`moe node #36 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`).
+- How the rewrite was checked: `qwen3_30b_a3b_work/README.md`. Speeds and answers: the model card.
+
 ## Qwen3-Coder-30B-A3B-Instruct — the Qwen3-30B-A3B decoder steps with the source's chat template rewritten for LiteRT-LM, the XML tool-call patterns and the `generic_model` type, a 4,096- or 2,048-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-09)
 
 The steps are in [`qwen3_coder_30b_a3b_work/`](qwen3_coder_30b_a3b_work/) (its README); the pack, the writer and the bundle step are those of [`qwen3_30b_a3b_work/`](qwen3_30b_a3b_work/). They convert [Qwen/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) at revision `b2cff646` (Apache License 2.0; the `config.json` of Qwen3-30B-A3B but for `rope_theta` and `max_position_embeddings`) into the two files of [litert-community/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/litert-community/Qwen3-Coder-30B-A3B-Instruct), `qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm` and `qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm`, 20,650,152,640 B each.

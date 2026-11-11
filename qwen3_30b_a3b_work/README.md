@@ -8,7 +8,12 @@ a `.litertlm` that LiteRT-LM's stock executor runs (`litert_lm_advanced_main`, t
 
 - Each layer's experts are one TFLite custom op `moe`, the op that LiteRT's XNNPACK delegate and GPU delegate run:
   only the 8 routed experts are computed for each token. The router, its softmax, top-8 and the renormalization of the
-  top-8 weights are ordinary ops in the graph.
+  top-8 weights are ordinary ops in the graph (step 6 rewrites them as the top 8 of the logits and a softmax over
+  those 8: the same experts and weights in exact arithmetic).
+- Step 6 rewrites the decoder's graph for the GPU in place (the published files since 2026-11-11): a layer's two
+  KV-cache writes become one `odml.cache_update`, each attention BATCH_MATMUL an `odml.runtime_bmm`, each RMSNorm an
+  `odml.rms_norm` and each q / k head path (RMSNorm, then RoPE) an `odml.qkv_norm_rope`; the CPU runs each composite's
+  original ops. The weights, the metadata and the tokenizer keep their bytes and offsets.
 - Weights: experts int4 blockwise (block 32, one fp32 scale per block: the form LiteRT #11309's quantizer writes for
   this op), attention q / k / v / o and lm_head int8 per channel, router, norms and the token table fp32. Activations
   and the KV cache are fp32.
@@ -77,6 +82,7 @@ decode inputs itself, the setting every GPU check below used):
 | `make_bundle.py`, `template/qwen3_official_dab2e708.pbtext` | the `.litertlm`: the official Qwen3 metadata (sha256 `f132370a…`), the tokenizer, the decoder, fp32 activations declared; `--ids-from` copies the header's uuid and creation time from another file. |
 | `bundle_sections.py` | prints a `.litertlm`'s sections with their sha256, its uuid / creation time and the whole-file sha256. |
 | `apply_ws_patch_cmds.py` | applies the `patch_cmds` of one archive of a bazel WORKSPACE to a local checkout (for the runtime build above). |
+| `gpu_rewrite.py` | step 6: rewrites the TFLite graph of a step-5 file in place for the GPU (the KV composites through `../tools/gpu_graph/gpu_graph_retrofit.py` after a pre-pass that makes each attention BATCH_MATMUL read the rank-4 cache, `odml.rms_norm`, `odml.qkv_norm_rope`, the router as the top 8 of the logits and a softmax over those 8); the new graph is written over a clone of the input before the weights, and the weights and the other sections keep their bytes and offsets (asserted from the written file). |
 
 ## Steps
 
@@ -123,6 +129,30 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
    python bundle_sections.py qwen3_30b_a3b_mixed_int4_ekv2048.litertlm
    ```
 
+6. The graph for the GPU (the published files since 2026-11-11; about 35 s per file, peak memory 0.23 GB). It needs
+   numpy, flatbuffers, ai-edge-litert and litert-lm-builder (run with 2.5.4, 25.12.19, 2.3.0 and 0.19.0). The output
+   starts as a clone of the input (`cp -c` on macOS, `cp --reflink=auto` elsewhere, a full copy where the file system
+   cannot clone):
+
+   ```bash
+   mkdir -p gpu
+   python gpu_rewrite.py qwen3_30b_a3b_mixed_int4_ekv4096.litertlm gpu/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm \
+     --rope-theta 1000000 --report gpu_ekv4096.json
+   python gpu_rewrite.py qwen3_30b_a3b_mixed_int4_ekv2048.litertlm gpu/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm \
+     --rope-theta 1000000 --report gpu_ekv2048.json
+   mkdir -p fp16
+   python ../scripts/set_activation_type_inplace.py gpu/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm \
+     fp16/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm --activation fp16
+   ```
+
+   The published 2,048-token file is the last command's output: the same graph and weights, declaring fp16 activations
+   (the header's `prefer_activation_type` item, 2 bytes; `set_activation_type_inplace.py` checks that nothing else
+   changes). The published 4,096-token file is `gpu_rewrite.py`'s output as it is (fp32 declared).
+
+   `--rope-theta` is the checkpoint's `rope_theta` (Qwen/Qwen3-Coder-30B-A3B-Instruct: 10000000); the script compares it
+   with the graph's RoPE frequencies and stops when they differ. `--dry` runs the rewrite in memory only and prints the
+   sizes, the op counts and the new graph's sha256.
+
 ## How it was checked
 
 - **The op contract, on a tiny model.** A random Qwen3-MoE (3 layers, 16 experts, top-8) written by the same pack and
@@ -140,9 +170,19 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
   with the bf16 weights: on WebGPU both files, and on the CPU the 4,096-token file, give the same verdict as
   Transformers on 12 of 12 questions, end every answer with `<|im_end|>`, and pass the 3-turn check. On WebGPU the
   2,048-token file's 12 answers are byte for byte the 4,096-token file's.
-- **What did not ship.** fp16 activations (7 to 15 % faster decoding on WebGPU): the greedy thinking loops on a
+- **What did not ship.** fp16 activations with the step-5 graph (7 to 15 % faster decoding on WebGPU): the greedy thinking loops on a
   sentence and reaches the token limit without an answer (every one of the 8 questions run on the two files). int4
   attention and lm_head (with 128-wide expert blocks): no faster, and one of the 12 answers loops to the limit.
   Experts with 128-wide blocks: slower than 32-wide blocks.
+- **The graph of step 6.** The script asserts from the written file that the size, the bytes before the TFLite section
+  (header, metadata, tokenizer), the weight region (sha256 of both files) and the section table are the input's, and
+  that every buffer of the input sits at the same index with the same bytes or offset; the int4 experts' blockwise
+  scale references are checked after the rewrite. Without the pre-pass, `gpu_graph_retrofit.py` writes the cache
+  composites and no `odml.runtime_bmm`, without an error; the script then stops (tested by replacing the pre-pass with
+  a no-op). The whole model with the rewritten graph, the 12 questions and 3 turns above: on WebGPU both files, and
+  on the CPU the 4,096-token file, 12 of 12 with Transformers' verdict, every answer ended with `<|im_end|>`, and the
+  3-turn check passed; on WebGPU every answer and the 3 turns are byte for byte the step-5 files'. With fp16 declared (the
+  published 2,048-token file), the same on WebGPU: 12 of 12, every answer ended with `<|im_end|>`, the 3-turn check
+  passed; the text differs from the fp32 form's on 8 of the 12 questions.
 
 Speeds: the model card.
