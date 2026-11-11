@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 440" width="860" height="440" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">96 published conversions measured on a phone</title>
-<desc id="d">Scatter plot of decode speed against model size for 96 conversions measured on a phone, colored by CPU, GPU or NPU.</desc>
-<text x="0.0" y="24.0" font-size="20" font-weight="600" fill="#0b0b0b" text-anchor="start">96 published conversions measured on a phone</text>
+<title id="t">97 published conversions measured on a phone</title>
+<desc id="d">Scatter plot of decode speed against model size for 97 conversions measured on a phone, colored by CPU, GPU or NPU.</desc>
+<text x="0.0" y="24.0" font-size="20" font-weight="600" fill="#0b0b0b" text-anchor="start">97 published conversions measured on a phone</text>
 <text x="0.0" y="46.0" font-size="13" font-weight="400" fill="#52514e" text-anchor="start">Decode speed by model size, fastest verified backend on Galaxy S26, iPhone 17 Pro, iPhone 18 Pro</text>
 <circle cx="7" cy="65" r="5" fill="#2a78d6"/>
 <text x="18.0" y="70.0" font-size="14" font-weight="400" fill="#52514e" text-anchor="start">GPU</text>
@@ -110,6 +110,7 @@
 <circle cx="645.1" cy="289.7" r="5.5" fill="#2a78d6" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="676.8" cy="273.4" r="5.5" fill="#2a78d6" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="678.5" cy="226.7" r="5.5" fill="#2a78d6" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.2" cy="281.5" r="5.5" fill="#2a78d6" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="160.3" cy="184.9" r="5.5" fill="#eb6834" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="272.0" cy="232.9" r="5.5" fill="#2a78d6" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="316.4" cy="223.7" r="5.5" fill="#eb6834" stroke="#ffffff" stroke-width="1.5"/>

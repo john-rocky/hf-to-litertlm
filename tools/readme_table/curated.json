@@ -507,6 +507,11 @@
     "group": 3,
     "recipe": "REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25"
   },
+  "WeVisOne-VL-4B": {
+    "task": "boxes, points, counts and OCR on an image",
+    "group": 3,
+    "recipe": "REPRODUCE.md#wevisone-vl-4b--wevisone-vl-2bs-layout-at-the-4bs-widths-10244-wide-image-rows-an-int4-decoder-with-the-gpu-kv-cache-composites-2026-11-10"
+  },
   "NVIDIA-Nemotron-3.5-Bolt-E4B": {
     "task": "chat, optional thinking",
     "group": 2,

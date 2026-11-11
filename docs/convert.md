@@ -147,7 +147,7 @@ like any other.
 ```bash
 bash scripts/reproduce_llm.sh --list          # 25 LLM keys
 bash scripts/reproduce_llm.sh olmo2-1b        # -> out/olmo2-1b/model.litertlm
-bash scripts/reproduce_vlm.sh --list          # 13 VLMs
+bash scripts/reproduce_vlm.sh --list          # 18 VLM keys
 bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
@@ -164,9 +164,10 @@ What the lists contain:
   `phi4-mini-reasoning`, `r1-distill-qwen-1.5b`/`7b`, `nanbeige4.1-3b`, `nanbeige4.2-3b`,
   `polaris-4b`, `vibethinker-3b`, `jan-nano`, `fastcontext-4b`, `falcon3-3b`, `s1-mini`,
   `granite42-3b`, `minicpm5-2b`, `spark-x2.5-1.7b`, `spark-x2.5-4b`.
-- **`reproduce_vlm.sh` (13)**: `granite-docling-258m`, `internvl3-1b`,
-  `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl`, `north-micro-vision`,
-  `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`, `smolvlm2-2.2b`.
+- **`reproduce_vlm.sh` (18)**: `granite-docling-258m`, `internvl3-1b`,
+  `internvl3.5-1b`/`2b`/`4b`, `llava-onevision-0.5b`, `mage-vl-cowork`, `minicpm-ocr-1.0`,
+  `north-micro-vision`, `ovis2.5-2b`, `paddleocr-vl-1.6`, `qwen2-vl-2b`, `smolvlm2-500m`,
+  `smolvlm2-2.2b`, `unlimited-ocr-2`, `wevisone-vl-2b`, `wevisone-vl-4b`, `xiaomi-ocr-0`.
 - **Family recipes (22)** (one command each, documented per family in REPRODUCE.md):
   granite-4.0-h-1b/-350m, granite-4.1-3b, Falcon-H1-0.5B/1.5B/1.5B-Deep/3B-Instruct,
   Zamba2-1.2B/2.7B-instruct, Nemotron-H-4B-Instruct-128K, **Qwen3.5-0.8B/2B/4B**,
