@@ -4872,6 +4872,36 @@ Run on 2026-11-11 from a clean export of this repository at `d568570` (`git arch
 - The files need the same runtime as before, the build in `qwen3_30b_a3b_work/README.md`: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-11 on the new files, refuses them on the CPU (`moe node #36 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`).
 - How the rewrite was checked: `qwen3_30b_a3b_work/README.md`. Speeds and answers: the model card.
 
+### 2026-11-12 update — the 2,048-token file: int4 attention and lm_head, each layer's attention core as one composite and its q / k / v projections as one FC
+
+On 2026-11-12 the 2,048-token file of [litert-community/Qwen3-30B-A3B](https://huggingface.co/litert-community/Qwen3-30B-A3B) was replaced by the output of step 7 of [`qwen3_30b_a3b_work/README.md`](qwen3_30b_a3b_work/README.md) on the 2,048-token file of the update above: [`qwen3_30b_a3b_work/int4_attention.py`](qwen3_30b_a3b_work/int4_attention.py) writes the attention and lm_head weights as int4, then [`qwen3_30b_a3b_work/decode_rewrite.py`](qwen3_30b_a3b_work/decode_rewrite.py) rewrites each layer's attention core and its q / k / v projections; both work in place, and the metadata and the tokenizer keep their bytes. The step's 4,096-token output, also below, was not published (on the CPU it prefilled about 6 % slower than the file of the update above); the published 4,096-token file is still the one of the update above.
+
+```bash
+python qwen3_30b_a3b_work/int4_attention.py quant QDIR
+mkdir -p i4 fast
+python qwen3_30b_a3b_work/int4_attention.py write qwen3_30b_a3b_mixed_int4_ekv4096.litertlm i4/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm QDIR \
+  --src-sha256 287eeb63cc347851ea54e46909f482f289b16db63da2c92f0cb3e2b860e1d699 --report i4_ekv4096.json
+python qwen3_30b_a3b_work/int4_attention.py write qwen3_30b_a3b_mixed_int4_ekv2048.litertlm i4/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm QDIR \
+  --src-sha256 51b287de2e87ff0e5afac312c92b92377e302db9d6a71f56cea2a20ee7434648 --report i4_ekv2048.json
+python qwen3_30b_a3b_work/decode_rewrite.py i4/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm fast/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm \
+  --src-sha256 7138659f04d2d11554feff70d4887dac5dd5dd704f3c91db5212d7372cf0d0fa --report fast_ekv4096.json
+python qwen3_30b_a3b_work/decode_rewrite.py i4/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm fast/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm \
+  --src-sha256 66a56613f5422cf26587d40753024982e80e4195924d37f5bbe303e514bcae18 --report fast_ekv2048.json
+```
+
+| file | sha256 before (the files of the update above) | sha256 after `int4_attention.py` (`i4/`) | sha256 after (`fast/`; the 2,048-token one is published) | TFLiteModel section sha256 after |
+|---|---|---|---|---|
+| `qwen3_30b_a3b_mixed_int4_ekv4096.litertlm` | `287eeb63cc347851ea54e46909f482f289b16db63da2c92f0cb3e2b860e1d699` | `7138659f04d2d11554feff70d4887dac5dd5dd704f3c91db5212d7372cf0d0fa` | `e4b557007d15c05b36a8d15f63458a7fe3e8279b66aa8e334c5d908a05a5e46f` | `8eb79443629fff70fcbe607b0ca5bf091aee569857591578e814b47122ec4370` |
+| `qwen3_30b_a3b_mixed_int4_ekv2048.litertlm` | `51b287de2e87ff0e5afac312c92b92377e302db9d6a71f56cea2a20ee7434648` | `66a56613f5422cf26587d40753024982e80e4195924d37f5bbe303e514bcae18` | `2307254abf4ff3afe5d8bf786b41fa28706c91f75a00189a694739e8165141be` | `232d1bb3102912582dbd06a18bd5242620be7ffffe652e8c6bb249fc46601c39` |
+
+The LlmMetadataProto and HF_Tokenizer_Zlib sections are the ones in the first table above, and both files keep 20,650,316,480 B.
+
+Run on 2026-11-11 from a clean export of this repository at `4e7ccdb` (`git archive`), with the files of the update above as input (revision `29089f06` of the model repository, the sha256 above), Python 3.12.11 with numpy 2.5.4, flatbuffers 25.12.19, ai-edge-litert 2.3.0 and litert-lm-builder 0.19.0, on a Mac M4 Max (128 GB, macOS 27.0) with the files on its internal SSD. `quant` took 504 s to read 2.4 GB from the Hub and quantize it (about 30 s of CPU; another job on the Mac paused the process for a further 1,563 s, and the reads continued after the pause), with a peak memory footprint of 0.32 GB, and wrote a QDIR/quant.json of sha256 `9bb23d604718eab55d686d328d82f8ec3718755d9a80bb29684d18cb3853530e` (the sha256 of each tensor's codes and scales); each `write` took 34 s (peak memory footprint 1.19 GB) and each `decode_rewrite.py` 19 s (0.61 GB); each output has the sha256 of its column, and the 2,048-token `fast/` output is the published file byte for byte.
+
+- The new graph: `decode` from 1,546 to 922 ops (48 `odml.sdpa_transposed`, 48 `odml.qkv_norm_rope` with 4 inputs and 3 outputs), each prefill signature from 1,519 to 908; 1,350,360 B, before the weights at byte 15,579,264 of the TFLite section.
+- The published 2,048-token file needs the same runtime as before, the build in `qwen3_30b_a3b_work/README.md`. LiteRT-LM 0.19.1 from PyPI, the latest release on 2026-11-11, stops at the first `moe` op as it did with the previous files (CPU: `moe node #23 unsupported activation='silu'`; GPU: `moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`).
+- How step 7 was checked: `qwen3_30b_a3b_work/README.md`. Speeds and answers: the model card.
+
 ## Qwen3-Coder-30B-A3B-Instruct — the Qwen3-30B-A3B decoder steps with the source's chat template rewritten for LiteRT-LM, the XML tool-call patterns and the `generic_model` type, a 4,096- or 2,048-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-09)
 
 The steps are in [`qwen3_coder_30b_a3b_work/`](qwen3_coder_30b_a3b_work/) (its README); the pack, the writer and the bundle step are those of [`qwen3_30b_a3b_work/`](qwen3_30b_a3b_work/). They convert [Qwen/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) at revision `b2cff646` (Apache License 2.0; the `config.json` of Qwen3-30B-A3B but for `rope_theta` and `max_position_embeddings`) into the two files of [litert-community/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/litert-community/Qwen3-Coder-30B-A3B-Instruct), `qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm` and `qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm`, 20,650,152,640 B each.
@@ -4892,6 +4922,31 @@ Run on 2026-11-09 from a clean checkout of this repository at the commit that ad
 - The 2,048-token file's write and bundle steps (`--cache=2048`, `--max-tokens 2048`) ran for the conversion earlier that day and not again for this entry; its whole-file sha256 is `41c79c2008af7c4c0fb01c2267d3d83a8a8d8327418b6e5fd974b0a015e1e765`.
 - The files need a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.1, the latest release on 2026-11-09, refuses them on the CPU (`moe node #85 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The build with LiteRT pull requests #11192 and #11188 is in `qwen3_30b_a3b_work/README.md`.
 - How each part was checked: the README. Speeds and answers: the model card.
+
+### 2026-11-12 update — the graph rewritten for the GPU (composites and a shorter router), the weights unchanged
+
+On 2026-11-12 both files of [litert-community/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/litert-community/Qwen3-Coder-30B-A3B-Instruct) were replaced by the output of [`qwen3_30b_a3b_work/gpu_rewrite.py`](qwen3_30b_a3b_work/gpu_rewrite.py) (step 6 of that README, with this model's `rope_theta`) on the files above.
+
+```bash
+mkdir -p gpu
+python qwen3_30b_a3b_work/gpu_rewrite.py qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm gpu/qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm \
+  --rope-theta 10000000 --src-sha256 cda821eb926abf688db4acb84b08c653d5e2c55f9e7b84b2e835f2dea84d7908 --report gpu_ekv4096.json
+python qwen3_30b_a3b_work/gpu_rewrite.py qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm gpu/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm \
+  --rope-theta 10000000 --src-sha256 41c79c2008af7c4c0fb01c2267d3d83a8a8d8327418b6e5fd974b0a015e1e765 --report gpu_ekv2048.json
+```
+
+| file | sha256 before | sha256 after | TFLiteModel section sha256 after |
+|---|---|---|---|
+| `qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm` | `cda821eb926abf688db4acb84b08c653d5e2c55f9e7b84b2e835f2dea84d7908` | `3e224735273b977fb23af602b3cb7b3d5c8a88fb1d3c905ac90b18567b6cdf56` | `3044288299b28cc5f9165d7ac6dc4a341a250e2c06f6cd487e4da93712f0ff09` |
+| `qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm` | `41c79c2008af7c4c0fb01c2267d3d83a8a8d8327418b6e5fd974b0a015e1e765` | `4fa6f9c801f695b5c47297914c29b55da3f118eb62e32cf82701885e2fc2da48` | `103fb3e2014005485d8f604cdca034630fb9aac670bbc22224bfccaad9a923cd` |
+
+The LlmMetadataProto and HF_Tokenizer_Zlib sections are the ones in the table above, and both files keep 20,650,152,640 B.
+
+Run on 2026-11-11 from a clean export of this repository at `d568570` (`git archive`), with the shipped files as input (the sha256 above, revision `55d1e40d` of the model repository), with the same versions and Mac as for Qwen3-30B-A3B: at most 39 s per file, with a peak memory footprint of at most 0.25 GB; each output the published file byte for byte.
+
+- The new graph: `decode` from 3,621 to 1,546 ops (48 `odml.cache_update`, 96 `odml.runtime_bmm`, 97 `odml.rms_norm`, 96 `odml.qkv_norm_rope`), each prefill signature from 3,566 to 1,519; 15,505,120 B, before the weights at byte 15,579,264 of the TFLite section.
+- The runtime: as for Qwen3-30B-A3B (on 2026-11-11, 0.19.1 from PyPI stopped on the new files with the same lines).
+- How the rewrite was checked: `qwen3_30b_a3b_work/README.md`. Speeds, answers and tool calls: the model card.
 
 ## MiniCPM-V-4 (GPU files) — a VLM for LiteRT-LM's `minicpmv4` type with a GPU decoder: `export_hf` with the embedder in its own graph, int8 or mixed int4 weights, GPU composites added to the exported graph, the vision encoder and resampler rewritten in plain PyTorch ops with fp16 weights, and the quantized weights moved to TFLiteWeights sections (2026-11-03)
 

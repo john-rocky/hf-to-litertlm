@@ -10,12 +10,19 @@ a `.litertlm` that LiteRT-LM's stock executor runs (`litert_lm_advanced_main`, t
   only the 8 routed experts are computed for each token. The router, its softmax, top-8 and the renormalization of the
   top-8 weights are ordinary ops in the graph (step 6 rewrites them as the top 8 of the logits and a softmax over
   those 8: the same experts and weights in exact arithmetic).
-- Step 6 rewrites the decoder's graph for the GPU in place (the published files since 2026-11-11): a layer's two
+- Step 6 rewrites the decoder's graph for the GPU in place (the published 4,096-token file since 2026-11-11, and the
+  2,048-token file until 2026-11-12): a layer's two
   KV-cache writes become one `odml.cache_update`, each attention BATCH_MATMUL an `odml.runtime_bmm`, each RMSNorm an
   `odml.rms_norm` and each q / k head path (RMSNorm, then RoPE) an `odml.qkv_norm_rope`; the CPU runs each composite's
   original ops. The weights, the metadata and the tokenizer keep their bytes and offsets.
+- Step 7 (the published 2,048-token file since 2026-11-12) writes the attention and lm_head weights as int4 in place
+  and rewrites the graph again: each layer's attention core becomes one `odml.sdpa_transposed` and its q, k and v
+  projections one FC that feeds one `odml.qkv_norm_rope` with 4 inputs and 3 outputs. The other weights, the metadata
+  and the tokenizer keep their bytes. On the 4,096-token file it made the CPU prefill slower, so that file stays at
+  step 6.
 - Weights: experts int4 blockwise (block 32, one fp32 scale per block: the form LiteRT #11309's quantizer writes for
-  this op), attention q / k / v / o and lm_head int8 per channel, router, norms and the token table fp32. Activations
+  this op), attention q / k / v / o and lm_head int8 per channel (int4 blockwise in step 7's 2,048-token file),
+  router, norms and the token table fp32. Activations
   and the KV cache are fp32.
 - Signatures `prefill_128`, `prefill_1024` and `decode`, a KV cache of 4,096 or 2,048 tokens (two files).
 - The bundle carries LiteRT-LM's official Qwen3 configuration verbatim (`models/qwen3` at LiteRT-LM `dab2e708`: the
@@ -31,7 +38,7 @@ never holds an fp32 graph (its peak memory was 2.6 GB for the pack and 0.1 GB fo
 The experts use SiLU. The `moe` op of LiteRT accepts only GELU so far: LiteRT-LM 0.19.0, the latest release on
 2026-11-03 (PyPI and GitHub), refuses these files; its PyPI package on the CPU (`moe node #85 unsupported
 activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). LiteRT's
-main branch has the same checks on that day. SiLU support is in two open pull requests of the LiteRT repository: #11192 (the GPU delegate's moe
+main branch has the same checks on that day. LiteRT-LM 0.19.1, the latest release on 2026-11-11, refuses the files of step 6 and of step 7 the same way (the first `moe` node is #36 in step 6's files and #23 in step 7's). SiLU support is in two open pull requests of the LiteRT repository: #11192 (the GPU delegate's moe
 kernel) and #11188 (the XNNPACK kernel). Until a LiteRT-LM release includes them, build LiteRT-LM with them:
 
 ```bash
@@ -83,6 +90,8 @@ decode inputs itself, the setting every GPU check below used):
 | `bundle_sections.py` | prints a `.litertlm`'s sections with their sha256, its uuid / creation time and the whole-file sha256. |
 | `apply_ws_patch_cmds.py` | applies the `patch_cmds` of one archive of a bazel WORKSPACE to a local checkout (for the runtime build above). |
 | `gpu_rewrite.py` | step 6: rewrites the TFLite graph of a step-5 file in place for the GPU (the KV composites through `../tools/gpu_graph/gpu_graph_retrofit.py` after a pre-pass that makes each attention BATCH_MATMUL read the rank-4 cache, `odml.rms_norm`, `odml.qkv_norm_rope`, the router as the top 8 of the logits and a softmax over those 8); the new graph is written over a clone of the input before the weights, and the weights and the other sections keep their bytes and offsets (asserted from the written file). |
+| `int4_attention.py` | step 7: `quant` reads the 192 attention projections and lm_head from the Hub (bf16, 2.4 GB) and quantizes them to int4 (blocks of 32 along the input, one fp16 scale per block from a clip search and a least-squares fit); `write` puts them into a step-6 file in place: each FC keeps its weight offset and its scales go into the freed part of its old int8 region (asserted from the written file). |
+| `decode_rewrite.py` | step 7: rewrites the TFLite graph of a step-6 file in place again: each layer's attention core as one `odml.sdpa_transposed`, and its q, k and v projections as one FC that feeds one `odml.qkv_norm_rope` with 4 inputs and 3 outputs; the weights and the other sections keep their bytes, the merged FC's rows are the three projections' bytes (asserted from the written file). |
 
 ## Steps
 
@@ -129,7 +138,8 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
    python bundle_sections.py qwen3_30b_a3b_mixed_int4_ekv2048.litertlm
    ```
 
-6. The graph for the GPU (the published files since 2026-11-11; about 35 s per file, peak memory 0.23 GB). It needs
+6. The graph for the GPU (the published 4,096-token file since 2026-11-11, and the 2,048-token file until
+   2026-11-12; about 35 s per file, peak memory 0.23 GB). It needs
    numpy, flatbuffers, ai-edge-litert and litert-lm-builder (run with 2.5.4, 25.12.19, 2.3.0 and 0.19.0). The output
    starts as a clone of the input (`cp -c` on macOS, `cp --reflink=auto` elsewhere, a full copy where the file system
    cannot clone):
@@ -145,13 +155,51 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
      fp16/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm --activation fp16
    ```
 
-   The published 2,048-token file is the last command's output: the same graph and weights, declaring fp16 activations
-   (the header's `prefer_activation_type` item, 2 bytes; `set_activation_type_inplace.py` checks that nothing else
-   changes). The published 4,096-token file is `gpu_rewrite.py`'s output as it is (fp32 declared).
+   The 2,048-token file of this step is the last command's output: the same graph and weights, declaring fp16
+   activations (the header's `prefer_activation_type` item, 2 bytes; `set_activation_type_inplace.py` checks that
+   nothing else changes). Its 4,096-token file is `gpu_rewrite.py`'s output as it is (fp32 declared). These two were
+   the published files from 2026-11-11 (the model repository's commit 29089f06); since 2026-11-12 the published
+   2,048-token file is step 7's, and the published 4,096-token file is still this step's.
 
    `--rope-theta` is the checkpoint's `rope_theta` (Qwen/Qwen3-Coder-30B-A3B-Instruct: 10000000); the script compares it
    with the graph's RoPE frequencies and stops when they differ. `--dry` runs the rewrite in memory only and prints the
    sizes, the op counts and the new graph's sha256.
+
+7. Faster on the GPU (the published 2,048-token file since 2026-11-12): the attention and lm_head weights as int4, then
+   each layer's attention core as one composite and its q / k / v projections as one FC, in place on the files of step 6. The same Python as
+   step 6 (`quant` needs numpy only); the outputs start as clones of the inputs, as in step 6:
+
+   ```bash
+   python int4_attention.py quant QDIR
+   mkdir -p i4 fast
+   python int4_attention.py write gpu/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm i4/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm QDIR
+   python int4_attention.py write fp16/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm i4/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm QDIR
+   python decode_rewrite.py i4/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm fast/qwen3_30b_a3b_mixed_int4_ekv4096.litertlm
+   python decode_rewrite.py i4/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm fast/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm
+   ```
+
+   `quant` reads the 193 bf16 tensors from the Hub at revision `ad44e777` with range requests (2.4 GB; a tensor whose
+   output exists is skipped, so it can run again) and writes QDIR/<name>.npz and QDIR/quant.json (8 and 27 min in two
+   runs here, nearly all of it the download: about 30 s of CPU; peak memory 0.32 GB). Each `write` took 34 s and each
+   `decode_rewrite.py` 19 s (peak memory 1.19 and 0.61 GB).
+   The published 2,048-token file is `fast/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm`. The 4,096-token output is not
+   published: on an M4 Max's CPU it prefilled about 6 % slower than the step-6 file (55.06 against 58.73 tokens/s), though it
+   decoded faster. Both scripts take `--src-sha256`, the input's expected sha256:
+   `int4_attention.py write` checks it before it writes, `decode_rewrite.py` in its read-back, before the output is
+   moved into place; and `--report R.json`. `write` and `decode_rewrite.py` load `gpu_rewrite.py`, which loads
+   `../tools/gpu_graph/gpu_graph_retrofit.py`: run them from a checkout of the whole repository.
+
+   The int4 rule: symmetric int4 in blocks of 32 along the input, one fp16 scale per block; per block, of the clip
+   ratios 1.0, 0.95, ..., 0.5 of max|w| / 7, the one with the least squared error, then three rounds of a least-squares
+   scale for the fixed codes and a new rounding; scales at least 2^-14.
+
+   `decode_rewrite.py`, in every signature: a layer's attention core (four reshapes, two `odml.runtime_bmm`, the
+   1/sqrt(128) scale, the mask and the softmax) becomes one `odml.sdpa_transposed`, with the 1/sqrt(128) folded into the
+   q norm's weight; the layer's q, k and v projections become one FC (rows q, k, v), whose output goes to one
+   `odml.qkv_norm_rope` with 4 inputs and 3 outputs (v passes through it). `decode` goes from 1,546 to 922 ops and each
+   prefill signature from 1,519 to 908 (a prefill signature does not compute the last layer's attention, because
+   nothing uses its output). The added tensors and subgraphs carry the tag `r11` in their names. `--dry` runs it in memory only and prints
+   the op counts and the new graph's sha256.
 
 ## How it was checked
 
@@ -172,7 +220,8 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
   2,048-token file's 12 answers are byte for byte the 4,096-token file's.
 - **What did not ship.** fp16 activations with the step-5 graph (7 to 15 % faster decoding on WebGPU): the greedy thinking loops on a
   sentence and reaches the token limit without an answer (every one of the 8 questions run on the two files). int4
-  attention and lm_head (with 128-wide expert blocks): no faster, and one of the 12 answers loops to the limit.
+  attention and lm_head from the pack step (`--fc int4 --lm-head int4`, with 128-wide expert blocks): no faster, and
+  one of the 12 answers loops to the limit; step 7's int4 is another rule and ships in the 2,048-token file.
   Experts with 128-wide blocks: slower than 32-wide blocks.
 - **The graph of step 6.** The script asserts from the written file that the size, the bytes before the TFLite section
   (header, metadata, tokenizer), the weight region (sha256 of both files) and the section table are the input's, and
@@ -181,8 +230,17 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
   composites and no `odml.runtime_bmm`, without an error; the script then stops (tested by replacing the pre-pass with
   a no-op). The whole model with the rewritten graph, the 12 questions and 3 turns above: on WebGPU both files, and
   on the CPU the 4,096-token file, 12 of 12 with Transformers' verdict, every answer ended with `<|im_end|>`, and the
-  3-turn check passed; on WebGPU every answer and the 3 turns are byte for byte the step-5 files'. With fp16 declared (the
-  published 2,048-token file), the same on WebGPU: 12 of 12, every answer ended with `<|im_end|>`, the 3-turn check
+  3-turn check passed; on WebGPU every answer and the 3 turns are byte for byte the step-5 files'. With fp16 declared (step
+  6's 2,048-token file, published from 2026-11-11 to 2026-11-12), the same on WebGPU: 12 of 12, every answer ended with `<|im_end|>`, the 3-turn check
   passed; the text differs from the fp32 form's on 8 of the 12 questions.
+- **Step 7.** Both scripts assert from the written file that the size, the bytes before the TFLite section and the
+  section table are the input's and that every byte outside the rewritten ranges is equal; `write` reads each converted
+  FC back through the new file's flatbuffer and compares it with QDIR's codes and scales, and `decode_rewrite.py` compares each
+  merged FC with the input's three projections. The whole model, the 12 questions and 3 turns above: on WebGPU both
+  files, and on the CPU the 4,096-token file, 12 of 12 with Transformers' verdict, every answer ended with
+  `<|im_end|>`, and the 3-turn check passed. Longer prompts than the 12 questions (lists of 644 and 1,346 tokens for
+  the 2,048-token file, of 644 and 2,706 tokens for the 4,096-token one, with a question that needs three items spread
+  over the list): the right answer on WebGPU with both files and, for the 644-token list, on the CPU with the
+  4,096-token file, as with the step-6 files.
 
 Speeds: the model card.
