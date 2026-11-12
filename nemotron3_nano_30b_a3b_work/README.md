@@ -86,7 +86,8 @@ python bundle_section_check.py nemotron3_nano_30b_a3b_mixed_int4_ekv4096.litertl
 ```
 
 The model repository's second file, `nemotron3_nano_30b_a3b_mixed_int4_ekv2048.litertlm` (a 2,048-token cache), is the same pack with `--cache=2048` in step 2 and that file name in step 3.
-The third file, `nemotron3_nano_30b_a3b_int4_ekv2048.litertlm` (int4 projections, a 2,048-token cache), is step 1 with `--fc int4 --fc-block 32` in place of `--fc int8`, then `--cache=2048` in step 2 and that file name in step 3.
+The third file, `nemotron3_nano_30b_a3b_int4_ekv2048.litertlm` (int4 projections, experts in larger blocks, a 2,048-token cache), is step 1 with `--block 128 --block-down 64 --fc int4 --fc-block 32` in place of `--block 32 --fc int8` (the down projection's input, 1,856 values, is a multiple of 64 but not of 128), then `--cache=2048` in step 2 and that file name in step 3.
+The fourth file, `nemotron3_nano_30b_a3b_int4_ekv4096.litertlm` (the third file's weights, a 4,096-token cache), is the third file's step 1, then step 2 as written (`--cache=4096`) and that file name in step 3.
 
 On an Apple M4 Max the pack took 24 minutes (peak footprint 4.4 GB) and the writer and the bundle about 2 hours
 together, the checkpoint and the outputs on a USB disk.

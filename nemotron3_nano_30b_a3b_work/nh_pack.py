@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""nh_pack.py SRC OUT_DIR [--layers 0,1,5] [--experts fp32|xb4|xb8] [--block 32] [--fc fp32|int8|int4] [--fc-block 32]
+"""nh_pack.py SRC OUT_DIR [--layers 0,1,5] [--experts fp32|xb4|xb8] [--block 32] [--block-down N] [--fc fp32|int8|int4]
+                  [--fc-block 32]
                   [--lm-head fp32|int8|int4] [--embed fp32|int8] [--relu2 gelu_in|gelu_limit|dense|relu2op]
                   [--gelu-s 256] [--gelu-act gelu_tanh|gelu] [--dequant-out DIR]
 
@@ -136,6 +137,8 @@ def main():
     ap.add_argument("--layers", default="", help="original layer indices to keep, comma separated (default all)")
     ap.add_argument("--experts", default="xb4", choices=["fp32", "xb8", "xb4"])
     ap.add_argument("--block", type=int, default=32)
+    # --block-down defaults to --block; the down projection's input is 1,856 wide, a multiple of 64 but not of 128
+    ap.add_argument("--block-down", type=int, default=None, help="xb4 block of the experts' down projection")
     ap.add_argument("--fc", default="fp32", choices=["fp32", "int8", "int4"])
     ap.add_argument("--fc-block", type=int, default=32)
     ap.add_argument("--lm-head", default="fp32", choices=["fp32", "int8", "int4"])
@@ -304,7 +307,8 @@ def main():
                                 put_fp32(m + "experts.gate", (st * np.float32(s)).reshape(shape4))
                             dq = st
                         else:
-                            blk = a.block if a.experts == "xb4" else in_f
+                            blk = ((a.block_down if pm == "down" and a.block_down else a.block)
+                                   if a.experts == "xb4" else in_f)
                             q = np.empty((out_f, E, in_f), np.int8)
                             sc = np.empty((out_f, E, in_f // blk), np.float32)
                             floored = 0
@@ -353,6 +357,8 @@ def main():
             "gelu_s": s, "floor": stats, "bytes": off, "moe_options_hex": opts.hex(),
             "seconds": round(time.time() - t0, 1), "layer_seconds": layer_seconds, "tensors": len(rows),
             "peak_rss_bytes": peak_rss_bytes()}
+    if a.block_down:
+        meta["block_down"] = a.block_down
     json.dump(meta, open(os.path.join(a.out, "pack.json"), "w"), indent=1)
     if deq is not None:
         from safetensors.numpy import save_file
