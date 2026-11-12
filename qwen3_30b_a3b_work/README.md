@@ -39,7 +39,7 @@ The experts use SiLU. The `moe` op of LiteRT accepts only GELU so far: LiteRT-LM
 2026-11-03 (PyPI and GitHub), refuses these files; its PyPI package on the CPU (`moe node #85 unsupported
 activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). LiteRT's
 main branch has the same checks on that day. LiteRT-LM 0.19.1, the latest release on 2026-11-11, refuses the files of step 6 and of step 7 the same way (the first `moe` node is #36 in step 6's files and #23 in step 7's). SiLU support is in two open pull requests of the LiteRT repository: #11192 (the GPU delegate's moe
-kernel) and #11188 (the XNNPACK kernel). Until a LiteRT-LM release includes them, build LiteRT-LM with them:
+kernel) and #11188 (the XNNPACK kernel). Until a LiteRT-LM release includes them, build LiteRT-LM with them, in an empty directory (it needs Xcode, Git LFS set up with `git lfs install`, GNU sed installed as `gsed`, and Bazelisk, which runs the Bazel 7.6.1 that LiteRT-LM's `.bazelversion` names; Homebrew: `gnu-sed`, `git-lfs`, `bazelisk`):
 
 ```bash
 git clone https://github.com/google-ai-edge/LiteRT-LM.git && cd LiteRT-LM
@@ -50,10 +50,11 @@ git clone https://github.com/google-ai-edge/LiteRT.git && git -C LiteRT checkout
 git clone https://github.com/google-ai-edge/ml-drift.git && git -C ml-drift checkout 76492bb9412030ec93cc5b607df26ab5cf787490
 # --override_repository skips the patch_cmds that LiteRT-LM's WORKSPACE gives these two archives: apply them by hand
 # (GNU sed as `sed`), then the two pull requests
+curl -fLO https://raw.githubusercontent.com/john-rocky/hf-to-litertlm/84336e8d00a567464e834854bdc1987a5c6656ca/qwen3_30b_a3b_work/apply_ws_patch_cmds.py
 python3 apply_ws_patch_cmds.py LiteRT-LM/WORKSPACE litert LiteRT
 python3 apply_ws_patch_cmds.py LiteRT-LM/WORKSPACE ml_drift ml-drift
-gh pr diff 11192 -R google-ai-edge/LiteRT | git -C LiteRT apply
-gh pr diff 11188 -R google-ai-edge/LiteRT | git -C LiteRT apply
+curl -fL https://github.com/google-ai-edge/LiteRT/commit/ebacd381a0d223a585ec66c1e880cffa640b29be.diff | git -C LiteRT apply
+curl -fL https://github.com/google-ai-edge/LiteRT/commit/9860c14d7b63f6eaa85b9bfbe807afc971b85fe4.diff | git -C LiteRT apply
 cd LiteRT-LM
 bazel build --config=macos_arm64 -c opt --define=litert_runtime_link_mode=dynamic \
   --override_repository=litert=$PWD/../LiteRT --override_repository=ml_drift=$PWD/../ml-drift \
@@ -62,12 +63,7 @@ bazel build --config=macos_arm64 -c opt --define=litert_runtime_link_mode=dynami
   @litert//litert/runtime/accelerators/gpu:ml_drift_metal_accelerator_dylib
 ```
 
-Put `litert_lm_advanced_main`, `libLiteRt.dylib`, `libLiteRtWebGpuAccelerator.dylib` (and
-`libLiteRtMetalAccelerator.dylib`) from `bazel-bin` in one directory with `libwebgpu_dawn.dylib` and
-`libGemmaModelConstraintProvider.dylib` from `prebuilt/macos_arm64/`; the CLI does not start without the last two,
-also on the CPU. These are the steps of the build that ran every check below (on a 128 GB Mac, 2026-10-28); they were
-not run again for this page. On 2026-11-03 `gh pr diff` gave the same two diffs as on 2026-10-28 (sha256
-`9b413402…` for #11192, `6a996ece…` for #11188).
+Copy `bazel-bin/runtime/engine/litert_lm_advanced_main`, `bazel-bin/external/litert/litert/c/libLiteRt.dylib`, `bazel-bin/external/litert/litert/runtime/accelerators/gpu/libLiteRtWebGpuAccelerator.dylib` (and `bazel-bin/external/litert/litert/runtime/accelerators/gpu/libLiteRtMetalAccelerator.dylib`) into one directory with `prebuilt/macos_arm64/libwebgpu_dawn.dylib` and `prebuilt/macos_arm64/libGemmaModelConstraintProvider.dylib` (paths from `LiteRT-LM`, where the block ends); the CLI does not start without the last two, also on the CPU. These are the steps of the build that ran every check below (on a 128 GB Mac, 2026-10-28), which took the two pull requests' diffs with `gh pr diff`: `ebacd381` and `9860c14d` are the heads of #11192 and #11188 on 2026-11-13 (one commit each), and their diffs are the same bytes (sha256 `9b413402…` for #11192, `6a996ece…` for #11188). On 2026-11-13 the block ran as written in an empty directory on an Apple M4 Max (Xcode 27.0, macOS 27.0): it took 12 minutes and 11 GB of disk, and the four files it built are byte for byte those of that build.
 
 Run (the GPU here is WebGPU on the Mac; with `--sampler_handles_input=false` the GPU sampler does not write the
 decode inputs itself, the setting every GPU check below used):
