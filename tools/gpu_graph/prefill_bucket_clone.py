@@ -6,19 +6,26 @@ buffer (same buffer index), so the file grows by graph structure only. What depe
 by propagating a symbolic T from the signature inputs through the ops — never by replacing every number equal to T
 (SmolLM3-3B has head dim 128 = T, granite-4.2 has head dim 64):
 
-  seeds      `embeddings` [1, T, D] / `tokens` [1, T] (dim 1), `input_pos` [T] or [1, T] (last dim), `mask` [1, 1, T, C]
+  seeds      `embeddings` [1, T, D] / `tokens` or `token_ids` [1, T] (dim 1), `input_pos` [T] or [1, T] (last dim), `mask` [1, 1, T, C]
              (dim 2). Every other signature input (KV caches, param_tensor) is T-free.
   a tensor   holds T in at most one dim, as  dim = o * T * i  (o = outer and i = inner multiplicity inside that dim,
              e.g. the GQA logits [1, bk, g*T, C] have o = g, i = 1), so a RESHAPE can be followed through the row-major
              layout: T keeps its stride S = i * prod(dims after it) and its outer count M = prod(dims before it) * o.
   ops        elementwise (broadcast), RESHAPE (the output dim k with prod(out[:k]) * o' = M and i' * prod(out[k+1:]) = S;
              exactly one k must fit, else the tool stops), TRANSPOSE, CONCATENATION (not along T), SLICE (a full-length
-             slice of the T dim keeps T; a fixed slice of it, such as input_pos[0:1], does not), PACK, FULLY_CONNECTED,
-             MEAN, BATCH_MATMUL, DYNAMIC_UPDATE_SLICE, STABLEHLO_COMPOSITE (T is propagated into the decomposition
-             subgraph, which is copied per bucket). Any other op stops the tool. At every op the rule must reproduce the
-             stored output shape at the source length T0 (a self-consistency check of the inference).
+             slice of the T dim keeps T, also when its size vector is a run-time CONCATENATION whose T element is a
+             constant; a fixed slice of it, such as input_pos[0:1], does not), PACK, FULLY_CONNECTED, MEAN, BATCH_MATMUL,
+             DYNAMIC_UPDATE_SLICE, PAD (the T dim must not be padded), GATHER / GATHER_ND and run-time-positioned SLICEs
+             of T-free tensors, STABLEHLO_COMPOSITE (T is propagated into the decomposition subgraph, which is copied per
+             bucket: one copy per call site; composites that share one decomposition named other than
+             `<name>.impl[_n]`, such as another exporter's `main`, share one copy; and a shape-preserving composite in
+             SHARED_DECOMPOSITION_OK whose decomposition has another length keeps calling it, as the source does).
+             Any other op stops the tool, and so does a dynamic (-1) T dim in a shape signature. At every op the rule
+             must reproduce the stored output shape at the source length T0 (a self-consistency check of the inference).
   rewrites   tensor shapes (o * T' * i), the RESHAPE shape constants and the SLICE size constants that carry T (new
-             small inline buffers), tensor names `prefill_<T0>_*` -> `prefill_<T'>_*`, the subgraph name, one SignatureDef
+             small inline buffers; for a run-time size, the constant piece of its CONCATENATION), tensor names
+             `prefill_<T0>_*` -> `prefill_<T'>_*`, the subgraph name (decompositions: `<name>.impl_<n>`; another
+             exporter's `main` keeps its name), one SignatureDef
              per bucket (same input / output names and tensor indices as the source, param_tensor included). The new
              subgraphs (bucket first, then its decompositions) are appended after the existing ones, so every existing subgraph and
              SignatureDef keeps its index and its bytes; the new SignatureDefs are inserted among the prefill ones in
@@ -67,6 +74,11 @@ UNARY = {OP.CAST, OP.COS, OP.SIN, OP.LOGISTIC, OP.RSQRT, OP.SOFTMAX, OP.NEG, OP.
 BINARY = {OP.ADD, OP.MUL, OP.SUB, OP.DIV, OP.MAXIMUM, OP.MINIMUM, OP.POW, OP.SQUARED_DIFFERENCE, OP.EQUAL, OP.NOT_EQUAL,
           OP.LESS, OP.LESS_EQUAL, OP.GREATER, OP.GREATER_EQUAL, OP.SELECT_V2, OP.LOGICAL_AND, OP.LOGICAL_OR}
 NP_OF = {TT.INT32: np.int32, TT.INT64: np.int64}
+# composites whose output 0 has the shape of input 0: a decomposition shared by call sites of different lengths may stay
+# shared in the copy (Propagation.composite)
+SHARED_DECOMPOSITION_OK = {"odml.rms_norm"}
+# index ops handled only when no input carries T (their output shape then comes from T-free shapes alone)
+T_FREE_ONLY = {OP.GATHER, OP.GATHER_ND}
 
 
 class CloneError(RuntimeError):
@@ -110,9 +122,10 @@ def referenced(sg):
 class Model:
   """One flatbuffer model (ModelT) with the per-op helpers the propagation needs."""
 
-  def __init__(self, model, src_path=None):
+  def __init__(self, model, src_path=None, base=0):
     self.m = model
     self.src_path = src_path
+    self.base = base  # where the TFLite flatbuffer starts in src_path (a bundle section): Buffer.offset is relative to it
     self.code = [max(c.builtinCode, c.deprecatedBuiltinCode) for c in model.operatorCodes]
 
   def opcode(self, op):
@@ -136,7 +149,7 @@ class Model:
       raw = bytes(b.data)
     elif b.offset is not None and b.offset > 1 and self.src_path:
       with open(self.src_path, "rb") as f:
-        f.seek(b.offset)
+        f.seek(self.base + b.offset)
         raw = f.read(b.size)
     else:
       return None
@@ -258,6 +271,34 @@ class Propagation:
         self.notes["DYNAMIC_UPDATE_SLICE"] += 1
       elif code == OP.STABLEHLO_COMPOSITE:
         self.composite(oi, op, ins, sts)
+      elif code in (OP.PAD, OP.PADV2):
+        # constant paddings; the T dim must not be padded (the runtime_bmm decomposition of
+        # litert-community/Llama-3.2-3B pads [1, 8, 3T, 1] to [1, 8, 3T, C] along the cache dim)
+        pads = self.M.const(sg, ins[1])
+        if sts[1] is not None or (len(ins) > 2 and ins[2] >= 0 and sts[2] is not None):
+          self.fail(oi, "PAD paddings or pad value depend on T")
+        if pads is None:
+          # paddings computed at run time from T-free values (that decomposition: from param_tensor); the stored
+          # output keeps the T dim of the input, so the T dim is not padded and T carries over
+          in0, out0 = shp(sg, ins[0]), shp(sg, op.outputs[0])
+          if sts[0] is not None and (len(in0) != len(out0) or in0[sts[0][0]] != out0[sts[0][0]]):
+            self.fail(oi, "PAD with run-time paddings changes the T dim")
+          self.check(oi, op.outputs[0], sts[0])
+          self.notes[BN[code] + "_runtime_pads"] += 1
+          continue
+        pads = [[int(a), int(b)] for a, b in np.array(pads).reshape(-1, 2)]
+        in0 = shp(sg, ins[0])
+        if len(pads) != len(in0):
+          self.fail(oi, "PAD paddings rank")
+        if sts[0] is not None and pads[sts[0][0]] != [0, 0]:
+          self.fail(oi, "PAD pads the T dim")
+        self.check(oi, op.outputs[0], sts[0], [in0[d] + pads[d][0] + pads[d][1] for d in range(len(in0))])
+        self.notes[BN[code]] += 1
+      elif code in T_FREE_ONLY and all(s is None for s in sts):
+        # an index op on T-free tensors only (the param_tensor reads of the litert-community/Llama-3.2-3B
+        # decompositions: GATHER of [7] at [1]): its output shape comes from T-free shapes, so it is T-free
+        self.check(oi, op.outputs[0], None)
+        self.notes[BN[code] + "_T_free"] += 1
       else:
         self.fail(oi, "op type not handled by the T propagation")
 
@@ -296,7 +337,15 @@ class Propagation:
     out_t = op.outputs[0]
     out = shp(sg, out_t)
     if len(ins) < 2 or ins[1] < 0:
-      self.fail(oi, "RESHAPE without a shape tensor (builtin new_shape only) is not handled")
+      if sts[0] is None:
+        # a T-free RESHAPE written with its builtin new_shape only (the param_tensor [1, 1, 1, 7] -> [7] of the
+        # litert-community/Llama-3.2-3B decompositions): nothing in it to rewrite
+        if prod(shp(sg, ins[0])) != prod(out):
+          self.fail(oi, "element count")
+        self.check(oi, out_t, None)
+        self.notes["RESHAPE_T_free_builtin_shape"] += 1
+        return
+      self.fail(oi, "RESHAPE of a T-carrying input without a shape tensor (builtin new_shape only) is not handled")
     cval = self.M.const(sg, ins[1])
     if cval is None or sts[1] is not None:
       self.fail(oi, "RESHAPE shape is not a constant")
@@ -368,6 +417,15 @@ class Propagation:
   def slice(self, oi, op, ins, sts):
     sg = self.sg
     begin, size = self.M.const(sg, ins[1]), self.M.const(sg, ins[2])
+    if (begin is None or size is None) and all(s is None for s in sts):
+      # a runtime-positioned SLICE of a T-free tensor (the cache reads of the litert-community/Llama-3.2-3B cache_update
+      # decomposition: begin from param_tensor): its output keeps the stored T-free shape, nothing to rewrite
+      self.check(oi, op.outputs[0], None)
+      self.notes["SLICE_T_free_dynamic"] += 1
+      return
+    if size is None and begin is not None and sts[0] is not None and sts[1] is None and sts[2] is None:
+      if self.slice_runtime_size(oi, op, ins, sts, [int(x) for x in begin]):
+        return
     if begin is None or size is None or sts[1] is not None or sts[2] is not None:
       self.fail(oi, "SLICE begin / size are not constants")
     begin, size = [int(x) for x in begin], [int(x) for x in size]
@@ -397,6 +455,44 @@ class Propagation:
     else:
       self.notes["SLICE_T_free"] += 1
     self.check(oi, op.outputs[0], st, out)
+
+  def slice_runtime_size(self, oi, op, ins, sts, begin):
+    """A full-length SLICE of the T dim whose size vector is built at run time: CONCATENATION (axis 0) of 1-D integer
+    pieces, constants and T-free run-time values (the probs read of the litert-community/Llama-3.2-3B runtime_bmm
+    decomposition: size = concat([1, 8, 3T], [valid length])). The element of the T dim must come from a constant equal to
+    the T dim's stored size; that constant is rewritten per bucket (a rewrite of the CONCATENATION's input slot)."""
+    sg = self.sg
+    j, o, i = sts[0]
+    in0, out0 = shp(sg, ins[0]), shp(sg, op.outputs[0])
+    if begin[j] != 0 or len(out0) != len(in0) or out0[j] != in0[j]:
+      self.fail(oi, f"SLICE with a run-time size: the T dim is not read in full (begin {begin}, stored output {out0})")
+    p = next((k for k, x in enumerate(sg.operators) if ins[2] in x.outputs), None)
+    if p is None or self.M.opcode(sg.operators[p]) != OP.CONCATENATION or sg.operators[p].builtinOptions.axis not in (0, -1):
+      self.fail(oi, "SLICE size is neither a constant nor a CONCATENATION of 1-D pieces")
+    pieces = sg.operators[p].inputs
+    off = 0
+    for slot, t in enumerate(pieces):
+      ps = shp(sg, t)
+      if len(ps) != 1:
+        self.fail(oi, "SLICE size piece is not 1-D")
+      if self.st.get(t) is not None:
+        self.fail(oi, "SLICE size piece carries T")
+      if off <= j < off + ps[0]:
+        cval = self.M.const(sg, t)
+        if cval is None or int(cval[j - off]) != in0[j]:
+          self.fail(oi, f"SLICE size of the T dim does not come from a constant equal to {in0[j]}")
+        old = [int(x) for x in cval]
+
+        def new_of(T, old=old, k=j - off, o=o, i=i):
+          v = list(old)
+          v[k] = o * T * i
+          return v
+        self.rewrites[(p, slot)] = {"kind": "SLICE.size(concat)", "old": old, "new_of": new_of}
+        self.check(oi, op.outputs[0], sts[0])
+        self.notes["SLICE_T_full_runtime_size"] += 1
+        return True
+      off += ps[0]
+    self.fail(oi, "SLICE size vector is shorter than the input rank")
 
   def fully_connected(self, oi, op, ins, sts):
     sg = self.sg
@@ -497,10 +593,26 @@ class Propagation:
     dsg = self.M.m.subgraphs[di]
     if len(dsg.inputs) != len(ins) or len(dsg.outputs) != len(op.outputs):
       self.fail(oi, "composite arity differs from its decomposition subgraph")
+    cname = name_of(op.builtinOptions2.name)
+    mism = [(t_main, t_dec, s) for t_main, t_dec, s in zip(ins, dsg.inputs, sts)
+            if t_main >= 0 and shp(self.sg, t_main) != shp(dsg, t_dec)]
+    if mism:
+      # One decomposition shared by call sites of different lengths (litert-community/Llama-3.2-3B
+      # llama3_2_3b_mixed_int4_gpu.litertlm: a single odml.rms_norm.impl of shape [1, 1, D], called from prefill_256 with
+      # [1, 256, D] and from decode with [1, 1, D]). The copy keeps calling that subgraph, as the source signature does,
+      # so nothing is propagated into it or copied. Allowed only for a shape-preserving composite (SHARED_DECOMPOSITION_OK:
+      # output 0 has input 0's shape) whose mismatching inputs carry T and differ from the decomposition in the T dim alone.
+      ok = cname in SHARED_DECOMPOSITION_OK and len(op.outputs) == 1 and bool(ins) and ins[0] >= 0
+      for t_main, t_dec, s in mism:
+        a, b = shp(self.sg, t_main), shp(dsg, t_dec)
+        ok = ok and s is not None and len(a) == len(b) and all(x == y for k, (x, y) in enumerate(zip(a, b)) if k != s[0])
+      if not ok:
+        self.fail(oi, f"composite input shape {shp(self.sg, mism[0][0])} vs decomposition {shp(dsg, mism[0][1])}")
+      self.check(oi, op.outputs[0], sts[0], shp(self.sg, ins[0]))
+      self.notes["COMPOSITE(shared decomposition):" + cname] += 1
+      return
     seeds = {}
     for t_main, t_dec, s in zip(ins, dsg.inputs, sts):
-      if t_main >= 0 and shp(self.sg, t_main) != shp(dsg, t_dec):
-        self.fail(oi, f"composite input shape {shp(self.sg, t_main)} vs decomposition {shp(dsg, t_dec)}")
       seeds[t_dec] = s
     child = Propagation(self.M, di, seeds, self.T0, f"{self.label}/{name_of(dsg.name)}", self.log)
     self.children[oi] = child
@@ -533,7 +645,7 @@ def seeds_for(sg, sd, T0):
   for tm in sd.inputs:
     n, t = name_of(tm.name), tm.tensorIndex
     s = shp(sg, t)
-    if n in ("embeddings", "tokens", "per_layer_embeddings"):
+    if n in ("embeddings", "tokens", "token_ids", "per_layer_embeddings"):
       if len(s) < 2 or s[1] != T0:
         raise CloneError(f"input {n} {s}: dim 1 is not T0={T0}")
       seeds[t] = (1, 1, 1)
@@ -596,8 +708,8 @@ class Cloner:
         x.shape = at_len([int(v) for v in x.shape], st, T)
         if x.shapeSignature is not None and len(x.shapeSignature):
           sig = [int(v) for v in x.shapeSignature]
-          if -1 in sig:
-            raise CloneError(f"{prop.label}: tensor {t} has a dynamic shape signature {sig}")
+          if sig[st[0]] == -1:  # a dynamic dim elsewhere (the run-time valid length of a Llama-3.2-3B decomposition) stays -1
+            raise CloneError(f"{prop.label}: tensor {t} has a dynamic T dim in its shape signature {sig}")
           x.shapeSignature = at_len(sig, st, T)
         rep["tensors_T"] += 1
       x.name = rename(name_of(x.name))
@@ -632,21 +744,36 @@ class Cloner:
     M.m.subgraphs.append(sg)
     my_index = len(M.m.subgraphs) - 1
     # decompositions
+    cloned = {}  # source decomposition subgraph index -> (index of its copy at T, the child it was copied for)
     for oi, child in prop.children.items():
       op = sg.operators[oi]
-      base = re.match(r"^(.*\.impl)(?:_\d+)?$", name_of(child.sg.name))
-      if not base:
-        raise CloneError(f"decomposition name {name_of(child.sg.name)!r} is not `<name>.impl[_n]`")
-      n = self.next_impl[base.group(1)]
-      self.next_impl[base.group(1)] += 1
-      new_name = f"{base.group(1)}_{n}"
       old_name = name_of(child.sg.name)
+      base = re.match(r"^(.*\.impl)(?:_\d+)?$", old_name)
+      if child.si in cloned and not base:
+        # One decomposition called from several composites of the source signature under another exporter's naming
+        # (litert-community/Llama-3.2-3B llama3_2_3b_mixed_int4_gpu.litertlm: 28 cache_update and 2 x 27 runtime_bmm
+        # composites call 3 subgraphs, all named `main`): the copy calls one copy at T in the same way. A shared
+        # `<name>.impl[_n]` decomposition still gets one copy per call site, as before this case was handled, so a
+        # file the earlier version of this script made is rebuilt byte for byte.
+        di, first = cloned[child.si]
+        if child.st != first.st:
+          raise CloneError(f"{prop.label}: decomposition subgraph {child.si} is shared by call sites with different T structures")
+        op.builtinOptions2.decompositionSubgraphIndex = di
+        rep["decompositions_shared"] += 1
+        continue
+      if base:
+        n = self.next_impl[base.group(1)]
+        self.next_impl[base.group(1)] += 1
+        new_name = f"{base.group(1)}_{n}"
+      else:  # another exporter's naming (`main`): the copy keeps the name, as that exporter's own decompositions do
+        new_name = old_name
 
       def drename(s, old=old_name, new=new_name):
         return new + s[len(old):] if s.startswith(old + "_") or s == old else s
       di, crep = self.clone_sg(child, T, drename)
       M.m.subgraphs[di].name = new_name
       op.builtinOptions2.decompositionSubgraphIndex = di
+      cloned[child.si] = (di, child)
       rep["decompositions"] += 1
       for k, v in crep.items():
         rep[k] += v
@@ -898,7 +1025,7 @@ SOFT = ("tensor_name", "tensor_name_after_counter_strip", "tensors_compared", "o
 
 def selftest(args):
   model, sec = load_section_model(args.bundle)
-  M = Model(model)
+  M = Model(model, args.bundle, base=sec["begin"])  # offset-stored constants (no external buffer table) are read in place
   against = [x for x in args.against.split(",") if x]
   lens = {}
   for k in against:
@@ -912,7 +1039,8 @@ def selftest(args):
   rep = clone_signatures(M, args.source, [lens[k] for k in against])
   res = {"bundle": args.bundle, "source": args.source, "clone_report": rep, "compare": {}}
   for k in against:
-    cmp = compare_signatures(M, k, "real_" + k)
+    # the copy is named prefill_<length>; a real signature of another name (decode) is compared under that name
+    cmp = compare_signatures(M, f"prefill_{lens[k]}", "real_" + k)
     res["compare"][k] = cmp
     hard = {kk: v for kk, v in cmp["counts"].items() if kk not in SOFT}
     print(f"selftest {args.source} -> {k}: ops {cmp['counts'].get('ops_compared')}, tensors {cmp['counts'].get('tensors_compared')}, "
