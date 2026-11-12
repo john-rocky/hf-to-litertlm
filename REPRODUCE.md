@@ -281,6 +281,25 @@ bash tools/externalize/externalize_repo.sh <repo> <file> --revision <built_from_
 
 For a row whose `builder` column says 0.19.1, export `XR_BUILDER`, `XR_PEEK` and `XR_LITERT_LM` with the 0.19.1 tools first. The builder writes a new uuid and creation timestamp into the container header, so compare a rebuilt file with the published one section by section (`python scripts/section_identity.py <published> <rebuilt>`), not by its sha256. Rebuilt this way on 2026-11-09 and again on 2026-11-11 from a clean checkout with fresh venvs (the README's `pip install` line, and `pip install litert-lm==0.19.1 litert-lm-builder==0.19.1` for the 0.19.1 tools), `LFM2.5-230M_int4.litertlm` (0.18.0 tools) and `Qwen3.5-4B_mixed_int4.litertlm` (0.19.1 tools) give every section of the published files (five each: type, name, size and sha256).
 
+## 2026-11-12 — external weights for WeVisOne-VL-4B (2 files)
+
+The two files of [litert-community/WeVisOne-VL-4B](https://huggingface.co/litert-community/WeVisOne-VL-4B), uploaded on 2026-11-10 (UTC) with their weights inside the TFLiteModel sections, were re-packed the way the 2026-11-09 rows above were (`tools/externalize/externalize_repo.sh`, the LiteRT tools at `8761012b`, litert-lm-builder 0.18.0, `--keep-float-inline`) and uploaded under the same names on `main`, in one commit with the card's paragraph and the files table's new sizes and sha256. A second commit refreshed `litertlm_manifest.json` (the new sha256, size and sections, `min_runtime_version` 0.19.0, the LiteRT-LM#3986 known issue). [`tools/externalize/moves/2026-11-12.tsv`](tools/externalize/moves/2026-11-12.tsv) has the two rows, in the 2026-11-09 table's columns. In each file the token embedder's int8 table and the decoder's 1,735 integer weight tensors moved; the vision encoder and the adapter have no integer weights to move, and their sections are the original's (same sha256).
+
+Each check beyond the tool's four ran the original (at the row's `built_from_commit`) and the rebuilt file, one process each:
+
+- macOS on an Apple M4 Max, the litert-lm 0.19.1 CLI from PyPI (`--top-k 1 --cache no`): on WebGPU a one-word question, a ~400-word essay and a detection question about a drawn picture with the vision encoder on the GPU; the int8 file also on the CPU with one thread (the one-word and the picture question). Every pair SAME: the same delegation lines and the same reply.
+- Galaxy S26, `litert_lm_advanced_main` built from the LiteRT-LM v0.19.1 tag with the model card's flags: the int4 file on the GPU (decoder and vision encoder) and the int8 file on the CPU with 4 threads, 10 picture questions and 5 text questions each. The picture answers' token ids and the text answers equal those of the original file's run on the same phone and build.
+
+The rows were built on 2026-11-12 with this command, from a checkout whose `tools/externalize` scripts equal this commit's (each run also passed `--source` with a local copy of the file, which the tool checks against the Hub's size and sha256); a vision bundle's smoke takes a picture (`--smoke-attachment`, any PNG):
+
+```sh
+export XR_TOOLS_PATH=$HOME/.cache/litert-externalize/8761012bb42439f0ac1df55f144d6ace47c2b35c
+bash tools/externalize/externalize_repo.sh litert-community/WeVisOne-VL-4B <file> \
+  --revision ee03d010ff8242246d919760f52097e68ac6c1e8 --keep-float-inline --smoke-attachment <picture.png>
+```
+
+As in the 2026-11-09 section, compare a rebuilt file with the published one section by section (`python scripts/section_identity.py <published> <rebuilt>`), not by its sha256.
+
 
 ## 2026-10-12 — metadata re-ship to the official LiteRT-LM configuration, second batch (3 files, weights unchanged)
 
