@@ -16,6 +16,8 @@
 // Weights come from tools/pack_gptoss.py (weights.bin, index.tsv, config.tsv, moe_options.bin), read through mmap;
 // each constant tensor is created once and shared by every signature.
 // --debug_topk adds a signature decode_topk (decode + per-layer topk_idx_<l> / topk_w_<l> outputs).
+// The GPU form (fp16 activations): --sink_split, --norm_rescale, --resid_scale_log2=3, --q_prescale,
+// --down_scale_fold and --bias_unit_log2=6 (see the flags).
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -40,6 +42,7 @@
 #include "absl/log/absl_check.h"  // from @com_google_absl
 #include "absl/log/absl_log.h"  // from @com_google_absl
 #include "absl/status/status.h"  // from @com_google_absl
+#include "absl/strings/match.h"  // from @com_google_absl
 #include "absl/strings/numbers.h"  // from @com_google_absl
 #include "absl/strings/str_cat.h"  // from @com_google_absl
 #include "absl/strings/str_split.h"  // from @com_google_absl
@@ -65,6 +68,42 @@ ABSL_FLAG(bool, moe_fusion_guard, false,
 ABSL_FLAG(float, band_value, -15000.0f,
           "Added to the mask on sliding layers for key slots at or before input_pos - sliding_window. Finite in "
           "fp16 together with the runtime's fp16 fill (-45824).");
+ABSL_FLAG(bool, sink_split, false,
+          "Write the attention sink without ops whose inputs are all constants (the GPU delegate of LiteRT-LM "
+          "0.19.1 refuses the default form's RESHAPE of the sinks: 'Expected 1 runtime input tensor(s), but node "
+          "has 0 runtime input(s)'): with the sinks a [1, H, 1, 1] constant and m = max(max_j s_j, sink), "
+          "probs = exp(s - m) / (sum_j exp(s_j - m) + exp(sink - m)). The same function as the default form "
+          "(softmax over [s, sink], the sink column dropped), in other ops.");
+ABSL_FLAG(bool, norm_rescale, false,
+          "Compute every RMSNorm on x / m with m = max(max_j |x_j|, 1) per row, then scale back: "
+          "y = x * (rsqrt(mean((x / m)^2) + eps / m^2) / m) * w, the same function as x * rsqrt(mean(x^2) + eps) * w "
+          "in real arithmetic (and the same ops' result when every |x_j| <= 1). With fp16 activations (the GPU) the "
+          "squares stay <= 1; the default form's x * x overflows fp16 above |x| = 256 (65,504), rsqrt(inf) = 0 and "
+          "the row comes back zero.");
+ABSL_FLAG(int, resid_scale_log2, 0,
+          "K > 0: carry the residual stream at s = 2^-K: the token rows times s, o_proj on o * s with its bias "
+          "times s, the moe op's per_expert_scale times s (the op applies it after each expert's down projection), "
+          "and eps * s^2 in every RMSNorm. The same function (RMSNorm(x s) with eps s^2 = RMSNorm(x) with eps), and "
+          "the same float32 values (a power-of-two factor commutes with rounding). gpt-oss-120b's residual reaches "
+          "|x| = 72,596 after layer 36 on three test prompts, above the fp16 maximum 65,504 (GPU activations).");
+ABSL_FLAG(bool, q_prescale, false,
+          "Multiply q by hd^-0.5 before the q . k product instead of the scores after it: the same function (and "
+          "the same float32 values when hd^-0.5 is a power of two, 2^-3 for hd = 64), with the product's magnitude "
+          "in fp16 8 times further from its maximum.");
+ABSL_FLAG(bool, down_scale_fold, false,
+          "With --resid_scale_log2=K: put the residual factor 2^-K into the down projection's block scales (the moe "
+          "op's float32 <down>_scales input, the bias column included) instead of its per_expert_scale, so the "
+          "op's down output is held at 2^-K too. The same function, and the same float32 values (a power of two). "
+          "gpt-oss-120b's expert down output, before the routing weight and per_expert_scale, reaches 170,910 on the "
+          "three test prompts (layer 35; above 65,504 on layers 28, 32, 34 and 35), above the fp16 maximum.");
+ABSL_FLAG(int, bias_unit_log2, 10,
+          "u < 10: the experts' bias unit (the hidden value that multiplies the down bias column) at 2^-u instead "
+          "of the pack's 1/S = 2^-10: the up unit row's bias-block scale times 2^(10 - u) and the down bias block's "
+          "scales times 2^(u - 10), so the down bias column holds b_d 2^u instead of b_d 2^10. The same function, "
+          "and the same float32 values (powers of two). gpt-oss-120b's |b_d| reaches 836 (layer 30): b_d 2^10 = "
+          "856,064 (above 65,504 from layer 12 on) is above the fp16 maximum where a kernel holds the dequantized "
+          "weight (or the scale, 856,064 / 7) in fp16, and the up unit's value 2^-10 / 30 is below fp16's normal "
+          "range.");
 
 namespace {
 
@@ -82,7 +121,7 @@ struct Config {
   int hidden = 0, hidden_p = 0, inter = 0, inter_p = 0, layers = 0, heads = 0, kv_heads = 0, head_dim = 0,
       experts = 0, top_k = 0, vocab = 0, sliding_window = 0, rope_max = 0;
   float eps = 0, alpha = 0, bias_in = 0, expert_scale = 0;
-  std::string layer_types;
+  std::string layer_types, act;
 };
 
 std::vector<std::string> ReadLines(const std::string& path) {
@@ -133,6 +172,7 @@ Config ReadConfig(const std::string& path) {
   // 1 for the gelu_tanh form.
   c.expert_scale = kv.contains("expert_scale") ? f("expert_scale") : 1.0f / c.alpha;
   c.layer_types = kv.at("layer_types");
+  c.act = kv.contains("act") ? kv.at("act") : "silu";  // packs without the key: the silu form
   ABSL_CHECK_EQ(static_cast<int>(c.layer_types.size()), c.layers);
   return c;
 }
@@ -141,17 +181,28 @@ Config ReadConfig(const std::string& path) {
 // ModelFactory stores its buffer once.
 class Weights {
  public:
-  explicit Weights(const std::string& dir) {
+  // The GPU form's rewrites of the experts' float32 block scales (all powers of two: the same function and the same
+  // float32 values), made in place on first use: the mapping is then writable and private (MAP_PRIVATE), so only
+  // this process's copies of the touched pages change, never the pack.
+  struct ScaleRewrite {
+    int down_log2 = 0;   // --down_scale_fold: every down scale times 2^-down_log2
+    int unit_shift = 0;  // --bias_unit_log2 = u: the up unit row's bias-block scale times 2^(10 - u) = 2^unit_shift,
+                         // the down bias block's scales times 2^-unit_shift
+    int hidden = 0, inter = 0;
+    bool any() const { return down_log2 != 0 || unit_shift != 0; }
+  };
+
+  Weights(const std::string& dir, const ScaleRewrite& rw) : rw_(rw) {
     const std::string bin = dir + "/weights.bin";
     int fd = open(bin.c_str(), O_RDONLY);
     ABSL_CHECK_GE(fd, 0) << "cannot open " << bin;
     struct stat st;
     ABSL_CHECK_EQ(fstat(fd, &st), 0);
     size_ = static_cast<size_t>(st.st_size);
-    void* p = mmap(nullptr, size_, PROT_READ, MAP_PRIVATE, fd, 0);
+    void* p = mmap(nullptr, size_, rw_.any() ? PROT_READ | PROT_WRITE : PROT_READ, MAP_PRIVATE, fd, 0);
     ABSL_CHECK(p != MAP_FAILED) << "mmap failed for " << bin;
     close(fd);
-    base_ = static_cast<const std::byte*>(p);
+    base_ = static_cast<std::byte*>(p);
     for (const std::string& line : ReadLines(dir + "/index.tsv")) {
       std::vector<std::string> f = absl::StrSplit(line, '\t');
       ABSL_CHECK_EQ(f.size(), 8u) << line;
@@ -181,6 +232,7 @@ class Weights {
     auto buffer = std::make_shared<SpanCpuBuffer>(base_ + e.off, e.bytes);
     T t;
     if (e.kind == "fp32") {
+      RewriteScales(name, e);
       t = T({.name = name, .type = Type::kFP32, .shape = e.shape, .buffer = buffer});
     } else if (e.kind == "bw4") {
       // 2-D FC weight: int4 blockwise (scales written by ModelFactory, no zero point).
@@ -207,6 +259,17 @@ class Weights {
     return cache_.emplace(name, t).first->second;
   }
 
+  // The float32 values of an fp32 entry, to write them again as a constant of another shape.
+  std::vector<float> Floats(const std::string& name) const {
+    auto eit = entries_.find(name);
+    ABSL_CHECK(eit != entries_.end()) << "missing weight " << name;
+    const Entry& e = eit->second;
+    ABSL_CHECK_EQ(e.kind, "fp32") << name;
+    std::vector<float> v(e.bytes / sizeof(float));
+    std::memcpy(v.data(), base_ + e.off, e.bytes);
+    return v;
+  }
+
  private:
   struct Entry {
     std::string kind;
@@ -221,7 +284,42 @@ class Weights {
     return s;
   }
 
-  const std::byte* base_ = nullptr;
+  // tools/pack_gptoss.py's layout: <proj>_scales [out', E, 1, in'/B]; the bias block of up is block D/B (the column
+  // of x' that carries 1/S), its row I is the bias unit (up' x' = 1 / (S act(c))); the down bias column I is in
+  // block I/B of every row.
+  void RewriteScales(const std::string& name, const Entry& e) {
+    const bool up = absl::EndsWith(name, ".mlp.experts.up_scales");
+    const bool down = absl::EndsWith(name, ".mlp.experts.down_scales");
+    if (!(up && rw_.unit_shift != 0) && !(down && rw_.any())) return;
+    ABSL_CHECK_EQ(e.shape.size(), 4u) << name;
+    const int64_t out = e.shape[0], E = e.shape[1], G = e.shape[3];
+    const int B = entries_.at(name.substr(0, name.size() - std::strlen("_scales"))).block;
+    ABSL_CHECK_GT(B, 0) << name;
+    float* s = reinterpret_cast<float*>(base_ + e.off);
+    if (up) {
+      const int64_t row = rw_.inter, blk = rw_.hidden / B;
+      ABSL_CHECK(row < out && blk < G) << name;
+      for (int64_t x = 0; x < E; ++x) {
+        float& v = s[(row * E + x) * G + blk];
+        v = std::ldexp(v, rw_.unit_shift);
+      }
+      return;
+    }
+    const int64_t blk = rw_.inter / B;
+    ABSL_CHECK_LT(blk, G) << name;
+    for (int64_t r = 0; r < out; ++r) {
+      for (int64_t x = 0; x < E; ++x) {
+        float& v = s[(r * E + x) * G + blk];
+        v = std::ldexp(v, -rw_.unit_shift);
+      }
+    }
+    if (rw_.down_log2 != 0) {
+      for (int64_t i = 0; i < out * E * G; ++i) s[i] = std::ldexp(s[i], -rw_.down_log2);
+    }
+  }
+
+  ScaleRewrite rw_;
+  std::byte* base_ = nullptr;
   size_t size_ = 0;
   absl::flat_hash_map<std::string, Entry> entries_;
   absl::flat_hash_map<std::string, T> cache_;
@@ -241,9 +339,16 @@ T ConstI(std::vector<int32_t> v, std::vector<int> shape) {
   return T({.type = Type::kI32, .shape = std::move(shape), .buffer = OwningCpuBuffer::Copy<Type::kI32>(v)});
 }
 
-// RMSNorm over the last axis: x * rsqrt(mean(x^2) + eps) * w.
+// RMSNorm over the last axis: x * rsqrt(mean(x^2) + eps) * w. --norm_rescale: on x / m, m = max(max_j |x_j|, 1).
 T RmsNorm(const T& x, const T& w, float eps) {
   const int last = static_cast<int>(x.GetShape().size()) - 1;
+  if (absl::GetFlag(FLAGS_norm_rescale)) {
+    T m = Maximum(ReduceMax(Abs(x), {last}, /*keep_dims=*/true), ConstF({1.0f}, {1}));  // [.., 1]
+    T u = Div(x, m);                                                                    // |u| <= 1
+    T ms = Mean(Mul(u, u), {last}, /*keep_dims=*/true);
+    T f = Div(Rsqrt(Add(ms, Div(ConstF({eps}, {1}), Mul(m, m)))), m);                  // rsqrt(mean(x^2) + eps)
+    return Mul(Mul(x, f), w);
+  }
   T ms = Mean(Mul(x, x), {last}, /*keep_dims=*/true);
   return Mul(Mul(x, Rsqrt(Add(ms, ConstF({eps}, {1})))), w);
 }
@@ -295,21 +400,28 @@ Signature Build(const Config& c, Weights& w, Shared& sh, const std::vector<uint8
   T k_start = Concatenation(absl::MakeSpan(ks), 0);
   T v_start = Concatenation(absl::MakeSpan(vs), 0);
   const T scale = ConstF({1.0f / std::sqrt(static_cast<float>(hd))}, {1});
+  const bool q_pre = absl::GetFlag(FLAGS_q_prescale);
+  // --resid_scale_log2: the residual stream at rs = 2^-K, every RMSNorm's eps at eps * rs^2.
+  const int rk = absl::GetFlag(FLAGS_resid_scale_log2);
+  const float rs = std::ldexp(1.0f, -rk);
+  const float eps = c.eps * rs * rs;
   // x' = [x, 1/S, 0 x 31] (bias_in = 1/S = 2^-10): the bias block of the folded experts.
   std::vector<float> pad(static_cast<size_t>(seq) * (Dp - D), 0.0f);
   for (int t = 0; t < seq; ++t) pad[static_cast<size_t>(t) * (Dp - D)] = c.bias_in;
   const T bias_pad = ConstF(pad, {1, seq, Dp - D});
 
   T x = Reshape(EmbeddingLookup(Reshape(tokens, {seq}), w.Get("model.embed_tokens.weight")), {1, seq, D});
+  if (rk > 0) x = Mul(x, ConstF({rs}, {1}));
   std::vector<T> kout, vout, top_idx, top_wts;
   for (int l = 0; l < c.layers; ++l) {
     const std::string p = absl::StrCat("model.layers.", l, ".");
     const bool sliding = c.layer_types[l] == 'S';
-    T h = RmsNorm(x, w.Get(p + "input_layernorm.weight"), c.eps);
+    T h = RmsNorm(x, w.Get(p + "input_layernorm.weight"), eps);
     T q = FullyConnected(h, w.Get(p + "self_attn.q_proj.weight"), w.Get(p + "self_attn.q_proj.bias"));
     T k = FullyConnected(h, w.Get(p + "self_attn.k_proj.weight"), w.Get(p + "self_attn.k_proj.bias"));
     T v = FullyConnected(h, w.Get(p + "self_attn.v_proj.weight"), w.Get(p + "self_attn.v_proj.bias"));
     q = Rope(Transpose(Reshape(q, {1, seq, H, hd}), {0, 2, 1, 3}), cos, sin);    // [1, H, seq, hd]
+    if (q_pre) q = Mul(q, scale);
     k = Rope(Transpose(Reshape(k, {1, seq, KV, hd}), {0, 2, 1, 3}), cos, sin);   // [1, KV, seq, hd]
     v = Transpose(Reshape(v, {1, seq, KV, hd}), {0, 2, 3, 1});                   // [1, KV, hd, seq]
     T kc = DynamicUpdateSlice(kin[l], k, k_start);
@@ -321,18 +433,37 @@ Signature Build(const Config& c, Weights& w, Shared& sh, const std::vector<uint8
 
     T scores = BatchMatMul(Reshape(q, {KV, g * seq, hd}), Reshape(kc, {KV, cache, hd}),
                            /*adj_x=*/false, /*adj_y=*/true);  // [KV, g*seq, cache]
-    scores = Add(Mul(Reshape(scores, {1, H, seq, cache}), scale), sliding ? local_mask : mask);
+    scores = Reshape(scores, {1, H, seq, cache});
+    if (!q_pre) scores = Mul(scores, scale);
+    scores = Add(scores, sliding ? local_mask : mask);
     // The sink: one more logit per head in the softmax, dropped after it.
-    T sink_col = Tile(Reshape(w.Get(p + "self_attn.sinks"), {1, H, 1, 1}), std::vector<int>{1, 1, seq, 1});
-    std::vector<T> sc = {scores, sink_col};
-    T probs = Softmax(Concatenation(absl::MakeSpan(sc), 3));  // [1, H, seq, cache + 1]
-    probs = Reshape(Slice(probs, {0, 0, 0, 0}, {1, H, seq, cache}), {KV, g * seq, cache});
+    T probs;
+    if (absl::GetFlag(FLAGS_sink_split)) {
+      const T sink = ConstF(w.Floats(p + "self_attn.sinks"), {1, H, 1, 1});
+      T m = Maximum(ReduceMax(scores, {3}, /*keep_dims=*/true), sink);       // [1, H, seq, 1]
+      T e = Exp(Sub(scores, m));                                              // [1, H, seq, cache]
+      T es = Exp(Mul(Sub(m, sink), ConstF({-1.0f}, {1})));                   // exp(sink - m)
+      probs = Reshape(Div(e, Add(Sum(e, {3}, /*keep_dims=*/true), es)), {KV, g * seq, cache});
+    } else {
+      T sink_col = Tile(Reshape(w.Get(p + "self_attn.sinks"), {1, H, 1, 1}), std::vector<int>{1, 1, seq, 1});
+      std::vector<T> sc = {scores, sink_col};
+      probs = Softmax(Concatenation(absl::MakeSpan(sc), 3));  // [1, H, seq, cache + 1]
+      probs = Reshape(Slice(probs, {0, 0, 0, 0}, {1, H, seq, cache}), {KV, g * seq, cache});
+    }
     T o = BatchMatMul(probs, Reshape(vc, {KV, hd, cache}), /*adj_x=*/false, /*adj_y=*/true);  // [KV, g*seq, hd]
     o = Reshape(Transpose(Reshape(o, {1, H, seq, hd}), {0, 2, 1, 3}), {1, seq, H * hd});
-    x = Add(x, FullyConnected(o, w.Get(p + "self_attn.o_proj.weight"), w.Get(p + "self_attn.o_proj.bias")));
+    T o_w = w.Get(p + "self_attn.o_proj.weight");  // weight before bias: the order the default form created them
+    T o_bias = w.Get(p + "self_attn.o_proj.bias");
+    if (rk > 0) {  // o_proj(o) * rs = (o * rs) W^T + b * rs
+      std::vector<float> b = w.Floats(p + "self_attn.o_proj.bias");
+      for (float& v : b) v *= rs;
+      o_bias = ConstF(b, {D});
+      o = Mul(o, ConstF({rs}, {1}));
+    }
+    x = Add(x, FullyConnected(o, o_w, o_bias));
 
     // MoE block (HF GptOssMLP): top-k on the router logits, softmax over the k values.
-    T h2 = RmsNorm(x, w.Get(p + "post_attention_layernorm.weight"), c.eps);
+    T h2 = RmsNorm(x, w.Get(p + "post_attention_layernorm.weight"), eps);
     T router = FullyConnected(h2, w.Get(p + "mlp.router.weight"), w.Get(p + "mlp.router.bias"),
                               ::litert::tensor::kActNone, /*keep_num_dims=*/false);  // [seq, E]
     std::vector<T> top = TopK(router, K);  // [seq, K] values, [seq, K] i32 indices
@@ -371,7 +502,7 @@ Signature Build(const Config& c, Weights& w, Shared& sh, const std::vector<uint8
     s.outputs.push_back(vout[l]);
   }
   if (decode) {
-    T logits = FullyConnected(RmsNorm(x, w.Get("model.norm.weight"), c.eps), w.Get("lm_head.weight"));
+    T logits = FullyConnected(RmsNorm(x, w.Get("model.norm.weight"), eps), w.Get("lm_head.weight"));
     logits.SetName("logits");
     s.outputs.push_back(logits);
   }
@@ -400,8 +531,26 @@ int main(int argc, char** argv) {
             << " head_dim " << c.head_dim << " experts " << c.experts << " top_k " << c.top_k << " vocab "
             << c.vocab << " window " << c.sliding_window << " cache " << cache << " alpha " << c.alpha << " expert_scale " << c.expert_scale
             << " moe_options " << moe_options.size() << " B guard " << absl::GetFlag(FLAGS_moe_fusion_guard)
-            << " debug_topk " << absl::GetFlag(FLAGS_debug_topk) << std::endl;
-  Weights w(dir);
+            << " debug_topk " << absl::GetFlag(FLAGS_debug_topk) << " sink_split " << absl::GetFlag(FLAGS_sink_split)
+            << " norm_rescale " << absl::GetFlag(FLAGS_norm_rescale) << " resid_scale_log2 "
+            << absl::GetFlag(FLAGS_resid_scale_log2) << " q_prescale " << absl::GetFlag(FLAGS_q_prescale)
+            << " down_scale_fold " << absl::GetFlag(FLAGS_down_scale_fold) << " bias_unit_log2 "
+            << absl::GetFlag(FLAGS_bias_unit_log2) << std::endl;
+  ABSL_CHECK(absl::GetFlag(FLAGS_resid_scale_log2) >= 0 && absl::GetFlag(FLAGS_resid_scale_log2) <= 8);
+  ABSL_CHECK(!absl::GetFlag(FLAGS_down_scale_fold) || absl::GetFlag(FLAGS_resid_scale_log2) > 0)
+      << "--down_scale_fold moves the factor of --resid_scale_log2";
+  const int u = absl::GetFlag(FLAGS_bias_unit_log2);
+  ABSL_CHECK(u >= 0 && u <= 10) << "--bias_unit_log2";
+  if (u != 10) {
+    ABSL_CHECK_EQ(c.bias_in, std::ldexp(1.0f, -10)) << "--bias_unit_log2 needs the pack's 1/S = 2^-10";
+    ABSL_CHECK(c.act != "swiglu_oai") << "--bias_unit_log2: the swiglu_oai pack's bias unit is another form";
+  }
+  Weights::ScaleRewrite rw;
+  rw.down_log2 = absl::GetFlag(FLAGS_down_scale_fold) ? absl::GetFlag(FLAGS_resid_scale_log2) : 0;
+  rw.unit_shift = 10 - u;
+  rw.hidden = c.hidden;
+  rw.inter = c.inter;
+  Weights w(dir, rw);
   Shared sh;
   {
     const float band = absl::GetFlag(FLAGS_band_value);
@@ -410,7 +559,10 @@ int main(int argc, char** argv) {
       for (int j = 0; j <= p - c.sliding_window; ++j) table[static_cast<size_t>(p) * cache + j] = band;
     }
     sh.band_table = ConstF(table, {cache, cache});
-    sh.expert_scale = ConstF(std::vector<float>(c.experts, c.expert_scale), {1, 1, 1, c.experts});
+    // The moe output at 2^-K too: through per_expert_scale, or (--down_scale_fold) through the down block scales.
+    const float rs = absl::GetFlag(FLAGS_down_scale_fold) ? 1.0f
+                                                          : std::ldexp(1.0f, -absl::GetFlag(FLAGS_resid_scale_log2));
+    sh.expert_scale = ConstF(std::vector<float>(c.experts, c.expert_scale * rs), {1, 1, 1, c.experts});
   }
   ModelFactory factory;
   for (absl::string_view p : absl::StrSplit(absl::GetFlag(FLAGS_prefill), ',', absl::SkipEmpty())) {

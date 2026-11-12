@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """make_bundle.py --tflite MODEL.tflite --tokenizer tokenizer.json --out OUT.litertlm [--max-tokens N]
-                  [--act fp32|none] [--pbtext P] [--tokenizer-sha256 SHA|any] [--ids-from FILE]
+                  [--act fp32|fp16|none] [--pbtext P] [--tokenizer-sha256 SHA|any] [--ids-from FILE]
 
 Packs the writer's prefill / decode .tflite into a .litertlm with litert-lm-builder (0.19.x):
 - LlmMetadata = template/gptoss_litertlm.pbtext (template/make_pbtext.py: the ship jinja inline, stops 200002 /
@@ -8,8 +8,9 @@ Packs the writer's prefill / decode .tflite into a .litertlm with litert-lm-buil
   replaces max_num_tokens only, for a graph whose KV cache is shorter;
 - the tokenizer section = the checkpoint's own tokenizer.json bytes (its sha256 must be --tokenizer-sha256, by
   default the one of openai/gpt-oss-120b at b5c939de = openai/gpt-oss-20b at 6cee5e81's LFS oid: 0614fe83...);
-- one TFLiteModel section (prefill_decode) that declares prefer_activation_type (fp32 by default: with fp16
-  activations on the GPU the model's greedy thinking loops instead of answering).
+- one TFLiteModel section (prefill_decode) that declares prefer_activation_type (fp32 by default; fp16 for the GPU
+  file, whose graph is rescaled for fp16 activations (README): a GPU build with fp16 activations and without that
+  rescaling answered "!" from the first token).
 The builder writes a new uuid and creation_timestamp into the header at every build; --ids-from FILE writes FILE's
 instead (FILE = a .litertlm, or its first bytes through the end of its header, e.g. `curl -r 0-65535`), so a rebuild
 of the same sections can be compared with the published file byte for byte.

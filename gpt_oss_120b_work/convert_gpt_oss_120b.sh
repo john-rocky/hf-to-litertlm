@@ -5,6 +5,11 @@
 # `moe` custom op (int4 blockwise 32, gelu_tanh, no clamps: the op of LiteRT-LM 0.19.1 has neither the clamp nor
 # x * sigmoid(1.702 x)), attention and lm_head int8 per channel, KV cache 4,096, the checkpoint's tokenizer.json, the
 # source's chat template with four edits (template/), fp32 activations declared.
+# FORM=gpu writes the GPU file instead, OUTDIR/gpt_oss_120b_mixed_int4_gpu_ekv4096.litertlm: the same pack; the writer
+# with --sink_split --norm_rescale --resid_scale_log2=3 --q_prescale --down_scale_fold --bias_unit_log2=6 (the same
+# function with the values kept inside fp16: the sinks without an all-constant RESHAPE, every RMSNorm on x / max |x|,
+# the residual stream at 2^-3, q scaled before q.k, the experts' bias unit 2^-6; README), fp16 activations declared.
+# The write and bundle steps keep a marker per form, so one OUTDIR can hold both files.
 # LAYERS=N writes the first N layers only (+ final norm + lm_head; the file is then named *_l<N>_*): a test of the
 # pack, writer and bundle steps on ~6 GB of reads instead of 65 GB (fetch still downloads the whole snapshot). It is
 # not a smaller model.
@@ -42,18 +47,26 @@ REV=b5c939de8f754692c1647ca79fbf85e8c1e70f8a
 LITERT_REV=dcb657e8a537b2dc944e53e14c7eb43bcd9ededa
 PY=${PY:-python3}
 LAYERS=${LAYERS:-36}
+FORM=${FORM:-cpu}
 SNAP=${SNAPSHOT:-$OUT/snapshot}
 LITERT=${LITERT:-$OUT/LiteRT}
-if [ "$LAYERS" = 36 ]; then NAME=gpt_oss_120b_mixed_int4_ekv4096; else NAME=gpt_oss_120b_l${LAYERS}_mixed_int4_ekv4096; fi
+case $FORM in
+  cpu) ACT=fp32; KIND=mixed_int4; TFL=$OUT/model.tflite; WFLAGS=() ;;
+  gpu) ACT=fp16; KIND=mixed_int4_gpu; TFL=$OUT/model_gpu.tflite
+       WFLAGS=(--sink_split --norm_rescale --resid_scale_log2=3 --q_prescale --down_scale_fold --bias_unit_log2=6) ;;
+  *) echo "FORM must be cpu or gpu" >&2; exit 2 ;;
+esac
+if [ "$LAYERS" = 36 ]; then NAME=gpt_oss_120b_${KIND}_ekv4096; else NAME=gpt_oss_120b_l${LAYERS}_${KIND}_ekv4096; fi
 STEPS=("$@")
 [ ${#STEPS[@]} -eq 0 ] && STEPS=(fetch pack writer write bundle)
 log() { echo "[$(date '+%F %T')] $*"; }
 run() {  # step
-  local s=$1
-  [ -f "$OUT/.done/$s" ] && { log "skip $s (done $(cat "$OUT/.done/$s"))"; return 0; }
-  log "step $s"
+  local s=$1 m=$1
+  case $s in write | bundle) [ "$FORM" = cpu ] || m=${s}_$FORM ;; esac
+  [ -f "$OUT/.done/$m" ] && { log "skip $s (done $(cat "$OUT/.done/$m"))"; return 0; }
+  log "step $s$( [ "$FORM" = cpu ] || echo " (FORM=$FORM)")"
   "step_$s"
-  date '+%F %T' > "$OUT/.done/$s"
+  date '+%F %T' > "$OUT/.done/$m"
 }
 step_fetch() {
   if [ -n "${SNAPSHOT:-}" ]; then log "SNAPSHOT=$SNAPSHOT"; return 0; fi
@@ -73,14 +86,14 @@ step_writer() {
     //tensor/examples/gptoss:gptoss_writer)
 }
 step_write() {
-  "$LITERT/bazel-bin/tensor/examples/gptoss/gptoss_writer" --weights_dir="$OUT/pack" --out="$OUT/model.tflite" \
-    --prefill=128,1024 --cache=4096 --moe_fusion_guard
+  "$LITERT/bazel-bin/tensor/examples/gptoss/gptoss_writer" --weights_dir="$OUT/pack" --out="$TFL" \
+    --prefill=128,1024 --cache=4096 --moe_fusion_guard ${WFLAGS[@]+"${WFLAGS[@]}"}
 }
 step_bundle() {
-  "$PY" "$HERE/tools/make_bundle.py" --stream --tflite "$OUT/model.tflite" --tokenizer "$SNAP/tokenizer.json" \
+  "$PY" "$HERE/tools/make_bundle.py" --stream --act "$ACT" --tflite "$TFL" --tokenizer "$SNAP/tokenizer.json" \
     --out "$OUT/$NAME.litertlm"
   "$PY" "$HERE/tools/bundle_sections.py" "$OUT/$NAME.litertlm"
-  rm -f "$OUT/model.tflite"
+  rm -f "$TFL"
 }
 for s in "${STEPS[@]}"; do run "$s"; done
 log "done: ${STEPS[*]}$(for s in "${STEPS[@]}"; do [ "$s" = bundle ] && printf ' -> %s' "$OUT/$NAME.litertlm"; done)"
