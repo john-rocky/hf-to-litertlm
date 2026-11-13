@@ -5457,3 +5457,55 @@ Run on 2026-11-10 (13:35–14:48 JST) from a clean copy of this repository's `qw
 - The environment: `requirements.txt` is the whole environment the conversion ran in (79 packages, frozen from it) with one difference, `backports-strenum` 1.2.8 for 1.3.1: 1.3.1 declares Python < 3.11 and pip does not install it on 3.12, and on Python 3.11 or later the packages that require it import `enum.StrEnum` instead. litert-torch is installed from source at `67f11e89` with `--no-deps`.
 - The file needs a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-10, refuses it on the CPU (`moe node #94 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The README has the build with LiteRT pull requests #11192 and #11188.
 - How each part was checked: the README. Speeds and answers: the model card.
+
+## Qwen3.6-35B-A3B — the 40-layer hybrid MoE text decoder through litert-torch's export_hf, each layer's 256 SiLU experts in one `moe` custom op with int8 weights, a 4,096-token cache, a CPU file and two GPU files, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-13)
+
+The steps are in [`qwen36_35b_a3b_work/`](qwen36_35b_a3b_work/) (its README). They convert the text decoder of [Qwen/Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) at revision `345d467b` (Apache License 2.0; the text configuration of Qwen3.5-35B-A3B: 40 layers in the layout 10 × (3 × Gated DeltaNet + 1 × gated attention), 256 experts per layer of which 8 routed and 1 shared are used for each token) into the three files of [litert-community/Qwen3.6-35B-A3B](https://huggingface.co/litert-community/Qwen3.6-35B-A3B). `reproduce.sh WORK_DIR FORM` builds one file:
+
+| FORM | file | bytes | sha256 |
+|---|---|---:|---|
+| `cpu` | `qwen36_35b_a3b_mixed_int8_cpu_ekv4096.litertlm` | 42,149,474,608 | `8cf86608d58658bfad9bbe5907f114f6d343250e4f91fe29034cfac9dc55ca22` |
+| `gpu` | `qwen36_35b_a3b_mixed_int8_gpu_ekv4096.litertlm` | 42,150,922,864 | `e029b291945ebdb8f9231b074aff612ce9679ef3baf571ec3a92f114b76bc5de` |
+| `gpu_int8` | `qwen36_35b_a3b_int8_gpu_ekv4096.litertlm` | 36,431,155,728 | `94a263610948ae2d716963716235fc04dc933e573621cadf2962734b084e4678` |
+
+| section | bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto, all three files (LiteRT-LM's `models/qwen3_5/LlmMetadataProto.pbtext` at v0.19.1 verbatim: the chat template inline, stop token `<\|im_end\|>`, the `generic_model` type, a `thought` channel, `max_num_tokens` 4096) | 4,446 | `0a70ae1fb2cd6d90bf41c299fd17d8cb550a675eb9300d107c03440ab43fb2c9` |
+| ExecutorMetadataProto, the CPU file (export_hf's `executor_metadata.pb`: the global KV, linear-attention and convolution state buffers) | 5,145 | `4236777f0765460350f4d5f950446d9c67bb9733b09b06c704c5b8c15c9ba9b7` |
+| ExecutorMetadataProto, the two GPU files | 5,145 | `cc77266d935451cd01a23716950b0f50e611660aab3a18c077d315d529c36e70` |
+| HF_Tokenizer_Zlib, all three files (unpacks to the checkpoint's `tokenizer.json`, `5f9e4d49…`) | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+| TFLiteModel prefill_decode, the CPU file (prefill 128 and 1024, KV cache 4,096; `prefer_activation_type fp32`) | 42,145,804,592 | `2d7f2dd04330ebc04e0a5b04503e803d24419448902b2db6e8b7df00512db9e5` |
+| TFLiteModel prefill_decode, the mixed int8 GPU file (`fp32`) | 42,147,252,848 | `457af9a5e04de63f50a60cc999614d2aef18e177004c0a591dcbfbffdef47417` |
+| TFLiteModel prefill_decode, the int8 GPU file (`fp16`) | 36,427,485,712 | `26dcf341175241c0f5e4960254090c45dec68b85ba3bb0edf4e0823ddd25e32f` |
+
+(The sha256 of each section's bytes as stored in the file. `prefer_activation_type` is the section's entry in the container header.)
+
+Run from a clean copy of this repository's `qwen36_35b_a3b_work/`, in a new Python 3.12 venv made by its README ("Steps"; one venv for the `cpu` and `gpu` runs, a second one for `gpu_int8`), with the checkpoint already on disk: `SNAP=<snapshot dir> bash reproduce.sh WORK_DIR FORM`, `cpu` on 2026-11-13 13:47–14:18 JST, `gpu` 15:04–15:54, `gpu_int8` on 2026-11-14 02:12–03:11. The `cpu` and `gpu` runs used the directory before step 6 passed `--act`; it passes `fp32` to them, `make_bundle.py`'s default, so their commands did not change.
+
+- The result, for each file: the same computation, not the same bytes. The LlmMetadataProto, ExecutorMetadataProto and HF_Tokenizer_Zlib sections came out byte for byte as in the table, and the TFLiteModel section the same size with another sha256 (`cpu` `949ff7ec75a830871f986722f25147dcbd6300579851472ed66eda3b084d5631`, `gpu` `7c835f2e9d0ac26c162d437a7b54c28cf4f17aad0965ba91b3377ceae01701f3`, `gpu_int8` `fc2cf1a7166deae8dfc34138bcc55fcb44c2776a8172616bdfe91b7d019ac678`). The whole rebuilt files: `e4b9fe6d4539144a272666c9fc7b211f15a0411c94f3f27ec5be08c991f335f6`, `82964f654b3e8c55b78f8087ab6f3c6770f3d3903b3d72d643dafa898b68839f` and `175bab40d44aed095a8dedb9e460a38f15c53e4933225c9be8dd2d64d709ef7b`. Each differs from the published file in two places only:
+  - the container header's uuid and creation time, which litert-lm-builder writes anew at every build, in the file's first 16,384 bytes (the first section starts there). The rest of the header is the same, the declared activation type included (`fp16` in the `gpu_int8` rebuild as in the published file);
+  - inside the TFLiteModel section, one 12-character string, 69,924 times in the CPU file and 72,034 times in each GPU file. litert-torch names an extension it loads from a file `_litert_torch_ext_file_q35moe_ext_` followed by the first 12 hex digits of the sha256 of the file's absolute path, and the tensor names carry that name: `397dfc22b96a` in the rebuilds, `8e850f715642` in the published files, which were exported with `q35moe_ext.py` at another path.
+- Writing the published header and the published 12 characters into a copy of the rebuilt file gives the published file's sha256. A rebuild in another directory carries its own 12 characters; the check replaces whichever are there. Run on 2026-11-14 on this run's `gpu_int8` rebuild, which gave the published file's sha256; the `cpu` and `gpu` rebuilds went through the same two replacements before they were deleted, each with the published sha256 as the result:
+
+  ```bash
+  WORK_DIR=work   # the directory given to reproduce.sh
+  NAME=qwen36_35b_a3b_int8_gpu_ekv4096.litertlm   # or another file of the table
+  curl -L -r 0-16383 -o head.bin https://huggingface.co/litert-community/Qwen3.6-35B-A3B/resolve/8602fba461a2dee9a9df1f641cbc3be0c4c8bf52/$NAME
+  cp -c $WORK_DIR/$NAME check.litertlm   # an APFS clone; cp --reflink=auto on Linux
+  python3 - check.litertlm head.bin <<'EOF'
+  import re, sys
+  pre = b"_litert_torch_ext_file_q35moe_ext_"
+  head = open(sys.argv[2], "rb").read()
+  assert len(head) == 16384, f"head.bin has {len(head)} bytes, not 16384"
+  with open(sys.argv[1], "r+b") as f:
+      region = f.read(64 << 20)  # the graph's tensor names sit in its first megabytes
+      region = re.sub(re.escape(pre) + rb"[0-9a-f]{12}", pre + b"8e850f715642", region)
+      f.seek(0)
+      f.write(head + region[16384:])
+  EOF
+  shasum -a 256 check.litertlm   # the file's sha256 in the table
+  ```
+
+- The environment: `requirements.txt` is the same file as [`qwen35_35b_a3b_work/`](qwen35_35b_a3b_work/)'s (79 packages; that entry has the one difference from the environment the conversion ran in), and litert-torch is installed from source at `67f11e89` with `--no-deps`; `pip check` found no broken requirements in the run's venv.
+- The files need a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.2 from PyPI, run on 2026-11-13, refuses each file on the CPU (`moe node #94 unsupported activation='silu'` for the CPU file, `moe node #39 unsupported activation='silu'` for the GPU files) and the GPU files on the GPU (its GPU delegate refuses the `moe` op and `odml.gated_delta_block`). The README has the build with LiteRT pull requests #11192 and #11188.
+- How each part was checked: the README. Speeds and answers: the model card.
