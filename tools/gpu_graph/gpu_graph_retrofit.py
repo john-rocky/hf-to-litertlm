@@ -29,6 +29,10 @@ error, garbage text).
   add_bcast     ADD kept, no CONCATENATION: logits viewed as [bk, g, T, C] + broadcast mask (the
                 shape of a reference export made with the flag; also correct on the Mac GPU).
   add           the flag-off form unchanged (record only; broken on the Mac GPU).
+A graph whose mask is added without CONCATENATION keeps that ADD for select_float and add_bcast. When
+the ADD reads the q.K BATCH_MATMUL's [1, H, T, C] output directly (multi-head attention without KV
+groups), it is wrapped in a [H, 1, T, C] view, the same values: left as is next to runtime_bmm, it
+gave broken text on the Mac GPU.
 
 Decomposition subgraphs (what the CPU interpreter runs; GPU delegates replace the composite):
   * exporter (default): the original ops, without the exporter's `ADD(x, 0)` tracing artifact —
@@ -572,8 +576,12 @@ def rewrite_mask(model, sg, g, key, sd, mode, new_ops_before, remove, replace, r
   # the logits are viewed as [bk, g, T, C] and the [1, 1, T, C] mask is broadcast-added = already
   # the reference export's shape (mode add_bcast), which runs correctly next to runtime_bmm on the Mac
   # GPU. Kept as is for select_float / add_bcast.
+  # Multi-head attention without KV groups (e.g. litert-community/OLMo-2-1B-Instruct): the ADD reads the
+  # [1, H, T, C] output of the q.K BATCH_MATMUL itself. Left there, next to runtime_bmm, it gave broken
+  # text on the Mac GPU; the ADD is wrapped in a [H, 1, T, C] view (add_bcast's shape for one group, the
+  # same values), for select_float / add_bcast alike.
   if all(g.opcode(sg.operators[c]) == OP.ADD for c in cats):
-    views = []
+    views, direct = [], []
     for c in cats:
       aop = sg.operators[c]
       other = aop.inputs[0] if aop.inputs[1] == mask_t else aop.inputs[1]
@@ -581,10 +589,28 @@ def rewrite_mask(model, sg, g, key, sd, mode, new_ops_before, remove, replace, r
       if len(shp) != 4 or shp[2:] != g.shape(mask_t)[2:]:
         raise RuntimeError(f"{key}: mask ADD {c} adds to {shp}, not a [bk, g, T, C] view")
       views.append(shp)
+      p = g.producer.get(other)
+      if p is not None and g.opcode(sg.operators[p]) == OP.BATCH_MATMUL:
+        direct.append((c, other))
     if mode == "select_bool":
       raise RuntimeError(f"{key}: select_bool is not implemented for the broadcast-ADD lineage")
-    rep["mask"] = {"mode": "kept_broadcast_add", "requested": mode, "mask_adds": len(cats), "view": views[0],
-                   "input_dtype": "FLOAT32"}
+    if not direct:
+      rep["mask"] = {"mode": "kept_broadcast_add", "requested": mode, "mask_adds": len(cats), "view": views[0],
+                     "input_dtype": "FLOAT32"}
+      return
+    for c, lg in direct:
+      aop = sg.operators[c]
+      _, H, T, C = g.shape(lg)
+      v4 = add_tensor(model, sg, f"{key}_retrofit_logits_h1tc_{c}", TT.FLOAT32, [H, 1, T, C])
+      o1 = make_op(model, OP.RESHAPE, [lg, const_shape(model, sg, key, [H, 1, T, C])], [v4])
+      added = add_tensor(model, sg, f"{key}_retrofit_masked_h1tc_{c}", TT.FLOAT32, [H, 1, T, C])
+      o2 = copy.deepcopy(aop)
+      o2.inputs, o2.outputs = [v4, mask_t], [added]
+      o3 = make_op(model, OP.RESHAPE, [added, const_shape(model, sg, key, g.shape(aop.outputs[0]))], list(aop.outputs))
+      new_ops_before[c].extend([o1, o2])
+      replace[c] = o3
+    rep["mask"] = {"mode": "viewed_broadcast_add", "requested": mode, "mask_adds": len(cats),
+                   "viewed_adds": len(direct), "view": [H, 1, T, C], "input_dtype": "FLOAT32"}
     return
   ngroups = None
   for ci in cats:
