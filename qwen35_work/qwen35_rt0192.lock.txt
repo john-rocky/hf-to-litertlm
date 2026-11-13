@@ -1,0 +1,14 @@
+# The second environment of qwen35_work/export_qwen35_4b_gpu_composite.sh (steps 7-8): Python 3.12, macOS arm64, pip freeze of a fresh venv after `pip install litert-lm==0.19.2` and `pip check` (2026-11-14).
+absl-py==2.5.1
+click==8.5.1
+flatbuffers==25.12.19
+litert-lm==0.19.2
+litert-lm-api==0.19.2
+litert-lm-builder==0.19.2
+numpy==2.5.4
+prompt_toolkit==3.0.53
+protobuf==7.36.2
+questionary==2.1.1
+tomli==2.5.0
+typing_extensions==4.16.0
+wcwidth==0.9.4
