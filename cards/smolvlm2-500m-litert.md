@@ -23,13 +23,13 @@ library_name: litert-lm
 with Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 SmolVLM2-500M is a tiny vision-language model from Hugging Face: a **SigLIP** vision encoder +
-pixel-shuffle connector feeding a **SmolLM2 (Llama-architecture) 360M** decoder. At just **361 MB** it
+pixel-shuffle connector feeding a **SmolLM2 (Llama-architecture) 360M** decoder. At just **363 MB** it
 is one of the smallest on-device VLMs — give it an image and a question, get a grounded answer, fully
 offline.
 
 | | |
 |---|---|
-| **File** | `SmolVLM2-500M.litertlm` (~361 MB) |
+| **File** | `SmolVLM2-500M.litertlm` (~363 MB) |
 | **Vision** | SigLIP encoder (512×512, 1024 patches, no CLS) + pixel-shuffle ×4 + Linear connector, **int8** → **64 image tokens** |
 | **Decoder** | SmolLM2-360M (Llama, 960-dim, 32 layers, GQA 15/5), **int4** weights (blockwise-32 + OCTAV); tied embedding INT8 (externalized) |
 | **Compute** | integer |
@@ -81,6 +81,10 @@ Run this model **with image input** in the official
   (x−0.5)/0.5 normalization + NCHW transpose into the graph.
 - Single-image, no high-res splitting → a fixed 64 soft tokens; SmolLM2 (Llama) decoder exported with
   externalized (tied) embedder.
+- 2026-11-14: the prefill/decode graph was rewritten into the form litert-torch writes with
+  `--apply_gpu_composites` (`odml.cache_update`, `odml.runtime_bmm`), and a `prefill_1024` signature copied from
+  `prefill_512` was added; every weight buffer is unchanged. Steps and checks:
+  [REPRODUCE.md](../REPRODUCE.md#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged).
 
 ## License
 

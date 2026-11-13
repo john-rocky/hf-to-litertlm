@@ -340,6 +340,45 @@ bash scripts/repack_official_metadata.sh <hf-repo> <file.litertlm> <family> <hub
 
 A re-run reproduces every section byte for byte but not the file's sha256: the packer writes a new uuid and creation timestamp into the container header (37 bytes differed between two runs on the first file above, same size). The resulting files are proposed to the repos as Hub pull requests (metadata only); until a PR merges, `main` serves the original. Checks that ran on each result with litert-lm 0.18.0 (python API, CPU, one process per check): describe, a plain prompt, an automatic tool call answered from its result, thinking on and off, two turns, a tool result read from the tool message, and a system-prompt instruction. Exceptions worth knowing: `qwen3_4b_mixed_int4.litertlm` keeps a 2,048-token context, and with thinking on (the official qwen3 default) and no `thinking_token_budget` the thought can use it up before the answer; the Qwen2.5 official configuration sets `min_runtime_version 0.18.0` and `supports_function_calling`.
 
+## 2026-11-14 — GPU graph re-ship (2 files, weights unchanged)
+
+The two files below wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The re-ship rewrites only their prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces: one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products, and a `param_tensor` signature input. The attention mask stays a FLOAT32 input and is added to the attention logits by broadcast (`--mask add_bcast`, below). Every weight buffer keeps its bytes. SmolVLM2-500M had prefill signatures of 128 and 512 tokens only; it also gets `prefill_1024`, copied from `prefill_512` and sharing every weight buffer.
+
+`previous.litertlm` is the file at the Hub commit in the table. The scripts unpack and pack the bundle with the CLI named in `LITERT_LM_CLI` (litert-lm 0.19.1 made the shipped files) and need `ai-edge-litert`, `litert-lm-builder`, `flatbuffers`, `numpy` and `protobuf` (the shipped files were made with 2.2.0, 0.16.1, 25.12.19, 2.5.2 and 7.36.0).
+
+```
+export LITERT_LM_CLI=/path/to/litert-lm
+# Qwen2.5-Coder-1.5B-Instruct
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm Qwen2.5-Coder-1.5B-Instruct_int4.litertlm --decomp exporter --mask add_bcast
+# SmolVLM2-500M
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm retrofit.litertlm --decomp exporter --mask add_bcast
+python tools/gpu_graph/prefill_bucket_clone.py build retrofit.litertlm SmolVLM2-500M.litertlm --lengths 1024 --source prefill_512 --report bucket.json
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| Qwen2.5-Coder-1.5B-Instruct | `Qwen2.5-Coder-1.5B-Instruct_int4.litertlm` | 1,118,076,928 | `289e5071b2b9` | `cd4e2d77719b` |
+| SmolVLM2-500M | `SmolVLM2-500M.litertlm` | 363,085,824 | `7b432bbc0a5c` | `0e794c26b4de` |
+
+Run as written from a clean checkout of this repo on 2026-11-14, with the previous files downloaded at the commits in the table, both rebuilds gave every bundle section byte-identical to the shipped file (sha256 per section, `scripts/section_identity.py`). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+`--mask add_bcast` is not the tool's default. The default, `select_float`, applies the mask with one SELECT_V2 per layer. On the CPU those ops stay outside XNNPACK and split the graph (Qwen2.5-Coder on a Galaxy S26: 111 partitions in `prefill_1024` against 57), and on a Galaxy S26 CPU the 1,024-token prefill ran 9–11 % slower than with `add_bcast` for Qwen2.5-Coder and 16–22 % slower for SmolVLM2. On the Galaxy S26 GPU the two forms of Qwen2.5-Coder decoded at the same speed. On a Pixel 11 Pro GPU the default form ran the 1,024-token prefill 15 % (Qwen2.5-Coder) and 36 % (SmolVLM2) faster than `add_bcast`, with decode within 5 %. The shipped files use `add_bcast` so that the CPU keeps the previous files' speed.
+
+Checks, against the previous file unless a line says otherwise:
+- Every section other than the prefill/decode graph is byte-identical, and so is every weight buffer the graph uses. Every original tensor that carries data keeps its name, type, shape and buffer reference; one intermediate tensor per layer and signature (196 in Qwen2.5-Coder, 96 in SmolVLM2-500M) keeps its name and type with its last two dimensions swapped.
+- CPU (XNNPACK, 1 thread, greedy): the same replies, byte for byte, on 4 prompts, one of them longer than 1,024 tokens so that `prefill_1024` runs (litert-lm 0.19.2, Mac); SmolVLM2-500M also on one picture.
+- One prompt (SmolVLM2-500M: one prompt and one picture) on the Mac CPU and GPU with litert-lm 0.16.0 and 0.17.0 to 0.19.1 for Qwen2.5-Coder, and 0.17.0 to 0.19.2 for SmolVLM2-500M: the same reply, byte for byte. On 0.16.0 neither SmolVLM2-500M file starts a conversation.
+- 8 short questions on the GPU: Qwen2.5-Coder 8 of 8 and SmolVLM2-500M 7 of 8 (it misses the rhyme question, as the previous file does), with both files on a Mac and a Pixel 11 Pro, and with the new file on a Galaxy S26.
+
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (`litert_lm_advanced_main --benchmark` built from source at `771b06e1`, a 1,024-token prefill and 256 decode tokens, context 2,048, each run a new process with 3 iterations; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous):
+
+| Model | Decode tok/s | Prefill tok/s |
+|---|---:|---:|
+| Qwen2.5-Coder-1.5B-Instruct | 36.1 → 44.3 | 597 → 646 |
+| SmolVLM2-500M | 67.4 → 79.8 | 1,659 → 1,741 |
+
+On a Pixel 11 Pro GPU (same build and workload) decode went from 15.9 to 18.3 tok/s (Qwen2.5-Coder) and from 21.0 to 24.4 (SmolVLM2), prefill from 515 to 533 and from 1,170 to 1,115. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous files, neither new file was more than 1.5 % slower than the previous file in any iteration.
+
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
 The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
