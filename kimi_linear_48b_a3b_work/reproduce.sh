@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # reproduce.sh WORK_DIR [cpu|gpu]: moonshotai/Kimi-Linear-48B-A3B-Instruct (revision e1df551a) -> the CPU file
 # kimi_linear_48b_a3b_mixed_int8_cpu_ekv4096.litertlm (cpu, the default) or the GPU file
-# kimi_linear_48b_a3b_mixed_int8_gpu_ekv4096.litertlm (gpu: the KDA and MLA projections and the output layer int8 per
-# channel too, steps 3b and 3c). Each step is in README.md "Steps". SNAP=<snapshot dir> skips the download (98 GB). Disk
-# besides the checkpoint: the export 8 GB (gpu: and its quantized copy, 4 GB), the grafted model (cpu 55 GB, gpu 51 GB)
+# kimi_linear_48b_a3b_mixed_int8_gpu_ekv4096.litertlm (gpu: the other fully connected ops with a constant weight int8 per
+# channel too, all but KDA's 16 x 16 chunk masks; steps 3b and 3c). Each step is in README.md "Steps". SNAP=<snapshot
+# dir> skips the download (98 GB).
+# Disk besides the checkpoint: the export 8 GB (gpu: and its quantized copy, 3 GB), the grafted model (cpu 55 GB, gpu 50 GB)
 # and, while the graft runs, its spill file of the finished experts (47 GB; deleted at the end); the bundle takes the
 # grafted model's blocks over on macOS (--consume-tflite). Memory: ~27 GB peak (the export).
 set -euo pipefail
@@ -44,8 +45,9 @@ KIMI_EXPERTS=graft python3 "$HERE/tools/kimi_export.py" "$SNAP" "$W/plain.tflite
 SRC=$W/plain.tflite
 
 if [ "$FORM" = gpu ]; then
-  # 3b. the recipe: the KDA and MLA projections and the output layer int8 per channel, chosen one op at a time
-  python3 "$HERE/tools/make_recipe.py" "$W/plain.tflite" "$W/recipe_gpu.json"
+  # 3b. the recipe (form f6): every fully connected op with a constant weight int8 per channel but KDA's 16 x 16 chunk
+  # masks, chosen one op at a time
+  python3 "$HERE/tools/make_recipe.py" "$W/plain.tflite" "$W/recipe_gpu.json" --form f6
   # 3c. litert_quantizer with that recipe (the moe op is left as it is)
   python3 "$HERE/tools/quant_tflite.py" "$W/plain.tflite" "$W/q.tflite" "$W/recipe_gpu.json"
   rm -f "$W/plain.tflite"

@@ -1,24 +1,34 @@
 #!/usr/bin/env python3
-"""make_recipe.py EXPORT.tflite OUT_RECIPE.json - the litert_quantizer recipe of the GPU file: the KDA and MLA projections
-and the output layer int8 per channel, chosen one fully connected op at a time.
+"""make_recipe.py EXPORT.tflite OUT_RECIPE.json [--form f6|f5|f3] - the litert_quantizer recipe of the GPU file: fully
+connected ops int8 per channel, chosen one op at a time.
 
+Forms (--form; the default, f6, is the GPU file's):
+  f3  the KDA and MLA projections and the output layer
+  f5  f3 + the shared experts and the first layer's dense MLP
+  f6  f5 + the router and KDA's gate projections: every fully connected op with a constant weight but the 16 x 16 chunk
+      masks (none of which is in the decode signature)
 The converter fuses op locations, so an op's output name also holds the module paths of its neighbours (the outputs of
 KDA's f_a_proj and b_proj end in `...Lin_q_proj;`, and MLA's kv_c / kv_r / q_rot outputs hold `Lin_q_nope_proj`), and
 litert_quantizer matches a recipe entry's regex against an op's scope: its output names joined by ";", with a trailing
-";". A regex like `Lin_q_proj` would make KDA's small gate projections int8 too. So a FULLY_CONNECTED op with a constant
-weight is chosen by a weight shape that only the targets have, together with the module name in its scope:
-  KDA q / k / v [4096, 2304] and o [2304, 4096]                                  (the scope holds kimi_ext.KDA_attn)
-  MLA q_nope [4096, 2304], q_rot [2048, 2304], kv_c [512, 2304], kv_r [64, 2304],
-      o [2304, 4096]                                                             (the scope holds kimi_ext.MLA_attn)
-  the output layer [163840, 2304]                                                (the scope is `decode_logits_output;`)
-Everything else stays fp32: KDA's f_a / g_a [128, 2304], f_b / g_b [4096, 128] and b [32, 2304]; the router
-[256, 2304]; the shared experts [1024, 2304] / [2304, 1024]; the first layer's dense MLP [9216, 2304] / [2304, 9216];
-the 16 x 16 chunk masks; the fully connected ops whose weight is a run-time tensor (the attention over the MLA cache).
-The recipe lists the chosen ops' exact scopes, anchored and escaped; a scope shared by a chosen and an unchosen op stops
-the tool. The `moe` op is left as it is (no_quantize): tools/graft_kimi.py writes the routed experts afterwards.
-Writes OUT_RECIPE.json and OUT_RECIPE.json.select.json (per signature: the int8 and fp32 counts by weight shape; the
-scopes). Reads the file through mmap with ai_edge_litert's flatbuffer schema.
+";". A regex like `Lin_q_proj` would also pick KDA's small gate projections in f3 and f5. So a FULLY_CONNECTED op with a
+constant weight is chosen by a weight shape that only the form's targets have, together with the module name in its
+scope:
+  f3  KDA q / k / v [4096, 2304] and o [2304, 4096]                            (the scope holds kimi_ext.KDA_attn)
+      MLA q_nope [4096, 2304], q_rot [2048, 2304], kv_c [512, 2304], kv_r [64, 2304],
+          o [2304, 4096]                                                       (the scope holds kimi_ext.MLA_attn)
+      the output layer [163840, 2304]                                          (the scope is `decode_logits_output;`)
+  f5  + the shared experts [1024, 2304] / [2304, 1024]                         (kimi_ext.MLP_shared)
+      + the first layer's dense MLP [9216, 2304] / [2304, 9216]                (kimi_ext.MLP_mlp)
+  f6  + the router [256, 2304]                                                 (kimi_ext.MoE_moe)
+      + KDA's f_a / g_a [128, 2304], f_b / g_b [4096, 128] and b [32, 2304]    (kimi_ext.KDA_attn)
+Everything else stays fp32: the 16 x 16 chunk masks, the fully connected ops whose weight is a run-time tensor (the
+attention over the MLA cache), and in f3 / f5 the later forms' targets. The recipe lists the chosen ops' exact scopes,
+anchored and escaped; a scope shared by a chosen and an unchosen op stops the tool. The `moe` op is left as it is
+(no_quantize): tools/graft_kimi.py writes the routed experts afterwards.
+Writes OUT_RECIPE.json and OUT_RECIPE.json.select.json (the form; per signature: the int8 and fp32 counts by weight
+shape; the scopes). Reads the file through mmap with ai_edge_litert's flatbuffer schema.
 """
+import argparse
 import collections
 import json
 import mmap
@@ -33,14 +43,29 @@ TARGETS = {
     (64, 2304): ("MLA_attn",),
     (163840, 2304): (None,),
 }
+F5_EXTRA = {
+    (1024, 2304): ("MLP_shared",),
+    (2304, 1024): ("MLP_shared",),
+    (9216, 2304): ("MLP_mlp",),
+    (2304, 9216): ("MLP_mlp",),
+}
+F6_EXTRA = {
+    (256, 2304): ("MoE_moe",),
+    (128, 2304): ("KDA_attn",),
+    (4096, 128): ("KDA_attn",),
+    (32, 2304): ("KDA_attn",),
+}
+FORMS = {"f3": TARGETS, "f5": {**TARGETS, **F5_EXTRA}, "f6": {**TARGETS, **F5_EXTRA, **F6_EXTRA}}
 INT8 = {"num_bits": 8, "symmetric": True, "granularity": "CHANNELWISE", "dtype": "INT"}
 
 
 def main():
-  if len(sys.argv) != 3:
-    print(__doc__.splitlines()[0], file=sys.stderr)
-    return 2
-  src, out = sys.argv[1], sys.argv[2]
+  ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+  ap.add_argument("tflite")
+  ap.add_argument("out")
+  ap.add_argument("--form", default="f6", choices=sorted(FORMS))
+  a = ap.parse_args()
+  src, out = a.tflite, a.out
   from ai_edge_litert import schema_py_generated as S
   f = open(src, "rb")
   mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
@@ -68,7 +93,7 @@ def main():
       if not const:
         rec["runtime_weight"][key] += 1
         continue
-      mods = TARGETS.get(shape)
+      mods = FORMS[a.form].get(shape)
       if mods == (None,):
         hit = scope == "decode_logits_output;"
       else:
@@ -90,8 +115,8 @@ def main():
       {"regex": ".*", "operation": "CUSTOM_OP", "algorithm_key": "no_quantize"},
   ]
   json.dump(recipe, open(out, "w"), indent=1)
-  json.dump({"tflite": src, "signatures": per_sig, "chosen_scopes": sorted(chosen), "float_scopes": sorted(unchosen)},
-            open(out + ".select.json", "w"), indent=1)
+  json.dump({"tflite": src, "form": a.form, "signatures": per_sig, "chosen_scopes": sorted(chosen),
+             "float_scopes": sorted(unchosen)}, open(out + ".select.json", "w"), indent=1)
   for name, rec in per_sig.items():
     print(name, json.dumps(rec))
   print("RECIPE", out, "chosen scopes", len(chosen), "float scopes", len(unchosen))
