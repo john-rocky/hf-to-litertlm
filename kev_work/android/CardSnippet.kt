@@ -66,7 +66,8 @@ class KevRowGraph(
  * to question_step as its inputs (no copy through the app). constantTensorSharing (default true) keeps one copy of the
  * weights on the GPU for the two signatures. Without it the pair is faster, but the GPU holds the weights twice: on a
  * Galaxy S26 (12 GB) at FP16_WITH_FP32_ACCUM, Kev-0.8B's Ls 128 pair answered a 5-question request in 430.9 ms without
- * sharing and 624.8 ms with it (median of the requests timed with the GPU clock not capped), and the phone's smallest
+ * sharing (the median of 6 requests, GPU clock not capped and CPU clock capped) and 624.8 ms with it (the median
+ * of 2 requests, neither clock capped), and the phone's smallest
  * MemAvailable in the Ls 128 and Ls 256 runs (gate and timing) was 2.7 to 3.1 GB without sharing and 5.6 to 6.1 GB
  * with it.
  * layers = 24 for Kev-0.8B, 32 for Kev-4B: every fourth layer (3, 7, ...) is an attention layer (state k_<l>, v_<l>),
