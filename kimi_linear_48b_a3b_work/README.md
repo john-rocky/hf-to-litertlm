@@ -10,7 +10,7 @@
 
 ## The runtime it needs
 
-LiteRT-LM 0.19.1, the latest release on 2026-11-13, does not run this file: the `moe` kernels of LiteRT-LM 0.19.1 accept only GELU. SiLU in the `moe` op is in two LiteRT pull requests, open on that day: [#11192](https://github.com/google-ai-edge/LiteRT/pull/11192) (the GPU kernel) and [#11188](https://github.com/google-ai-edge/LiteRT/pull/11188) (the XNNPACK kernel). Every check ran on this build:
+LiteRT-LM 0.19.2, the latest release on PyPI on 2026-11-13, does not run this file, and neither does 0.19.1: the `moe` kernels of both reject SiLU, the activation of this model's experts. SiLU in the `moe` op is in two LiteRT pull requests, open on that day: [#11192](https://github.com/google-ai-edge/LiteRT/pull/11192) (the GPU kernel) and [#11188](https://github.com/google-ai-edge/LiteRT/pull/11188) (the XNNPACK kernel). Every check ran on this build:
 
 LiteRT-LM `02d7e8d8` (main, 2026-11-07) with the LiteRT commit its WORKSPACE pins, `bf49eb62`, and the two pull requests applied without their test files (one test file of #11192 does not apply at `bf49eb62`; no test is built). ml-drift is the WORKSPACE's own archive. `--override_repository` skips the patch commands that LiteRT-LM's WORKSPACE applies to the LiteRT archive, so [`apply_ws_patch_cmds.py`](https://github.com/john-rocky/hf-to-litertlm/blob/84336e8d00a567464e834854bdc1987a5c6656ca/qwen3_30b_a3b_work/apply_ws_patch_cmds.py) (kept in the hf-to-litertlm folder of the Qwen3-30B-A3B conversion) applies them by hand; it needs GNU sed installed as `gsed`. The block also needs Git LFS and Bazel (LiteRT-LM's `.bazelversion` names 7.6.1, which Bazelisk runs); it ran here with Xcode 27.0 on macOS 27.0. Run it in an empty directory:
 
