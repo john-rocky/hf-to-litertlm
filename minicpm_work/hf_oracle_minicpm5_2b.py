@@ -10,9 +10,11 @@ expected string). Budget 2048 so a thinking run is never cut mid-think.
   ~/venvs/lt093ctl/bin/python minicpm_work/hf_oracle.py --thinking unset --out minicpm_work/hf_oracle_unset.json
 """
 import argparse
+import importlib.util
 import json
 import re
 import time
+from pathlib import Path
 
 QUESTIONS = [
     ("17+25=42",         "What is 17 + 25?",                                       r"\b42\b"),
@@ -25,6 +27,18 @@ QUESTIONS = [
     ("rhyme=blue",       'Complete the rhyme: "Roses are red, violets are ___"',   r"\bblue\b"),
 ]
 SUFFIX = " Answer briefly."
+
+
+def _load_verify_quality():
+  """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+  p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+  spec = importlib.util.spec_from_file_location("verify_quality", p)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+VQ = _load_verify_quality()
 
 
 def main():
@@ -53,7 +67,9 @@ def main():
     raw = tok.decode(gen, skip_special_tokens=True)
     torch.mps.empty_cache()
     thought, content = (raw.rsplit("</think>", 1) if "</think>" in raw else ("", raw))
-    ok = bool(re.search(rx, content, re.IGNORECASE))
+    # scored by verify_quality: when the prompt opened <think> (thinking on), a reply without </think>
+    # is a thought that never closed (no answer), not an answer
+    ok = VQ.answer_ok(rx, VQ.strip_think(("<think>" if prompt.rstrip().endswith("<think>") else "") + raw))
     passed += ok
     rows.append({"label": label, "ok": ok, "n_gen_tokens": int(gen.shape[0]), "think_chars": len(thought),
                  "answer": content.strip()[:300], "thought_head": thought.strip()[:200], "seconds": round(time.time() - t0, 1)})

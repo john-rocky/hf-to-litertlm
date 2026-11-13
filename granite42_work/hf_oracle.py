@@ -19,9 +19,11 @@ faithful carrier for the gate shape.
   python granite42_work/hf_oracle.py --template simple  --out granite42_work/hf_oracle_simple.json
 """
 import argparse
+import importlib.util
 import json
 import re
 import sys
+from pathlib import Path
 
 QUESTIONS = [
     ("17+25=42",         "What is 17 + 25?",                                       r"\b42\b"),
@@ -34,6 +36,18 @@ QUESTIONS = [
     ("rhyme=blue",       'Complete the rhyme: "Roses are red, violets are ___"',   r"\bblue\b"),
 ]
 SUFFIX = " Answer briefly."
+
+
+def _load_verify_quality():
+  """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+  p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+  spec = importlib.util.spec_from_file_location("verify_quality", p)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+VQ = _load_verify_quality()
 
 
 def render_simple(q):
@@ -74,10 +88,11 @@ def main():
     with torch.no_grad():
       out = model.generate(**ids, max_new_tokens=args.max_tokens, do_sample=False)
     raw = tok.decode(out[0][ids["input_ids"].shape[1]:], skip_special_tokens=True)
-    # score only the answer half; the reasoning can contain the expected string
-    ans = raw.rsplit("</think>", 1)[-1] if "</think>" in raw else raw
+    # score only the answer half; the reasoning can contain the expected string. When the
+    # prompt opened <think>, a reply without </think> is a thought that never closed: no answer.
     finished = "</think>" in raw
-    ok = bool(re.search(rx, ans, re.I))
+    ans = VQ.strip_think(("<think>" if text.rstrip().endswith("<think>") else "") + raw)
+    ok = VQ.answer_ok(rx, ans)
     correct += ok
     rows.append({"label": label, "question": q, "answer": ans.strip(),
                  "think_chars": len(raw) - len(ans), "think_closed": finished,

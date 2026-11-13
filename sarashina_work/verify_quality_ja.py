@@ -78,7 +78,7 @@ def main():
             return 2
         ans = vq.strip_think(raw)
         scored = pat is not None
-        ok = bool(re.search(pat, ans.lower())) if scored else ("�" not in ans and bool(ans.strip()))
+        ok = vq.answer_ok(pat, ans) if scored else ("�" not in ans and bool(ans.strip()))
         degen = (not ans.strip()) or degenerate_ja(ans)
         if tok:
             toks.append(tok)

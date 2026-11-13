@@ -8,13 +8,26 @@
                             (fixed system prompt); round 2 = the same 20 again on the same Engine.
   qset --mode fresh --question i : one Engine, one Conversation, question i only (the control;
                             the caller runs one process per question).
-Scoring: regex per question; `degenerate` = the verify_quality.py rule; `echo` = the question text in the answer.
+Scoring: verify_quality.py's answer_ok per question (the regex; 0.9 vs 0.11 by what the answer says is larger);
+`degenerate` = the verify_quality.py rule; `echo` = the question text in the answer.
 """
-import argparse, json, os, re, sys, time, traceback
+import argparse, importlib.util, json, os, sys, time, traceback
 from collections import Counter
 
 import litert_lm
 from litert_lm import interfaces
+
+
+def _load_verify_quality():
+  """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+  p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "scripts", "verify_quality.py")
+  spec = importlib.util.spec_from_file_location("verify_quality", p)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+VQ = _load_verify_quality()
 
 SYS_QSET = "You are a helpful assistant. Answer briefly."
 SYS_A = "Your name is Alpha. Begin every reply with the word Alpha."
@@ -90,7 +103,7 @@ def ask(engine, system, prompt, max_out):
 def score(idx, text):
   key, q, rx = QUESTIONS[idx]
   low = text.lower()
-  return {"key": key, "correct": bool(re.search(rx, low)), "degenerate": degenerate(text),
+  return {"key": key, "correct": VQ.answer_ok(rx, VQ.strip_think(text)), "degenerate": degenerate(text),
           "echo": q.lower().rstrip("?").rstrip(".")[:30] in low}
 
 

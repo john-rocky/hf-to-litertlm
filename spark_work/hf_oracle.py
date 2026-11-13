@@ -18,11 +18,13 @@ block within --max-tokens is reported as unfinished (not a wrong answer).
 """
 import argparse
 import gc
+import importlib.util
 import json
 import os
 import re
 import sys
 import time
+from pathlib import Path
 
 os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.3")  # see gsm8k_bf16.py
 os.environ.setdefault("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.25")
@@ -39,6 +41,18 @@ QUESTIONS = [
 ]
 SUFFIX = " Answer briefly."
 BOS = "<｜start▁of▁sentence｜>"
+
+
+def _load_verify_quality():
+  """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+  p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+  spec = importlib.util.spec_from_file_location("verify_quality", p)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+VQ = _load_verify_quality()
 
 
 def main():
@@ -84,9 +98,11 @@ def main():
     gen = out[0][ids["input_ids"].shape[1]:]
     raw = tok.decode(gen, skip_special_tokens=False)
     finished = "</think>" in raw
-    ans = raw.rsplit("</think>", 1)[-1] if finished else raw
+    # scored by verify_quality: when the prompt opened <think>, a reply without </think> is a
+    # thought that never closed (no answer), not an answer
+    ans = VQ.strip_think(("<think>" if text.rstrip().endswith("<think>") else "") + raw)
     ans = ans.replace("<｜end▁of▁sentence｜>", "")
-    ok = bool(re.search(rx, ans, re.I))
+    ok = VQ.answer_ok(rx, ans)
     correct += ok
     unfinished += (not finished)
     rows.append({"label": label, "ok": ok, "finished": finished, "n_gen": int(gen.shape[0]),

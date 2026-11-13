@@ -4,12 +4,14 @@
 Same 8 checks as scripts/verify_quality.py. Each question is its own process
 (a thinking model would otherwise spend one budget on eight questions).
 Greedy (temperature 0, top-k 1, fixed seed), --cache no, --thinking true so the
-runtime's thought channel is active. The answer is scored on the text after the
-last </think>; an opened-but-unclosed think block counts as unfinished.
+runtime's thought channel is active. The answer is scored by scripts/verify_quality.py
+(strip_think: the text after the last [/thought] or </think>; answer_ok); an
+opened-but-unclosed thought counts as unfinished.
 
     python3 spark_work/gate8q_cli.py <model.litertlm> <cpu|gpu> [out.json]
     env: LITERT_LM (default ~/venvs/lt0170run/bin/litert-lm), MAX_NUM_TOKENS (4096)
 """
+import importlib.util
 import json
 import os
 import re
@@ -17,11 +19,24 @@ import subprocess
 import sys
 import time
 from collections import Counter
+from pathlib import Path
 
 LITERT_LM = os.environ.get("LITERT_LM", os.path.expanduser("~/venvs/lt0170run/bin/litert-lm"))
 MODEL, BACKEND = sys.argv[1], sys.argv[2]
 OUT = sys.argv[3] if len(sys.argv) > 3 else None
 MAX_NUM_TOKENS = os.environ.get("MAX_NUM_TOKENS", "4096")
+
+
+def _load_verify_quality():
+    """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+    p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+    spec = importlib.util.spec_from_file_location("verify_quality", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+VQ = _load_verify_quality()
 
 SUFFIX = " Answer briefly."
 QUESTIONS = [
@@ -53,14 +68,10 @@ def split_think(text):
     """(answer, finished). The 0.17 CLI prints a declared channel as
     `[thought] ...reasoning... [/thought]` (litert_lm_cli/commands/run.py) and then the
     answer text; an undeclared channel leaks a literal <think>..</think> instead.
-    Both spans are removed; an opened-but-unclosed span = unfinished."""
-    if "[thought]" in text and "[/thought]" not in text:
-        return "", False
-    if "<think>" in text and "</think>" not in text:
-        return "", False
-    text = re.sub(r"\[thought\].*?\[/thought\]", "", text, flags=re.DOTALL)
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    return text.strip(), True
+    VQ.strip_think keeps the text after the last closing tag; an opened-but-unclosed
+    thought gives no answer = unfinished."""
+    unclosed = any(o in text and c not in text.rsplit(o, 1)[1] for o, c in VQ.THOUGHT_TAGS)
+    return VQ.strip_think(text), not unclosed
 
 
 results, correct, degen, unfinished = [], 0, 0, 0
@@ -77,7 +88,7 @@ for label, q, pat in QUESTIONS:
     thought = m.group(1) if m else ""
     ans, finished = split_think(raw)
     ans = ans.replace("<｜end▁of▁sentence｜>", "").strip()
-    ok = bool(re.search(pat, ans, re.IGNORECASE))
+    ok = VQ.answer_ok(pat, ans)
     dg = degenerate(ans) if ans else False
     correct += ok
     degen += dg

@@ -1,9 +1,15 @@
 """Eight fixed questions, fresh process per question; inspect relevance as well."""
-import argparse,re
+import argparse,importlib.util,re
 import json
 from pathlib import Path
 from export_float import sha256
 from runtime_helpers import add_runtime_args,configure_output,run_cli,save_json,cli_success
+def _load_verify_quality():
+    """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+    p=Path(__file__).resolve().parents[1]/'scripts'/'verify_quality.py'
+    spec=importlib.util.spec_from_file_location('verify_quality',p);mod=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod);return mod
+VQ=_load_verify_quality()
 SUFFIX = " Answer briefly."
 QUESTIONS = [
     ("17+25=42",        "What is 17 + 25?",                                  r"\b42\b"),
@@ -45,7 +51,7 @@ def main():
     for i,(label,q,pattern) in enumerate(QUESTIONS,1):
         command=[a.cli,'run',a.model,'--prompt',q+SUFFIX,'--backend',a.backend,'--cache','no','--temperature','0','--seed','0','--thinking','false']
         record=run_cli(command,Path(a.out).stem+'_q'+str(i))
-        text=record['stdout'].strip();ok=cli_success(record) and bool(re.search(pattern,text,re.I));dg=degenerate(text)
+        text=record['stdout'].strip();ok=cli_success(record) and VQ.answer_ok(pattern,VQ.strip_think(text));dg=degenerate(text)
         rows.append({'label':label,'question':q+SUFFIX,'pattern':pattern,'ok':ok,'degenerate':dg,'text':text,'execution':record})
         data.update(correct=sum(r['ok'] for r in rows),degenerate=sum(r['degenerate'] for r in rows))
         save_json(a.out,data);print(label,ok,repr(text),flush=True)

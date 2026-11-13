@@ -6,8 +6,8 @@ same32(a, b): the first min(32, len a, len b) generated token ids are equal, and
 answer_part(text): the text after the last "</think>" if there is one, else the whole text.
 correct(text, expect): answer_part lowercased, number words zero..twenty -> digits, then expect (lowercased)
     searched as a regex with word boundaries; any hit = correct. expect None = not scored.
-text gate: the 8 QUESTIONS of scripts/verify_quality.py (the question + " Answer briefly.", the answer regex
-    applied to answer_part lowercased) + France: "What is the capital of France? Answer in one word." -> \\bparis\\b.
+text gate: the 8 QUESTIONS of scripts/verify_quality.py (the question + " Answer briefly.", scored by its
+    answer_ok on its strip_think) + France: "What is the capital of France? Answer in one word." -> \\bparis\\b.
 """
 import importlib.util
 import os
@@ -81,4 +81,4 @@ def correct(text, expect):
 
 
 def text_pass(text, pattern):
-  return re.search(pattern, answer_part(text).lower()) is not None
+  return _VQ.answer_ok(pattern, _VQ.strip_think(text))

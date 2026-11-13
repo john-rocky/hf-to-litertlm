@@ -32,7 +32,6 @@ import hashlib
 import importlib.util
 import json
 import platform
-import re
 import resource
 import sys
 import time
@@ -64,6 +63,9 @@ def _load_local(name):
 
 MR = _load_local("mrope_derived_wv")
 WP = _load_local("wv_parse")
+_vq = importlib.util.spec_from_file_location("verify_quality", Path(__file__).resolve().parents[2] / "scripts" / "verify_quality.py")
+VQ = importlib.util.module_from_spec(_vq)  # strip_think / answer_ok judge the text rows
+_vq.loader.exec_module(VQ)
 
 FIXED = {"B": (512, False, "hf"), "C": (512, True, "hf"), "D": (512, True, "1d"), "E": (512, True, "derived"),
          "F": (768, False, "hf"), "G": (768, True, "derived")}
@@ -344,8 +346,7 @@ def run_text(eng, arm, out_dir):
                             "n_prompt_tokens": int(inputs["input_ids"].shape[1]), "new_ids": new_ids,
                             "n_new": len(new_ids), "response": raw, "answer": answers[-1], "wall_s": round(wall, 2)})
         eng.clear()
-        final = answers[-1].lower()
-        rec = {"row": rid, "arm": arm, "turns": turns, "check_regex": pat, "pass": bool(re.search(pat, final)),
+        rec = {"row": rid, "arm": arm, "turns": turns, "check_regex": pat, "pass": VQ.answer_ok(pat, VQ.strip_think(answers[-1])),
                "records": records, "positions": "derived from 0 (P=15, 16x16)" if arm == "T1" else "plain",
                "versions": versions()}
         write_json(path, rec)

@@ -10,9 +10,11 @@ scripts/verify_quality.py, same greedy decode, granite's own chat template.
   python granite41_work/hf_oracle.py --hf src_models/granite-4.1-3b --out granite41_work/hf_oracle.json
 """
 import argparse
+import importlib.util
 import json
 import re
 import sys
+from pathlib import Path
 
 QUESTIONS = [
     ("17+25=42",         "What is 17 + 25?",                                       r"\b42\b"),
@@ -25,6 +27,18 @@ QUESTIONS = [
     ("rhyme=blue",       'Complete the rhyme: "Roses are red, violets are ___"',   r"\bblue\b"),
 ]
 SUFFIX = " Answer briefly."
+
+
+def _load_verify_quality():
+  """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+  p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+  spec = importlib.util.spec_from_file_location("verify_quality", p)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+VQ = _load_verify_quality()
 
 
 def main():
@@ -56,7 +70,7 @@ def main():
     with torch.no_grad():
       out = model.generate(**ids, max_new_tokens=args.max_tokens, do_sample=False)
     ans = tok.decode(out[0][ids["input_ids"].shape[1]:], skip_special_tokens=True)
-    ok = bool(re.search(rx, ans, re.I))
+    ok = VQ.answer_ok(rx, VQ.strip_think(ans))
     correct += ok
     rows.append({"label": label, "question": q, "answer": ans, "correct": ok})
     print(f"{'OK ' if ok else 'BAD'} {label}: {ans[:100]!r}")

@@ -12,7 +12,6 @@ not damage — sweep per model).
     ~/venvs/ltconv040dev/bin/python sarashina_work/hf_ref.py <hf_model_or_dir> <out.json>
 """
 import json
-import re
 import sys
 import time
 from pathlib import Path
@@ -55,7 +54,7 @@ for set_name, questions, suffix in (("en", vq.QUESTIONS, vq.SUFFIX),
         for col, bos in (("official", False), ("with_bos", True)):
             t0 = time.time()
             ans = gen(rendered, bos)
-            row[col] = {"ok": bool(re.search(pat, ans.lower())), "answer": ans,
+            row[col] = {"ok": vq.answer_ok(pat, vq.strip_think(ans)), "answer": ans,
                         "s": round(time.time() - t0, 1)}
         rows.append(row)
         print(f"  [{set_name}] {label:16s} official={'✓' if row['official']['ok'] else '·'} "

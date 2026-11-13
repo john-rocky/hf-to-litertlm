@@ -4,16 +4,30 @@ as lfm26_work/gate8q_cli.py but with a configurable CLI path for VL bundles.
 
     python3 gate_text.py <model.litertlm> <backend> [out.json]
 """
+import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 LITERT_LM = os.environ.get(
     "LITERT_LM", "litert-lm")
 MODEL, BACKEND = sys.argv[1], sys.argv[2]
 OUT = sys.argv[3] if len(sys.argv) > 3 else None
+
+
+def _load_verify_quality():
+    """scripts/verify_quality.py by path (no sys.path change): its strip_think / answer_ok judge the answers."""
+    p = Path(__file__).resolve().parents[1] / "scripts" / "verify_quality.py"
+    spec = importlib.util.spec_from_file_location("verify_quality", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+VQ = _load_verify_quality()
 
 SUFFIX = " Answer briefly."
 QUESTIONS = [
@@ -46,7 +60,7 @@ for label, q, pat in QUESTIONS:
         capture_output=True, text=True, timeout=600)
     text = p.stdout.strip()
     err = p.stderr.strip()[-300:] if p.returncode != 0 else ""
-    ok = bool(re.search(pat, text, re.IGNORECASE))
+    ok = VQ.answer_ok(pat, VQ.strip_think(text))
     dg = degenerate(text)
     correct += ok
     degen += dg
