@@ -109,7 +109,9 @@ RP=$W/report
 LG=$W/logs
 KEEP_BYTES=$(awk -v n="$KEEP_MB" 'BEGIN { printf "%d", n * 1048576 }')
 
-fsize() { stat -L -f %z "$1" 2>/dev/null || stat -L -c %s "$1"; }   # -L: a --source symlink is measured through the link
+# -L: a --source symlink is measured through the link. The stat flavour is picked once: GNU stat (Linux) reads -f
+# as --file-system and prints that block before it fails, so "stat -f %z || stat -c %s" gave the block plus the size.
+if stat -L -c %s / > /dev/null 2>&1; then fsize() { stat -L -c %s "$1"; }; else fsize() { stat -L -f %z "$1"; }; fi
 sha() { if command -v shasum > /dev/null; then shasum -a 256 "$1" | cut -d' ' -f1; else sha256sum "$1" | cut -d' ' -f1; fi; }
 log() { echo "[$(date '+%F %T')] $*" | tee -a "$RP/run.log"; }
 kv() { printf '%s\t%s\n' "$1" "$2" >> "$RP/run.tsv"; }
