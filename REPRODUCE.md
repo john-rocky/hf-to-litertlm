@@ -5436,7 +5436,7 @@ What ran: the writer wrote the 36-layer graph from the CPU file's pack on 2026-1
 
 ## Qwen3.5-122B-A10B — a 48-layer hybrid MoE decoder (Gated DeltaNet and gated attention) written with the LiteRT Tensor API: each layer's 256 SiLU experts in one `moe` custom op with int4 blockwise weights, int8 projections and lm_head, a 4,096-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-10)
 
-The steps are in [`qwen35_122b_a10b_work/`](qwen35_122b_a10b_work/) (its README). They convert the text decoder of [Qwen/Qwen3.5-122B-A10B](https://huggingface.co/Qwen/Qwen3.5-122B-A10B) at revision `dc4d3484` (Apache License 2.0; 48 layers in the layout 12 × (3 × Gated DeltaNet + 1 × gated attention), 256 experts per layer of which 8 routed and 1 shared are used for each token) into the file of [litert-community/Qwen3.5-122B-A10B](https://huggingface.co/litert-community/Qwen3.5-122B-A10B), `qwen35_122b_a10b_mixed_int4_ekv4096.litertlm` (81,146,537,728 B). The decoder is written with the LiteRT Tensor API one tensor at a time from the bf16 checkpoint; the converter path would export the decoder in fp32 first (488.4 GB). The vision encoder and the multi-token-prediction layers are not converted.
+The steps are in [`qwen35_122b_a10b_work/`](qwen35_122b_a10b_work/) (its README). They convert the text decoder of [Qwen/Qwen3.5-122B-A10B](https://huggingface.co/Qwen/Qwen3.5-122B-A10B) at revision `dc4d3484` (Apache License 2.0; 48 layers in the layout 12 × (3 × Gated DeltaNet + 1 × gated attention), 256 experts per layer of which 8 routed and 1 shared are used for each token) into the CPU file of [litert-community/Qwen3.5-122B-A10B](https://huggingface.co/litert-community/Qwen3.5-122B-A10B), `qwen35_122b_a10b_mixed_int4_ekv4096.litertlm` (81,146,537,728 B). The decoder is written with the LiteRT Tensor API one tensor at a time from the bf16 checkpoint; the converter path would export the decoder in fp32 first (488.4 GB). The vision encoder and the multi-token-prediction layers are not converted.
 
 | section | bytes | sha256 |
 |---|---:|---|
@@ -5454,6 +5454,30 @@ Run on 2026-11-10 from a clean copy of `qwen35_122b_a10b_work/` as it is here, w
 - Not run again for this entry: the other 46 pack parts and the 48-layer write (1,333 s for the shipped file).
 
 - The file needs a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.1 from PyPI, run on 2026-11-10, stops on the CPU (`moe node #236 unsupported activation='silu'`) and on the GPU (`moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`). The README points to the build of `qwen3_30b_a3b_work/` (LiteRT-LM `dab2e708` with LiteRT pull requests #11192 and #11188), which every check here ran on.
+- How each part was checked: the README. Speeds and answers: the model card.
+
+### 2026-11-14 update — the GPU file: int4 blocks of 128 values and the token table in a section of its own
+
+On 2026-11-14 [litert-community/Qwen3.5-122B-A10B](https://huggingface.co/litert-community/Qwen3.5-122B-A10B) got a second file, `qwen35_122b_a10b_mixed_int4_gpu_ekv4096.litertlm` (70,274,915,776 B), for the GPU (WebGPU). Step 5 of the README writes it: the experts' int4 blocks are 128 values long (`--block 128`), and the token table is a model of its own (`--embedder_only`) in a section in front of the decoder (`make_bundle.py --embedder`), whose signatures take the embeddings in place of the token ids (`--external_embedder`).
+
+| section | bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto (the same section as in the CPU file) | 4,446 | `0a70ae1fb2cd6d90bf41c299fd17d8cb550a675eb9300d107c03440ab43fb2c9` |
+| HF_Tokenizer_Zlib (the same section as in the CPU file) | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+| TFLiteModel tf_lite_embedder (the token table, 248,320 × 3,072 fp32) | 3,051,357,248 | `7a61a2b5a290fca682a1016a31965d3b85593983a7dcfc86bc5616c6658cc29e` |
+| TFLiteModel prefill_decode (`prefer_activation_type` fp32; signatures `prefill_128`, `prefill_1024`, `decode`; a 4,096-token cache) | 67,219,889,600 | `3393bed0d32ab79ce385db07c792338ea727d128aa3e4aecc4389e4520a37670` |
+
+(The whole file's sha256 is `d6ef6be46e559afe431054ebad2623a9e67d8fc3e3523feb8c47c2c6b6fb8b26`.)
+
+Run on 2026-11-14 from a clean copy of `qwen35_122b_a10b_work/` as it is here, with `qwen3_30b_a3b_work/` as it is here, on a part of the model: Python 3.12.11 with `requirements.txt` in a new venv (its pip freeze the same 74 package versions), on a Mac M4 Max (128 GB, macOS 27.0), with the checkpoint files of the entry above. LiteRT at `dcb657e8` was a blobless clone prepared with `overlay.sh`; the writer was built with bazelisk (`-c opt --jobs=4`) in 117 s.
+
+- Step 5's pack (`--block 128`) for the same 3 parts (`globals`, `layer:0` and `layer:3`): each part's `weights.bin` and `index.tsv` were the GPU file's pack byte for byte, and `pack.json` had the same values apart from the run's own seconds and memory and the key that only the shipped pack carries; the scale scan found no zero or non-finite scale.
+- The writer built here, with `--embedder_only`, wrote the GPU file's embedder section byte for byte.
+- The writer built here and the writer that wrote the GPU file wrote the same bytes from a 4-layer pack (the GPU file's layers 0 to 3) with step 5's flags (6,303,141,888 B, sha256 `041b5a82…`).
+- Step 5's bundle steps (`--plan-offset`, then `--head-only` with `--embedder` and with `--ids-from` set to the GPU file) wrote the GPU file's first 3,055,026,176 bytes byte for byte: the header, the metadata, the tokenizer, the embedder section and the section table. The run wrote them onto a copy of the GPU file, whose graph was already in place, instead of the 48-layer write.
+- Not run again for this entry: the other 46 pack parts and the 48-layer write.
+
+- The GPU file needs the same runtime as the CPU file: LiteRT-LM 0.19.2 from PyPI, run on 2026-11-13, stops with the same two messages as 0.19.1 on a 4-layer test file with the same `moe` op.
 - How each part was checked: the README. Speeds and answers: the model card.
 
 ## Qwen3.5-35B-A3B — the 40-layer hybrid MoE text decoder through litert-torch's export_hf, each layer's 256 SiLU experts in one `moe` custom op with int4 blockwise weights, int8 attention and lm_head, a 4,096-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-10)
