@@ -392,7 +392,7 @@ Run as written from a clean checkout of this repo on 2026-11-14, with the previo
 
 Checks, against the previous file unless a line says otherwise:
 - Every section other than the prefill/decode graph is byte-identical, and so is every weight buffer the graph uses. Every original tensor that carries data keeps its name, type, shape and buffer reference; one intermediate tensor per layer and signature (196 in Qwen2.5-Coder, 96 in SmolVLM2-500M) keeps its name and type with its last two dimensions swapped.
-- CPU (XNNPACK, 1 thread, greedy): the same replies, byte for byte, on 4 prompts, one of them longer than 1,024 tokens so that `prefill_1024` runs (litert-lm 0.19.2, Mac); SmolVLM2-500M also on one picture.
+- CPU (XNNPACK, 1 thread, greedy): the same replies, byte for byte, on 4 prompts, one of them 1,454 tokens long with either model's chat template, longer than the 1,024-token prefill (litert-lm 0.19.2, Mac); SmolVLM2-500M also on one picture.
 - One prompt (SmolVLM2-500M: one prompt and one picture) on the Mac CPU and GPU with litert-lm 0.16.0 and 0.17.0 to 0.19.1 for Qwen2.5-Coder, and 0.17.0 to 0.19.2 for SmolVLM2-500M: the same reply, byte for byte. On 0.16.0 neither SmolVLM2-500M file starts a conversation.
 - 8 short questions on the GPU: Qwen2.5-Coder 8 of 8 and SmolVLM2-500M 7 of 8 (it misses the rhyme question, as the previous file does), with both files on a Mac and a Pixel 11 Pro, and with the new file on a Galaxy S26.
 
