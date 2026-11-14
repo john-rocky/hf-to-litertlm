@@ -5039,6 +5039,42 @@ Run on 2026-11-11 from a clean export of this repository at `d568570` (`git arch
 - The runtime: as for Qwen3-30B-A3B (on 2026-11-11, 0.19.1 from PyPI stopped on the new files with the same lines).
 - How the rewrite was checked: `qwen3_30b_a3b_work/README.md`. Speeds, answers and tool calls: the model card.
 
+### 2026-11-14 update — the 2,048-token file: int4 attention and lm_head, each layer's attention core as one composite and its q / k / v projections as one FC
+
+On 2026-11-14 the 2,048-token file of [litert-community/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/litert-community/Qwen3-Coder-30B-A3B-Instruct) was replaced by the output of step 7 of [`qwen3_30b_a3b_work/README.md`](qwen3_30b_a3b_work/README.md) on the 2,048-token file of the update above, with this model's checkpoint: [`qwen3_30b_a3b_work/int4_attention.py`](qwen3_30b_a3b_work/int4_attention.py) writes the attention and lm_head weights as int4 (its `quant` step reads them from Qwen/Qwen3-Coder-30B-A3B-Instruct at revision `b2cff646` through `--repo` and `--revision`), then [`qwen3_30b_a3b_work/decode_rewrite.py`](qwen3_30b_a3b_work/decode_rewrite.py) rewrites each layer's attention core and its q / k / v projections; the merged `odml.qkv_norm_rope` takes its `max_timescale` from the composites of the update above, this model's `rope_theta` of 10,000,000. Then [`scripts/set_activation_type_inplace.py`](scripts/set_activation_type_inplace.py) declares fp16 activations in the 2,048-token file's header. Each step writes a clone of its input and rewrites it in place; the metadata and the tokenizer keep their bytes. The step's 4,096-token output, also below, was not published (on an M4 Max's CPU, with the build in `qwen3_30b_a3b_work/README.md` and a 1,024-token prefill, it prefilled 6.1 % slower than the file of the update above: 55.41 against 59.03 tokens/s); the published 4,096-token file is still the one of the update above.
+
+Inputs, in the current directory: the two files of the update above (the `gpu/` outputs of its block; revision `96db4176` of the model repository).
+
+```bash
+python qwen3_30b_a3b_work/int4_attention.py quant QDIR --repo Qwen/Qwen3-Coder-30B-A3B-Instruct \
+  --revision b2cff646eb4bb1d68355c01b18ae02e7cf42d120
+mkdir -p i4 fast
+python qwen3_30b_a3b_work/int4_attention.py write qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm i4/qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm QDIR \
+  --src-sha256 3e224735273b977fb23af602b3cb7b3d5c8a88fb1d3c905ac90b18567b6cdf56 --report i4_ekv4096.json
+python qwen3_30b_a3b_work/int4_attention.py write qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm i4/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm QDIR \
+  --src-sha256 4fa6f9c801f695b5c47297914c29b55da3f118eb62e32cf82701885e2fc2da48 --report i4_ekv2048.json
+python qwen3_30b_a3b_work/decode_rewrite.py i4/qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm fast/qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm \
+  --src-sha256 5436cf4d498d742ddd84ebc267378ffdda77cd9e84a806992d5cc55399544481 --report fast_ekv4096.json
+python qwen3_30b_a3b_work/decode_rewrite.py i4/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm fast/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm \
+  --src-sha256 3acb4654793435fd7e9bec3b07282cf8cba5a35b8263926cdeede759dc3740c5 --report fast_ekv2048.json
+mkdir -p fp16
+python scripts/set_activation_type_inplace.py fast/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm \
+  fp16/qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm --activation fp16
+```
+
+| file | sha256 before (the files of the update above) | sha256 after `int4_attention.py` (`i4/`) | sha256 after (`fast/`) | TFLiteModel section sha256 after |
+|---|---|---|---|---|
+| `qwen3_coder_30b_a3b_mixed_int4_ekv4096.litertlm` | `3e224735273b977fb23af602b3cb7b3d5c8a88fb1d3c905ac90b18567b6cdf56` | `5436cf4d498d742ddd84ebc267378ffdda77cd9e84a806992d5cc55399544481` | `700f51d650965673ceb5921529a67ee68a8ad27034557f392a68a7e9ff2d6a3f` | `1fe0a0ffe8edd0d222e0f8ce64356a82d254689738102f322fbdd08d83fe43e0` |
+| `qwen3_coder_30b_a3b_mixed_int4_ekv2048.litertlm` | `4fa6f9c801f695b5c47297914c29b55da3f118eb62e32cf82701885e2fc2da48` | `3acb4654793435fd7e9bec3b07282cf8cba5a35b8263926cdeede759dc3740c5` | `bc32f965de5c5cdfb017008ae59dfb6c4eca81e96354a553cbe46340839caa6a` (`fp16/`, published: `e8b89c04d41f565f8b15ae4a2cd23c369f6ae86c46365b33225669a14484af5c`) | `e01044891e4c09dc8385000171ec7eb37b942baa564bfd38b1e832664c5eaaaa` |
+
+The LlmMetadataProto and HF_Tokenizer_Zlib sections are the ones in the first table of this model's entry, and both files keep 20,650,152,640 B.
+
+Run on 2026-11-14 from a clean export of this repository at `cb02d80` (`git archive`) with the `qwen3_30b_a3b_work/int4_attention.py` that has `--repo` and `--revision` (sha256 `0c04f83b…`), with the files of the update above as input (revision `96db4176` of the model repository, the sha256 above), Python 3.12.11 with numpy 2.5.4, flatbuffers 25.12.19, ai-edge-litert 2.3.0 and litert-lm-builder 0.19.0, on a Mac M4 Max (128 GB, macOS 27.0) with the files on its internal SSD. `quant` took 474 s to read 2.4 GB from the Hub and quantize it (about 28 s of CPU), with a peak memory footprint of 2.2 GB, and wrote a QDIR/quant.json of sha256 `ef93ba5acf67a3429704a15435d05646f3c16db41b3cee9456d3fd3bec3b906e` (the sha256 of each tensor's codes and scales); each `write` took 34 to 35 s (peak memory footprint 1.19 GB) and each `decode_rewrite.py` 19 s (0.59 GB), and `set_activation_type_inplace.py` under a second; each output has the sha256 of its column, and the published 2,048-token file is the `fp16/` output byte for byte. The steps after `quant` ran again from a clean export at `2550891` with the same `int4_attention.py` and gave the same five files.
+
+- The new graph: `decode` from 1,546 to 922 ops (48 `odml.sdpa_transposed`, 48 `odml.qkv_norm_rope` with 4 inputs and 3 outputs, each with `max_timescale` 10,000,000), each prefill signature from 1,519 to 908; 1,350,360 B, before the weights at byte 15,579,264 of the TFLite section.
+- The published 2,048-token file needs the same runtime as before, the build in `qwen3_30b_a3b_work/README.md`. LiteRT-LM 0.19.2 from PyPI, the newest release there on 2026-11-14, stops at the first `moe` op as it did with the previous files (CPU: `moe node #23 unsupported activation='silu'`; GPU: `moe only supports activation='gelu_tanh' (or its legacy spelling 'gelu')`).
+- How step 7 was checked: `qwen3_30b_a3b_work/README.md`. Speeds and answers: the model card.
+
 ## MiniCPM-V-4 (GPU files) — a VLM for LiteRT-LM's `minicpmv4` type with a GPU decoder: `export_hf` with the embedder in its own graph, int8 or mixed int4 weights, GPU composites added to the exported graph, the vision encoder and resampler rewritten in plain PyTorch ops with fp16 weights, and the quantized weights moved to TFLiteWeights sections (2026-11-03)
 
 The steps are in [`minicpmv4_gpu_work/`](minicpmv4_gpu_work/) (its README and `reproduce.sh`). They convert [openbmb/MiniCPM-V-4](https://huggingface.co/openbmb/MiniCPM-V-4) at revision `6f69a823` (Apache License 2.0; a MiniCPM4-3B text decoder, a navit SigLIP vision encoder and a 64-query resampler) into two files for [litert-community/MiniCPM-V-4](https://huggingface.co/litert-community/MiniCPM-V-4): `MiniCPM-V-4-int8-gpu.litertlm` (4,578,480,128 B, sha256 `9de381c48eef28ebc304c7028f2ae41b99904cfa7130b8e55ff7de0eeebb50d9`) for a Mac GPU and `MiniCPM-V-4-mixed-int4-gpu.litertlm` (4,315,598,848 B, sha256 `227774abf34bd517bbb9d90a8f7f53154037db693568c1dacb1372e97aefcae4`) for Android phone GPUs. The repository's `MiniCPM-V-4-int8.litertlm` (CPU) is another conversion and is not made here.
