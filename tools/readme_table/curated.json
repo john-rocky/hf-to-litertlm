@@ -540,7 +540,8 @@
   "Qwen3-32B": {
     "task": "chat, thinking",
     "group": 1,
-    "recipe": "REPRODUCE.md#qwen3-32b--a-dense-32b-as-one-int8-file-from-the-released-litert-torch-0100-an-f32-copy-of-the-checkpoint-the-fused-projections-written-once-as-a-file-gpu-composites-int8-per-channel-weights-int4-failed-the-accuracy-check-for-litert-lm-0191s-gpu-backend-2026-11-09"
+    "recipe": "REPRODUCE.md#qwen3-32b--a-dense-32b-as-one-int8-file-from-the-released-litert-torch-0100-an-f32-copy-of-the-checkpoint-the-fused-projections-written-once-as-a-file-gpu-composites-int8-per-channel-weights-int4-failed-the-accuracy-check-for-litert-lm-0191s-gpu-backend-2026-11-09",
+    "speed_skip": ["qwen3_32b_mixed_int4_ekv4096.litertlm"]
   },
   "Qwen3.5-122B-A10B": {
     "task": "chat, thinking (LiteRT-LM built from source)",
