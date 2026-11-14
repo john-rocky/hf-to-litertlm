@@ -145,7 +145,7 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [InternVL3-2B](https://huggingface.co/litert-community/InternVL3-2B) | 2B | chat + image | Galaxy S26 GPU 40.4 | M4 Max CPU 50.0 | [card](cards/internvl3-2b-litert.md) |
 | [InternVL3_5-2B](https://huggingface.co/litert-community/InternVL3_5-2B) | 2B | chat + image | Galaxy S26 GPU 21.6 | M4 Max GPU 137.2 | [card](cards/internvl3_5-2b-litert.md) |
 | [Ovis2.5-2B](https://huggingface.co/litert-community/Ovis2.5-2B) | 2B | chat + image | Galaxy S26 GPU 28.3 | M4 Max GPU 142.6 | [card](cards/ovis2_5-2b-litert.md) |
-| [Qwen2-VL-2B](https://huggingface.co/litert-community/Qwen2-VL-2B) | 2B | chat + image | Galaxy S26 GPU 36.7 | M4 Max GPU 139.1 | [card](cards/qwen2-vl-2b-litert.md) |
+| [Qwen2-VL-2B](https://huggingface.co/litert-community/Qwen2-VL-2B) | 2B | chat + image | Galaxy S26 GPU 46.3 | M4 Max GPU 139.1 | [card](cards/qwen2-vl-2b-litert.md) |
 | [SmolVLM2-2.2B](https://huggingface.co/litert-community/SmolVLM2-2.2B) | 2.2B | chat + image | Galaxy S26 GPU 21.4 | M4 Max GPU 134.7 | [card](cards/smolvlm2-2.2b-litert.md) |
 | [Qwen3.5-2B](https://huggingface.co/litert-community/Qwen3.5-2B) | 2.27B | chat; separate image file | iPhone 17 Pro GPU 33.9 | M4 Max GPU 114.3 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [WeVisOne-VL-2B](https://huggingface.co/litert-community/WeVisOne-VL-2B) | 2.44B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 22.5 | M4 Max GPU 117.0 | [recipe](REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25) |
