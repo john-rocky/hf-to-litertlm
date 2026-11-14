@@ -17,7 +17,7 @@ ring written by prefill/decode/verify. Design + derivations: P1_DESIGN.md.
   git -C litert-torch-mtp apply "$(pwd)/mtp_work/qwen35_mtp_litert_torch.patch"
 
   # float export (P1 gates run on the tflite; bundle+int8 after gates pass)
-  PYTHONPATH=~/code/litert-torch-mtp ~/venvs/lt094dev/bin/python3 \
+  PYTHONPATH=litert-torch-mtp python3 \
       mtp_work/convert_qwen35_mtp.py Qwen/Qwen3.5-0.8B mtp_work/out_08b
 
 Env knobs: MTP_G (default 3), MTP_LADDER (default full ship ladder),
