@@ -45,6 +45,8 @@ uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"
 
 `convert.py` handles finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h, Falcon-H1 and Nemotron-H, and every dense architecture the stock exporter handles. LoRA and PEFT repos merge automatically. It refuses gated, remote-code and pre-quantized repos and says why. It then asks the finished bundle 8 test questions and reports a failure if fewer than 6 are right. [All the flags and steps](docs/convert.md) are in the docs.
 
+[LiteRT CLI](https://github.com/google-ai-edge/LiteRT-CLI#7-run-and-benchmark-a-generative-llm-model-using-litert-lm-cli) also takes a repo id: after `pip install -U litert-cli-nightly`, `litert lm run <org>/<model>` converts the checkpoint once with the stock exporter, caches the bundle and runs it.
+
 ## Converted models
 
 The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OCR, speech to text and translation. Each speed is tokens per second on the fastest backend verified on that class of device, taken from the repo's `litertlm_manifest.json`. A range is the spread across runs, and a dash means not measured yet.
