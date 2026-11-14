@@ -4,7 +4,11 @@
 # step is not repeated) and compare their sections with the published files. Output: WORK/<the two file names>.
 # export_qwen35_4b_gpu_composite.sh --check FILE [PYTHON] - step 9 alone, on any file. PYTHON (default python3) needs litert-lm-builder.
 #   1 litert-torch at 65aafa4, upstream's Qwen3.5 graph (the last commit whose gated_delta_update has the 6 inputs litert-lm 0.19.0
-#     accepts), with litert_lm_builder.py of fe5c2bd (packaging code only) - as export_qwen35_08b_gpu_composite.sh
+#     accepts), with litert_lm_builder.py of fe5c2bd (packaging code only) - as export_qwen35_08b_gpu_composite.sh - and
+#     upstream 57c2e47's change to the Qwen3.5 model file (9 lines): the prefill signatures compute the logits of the last
+#     position only. At 65aafa4 they compute them for every prefill position ([1, 1024, 248320] float32 for the 1,024-token
+#     signature); LiteRT-LM does not read prefill logits, and that matmul's weights made a Pixel 11 Pro's GPU refuse a
+#     2,542,796,800-byte buffer.
 #   2 a Python 3.12 venv from qwen35_08b_gpu_composite.lock.txt, plus that litert-torch; a second one from qwen35_rt0192.lock.txt
 #     (litert-lm 0.19.2: the CLI, litert-lm-builder and litert-lm-peek of step 8)
 #   3 Qwen/Qwen3.5-4B at 851bf6e8
@@ -37,6 +41,8 @@ R=$(cd "$Q/.." && pwd)
 LITERT_TORCH_COMMIT=65aafa499fb696587c7e9abfc9ee15c5a87eda84
 BUILDER_COMMIT=fe5c2bd87e53b0c99b1dfef9a55ca68b7022a096
 BUILDER_FILE=litert_torch/generative/export_hf/core/litert_lm_builder.py
+LOGITS_COMMIT=57c2e4736d939fab032f6303c302ae9ea3568a04
+LOGITS_FILE=litert_torch/generative/export_hf/model_ext/qwen3_5/modeling_qwen3_5_static.py
 MODEL_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 OFFICIAL_URL=https://raw.githubusercontent.com/google-ai-edge/LiteRT-LM/771b06e1a2c7f70a399a718599109facf37e38fd/models/qwen3_5/LlmMetadataProto.pbtext
 OFFICIAL_SHA256=2bdb4bcbd0f61abd4bddeb3c32e76d172b9049281eff9b692aa4b4b965b44229
@@ -54,14 +60,14 @@ PUBLISHED = {
         "LlmMetadataProto": (4458, "75ad5a722a74096b354925158165aafe4f566cc037ba0bfc54a32db836cf8b9e"),
         "ExecutorMetadataProto": (4101, "0346374de412454ac5931dbea7a2551af53720599040d0364274d6e122284e4a"),
         "HF_Tokenizer_Zlib": (3614174, "f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684"),
-        "TFLiteModel": (147221464, "b7261c4e05ae53105f83aee31a27a2d4dcc95d2d826b1a086af11942feee2330"),
+        "TFLiteModel": (147227504, "2d9755abadb925685bac9a1f686c83d188ea54c61476d7cd5e89214537b05a89"),
         "TFLiteWeights": (4216586240, "6e1ecb4567c594388d7374c55a8d12a68a17175e643c19f22b3a9dd6510ab4a0"),
     },
     "Qwen3.5-4B_mixed_int4_gpu_composite_v0190.litertlm": {
         "LlmMetadataProto": (4458, "75ad5a722a74096b354925158165aafe4f566cc037ba0bfc54a32db836cf8b9e"),
         "ExecutorMetadataProto": (4101, "0346374de412454ac5931dbea7a2551af53720599040d0364274d6e122284e4a"),
         "HF_Tokenizer_Zlib": (3614174, "f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684"),
-        "TFLiteModel": (275161096, "264774bc686797faa07aceda82bc70c48f2d1245dcfd153cdad0786590f69830"),
+        "TFLiteModel": (275167136, "e378c46c6b4bb840e6f16f53400631e3e3b6455e12204a7084b1ce2bfd2381ed"),
         "TFLiteWeights": (2434007040, "43d59ac9d5bf647af543958586d1666ac861620d16ea762ab6adaa23b5f2cc0f"),
     },
 }
@@ -102,6 +108,8 @@ if step 1; then
   run git clone -q --filter=blob:none https://github.com/google-ai-edge/litert-torch "$WORK/litert-torch"
   run git -C "$WORK/litert-torch" checkout -q --detach "$LITERT_TORCH_COMMIT"
   run git -C "$WORK/litert-torch" checkout -q "$BUILDER_COMMIT" -- "$BUILDER_FILE"
+  run git -C "$WORK/litert-torch" diff --output="$WORK/logits_last_position.patch" "$LOGITS_COMMIT^" "$LOGITS_COMMIT" -- "$LOGITS_FILE"
+  run git -C "$WORK/litert-torch" apply "$WORK/logits_last_position.patch"
   finished 1
 fi
 if step 2; then
