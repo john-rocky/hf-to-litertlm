@@ -2,7 +2,7 @@
 """Convert IBM granite-4.0-h dense-hybrid models (Mamba2 + attention) to .litertlm.
 
   # one-time setup: litert-torch at the pinned base + the hybrid patch
-  # (the base is unreachable from main since 2026-08; fetch the full SHA)
+  # (no branch of google-ai-edge/litert-torch contains the base: fetch it by its full SHA)
   git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
   git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
   git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d
@@ -13,9 +13,11 @@
       ibm-granite/granite-4.0-h-1b out_granite_1b
 
 Requires litert-lm >= 0.15 (both to package and to run: the hybrid conv/SSM
-state buffers bind through the ExecutorMetadata section, which the 0.14 engine
-does not read) plus litert-torch's deps, transformers >= 5.14, and
-ai-edge-quantizer. The patch adds: a Mamba2 export-cache layer, decode-state
+state buffers bind through the ExecutorMetadata section, which LiteRT-LM 0.14
+does not read) plus litert-torch's deps, transformers 5.14.1, and
+ai-edge-quantizer. On transformers 5.15 the export stops while loading the
+model: 5.15 removed GraniteMoeHybridMambaLayer.torch_forward, which the patch's
+self-check calls. The patch adds: a Mamba2 export-cache layer, decode-state
 continuation + chunked-prefill continuation tracing, and the mamba prefill-pad
 guard (the runtime's chunk planner runs partially-filled prefill chunks; the
 guard makes pad positions identity steps and gathers the conv window at the
@@ -24,7 +26,7 @@ prompt lengths).
 
 Quantization is post-hoc dynamic int8 over linears + embedding ONLY (convs and
 the SSM stay float): export-time conv-int8 measurably costs quality on this
-family (8Q sanity 5/8 vs 6/8 on the 350m), the same rule as the LFM2.5 convs.
+family (8-question gate 5/8 vs 6/8 on the 350m), the same rule as the LFM2.5 convs.
 """
 import os
 import subprocess
@@ -35,13 +37,15 @@ outdir = sys.argv[2] if len(sys.argv) > 2 else "out_granite4h"
 here = os.path.dirname(os.path.abspath(__file__))
 
 # 1. Float export (bundled .litertlm), full prefill ladder, 4096-token KV for
-#    the 4 attention layers (the 28 mamba layers hold constant-size state).
+#    the 4 attention layers (the mamba layers, 28 in the 350m and 36 in the 1b,
+#    hold constant-size state).
 argv = [
     "litert-torch", "export_hf",
     "--model", model,
     "--output_dir", outdir,
-    # Full 11-length ladder by default; convert.py sets PREFILL_LENGTHS to the
-    # reduced 7-signature ladder for ≥3B models (signature-count RAM law).
+    # Full 11-length ladder by default; scripts/convert.py sets PREFILL_LENGTHS to
+    # the reduced 7-signature ladder for ≥3B models (each signature costs memory at
+    # export and at run time; the measured reasons are in that file).
     "--prefill_lengths", os.environ.get("PREFILL_LENGTHS",
                                         "1024,512,256,128,64,32,16,8,4,2,1"),
     "--cache_length", "4096",
