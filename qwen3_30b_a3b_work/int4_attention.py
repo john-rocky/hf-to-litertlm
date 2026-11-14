@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """int4_attention.py: a published Qwen3-30B-A3B file's attention and lm_head weights as int4, written in place.
 
-  python int4_attention.py quant QDIR
+  python int4_attention.py quant QDIR [--repo REPO --revision REV]
   python int4_attention.py write SRC.litertlm DST.litertlm QDIR [--src-sha256 HEX] [--report R.json]
 
-`quant` range-reads 193 bf16 tensors from the Hub (Qwen/Qwen3-30B-A3B at revision ad44e777:
-model.layers.{0..47}.self_attn.{q,k,v,o}_proj.weight and lm_head.weight, 2.4 GB, one request at a time, each checked
-against the size in the shard's header) and quantizes each to symmetric int4 in blocks of 32 along the input, one fp16
+`quant` range-reads 193 bf16 tensors from the Hub (model.layers.{0..47}.self_attn.{q,k,v,o}_proj.weight and
+lm_head.weight, 2.4 GB, one request at a time, each checked against the size in the shard's header) of
+Qwen/Qwen3-30B-A3B at revision ad44e777, or of the checkpoint that --repo and --revision name (one with the same tensor
+names and shapes: Qwen/Qwen3-Coder-30B-A3B-Instruct at b2cff646eb4bb1d68355c01b18ae02e7cf42d120 for that model's
+files), and quantizes each to symmetric int4 in blocks of 32 along the input, one fp16
 scale per block: per block the clip ratio 1.0, 0.95, ..., 0.5 of max|w| / 7 with the least squared error (codes -8..7),
 then 3 rounds of (codes fixed -> least-squares scale -> re-round), the final scale rounded to fp16 (floor 2^-14, fp16's
 smallest normal) and the codes computed from that fp16 scale, so the file's (codes, scales) dequantize to exactly the
@@ -422,6 +424,8 @@ def main():
   sub = ap.add_subparsers(dest="cmd", required=True)
   q = sub.add_parser("quant")
   q.add_argument("qdir")
+  q.add_argument("--repo", default="Qwen/Qwen3-30B-A3B")
+  q.add_argument("--revision", default="ad44e777bcd18fa416d9da3bd8f70d33ebb85d39")
   w = sub.add_parser("write")
   w.add_argument("src")
   w.add_argument("dst")
@@ -429,7 +433,11 @@ def main():
   w.add_argument("--src-sha256")
   w.add_argument("--report")
   a = ap.parse_args()
-  return cmd_quant(a) if a.cmd == "quant" else cmd_write(a)
+  if a.cmd == "quant":
+    global HUB
+    HUB = f"https://huggingface.co/{a.repo}/resolve/{a.revision}/"
+    return cmd_quant(a)
+  return cmd_write(a)
 
 
 if __name__ == "__main__":
