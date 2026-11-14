@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""make_recipe.py EXPORT.tflite OUT_RECIPE.json [--form f6|f5|f3] - the litert_quantizer recipe of the GPU file: fully
+"""make_recipe.py EXPORT.tflite OUT_RECIPE.json [--form f6|f5|f3] - the litert_quantizer recipe of the int8 file: fully
 connected ops int8 per channel, chosen one op at a time.
 
-Forms (--form; the default, f6, is the GPU file's):
+Forms (--form; the default, f6, is the int8 file's):
   f3  the KDA and MLA projections and the output layer
   f5  f3 + the shared experts and the first layer's dense MLP
   f6  f5 + the router and KDA's gate projections: every fully connected op with a constant weight but the 16 x 16 chunk
