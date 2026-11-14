@@ -482,6 +482,42 @@ Checks, against the previous file unless a line says otherwise:
 
 Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of 2026-11-14; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 23.1 → 48.8 tok/s, prefill 422 → 690 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 13.5 to 25.7 tok/s and prefill from 376 to 689. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's prefill medians in each iteration were 8.3 % to 9.6 % above the previous file's and its decode medians between 0.4 % below and 0.4 % above; two counted runs of the same file differed by up to 1.6 %. Its peak memory there (`VmHWM`) was 2.81–2.82 GB against 2.26–2.34 GB.
 
+## 2026-11-15 — GPU graph re-ship: sarashina2.2-1b-instruct-v0.1, 2 files (weights unchanged)
+
+The two files below wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The re-ship rewrites only their prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces, as in the [first entry of 2026-11-14](#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged): one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products, a `param_tensor` signature input, and the attention mask added to the attention logits by broadcast (`--mask add_bcast`; that entry says why). Every weight buffer keeps its bytes. Both files already had a 1,024-token prefill signature (11 prefill signatures, 1 to 1,024 tokens), so none is added.
+
+`previous.litertlm` is each file at the Hub commit in the table. The script unpacks and packs the bundle with the CLI named in `LITERT_LM_CLI` and needs `ai-edge-litert`, `litert-lm-builder`, `flatbuffers`, `numpy` and `protobuf` (the rebuild below ran with litert-lm 0.19.1 and 2.2.0, 0.16.1, 25.12.19, 2.5.2 and 7.36.0).
+
+```
+export LITERT_LM_CLI=/path/to/litert-lm
+# previous.litertlm = sarashina2.2-1b-instruct-v0.1_int4.litertlm at the Hub commit below
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm sarashina2.2-1b-instruct-v0.1_int4.litertlm --decomp exporter --mask add_bcast
+# previous.litertlm = sarashina2.2-1b-instruct-v0.1_int8.litertlm at the Hub commit below
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm sarashina2.2-1b-instruct-v0.1_int8.litertlm --decomp exporter --mask add_bcast
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| sarashina2.2-1b-instruct-v0.1 | `sarashina2.2-1b-instruct-v0.1_int4.litertlm` | 904,658,944 | `141207ee3e3f` | `63055dcf2d7d` |
+| sarashina2.2-1b-instruct-v0.1 | `sarashina2.2-1b-instruct-v0.1_int8.litertlm` | 1,505,722,368 | `6b7378cdbfad` | `63055dcf2d7d` |
+
+Run as written from a clean checkout of this repo on 2026-11-15, with the previous files downloaded at the commit in the table, both rebuilds gave every bundle section byte-identical to the shipped file (sha256 per section, `scripts/section_identity.py`). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+Checks, against the previous file unless a line says otherwise:
+- Every section other than the prefill/decode graph is byte-identical, and so is every weight buffer the graph uses. Every original tensor that carries data keeps its name, type, shape and buffer reference; one intermediate tensor per layer and signature (288 in each file) keeps its name and type with its last two dimensions swapped.
+- CPU (XNNPACK, 1 thread, greedy decoding with top-k 1): the same replies, byte for byte, on 4 prompts, one of them 2,075 tokens long with the chat template (longer than the 1,024-token prefill) (litert-lm 0.19.2, Mac).
+- One prompt on the Mac CPU and GPU with litert-lm 0.19.0 to 0.19.2: on the CPU the same reply, byte for byte; on the GPU both files write the Fibonacci function the prompt asks for (the two int8 replies part at line 28, the two int4 replies in the first line).
+- 8 short questions: 8 of 8 with both files on the Mac GPU (int8 and int4); on the Mac CPU 8 of 8 with both int8 files and 7 of 8 with both int4 files (both miss the French "thank you"); 8 of 8 with both files on a Pixel 11 Pro GPU (int8 and int4) and with the new files on a Galaxy S26 GPU.
+
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of 2026-11-14; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous; the int8 previous file's first run started at thermal status 1, Android's "light" level where 0 is none, and is not counted):
+
+| File | Decode tok/s | Prefill tok/s |
+|---|---:|---:|
+| `sarashina2.2-1b-instruct-v0.1_int8.litertlm` | 24.1 → 37.8 | 657 → 714 |
+| `sarashina2.2-1b-instruct-v0.1_int4.litertlm` | 28.2 → 50.5 | 684 → 729 |
+
+On a Pixel 11 Pro GPU (same build and workload) decode went from 14.5 to 21.1 tok/s (int8, one run of each file: the other two started at thermal status 1) and from 15.3 to 22.6 (int4), prefill from 567 to 618 and from 562 to 611. On the Galaxy S26 CPU (XNNPACK, int8 only), measured back to back with the previous file after one warm-up run (each run started at thermal status 1 with no CPU clock cap), the new file's per-iteration medians of the 1,024-token prefill were 0.7 % to 1.6 % above the previous file's and its decode medians between 0.4 % below and 0.7 % above.
+
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
 The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
