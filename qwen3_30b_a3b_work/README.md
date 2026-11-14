@@ -176,7 +176,7 @@ flatbuffers 25.12.19, protobuf 7.36.2 and litert-lm-builder 0.19.0.
 
    `quant` reads the 193 bf16 tensors from the Hub at revision `ad44e777` with range requests (2.4 GB; a tensor whose
    output exists is skipped, so it can run again) and writes QDIR/<name>.npz and QDIR/quant.json (8 and 27 min in two
-   runs here, nearly all of it the download: about 30 s of CPU; peak memory 0.32 GB). Each `write` took 34 s and each
+   runs here, nearly all of it the download: about 30 s of CPU; peak memory 2.2 GB). Each `write` took 34 s and each
    `decode_rewrite.py` 19 s (peak memory 1.19 and 0.61 GB).
    The published 2,048-token file is `fast/qwen3_30b_a3b_mixed_int4_ekv2048.litertlm`. The 4,096-token output is not
    published: on an M4 Max's CPU it prefilled about 6 % slower than the step-6 file (55.06 against 58.73 tokens/s), though it
