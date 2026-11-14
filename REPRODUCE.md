@@ -1289,12 +1289,12 @@ The script printed these section hashes for both files when it was run from a co
 
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
-`granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **Requires litert-lm ≥ 0.15 to run** (the hybrid conv/SSM states bind through the `ExecutorMetadata` section).
+`granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **The published file runs on litert-lm 0.15.0, 0.16.1, 0.17.1, 0.18.0 and 0.19.2** on a Mac CPU (checked 2026-11-14) and on the Mac GPU with 0.19.2; on Android, its GPU path needs 0.19.0 or later. From 0.15 on, litert-lm binds the hybrid conv/SSM states through the `ExecutorMetadata` section.
 
 ```bash
 cd granite_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
-# the pinned base is no longer reachable from main (measured 2026-08-25), so a
+# no branch or tag reaches the pinned base (checked 2026-11-14), so a
 # plain short-SHA checkout fails — fetch the commit by full SHA first
 git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d
@@ -1309,7 +1309,7 @@ The patch (against the pinned litert-torch base above) is what makes a state-car
 - **A Mamba2 export-cache layer** (conv `[B, conv_dim, K]` + SSM recurrent `[B, heads, head_dim, state]`) registered for Granite's layer types, so `torch.export` traces the model's own state contract instead of failing on the attention-only default cache.
 - **State-continuation tracing.** Prefill graphs trace the chunk-continuation branch (previous conv/SSM state consumed) and the decode graph traces the single-step branch (conv window rolled by one, `has_previous_state` truthy at trace time). Without this the decode graph has no state continuity: it converts, loads and runs — and generates garbage from the second token on. Trap: `torch.export`'s pytree flatten/unflatten REBUILDS cache-layer objects mid-trace, so any mode flag must ride in the pytree context or it silently never reaches the graph.
 - **The mamba prefill-pad guard.** The runtime's chunk planner runs prefill chunks *partially filled* (the remainder chunk is padded), and granite's own `apply_mask_to_padding_states` is a no-op at batch 1 — so pads poison the conv/SSM state at chunk-plan-dependent prompt lengths (the Mamba2 analog of the LFM2 ShortConv prefill-pad bug). The guard derives a valid mask from `tokens != 0` (the engine zero-fills pads), makes pad positions identity SSM steps (dt → ~0), and gathers the stored conv window at the last *valid* column with an in-graph one-hot matmul.
-- **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (on the 350m, asked the same 8 questions, the build with int8 convs answered 5 right and the build with float convs 6 — same rule as the LFM2.5 convs).
+- **Convs stay float.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`: channelwise int8 weights, float activations); export-time conv-int8 did worse in one comparison (on the 350m, asked the same 8 questions, the build with int8 convs answered 5 right and the build with float convs 6 — same rule as the LFM2.5 convs).
 - Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position; int8 sanity gate 8/8 (= the PyTorch reference); first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean.
 
 ### 2026-08-13 update — the folded scan: 3.5× on CPU, and the GPU wall falls
@@ -1457,7 +1457,7 @@ a conversion failure — the fp16 flow above is the exact-parity finish.
 ```bash
 cd qwen35_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-qwen35
-git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no ref reaches this commit any more
+git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no branch or tag reaches this commit
 git -C litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-qwen35 python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
@@ -1979,7 +1979,7 @@ original before blaming the file:
 ```bash
 cd falcon_h1_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-falcon
-git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
 git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
 PYTHONPATH=litert-torch-falcon python convert_falcon_h1.py tiiuae/Falcon-H1-0.5B-Instruct out_falcon_05b
@@ -2161,7 +2161,7 @@ Mac benchmark: `-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.17.1, default wa
 | mixed int4 / CPU | 99.1 | 20.2 | 2.63 |
 
 Two traps to preserve in a reproduction: **fetch the full 115a136 hash before
-checkout** (it is no longer reachable by a plain clone plus abbreviated
+checkout** (it is not reachable by a plain clone plus abbreviated
 checkout), and **keep the original and corrected GSM8K columns separate**.
 The old extractor's `rstrip(".0")` turns `20.00` into `2`; the correction keeps
 the same extraction precedence and normalizes numerically, without rerunning
@@ -2213,7 +2213,7 @@ flag re-serialized derivatives as template forks. `tokenizer.json` is byte-equal
 ```bash
 cd zamba2_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-zamba2
-git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
 git -C litert-torch-zamba2 checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-zamba2 apply "$(pwd)/zamba2_litert_torch.patch"
 PYTHONPATH=litert-torch-zamba2 python convert_zamba2.py Zyphra/Zamba2-1.2B-instruct out_zamba2_12b
@@ -2266,7 +2266,7 @@ derivative rides the same pinned recipe that shipped the two litert-community Za
 ```bash
 cd nemotron_h_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-nemotron
-git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # base unreachable from main since 2026-08
+git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
 git -C litert-torch-nemotron checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-nemotron apply "$(pwd)/nemotron_h_litert_torch.patch"
 PYTHONPATH=litert-torch-nemotron python convert_nemotron_h.py nvidia/Nemotron-H-4B-Instruct-128K out_nemotron_4b
@@ -3470,7 +3470,7 @@ Published: [litert-community/decider-0.8b-LiteRT](https://huggingface.co/litert-
 
 Galaxy S26 (`litert_lm_advanced_main` v0.16.0, one cold run each): int8 GPU 262 tokens 300 tok/s / TTFT 0.91 s / engine init 78 s / 4553 MiB (188522/188522 ops delegated), 503 tokens 567 tok/s / 0.97 s / 97 s / 5317 MiB; int8 CPU 262 tokens 288 tok/s / 0.94 s / 14 s / 1941 MiB. For a prefill-dominated decision model the phone GPU buys no time at ~260 tokens; its value is calibration. A weight-only int8 build (p95 0.025 on CPU) is not published: the S26 kernel-panicked ~70 s after engine start on two days (`dumpsys dropbox` SYSTEM_LAST_KMSG), which from the host looks like a USB drop.
 
-Recipe note that applies to every hybrid recipe in this file: the pinned litert-torch base `115a13607c730c81018bb9789138a3e5e5119e3d` exists only on the `john-rocky/litert-torch` fork (upstream/main never contained it); the clone lines above were corrected to the fork on 2026-09-23.
+Recipe note that applies to every hybrid recipe in this file: the pinned litert-torch base `115a13607c730c81018bb9789138a3e5e5119e3d` is a commit of the `john-rocky/litert-torch` fork that upstream main does not contain, and no branch or tag of either repository reaches it. A fetch by its full SHA gets it from a clone of either `google-ai-edge/litert-torch` or the fork (both checked 2026-11-14), so every clone line above is followed by that fetch.
 
 ## Qwen3-0.6B — the dynamic INT4 (block-32) GPU bundle on litert-community, refreshed: a stock litert-torch export with the GPU composites and a chat template that takes content parts (2026-09-20)
 
