@@ -456,6 +456,32 @@ Checks, against the previous file unless a line says otherwise:
 
 Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of this date; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 38.5 → 46.3 tok/s, prefill 600 → 657 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 16.2 to 18.6 tok/s and prefill from 521 to 532. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's prefill and decode medians in each iteration were between 1.4 % below and 3.2 % above the previous file's; two counted runs of the same file differed by up to 6.6 %.
 
+## 2026-11-15 — GPU graph re-ship: OLMo-2-1B-Instruct (weights unchanged)
+
+The file below wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The re-ship rewrites only its prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces, as in the [first entry of 2026-11-14](#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged): one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products, a `param_tensor` signature input, and the attention mask added to the attention logits by broadcast (`--mask add_bcast`; that entry says why). In OLMo-2-1B every attention head has its own key/value head, so its mask ADD reads the q·K product directly; the tool wraps that ADD in a `[H, 1, T, C]` view (`viewed_broadcast_add` in its report; `tools/gpu_graph/README.md` says why). Every weight buffer keeps its bytes. The file had one prefill signature, of 128 tokens; it also gets `prefill_1024`, copied from `prefill_128` and sharing every weight buffer.
+
+`previous.litertlm` is the file at the Hub commit in the table. The scripts unpack and pack the bundle with the CLI named in `LITERT_LM_CLI` (litert-lm 0.19.1 made the shipped file) and need `ai-edge-litert`, `litert-lm-builder`, `flatbuffers`, `numpy` and `protobuf` (the shipped file was made with 2.2.0, 0.16.1, 25.12.19, 2.5.2 and 7.36.0).
+
+```
+export LITERT_LM_CLI=/path/to/litert-lm
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm retrofit.litertlm --decomp exporter --mask add_bcast
+python tools/gpu_graph/prefill_bucket_clone.py build retrofit.litertlm OLMo-2-1B-Instruct_q4_block32_ekv4096.litertlm --lengths 1024 --source prefill_128 --report bucket.json
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| OLMo-2-1B-Instruct | `OLMo-2-1B-Instruct_q4_block32_ekv4096.litertlm` | 933,543,936 | `aa3a27afd2ed` | `d2b975b34fe1` |
+
+Run as written from a clean checkout of this repo on 2026-11-15, with the previous file downloaded at the commit in the table, the rebuild gave every bundle section byte-identical to the shipped file (sha256 per section, `scripts/section_identity.py`). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+Checks, against the previous file unless a line says otherwise:
+- Every section other than the prefill/decode graph is byte-identical, and so is every weight buffer the graph uses. Every original tensor that carries data keeps its name, type, shape and buffer reference; one intermediate tensor per layer (16 in all) keeps its name and type with its last two dimensions swapped.
+- CPU (XNNPACK, 1 thread, greedy decoding with top-k 1): the same replies, byte for byte, on 4 prompts, one of them 1,435 tokens long with the chat template (longer than the 1,024-token prefill) (litert-lm 0.19.2, Mac).
+- One prompt on the Mac CPU and GPU with litert-lm 0.19.0 to 0.19.2: on the CPU the same reply, byte for byte; on the GPU both files write the Fibonacci function the prompt asks for, and the two replies part at line 28 (1,356 and 1,287 bytes).
+- 8 short questions on the GPU: 8 of 8 with both files on a Mac, with the same answers character for character; 7 of 8 with both files on a Pixel 11 Pro and with the new file on a Galaxy S26 (each misses whether 0.9 or 0.11 is larger). On the Mac CPU both files answer 7 of 8 (the same question).
+
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of 2026-11-14; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 23.1 → 48.8 tok/s, prefill 422 → 690 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 13.5 to 25.7 tok/s and prefill from 376 to 689. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's prefill medians in each iteration were 8.3 % to 9.6 % above the previous file's and its decode medians between 0.4 % below and 0.4 % above; two counted runs of the same file differed by up to 1.6 %. Its peak memory there (`VmHWM`) was 2.81–2.82 GB against 2.26–2.34 GB.
+
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
 The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
