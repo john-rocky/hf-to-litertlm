@@ -1268,7 +1268,7 @@ The script printed these section hashes for both files when it was run from a co
 
 ```bash
 cd granite_work
-git clone https://github.com/john-rocky/litert-torch litert-torch-granite
+git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
 # the pinned base is no longer reachable from main (measured 2026-08-25), so a
 # plain short-SHA checkout fails — fetch the commit by full SHA first
 git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
@@ -1284,7 +1284,7 @@ The patch (against the pinned litert-torch base above) is what makes a state-car
 - **A Mamba2 export-cache layer** (conv `[B, conv_dim, K]` + SSM recurrent `[B, heads, head_dim, state]`) registered for Granite's layer types, so `torch.export` traces the model's own state contract instead of failing on the attention-only default cache.
 - **State-continuation tracing.** Prefill graphs trace the chunk-continuation branch (previous conv/SSM state consumed) and the decode graph traces the single-step branch (conv window rolled by one, `has_previous_state` truthy at trace time). Without this the decode graph has no state continuity: it converts, loads and runs — and generates garbage from the second token on. Trap: `torch.export`'s pytree flatten/unflatten REBUILDS cache-layer objects mid-trace, so any mode flag must ride in the pytree context or it silently never reaches the graph.
 - **The mamba prefill-pad guard.** The runtime's chunk planner runs prefill chunks *partially filled* (the remainder chunk is padded), and granite's own `apply_mask_to_padding_states` is a no-op at batch 1 — so pads poison the conv/SSM state at chunk-plan-dependent prompt lengths (the Mamba2 analog of the LFM2 ShortConv prefill-pad bug). The guard derives a valid mask from `tokens != 0` (the engine zero-fills pads), makes pad positions identity SSM steps (dt → ~0), and gathers the stored conv window at the last *valid* column with an in-graph one-hot matmul.
-- **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (8Q sanity 5/8 vs 6/8 on the 350m — same rule as the LFM2.5 convs).
+- **Quantize convs never.** Post-hoc dynamic int8 on linears + embedding only (`wi8fc`); export-time conv-int8 measurably costs quality on this family (on the 350m, asked the same 8 questions, the build with int8 convs answered 5 right and the build with float convs 6 — same rule as the LFM2.5 convs).
 - Verification bar for the ship: float-graph teacher-forced parity vs the HF reference = correlation 1.000000 with identical top-1 at every checked decode position; int8 sanity gate 8/8 (= the PyTorch reference); first-token robustness sweep against the runtime's real chunk plans at every prompt length 12–60, all clean.
 
 ### 2026-08-13 update — the folded scan: 3.5× on CPU, and the GPU wall falls
