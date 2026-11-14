@@ -1,9 +1,19 @@
 #!/bin/bash
-# Pack the split granite artifacts into an EmbeddingEngine bundle (litert-lm-builder >= 0.17.0).
+# Pack the split granite artifacts into an EmbeddingEngine bundle (litert-lm-builder >= 0.17.0, < 0.19.2).
 #   granite_embed_work/engine/pack_bundle.sh <out_dir> <embedder.tflite> <encoder.tflite> <tokenizer.json> <bundle.litertlm> [textproto]
 set -euo pipefail
 OUT=$1; EMB=$2; ENC=$3; TOK=$4; BUNDLE=$5; TP=${6:-}
-PY=${BUILDER_PY:-python}   # any venv with litert-lm-builder >= 0.17.0
+PY=${BUILDER_PY:-python}   # a venv with litert-lm-builder >= 0.17.0, < 0.19.2
+# litert-lm-builder 0.19.2 moves the weights into TFLiteWeights sections by default and writes
+# min_runtime_version 0.19.0, so it packs a different file from the one REPRODUCE.md describes.
+"$PY" - <<'PYV'
+import importlib.metadata as m, re, sys
+v = m.version("litert-lm-builder")
+t = tuple(int(re.match(r"\d*", p).group() or 0) for p in v.split(".")[:3])
+if not (0, 17, 0) <= t < (0, 19, 2):
+    sys.exit(f"litert-lm-builder {v}: this pack needs >= 0.17.0, < 0.19.2 "
+             "(pip install 'litert-lm-builder>=0.17.0,<0.19.2')")
+PYV
 if [ -z "$TP" ]; then
   TP=$OUT/embedding_metadata.textproto
   # CLS pooling reads position 0, which the HF tokenizer fills with <bos> (id 2,

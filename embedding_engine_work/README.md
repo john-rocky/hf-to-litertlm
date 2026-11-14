@@ -8,7 +8,7 @@ litert-lm 0.17.0 is the first release whose runtime hosts embedding models direc
 | `TF_LITE_TEXT_ENCODER` | signatures named `encoder_<S>`, inputs `embeddings` f32 `[1,S,D]` + `input_mask` f32 `[1,S]` (runtime writes 1/0), output `[1,dim]` — pooling and normalization **in-graph**; the smallest signature >= the token count is used |
 | tokenizer | `tokenizer.json`; the runtime does **not** run its post-processor, so a model whose CLS position expects `<bos>` declares it in `EmbeddingMetadata.bos_token` and the engine's `insert_special_tokens` (default true) inserts it; a model whose post-processor adds bos AND eos (`<s> A </s>`) declares both, and the engine prepends bos and appends eos (a TRUNCATE keeps the eos at the end of the window) |
 
-`embedding_engine_common.py` holds the shared pieces (the lookup module, a per-token driver that mimics the runtime, the trace-sample helper). Each `convert_*_engine.py` reuses its fused export's model loading and mask construction unchanged and only splits the graph; `pack_*.sh` builds the bundle with `litert-lm-builder` (>= 0.17.0).
+`embedding_engine_common.py` holds the shared pieces (the lookup module, a per-token driver that mimics the runtime, the trace-sample helper). Each `convert_*_engine.py` reuses its fused export's model loading and mask construction unchanged and only splits the graph; `pack_*.sh` builds the bundle with `litert-lm-builder` (>= 0.17.0, < 0.19.2: 0.19.2 moves the weights into TFLiteWeights sections by default and packs a different file, so the scripts stop under it).
 
 | model | script | pooling | specials | bundle (wi8fc) |
 |---|---|---|---|---|

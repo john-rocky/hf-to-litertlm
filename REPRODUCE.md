@@ -2578,7 +2578,7 @@ There is no `.litertlm` here on purpose: `litert-lm-builder` will happily pack o
 
 ```
 python embedding_engine_work/convert_granite_embedding_r2_engine.py ibm-granite/granite-embedding-311m-multilingual-r2 out_granite_engine
-BUILDER_PY=<venv with litert-lm-builder>=0.17.0>/bin/python embedding_engine_work/pack_granite_embedding_r2.sh out_granite_engine out_granite_engine/embedder_wi8.tflite out_granite_engine/encoder_wi8fc.tflite <tokenizer.json> out_granite_engine/granite-embedding-311m-r2_wi8fc.litertlm
+BUILDER_PY=<venv with litert-lm-builder>=0.17.0,<0.19.2>/bin/python embedding_engine_work/pack_granite_embedding_r2.sh out_granite_engine out_granite_engine/embedder_wi8.tflite out_granite_engine/encoder_wi8fc.tflite <tokenizer.json> out_granite_engine/granite-embedding-311m-r2_wi8fc.litertlm
 ```
 (`convert_lfm25_embedding_engine.py` / `pack_lfm25_embedding.sh`, and `convert_nemotron3_embed_engine.py` / `pack_nemotron3_embed.sh` take the same arguments; a pack for a model whose tokenizer post-processor adds both bos and eos declares both, so the engine's `insert_special_tokens` reproduces it.) Use with `litert_lm.embedding_engine.EmbeddingEngine` (Python) or `com.google.ai.edge.litertlm.EmbeddingEngine` (Kotlin, litertlm-android 0.17.0); keep `insert_special_tokens` at its default.
 
