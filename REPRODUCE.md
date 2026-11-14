@@ -1294,8 +1294,8 @@ The script printed these section hashes for both files when it was run from a co
 ```bash
 cd granite_work
 git clone https://github.com/google-ai-edge/litert-torch litert-torch-granite
-# no branch or tag reaches the pinned base (checked 2026-11-14), so a
-# plain short-SHA checkout fails — fetch the commit by full SHA first
+# no branch or tag of google-ai-edge/litert-torch reaches the pinned base (checked
+# 2026-11-14), so a plain short-SHA checkout fails — fetch the commit by full SHA first
 git -C litert-torch-granite fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-granite checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-granite apply "$(pwd)/granite_hybrid_litert_torch.patch"
@@ -1457,7 +1457,7 @@ a conversion failure — the fp16 flow above is the exact-parity finish.
 ```bash
 cd qwen35_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-qwen35
-git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no branch or tag reaches this commit
+git -C litert-torch-qwen35 fetch --depth 1 origin 115a13607c730c81018bb9789138a3e5e5119e3d  # no branch reaches this commit
 git -C litert-torch-qwen35 checkout --detach 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-qwen35 apply "$(pwd)/qwen35_hybrid_litert_torch.patch"
 PYTHONPATH=litert-torch-qwen35 python convert_qwen35_hybrid.py Qwen/Qwen3.5-0.8B out_qwen35_08b
@@ -1979,7 +1979,7 @@ original before blaming the file:
 ```bash
 cd falcon_h1_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-falcon
-git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
+git -C litert-torch-falcon fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch reaches this commit
 git -C litert-torch-falcon checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-falcon apply "$(pwd)/falcon_h1_litert_torch.patch"
 PYTHONPATH=litert-torch-falcon python convert_falcon_h1.py tiiuae/Falcon-H1-0.5B-Instruct out_falcon_05b
@@ -2161,8 +2161,9 @@ Mac benchmark: `-p 256 -d 256 --runs 3 --cache no`, litert-lm 0.17.1, default wa
 | mixed int4 / CPU | 99.1 | 20.2 | 2.63 |
 
 Two traps to preserve in a reproduction: **fetch the full 115a136 hash before
-checkout** (it is not reachable by a plain clone plus abbreviated
-checkout), and **keep the original and corrected GSM8K columns separate**.
+checkout** (no branch or tag of google-ai-edge/litert-torch reaches it, so a
+plain clone of that repository plus abbreviated checkout fails), and **keep
+the original and corrected GSM8K columns separate**.
 The old extractor's `rstrip(".0")` turns `20.00` into `2`; the correction keeps
 the same extraction precedence and normalizes numerically, without rerunning
 generation.
@@ -2213,7 +2214,7 @@ flag re-serialized derivatives as template forks. `tokenizer.json` is byte-equal
 ```bash
 cd zamba2_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-zamba2
-git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
+git -C litert-torch-zamba2 fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch reaches this commit
 git -C litert-torch-zamba2 checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-zamba2 apply "$(pwd)/zamba2_litert_torch.patch"
 PYTHONPATH=litert-torch-zamba2 python convert_zamba2.py Zyphra/Zamba2-1.2B-instruct out_zamba2_12b
@@ -2261,12 +2262,12 @@ derivative rides the same pinned recipe that shipped the two litert-community Za
 
 ## Nemotron-H (Mamba2 + MLP + attention, three layer kinds) — and the registry trap
 
-`nemotron_h_work/convert_nemotron_h.py` converts NVIDIA's Nemotron-H (the 4B: 24 Mamba2 + 24 plain-MLP + 4 attention layers) to `.litertlm`. Published: [litert-community/Nemotron-H-4B-Instruct-128K](https://huggingface.co/litert-community/Nemotron-H-4B-Instruct-128K). **Requires litert-lm ≥ 0.15 to run.**
+`nemotron_h_work/convert_nemotron_h.py` converts NVIDIA's Nemotron-H (the 4B: 24 Mamba2 + 24 plain-MLP + 4 attention layers) to `.litertlm`. The converted file `Nemotron-H-4B-Instruct-128K_int8.litertlm` was taken down from [litert-community/Nemotron-H-4B-Instruct-128K](https://huggingface.co/litert-community/Nemotron-H-4B-Instruct-128K) on 2026-10-15 (the card keeps its measurements as a record): the source model is distributed under the [NVIDIA Internal Scientific Research and Development Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-internal-scientific-research-and-development-model-license/), whose section 3 does not permit distributing the model or derivative models. **Requires litert-lm ≥ 0.15 to run.**
 
 ```bash
 cd nemotron_h_work
 git clone https://github.com/john-rocky/litert-torch litert-torch-nemotron
-git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch or tag reaches this commit
+git -C litert-torch-nemotron fetch origin 115a13607c730c81018bb9789138a3e5e5119e3d   # no branch reaches this commit
 git -C litert-torch-nemotron checkout 115a13607c730c81018bb9789138a3e5e5119e3d
 git -C litert-torch-nemotron apply "$(pwd)/nemotron_h_litert_torch.patch"
 PYTHONPATH=litert-torch-nemotron python convert_nemotron_h.py nvidia/Nemotron-H-4B-Instruct-128K out_nemotron_4b
@@ -3470,7 +3471,7 @@ Published: [litert-community/decider-0.8b-LiteRT](https://huggingface.co/litert-
 
 Galaxy S26 (`litert_lm_advanced_main` v0.16.0, one cold run each): int8 GPU 262 tokens 300 tok/s / TTFT 0.91 s / engine init 78 s / 4553 MiB (188522/188522 ops delegated), 503 tokens 567 tok/s / 0.97 s / 97 s / 5317 MiB; int8 CPU 262 tokens 288 tok/s / 0.94 s / 14 s / 1941 MiB. For a prefill-dominated decision model the phone GPU buys no time at ~260 tokens; its value is calibration. A weight-only int8 build (p95 0.025 on CPU) is not published: the S26 kernel-panicked ~70 s after engine start on two days (`dumpsys dropbox` SYSTEM_LAST_KMSG), which from the host looks like a USB drop.
 
-Recipe note that applies to every hybrid recipe in this file: the pinned litert-torch base `115a13607c730c81018bb9789138a3e5e5119e3d` is a commit of the `john-rocky/litert-torch` fork that upstream main does not contain, and no branch or tag of either repository reaches it. A fetch by its full SHA gets it from a clone of either `google-ai-edge/litert-torch` or the fork (both checked 2026-11-14), so every clone line above is followed by that fetch.
+Recipe note that applies to every hybrid recipe in this file: the pinned litert-torch base `115a13607c730c81018bb9789138a3e5e5119e3d` is a commit of the `john-rocky/litert-torch` fork that upstream main does not contain, and no branch of either repository reaches it. A fetch by its full SHA gets it from a clone of either `google-ai-edge/litert-torch` or the fork (both checked 2026-11-14), so every clone line above is followed by that fetch.
 
 ## Qwen3-0.6B — the dynamic INT4 (block-32) GPU bundle on litert-community, refreshed: a stock litert-torch export with the GPU composites and a chat template that takes content parts (2026-09-20)
 
