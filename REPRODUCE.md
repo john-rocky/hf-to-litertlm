@@ -429,7 +429,32 @@ Checks, against the previous file unless a line says otherwise:
 - One prompt and one picture on the Mac CPU, and the prompt on the Mac GPU, with litert-lm 0.17.0 to 0.19.2: the same reply, byte for byte. With the vision encoder on the Mac GPU (`--vision-backend gpu`) neither file answers the picture, and on 0.16.0 neither file starts a conversation.
 - 8 short questions on the GPU: 6 of 8 with both files on a Mac and on a Pixel 11 Pro (both miss the French "thank you" and the rhyme questions), and 7 of 8 with the new file on a Galaxy S26 (the rhyme question; the previous file was not asked there).
 
-Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of this date; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 41.2 → 77.0 tok/s, prefill 871 → 1,338 tok/s. The previous file slowed within each run; in the first iterations, before it slowed, it decoded 44.2 and prefilled 1,145 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 17.0 to 23.4 tok/s and prefill from 925 to 915. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's median of each iteration was between 1.5 % below and 5 % above the previous file's; two runs of the same file differed by up to 10 %.
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of this date; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 41.2 → 77.0 tok/s, prefill 871 → 1,338 tok/s. The previous file slowed within each run; in the first iterations, before it slowed, it decoded 44.2 and prefilled 1,145 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 17.0 to 23.4 tok/s and prefill from 925 to 915. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's prefill and decode medians in each iteration were between 1.5 % below and 5 % above the previous file's; two counted runs of the same file differed by up to 10 %.
+
+## 2026-11-14 — GPU graph re-ship: Qwen2-VL-2B (weights unchanged)
+
+The file below wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The re-ship rewrites only its prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces, as in the [first entry of this date](#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged): one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products, a `param_tensor` signature input, and the attention mask added to the attention logits by broadcast (`--mask add_bcast`; that entry says why). Every weight buffer keeps its bytes. The file already had prefill signatures of 128, 512 and 1,024 tokens.
+
+`previous.litertlm` is the file at the Hub commit in the table. The script unpacks and packs the bundle with the CLI named in `LITERT_LM_CLI` (litert-lm 0.19.1 made the shipped file) and needs `ai-edge-litert`, `litert-lm-builder`, `flatbuffers`, `numpy` and `protobuf` (the shipped file was made with 2.2.0, 0.16.1, 25.12.19, 2.5.2 and 7.36.0).
+
+```
+export LITERT_LM_CLI=/path/to/litert-lm
+python tools/gpu_graph/gpu_graph_retrofit.py previous.litertlm Qwen2-VL-2B.litertlm --decomp exporter --mask add_bcast
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| Qwen2-VL-2B | `Qwen2-VL-2B.litertlm` | 1,783,808,000 | `5b0fa0cf7bd3` | `65ef506f192b` |
+
+Run as written from a clean checkout of this repo on 2026-11-14, with the previous file downloaded at the commit in the table, the rebuild gave every bundle section byte-identical to the shipped file (sha256 per section, `scripts/section_identity.py`). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+Checks, against the previous file unless a line says otherwise:
+- Every section other than the prefill/decode graph is byte-identical, and so is every weight buffer the graph uses. Every original tensor that carries data keeps its name, type, shape and buffer reference; one intermediate tensor per layer in `prefill_512`, `prefill_1024` and `decode` (84 in all) keeps its name and type with its last two dimensions swapped.
+- CPU (XNNPACK, 1 thread, greedy decoding with top-k 1): the same replies, byte for byte, on 4 prompts, one of them 1,444 tokens long with the chat template (longer than the 1,024-token prefill), and on one picture (litert-lm 0.19.2, Mac).
+- One prompt and one picture on the Mac CPU and GPU (the vision encoder on the same backend) with litert-lm 0.17.0 to 0.19.2: the same reply, byte for byte. On 0.16.0 neither file starts a conversation.
+- 8 short questions on the GPU: 8 of 8 with both files on a Mac and on a Galaxy S26. On a Pixel 11 Pro the previous file answered 8 of 8. The new file answered 7 of 8 there: asked "Which is larger: 0.9 or 0.11? Answer briefly.", it gave "0.11 is larger." in every run that found the GPU cache files an earlier run of the same file had written (5 of 5) and "0.9 is larger than 0.11." in every run that started without them (4 of 4); the previous file gave "0.9 is larger than 0.11." in both cases (7 of 7).
+
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build and workload of the first entry of this date; the median of iterations 2–3 over two runs per file, in the order previous / new / new / previous): decode 38.5 → 46.3 tok/s, prefill 600 → 657 tok/s. On a Pixel 11 Pro GPU (same build and workload) decode went from 16.2 to 18.6 tok/s and prefill from 521 to 532. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous file after one warm-up run, the new file's prefill and decode medians in each iteration were between 1.4 % below and 3.2 % above the previous file's; two counted runs of the same file differed by up to 6.6 %.
 
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
