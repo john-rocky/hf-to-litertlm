@@ -14,6 +14,32 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## Qwen3.5-4B with GPU composites (2026-11-14)
+
+`Qwen3.5-4B_mixed_int4_gpu_composite_v0190.litertlm` (2,712,846,336 B, sha256 `fd3e26a6…`) and `Qwen3.5-4B_int8_gpu_composite_v0190.litertlm` (4,367,499,264 B, sha256 `35e3b25a…`) on [litert-community/Qwen3.5-4B](https://huggingface.co/litert-community/Qwen3.5-4B) are that model's files for the GPU on LiteRT-LM 0.19.x. They are exports of litert-torch's own Qwen3.5 graph with `--apply_gpu_composites=True`, as the [Qwen3.5-0.8B file below](#qwen35-08b-with-gpu-composites-2026-11-05), not outputs of `qwen35_work/convert_qwen35_hybrid.py`. One float export gives both.
+
+```bash
+bash scripts/reproduce_llm.sh qwen35-4b-gpu-composite     # -> out/qwen35-4b-gpu-composite/<the two file names>
+```
+
+It needs `python3.12`, `uvx`, `git`, `curl`, `perl` and about 60 GB of disk in the work directory; the export peaks at about 25 GB of memory. `qwen35_work/export_qwen35_4b_gpu_composite.sh` prints every command as `### CMD:`, does not repeat a finished step, and refuses to overwrite its output. Its steps:
+
+1. litert-torch at `65aafa4`, with the `litert_lm_builder.py` of `fe5c2bd`, as for the 0.8B file, and the change upstream `57c2e47` made to the Qwen3.5 model file (9 lines): the prefill signatures compute the logits of the last position only. At `65aafa4` they compute them for every prefill position (`[1, 1024, 248320]` float32 for the 1,024-token signature). LiteRT-LM does not read prefill logits, and with them a Pixel 11 Pro's GPU refused a 2,542,796,800-byte buffer at engine creation.
+2. A Python 3.12 venv from `qwen35_work/qwen35_08b_gpu_composite.lock.txt`, plus that litert-torch, and a second one from `qwen35_work/qwen35_rt0192.lock.txt` (litert-lm 0.19.2, for step 8).
+3. `Qwen/Qwen3.5-4B` at `851bf6e8`.
+4. LiteRT-LM v0.19.0's `models/qwen3_5/LlmMetadataProto.pbtext`, sha256 checked. The export packages with it and step 7 replaces it.
+5. `export_hf` through `qwen35_work/export_hf_lowmem.py`, with `PYTHONHASHSEED=0` and `OMP_NUM_THREADS=4` (torch's float32 results can depend on its thread count, and the published files were exported with 4). The wrapper keeps the export's memory near 25 GB: the checkpoint is assigned instead of copied, and the conversion runs with `RESOURCE_CONSTANT_NUMEL_THRESHOLD=10000000`. Prefill signatures 1024, 256, 64, 16, 4 and 1 and a 4,096-token cache, as in the other two files of the repo. The int8 quantization is `qwen35_work/qwen35_gpu_composite_int8.json`: int8 everywhere, the 48 `in_proj_a` / `in_proj_b` projections float. `--keep_temporary_files=True` keeps the float model for step 6.
+6. The float model quantized again with `qwen35_work/qwen35_gpu_composite_mixed_int4.json` (blockwise-32 int4 fully connected weights, int8 lm_head and token table, `in_proj_a` / `in_proj_b` float) and int4 block scales floored at 2^-14 (`qwen35_work/requant_tflite.py`), then put into a copy of step 5's bundle in place of its TFLite section.
+7. Per file, a re-pack with litert-lm-nightly 0.20.0.dev20261103. The LlmMetadata becomes `qwen35_work/qwen35_4b_gpu_composite.pbtext`: the LlmMetadata of the published `Qwen3.5-4B_int8.litertlm`, plus `pad_token <|endoftext|>` and `min_runtime_version: "0.19.0"`. The tokenizer section becomes the repository's own `tokenizer.json`. Then `scripts/set_activation_type.py` declares fp32 activations, with the same packer.
+8. Per file, the weights out of the graph into a TFLiteWeights section: `tools/externalize/externalize_repo.sh --no-hub` with litert-lm 0.19.2, checked section by section and tensor by tensor.
+9. The sha256 of every section against the published files. Exit 0 means every section of both files is equal, exit 1 that a step failed or a section differs. `--check FILE [PYTHON]` runs this step alone on any file. If only a TFLite section differs on another machine, `tools/tfl_compare/` says whether it is the same computation.
+
+`pad_token` matters here as it does for the 0.8B file: the graph masks padded prefill slots with `tokens != 248044`, and without the field the runtime fills empty slots with id 0.
+
+The files' `odml.short_conv_step` nodes are channels-first, as in the 0.8B file. [LiteRT #11565](https://github.com/google-ai-edge/LiteRT/pull/11565) makes the GPU delegate accept channels-last only. LiteRT-LM 0.19.0, 0.19.1 and 0.19.2 run both files on the GPU; the GPU of litert-lm-nightly 0.20.0.dev20261112 refuses both at engine creation: `ShortConvStep supports only a channels-last conv_state [1, 3, H], but got [1, 8192, 3]`.
+
+Checked on 2026-11-14 on an Apple M4 Max (128 GB, macOS 27.0), from a clean worktree of this repository at the commit that added the tool: the command above exited 0 and printed `SAME` for every section of both files (both: LlmMetadataProto 4,458 B `75ad5a72…`, ExecutorMetadataProto 4,101 B `0346374d…`, HF_Tokenizer_Zlib 3,614,174 B `f7099e03…`; int8: TFLiteModel 147,227,504 B `2d9755ab…`, TFLiteWeights 4,216,586,240 B `6e1ecb45…`; Mixed INT4: TFLiteModel 275,167,136 B `e378c46c…`, TFLiteWeights 2,434,007,040 B `43d59ac9…`). It ran for 60 minutes by its own log, with the work directory on a USB hard disk. Its peak resident size was 52.9 GB; that count includes pages of the checkpoint read from disk, and the memory footprint of the export that made the published files peaked at 24.8 GB. The files it wrote have other sha256s than the published ones, because the packer writes a new uuid and creation timestamp into the header.
+
 ## Qwen3.5-0.8B with GPU composites (2026-11-05)
 
 `Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm` on [litert-community/Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) (888,273,664 B, sha256 `ebddb6d5…`) is that model's file for the GPU on LiteRT-LM 0.19.0. It is an export of litert-torch's own Qwen3.5 graph with `--apply_gpu_composites=True`, not an output of `qwen35_work/convert_qwen35_hybrid.py`.
