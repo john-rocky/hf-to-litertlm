@@ -1,0 +1,22 @@
+# The whole Python 3.12 environment of the external-weights step (tools/externalize; 17 packages, frozen from it;
+# Python 3.12.11): ai-edge-litert 2.3.0 for LiteRT's tools, litert-lm and litert-lm-builder 0.19.1 for unpack, pack,
+# peek and the smoke run. PY_XR of scripts/ship_unlimited_ocr.sh.
+absl-py==2.5.1
+ai-edge-litert==2.3.0
+# backports-strenum: the environment had 1.3.1, which uv installs on Python 3.12 although it declares Python < 3.11;
+# pip does not. ai-edge-litert imports it only below Python 3.11 (enum.StrEnum otherwise), so 1.2.8 is equivalent.
+backports-strenum==1.2.8
+click==8.5.1
+flatbuffers==25.12.19
+litert-lm==0.19.1
+litert-lm-api==0.19.1
+litert-lm-builder==0.19.1
+ml-dtypes==0.6.0
+numpy==2.5.4
+prompt-toolkit==3.0.53
+protobuf==7.36.2
+questionary==2.1.1
+tomli==2.5.0
+tqdm==4.70.1
+typing-extensions==4.16.0
+wcwidth==0.9.4
