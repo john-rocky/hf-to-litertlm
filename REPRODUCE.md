@@ -5720,6 +5720,25 @@ Run on 2026-11-14 from a clean copy of `qwen35_122b_a10b_work/` as it is here, w
 - The GPU file needs the same runtime as the CPU file: LiteRT-LM 0.19.2 from PyPI, run on 2026-11-13, stops with the same two messages as 0.19.1 on a 4-layer test file with the same `moe` op.
 - How each part was checked: the README. Speeds and answers: the model card.
 
+### 2026-11-15 update — the GPU file asks for fp16 activations
+
+On 2026-11-15 the GPU file `qwen35_122b_a10b_mixed_int4_gpu_ekv4096.litertlm` (70,274,915,776 B) on [litert-community/Qwen3.5-122B-A10B](https://huggingface.co/litert-community/Qwen3.5-122B-A10B) was replaced by a file that asks the runtime for fp16 activations: the decoder section's `prefer_activation_type` item in the file's header is fp16. Its sections are the bytes of the 2026-11-14 file; the header differs in that one item. Step 5 of the README writes it with `--act fp16` in both `make_bundle.py` commands.
+
+| section | bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto (the same section as in the CPU file) | 4,446 | `0a70ae1fb2cd6d90bf41c299fd17d8cb550a675eb9300d107c03440ab43fb2c9` |
+| HF_Tokenizer_Zlib (the same section as in the CPU file) | 3,614,174 | `f7099e031c8ef292b5b5d49c36b75dfb39c81f215ccdaf3fd87d5071ab6fe684` |
+| TFLiteModel tf_lite_embedder (the token table, 248,320 × 3,072 fp32) | 3,051,357,248 | `7a61a2b5a290fca682a1016a31965d3b85593983a7dcfc86bc5616c6658cc29e` |
+| TFLiteModel prefill_decode (`prefer_activation_type` fp16; signatures `prefill_128`, `prefill_1024`, `decode`; a 4,096-token cache) | 67,219,889,600 | `3393bed0d32ab79ce385db07c792338ea727d128aa3e4aecc4389e4520a37670` |
+
+(The whole file's sha256 is `0db24828eda1749ce283643c32455560494e4f8f160f50de271eab82920d3bb7`; the 2026-11-14 file's was `d6ef6be46e559afe431054ebad2623a9e67d8fc3e3523feb8c47c2c6b6fb8b26`.)
+
+Run on 2026-11-15 from a clean copy of `qwen35_122b_a10b_work/` as it is here, with `qwen3_30b_a3b_work/` as it is here: Python 3.12.11 with `requirements.txt` in a new venv (its pip freeze the same 74 package versions), on a Mac M4 Max (128 GB, macOS 27.0).
+
+- Step 5's bundle steps with `--act fp16` (`--plan-offset`, then `--head-only` with `--embedder` and with `--ids-from` set to the new GPU file) wrote its first 3,055,026,176 bytes byte for byte: the header, the metadata, the tokenizer, the embedder section and the section table. The run wrote them onto a copy of the new file, whose graph was already in place; that graph is the 2026-11-14 file's (the same section sha256 in both tables).
+- Not run again for this entry: the writer's build and step 5's pack, embedder and graph steps (run on 2026-11-14, above).
+- How each part was checked: the README. Speeds and answers: the model card.
+
 ## Qwen3.5-35B-A3B — the 40-layer hybrid MoE text decoder through litert-torch's export_hf, each layer's 256 SiLU experts in one `moe` custom op with int4 blockwise weights, int8 attention and lm_head, a 4,096-token cache, for a LiteRT-LM built with two open LiteRT pull requests (2026-11-10)
 
 The steps are in [`qwen35_35b_a3b_work/`](qwen35_35b_a3b_work/) (its README). They convert the text decoder of [Qwen/Qwen3.5-35B-A3B](https://huggingface.co/Qwen/Qwen3.5-35B-A3B) at revision `59d61f3c` (Apache License 2.0; 40 layers in the layout 10 × (3 × Gated DeltaNet + 1 × gated attention), 256 experts per layer of which 8 routed and 1 shared are used for each token) into the CPU file of [litert-community/Qwen3.5-35B-A3B](https://huggingface.co/litert-community/Qwen3.5-35B-A3B), `qwen35_35b_a3b_mixed_int4_cpu_ekv4096.litertlm` (27,607,274,288 B, sha256 `76493b2885e5a999c35d39f97138fee2ae4ee4249051699c888da59ef30e0f4e`).

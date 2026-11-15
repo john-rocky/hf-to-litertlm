@@ -27,10 +27,11 @@ multi-token-prediction layers of the checkpoint are not converted.
   below crashed while it created that buffer. The CPU file holds it in the graph as two tables of 1,536 columns, looked
   up with the same ids and concatenated (the same values). The GPU file holds it as one table in a model of its own, in
   a section in front of the decoder, and the decoder's signatures take the embeddings in place of the token ids.
-  Activations, the KV cache and both states are fp32; KV 4,096 tokens.
+  The KV cache and both states are fp32; KV 4,096 tokens.
 - Signatures `prefill_128`, `prefill_1024` and `decode`. Each file carries LiteRT-LM's own
   `models/qwen3_5/LlmMetadataProto.pbtext` at `dab2e708` verbatim, the checkpoint's own `tokenizer.json` bytes, and
-  declares fp32 activations.
+  declares the activation type: fp32 in the CPU file, fp16 in the GPU file (the GPU file declared fp32 until
+  2026-11-15; that setting is its only change since).
 
 Why the Tensor API: the converter path would export the model in fp32 first (4 bytes per parameter: 488.4 GB for the
 decoder's 122.1 billion parameters, counted from the pack) and quantize in a second step; here the pack reads one
@@ -64,7 +65,7 @@ Run the GPU file on the Mac's GPU (WebGPU), with the file's own sampler as in th
   --cache_dir=:nocache --input_prompt="What is 17 + 25? Answer briefly."
 ```
 
-Its engine takes about 2 minutes to load, and its peak footprint in the checks below was at most 72.02 GB on the
+Its engine takes about 2 minutes to load, and its peak footprint in the checks below was at most 69.25 GB on the
 128 GB Mac used here. Every GPU run used `--sampler_handles_input=false`. The CPU file on the GPU needs about 106 GB
 (peak footprint up to 106.2 GB) and did not pass the 12-question check (below).
 
@@ -83,7 +84,7 @@ Run the CPU file on the Mac's CPU (the command of its 12-question check below):
 | `tapi_pack_q35moe.py` | reads the checkpoint one tensor at a time (one expert at a time for the fused expert tensors) and writes, per part (`--part globals`, `--part layer:<N>`, then `--part index`), `weights.bin` + `index.tsv`, then `parts.txt`, `config.tsv` and the two custom ops' options: experts stacked in the `moe` op's layout and quantized with ai-edge-quantizer's own functions, the zero-centered RMSNorm weights stored as 1 + w. |
 | `graph/qwen35moe_writer.cc`, `graph/BUILD` | the Tensor API graph (see above); `--out_offset` writes it into a `.litertlm` from a byte offset on; `--external_embedder` and `--embedder_only --embedder_out` write the GPU file's decoder and its token table as two models (step 5). |
 | `patches/*.diff`, `overlay.sh` | three patches to the Tensor API at LiteRT `dcb657e8` (blockwise scales held in a named tensor, custom op codes kept apart by name, saving at an offset) and the link of `graph/` into the checkout as `tensor/examples/qwen35moe`. |
-| `make_bundle.py`, `template/qwen3_5_official_dab2e708.pbtext` | the `.litertlm`: the official Qwen3.5 metadata (sha256 `2bdb4bcb…`), the tokenizer (sha256 checked), the decoder, fp32 activations declared; in place for a graph too big to copy (`--plan-offset`, `--head-only`); `--embedder` adds the token table's model as a section in front of the decoder (step 5); `--ids-from` copies the header's uuid and creation time from another file. |
+| `make_bundle.py`, `template/qwen3_5_official_dab2e708.pbtext` | the `.litertlm`: the official Qwen3.5 metadata (sha256 `2bdb4bcb…`), the tokenizer (sha256 checked), the decoder, the activation type declared (`--act`, fp32 by default; `--act fp16` for the GPU file); in place for a graph too big to copy (`--plan-offset`, `--head-only`); `--embedder` adds the token table's model as a section in front of the decoder (step 5); `--ids-from` copies the header's uuid and creation time from another file. |
 
 `../qwen3_30b_a3b_work/` has `scale_scan.py` (zero and non-finite scales, per part here), `bundle_sections.py` (a
 `.litertlm`'s sections with their sha256) and `apply_ws_patch_cmds.py` (for the runtime build).
@@ -150,18 +151,19 @@ and the bundle 70.3 GB.
    W=LiteRT/bazel-bin/tensor/examples/qwen35moe/qwen35moe_writer
    OUT=qwen35_122b_a10b_mixed_int4_gpu_ekv4096.litertlm
    $W --weights_dir=PACK128 --embedder_only --embedder_out=embedder.tflite
-   X=$(python make_bundle.py --plan-offset --tokenizer SNAPSHOT/tokenizer.json --embedder embedder.tflite --out $OUT | awk '/^TFLITE_OFFSET/{print $2}')
+   X=$(python make_bundle.py --plan-offset --tokenizer SNAPSHOT/tokenizer.json --embedder embedder.tflite --act fp16 --out $OUT | awk '/^TFLITE_OFFSET/{print $2}')
    rm -f $OUT
    $W --weights_dir=PACK128 --out=$OUT --out_offset=$X \
      --prefill=128,1024 --cache=4096 --gdn plain --moe_fusion_guard --external_embedder
-   python make_bundle.py --head-only --tflite-offset $X --tokenizer SNAPSHOT/tokenizer.json --embedder embedder.tflite --out $OUT
+   python make_bundle.py --head-only --tflite-offset $X --tokenizer SNAPSHOT/tokenizer.json --embedder embedder.tflite --act fp16 --out $OUT
    python ../qwen3_30b_a3b_work/bundle_sections.py $OUT
    ```
 
 ## How it was checked
 
 All on the Mac M4 Max (128 GB) with the runtime above: the tiny model and the CPU file on 2026-11-09 and 2026-11-10,
-the GPU file on 2026-11-13, and the step 5 check from a clean copy on 2026-11-14.
+the GPU file on 2026-11-13 with fp32 activations and on 2026-11-13 to 2026-11-15 with fp16 activations (on a copy
+with fp16 declared, before it replaced the published file), and the step 5 check from a clean copy on 2026-11-14.
 
 - The graph on a tiny model of the same architecture (4 layers: 3 Gated DeltaNet and 1 gated attention, hidden size
   256, 16 experts of which 4 are used for each token, fp32 weights): the logits of the CPU and of WebGPU are within
@@ -189,13 +191,20 @@ the GPU file on 2026-11-13, and the step 5 check from a clean copy on 2026-11-14
   file wrote the same bytes from a 2-layer pack (layers 0 and 3) with step 4's flags; step 4's bundle steps, with
   `make_bundle.py --ids-from` set to the shipped file, wrote its first 3,653,632 bytes (the header, the metadata, the
   tokenizer and the section table) byte for byte. The other 46 pack parts and the 48-layer write did not run again.
-- The GPU file against the author's weights, the same 24 positions on WebGPU: the source model's top token at 24 of 24.
+- The GPU file against the author's weights, the same 24 positions on WebGPU: the source model's top token at 24 of 24,
+  with fp32 and with fp16 activations.
 - The GPU file, the same 12 questions and 3-turn conversation on WebGPU. Greedy: 11 of 12 right and 11 of 12 ending
   with the stop token (question 2's reply reached the 2,048-token cap inside the thought), and the 3 turns pass. With
   the file's own sampler (type `TOP_P`: top_p 0.95, top_k 20, temperature 0.6), in each of 3 runs (the CLI's default
   seed, `--sampler_seed=2` and `--sampler_seed=3`): 12 of 12 right, 12 of 12 ending with the stop token, and the 3
   turns pass. So greedy decoding misses the pass mark above (question 2 did not end with the stop token), and the
-  file's own sampler meets it in each of the 3 runs.
+  file's own sampler meets it in each of the 3 runs. These counts are the same with fp32 activations (2026-11-13) and
+  with fp16 activations (2026-11-13 and 2026-11-14, on a copy with fp16 declared).
+- The GPU file with fp16 activations, 4 long prompts on WebGPU, greedy, on 2026-11-15: 2,786 to 3,505 tokens of
+  English filler text with one line `REFERENCE: <value>` (a 15-digit number or a UUID, at token 289, 2,509, 2,525
+  or 3,271), each asking for the value. No reply reached its answer: each thought ran to the end of the 4,096-token
+  context, the same as with fp32 activations. Inside the 4 thoughts the value was written 51 times in all, each
+  time exactly (with fp32 activations: 50 times, each exact, and once more cut off by the end of the context).
 - Step 5 from a clean copy on 2026-11-14, on a part of the model: `requirements.txt` into a new venv (its pip freeze
   the same 74 package versions) and the writer built again at LiteRT `dcb657e8`; step 5's pack (`--block 128`) for the
   same 3 parts wrote each part's `weights.bin` and `index.tsv` byte for byte as in the GPU file's pack; the writer
@@ -204,6 +213,10 @@ the GPU file on 2026-11-13, and the step 5 check from a clean copy on 2026-11-14
   step 5's flags; step 5's bundle steps, with `make_bundle.py --ids-from` set to the GPU file, wrote its first
   3,055,026,176 bytes (the header, the metadata, the tokenizer, the embedder section and the section table) byte for
   byte. The other 46 pack parts and the 48-layer write did not run again.
+- Step 5's bundle steps with `--act fp16` from a clean copy on 2026-11-15: `requirements.txt` into a new venv (its
+  pip freeze the same 74 package versions); with `make_bundle.py --ids-from` set to the GPU file that declares fp16
+  activations, they wrote its first 3,055,026,176 bytes byte for byte. Its other bytes, the decoder's graph, are
+  those of the GPU file as published until 2026-11-15.
 
 Not shipped:
 

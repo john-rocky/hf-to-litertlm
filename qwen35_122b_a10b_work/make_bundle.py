@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """make_bundle.py --tflite MODEL.tflite --tokenizer tokenizer.json --out OUT.litertlm [--max-tokens N]
-                  [--act fp32|none] [--pbtext P] [--tokenizer-sha256 SHA|any] [--ids-from FILE] [--embedder E.tflite]
+                  [--act fp32|fp16|none] [--pbtext P] [--tokenizer-sha256 SHA|any] [--ids-from FILE] [--embedder E.tflite]
 make_bundle.py --plan-offset --tokenizer tokenizer.json --out OUT.litertlm [same section flags]   -> TFLITE_OFFSET <X>
 make_bundle.py --head-only --tflite-offset X --tokenizer tokenizer.json --out OUT.litertlm [same section flags]
 
