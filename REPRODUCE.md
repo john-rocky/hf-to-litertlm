@@ -14,6 +14,18 @@ from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few 
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
+## Qwen3.5-9B with GPU composites (2026-11-14)
+
+`Qwen3.5-9B_mixed_int4_gpu_composite_v0190.litertlm` (6,024,806,400 B, sha256 `3a2d4029…`) and `Qwen3.5-9B_int8_gpu_composite_v0190.litertlm` (9,168,551,936 B, sha256 `d3c27243…`) on [litert-community/Qwen3.5-9B](https://huggingface.co/litert-community/Qwen3.5-9B) are that model's files for the GPU on LiteRT-LM 0.19.x. They are made the way the [Qwen3.5-4B files below](#qwen35-4b-with-gpu-composites-2026-11-14) are, from `Qwen/Qwen3.5-9B` at `c2022362`. One float export gives both.
+
+```bash
+bash scripts/reproduce_llm.sh qwen35-9b-gpu-composite     # -> out/qwen35-9b-gpu-composite/<the two file names>
+```
+
+It needs `python3.12`, `uvx`, `git`, `curl`, `perl` and about 145 GB of disk in the work directory; the export peaks at about 48 GB of memory. `qwen35_work/export_qwen35_9b_gpu_composite.sh` runs the nine steps of the 4B script with the 9B checkpoint. Its recipes, LlmMetadata and packers are the 4B script's files, because the published 9B and 4B files carry the same LlmMetadata, executor metadata and tokenizer sections.
+
+Checked on 2026-11-15 on an Apple M4 Max (128 GB, macOS 27.0), from a clean worktree of this repository at the commit that added the tool: the command above exited 0 and printed `SAME` for every section of both files (both: LlmMetadataProto 4,458 B `75ad5a72…`, ExecutorMetadataProto 4,101 B `0346374d…`, HF_Tokenizer_Zlib 3,614,174 B `f7099e03…`; int8: TFLiteModel 193,258,704 B `d2effd9a…`, TFLiteWeights 8,971,616,256 B `062b3140…`; Mixed INT4: TFLiteModel 505,616,640 B `f6473a80…`, TFLiteWeights 5,515,509,760 B `21ee8d20…`). It ran for 97 minutes by its own log, with the work directory on a USB hard disk. The export's memory footprint, read by `top`, peaked at 45 GiB (48.3 GB) during the quantization; the peak resident size of 64.9 GB counts pages of the checkpoint read from disk. The files it wrote have other sha256s than the published ones, because the packer writes a new uuid and creation timestamp into the header.
+
 ## Qwen3.5-4B with GPU composites (2026-11-14)
 
 `Qwen3.5-4B_mixed_int4_gpu_composite_v0190.litertlm` (2,712,846,336 B, sha256 `fd3e26a6…`) and `Qwen3.5-4B_int8_gpu_composite_v0190.litertlm` (4,367,499,264 B, sha256 `35e3b25a…`) on [litert-community/Qwen3.5-4B](https://huggingface.co/litert-community/Qwen3.5-4B) are that model's files for the GPU on LiteRT-LM 0.19.x. They are exports of litert-torch's own Qwen3.5 graph with `--apply_gpu_composites=True`, as the [Qwen3.5-0.8B file below](#qwen35-08b-with-gpu-composites-2026-11-05), not outputs of `qwen35_work/convert_qwen35_hybrid.py`. One float export gives both.
