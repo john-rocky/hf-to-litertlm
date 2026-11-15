@@ -567,5 +567,10 @@
     "task": "chat, Qualcomm NPU only (compiled on the device)",
     "group": 1,
     "recipe": "REPRODUCE.md#gemma-3-270m-it-qualcomm-npu-srq-compiled-on-the-device--the-rope-ranges-raised-to-the-cache-end"
+  },
+  "Oc-e-Non-v1": {
+    "task": "chat, short answers",
+    "group": 1,
+    "recipe": "REPRODUCE.md#oc-e-non-v1--a-qwen3-4b-instruct-2507-derivative-as-int8-and-mixed-int4-files-from-one-export-with-the-released-litert-torch-0100-gpu-composites-for-litert-lm-019-2026-11-15"
   }
 }

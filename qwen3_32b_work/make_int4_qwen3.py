@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""make_int4_qwen3.py EXPORT_DIR TOKENIZER_JSON OUT_DIR NAME [--block i8|b128|b32] [--act fp32|none] [--keep-tflite DIR]
+"""make_int4_qwen3.py EXPORT_DIR TOKENIZER_JSON OUT_DIR NAME [--block i8|b128|b32] [--act fp32|fp16|none] [--keep-tflite DIR]
 
 The quantized file from the float export of export_qwen3.py, without a float .litertlm (~131 GB for Qwen3-32B):
   1 quantize EXPORT_DIR's prefill_decode TFLite (export_artifacts.json) with ai-edge-quantizer and the recipe of
@@ -14,7 +14,7 @@ The quantized file from the float export of export_qwen3.py, without a float .li
     Authors = ODML; LlmMetadata = qwen3_LlmMetadataProto_v0.19.1.pbtext (LiteRT-LM v0.19.1's models/qwen3 pbtext byte
     for byte; Q32_PBTEXT overrides); the export's ExecutorMetadata; TOKENIZER_JSON (the checkpoint's tokenizer.json);
     the quantized TFLite as prefill_decode with `prefer_activation_type` = --act (fp32: the GPU runs fp32 activations;
-    none: the GPU's fp16 default);
+    fp16: fp16 activations, declared; none: no item, the GPU's fp16 default);
   3 records OUT_DIR/work_NAME/build.json (inputs and their sha256, recipe, clamp counts, seconds, the file's sha256).
 The quantized TFLite is removed after the pack unless --keep-tflite DIR (it moves there). Run with the export's Python
 (an environment made from mnn_pocket_work/requirements.txt: ai-edge-quantizer 0.10.1, litert-lm-builder 0.18.1)."""
@@ -87,7 +87,7 @@ def main():
     ap.add_argument("--block", default="b128", choices=("b128", "b32", "i8"),
                     help="b128 / b32 = int4 blockwise FC + int8 lm_head and token table; i8 = int8 per-channel "
                     "for every FC and the token table (recipe kind wi8fc)")
-    ap.add_argument("--act", default="fp32", choices=("fp32", "none"))
+    ap.add_argument("--act", default="fp32", choices=("fp32", "fp16", "none"))
     ap.add_argument("--keep-tflite", default="")
     ap.add_argument("--qtflite", default="", help="an existing quantized TFLite of the same export (skip step 1)")
     a = ap.parse_args()
@@ -136,7 +136,7 @@ def main():
     if os.path.exists(em):
         b.add_executor_metadata(em)
     b.add_hf_tokenizer(a.tokenizer_json)
-    kw = {"prefer_activation_type": "fp32"} if a.act == "fp32" else {}
+    kw = {"prefer_activation_type": a.act} if a.act in ("fp32", "fp16") else {}
     b.add_tflite_model(qpath, lb.TfLiteModelType.PREFILL_DECODE, **kw)
     tmp = final + ".partial"
     with open(tmp, "wb") as f:

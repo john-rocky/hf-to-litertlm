@@ -113,3 +113,4 @@ litert-community/gpt-oss-120b
 litert-community/Qwen3.5-122B-A10B
 litert-community/Qwen3.5-35B-A3B
 litert-community/Qwen3.6-35B-A3B
+mlboydaisuke/Oc-e-Non-v1-LiteRT

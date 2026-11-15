@@ -5,7 +5,9 @@
 # FULLY_CONNECTED (lm_head included) and the token table, fp32 GPU activations declared, LiteRT-LM v0.19.1's own Qwen3
 # LlmMetadata, the checkpoint's tokenizer.json. QUANT=b128 or QUANT=b32 makes the int4 blockwise file of the same export
 # instead (int4 FULLY_CONNECTED, int8 lm_head and token table, block scales floored at 2^-14; named
-# *_mixed_int4_ekv4096 / *_mixed_int4b32_ekv4096): for Qwen3-32B it failed the accuracy check (REPRODUCE.md). No float .litertlm is written (the float
+# *_mixed_int4_ekv4096 / *_mixed_int4b32_ekv4096): for Qwen3-32B it failed the accuracy check (REPRODUCE.md).
+# Q32_ACT=fp16 declares fp16 GPU activations instead of fp32 (the name then carries _fp16act before _ekv4096; the
+# sections are the fp32 file's, only the TFLite section's prefer_activation_type item differs). No float .litertlm is written (the float
 # TFLite alone is ~131 GB). REPO=<another Qwen3 dense HF id> REV=<its commit> runs the same steps on that checkpoint
 # (the output is then named after it, e.g. qwen3_0_6b_int8_ekv4096.litertlm); it tests the steps and keeps the
 # Qwen3-32B metadata (stop token, sampler, template, max_num_tokens 4096).
@@ -29,7 +31,7 @@
 #             prefused file, PYTHONHASHSEED=0, HF_HUB_OFFLINE=1; writes the float TFLite and the executor metadata
 #             into EXPORT_DIR (default OUTDIR/export) and no .litertlm. Qwen3-32B on a 128 GB Mac with the F32 copy and
 #             the TFLite on an external hard disk: 80 minutes at a peak memory footprint of 6.6 GB
-#   quantize  qwen3_32b_work/make_int4_qwen3.py EXPORT_DIR SNAPSHOT/tokenizer.json OUTDIR NAME --block $QUANT --act fp32
+#   quantize  qwen3_32b_work/make_int4_qwen3.py EXPORT_DIR SNAPSHOT/tokenizer.json OUTDIR NAME --block $QUANT --act $Q32_ACT
 #             (QUANT=i8 by default), PYTHONHASHSEED=0. Qwen3-32B from the float TFLite on the external hard disk:
 #             51 minutes at a peak memory footprint of 33.6 GB (int8); 30 minutes at 56 GB (QUANT=b128)
 #   checks    the weight form of every FULLY_CONNECTED / EMBEDDING_LOOKUP (qwen35_work/fc_dtypes.py, no float regex),
@@ -56,6 +58,8 @@ BASE=$(basename "$REPO" | tr 'A-Z' 'a-z' | tr '.-' '__')
 QUANT=${QUANT:-i8}
 case $QUANT in i8) NAME=${BASE}_int8_ekv4096 ;; b128) NAME=${BASE}_mixed_int4_ekv4096 ;; b32) NAME=${BASE}_mixed_int4b32_ekv4096 ;;
   *) echo "QUANT must be i8, b128 or b32"; exit 2 ;; esac
+ACT=${Q32_ACT:-fp32}
+case $ACT in fp32) ;; fp16) NAME=${NAME%_ekv4096}_fp16act_ekv4096 ;; *) echo "Q32_ACT must be fp32 or fp16"; exit 2 ;; esac
 CACHE=${HF_HUB_CACHE:-$OUT/hf_cache}
 SNAP=$CACHE/models--${REPO//\//--}/snapshots/$REV
 F32=${F32_DIR:-$OUT/fp32src}
@@ -102,7 +106,7 @@ for step in "${STEPS[@]}"; do
     quantize)
       rm -rf "$OUT/$NAME.litertlm" "$OUT/work_$NAME"; mkdir -p "$OUT/tmp"
       run env PYTHONHASHSEED=0 TMPDIR="$OUT/tmp" "$PY" "$W/make_int4_qwen3.py" "$EXP" "$SNAP/tokenizer.json" "$OUT" "$NAME" \
-        --block "$QUANT" --act fp32
+        --block "$QUANT" --act "$ACT"
       run shasum -a 256 "$OUT/$NAME.litertlm"
       ;;
     checks)

@@ -1,6 +1,6 @@
 # hf-to-litertlm
 
-Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 115 published conversions below, most with speeds measured on a phone and a Mac.
+Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 116 published conversions below, most with speeds measured on a phone and a Mac.
 
 <p align="center">
 <picture>
@@ -86,6 +86,7 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend) |
 | [Agents-A1-4B](https://huggingface.co/litert-community/Agents-A1-4B) | 4B | agentic research, tool calls | Galaxy S26 CPU 11.8 | M4 Max GPU 67.2 | [recipe](REPRODUCE.md#2026-09-21--agents-a1-4b-internscience-the-qwen35-4b-rail-on-an-agentic-finetune-tools--thinking-template) |
 | [FastContext-1.0-4B-SFT](https://huggingface.co/litert-community/FastContext-1.0-4B-SFT) | 4B | chat | iPhone 17 Pro GPU 14.0 | M4 Max GPU 73.8 | [card](cards/fastcontext-4b-litert.md) |
+| [Oc-e-Non-v1](https://huggingface.co/mlboydaisuke/Oc-e-Non-v1-LiteRT) | 4B | chat, short answers | Galaxy S26 GPU 18.0–18.2 | — | [recipe](REPRODUCE.md#oc-e-non-v1--a-qwen3-4b-instruct-2507-derivative-as-int8-and-mixed-int4-files-from-one-export-with-the-released-litert-torch-0100-gpu-composites-for-litert-lm-019-2026-11-15) |
 | [Qwen3.5-4B](https://huggingface.co/litert-community/Qwen3.5-4B) | 4B | chat | iPhone 17 Pro GPU 11.4 | M4 Max GPU 68.5 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [Qwen3.5-4B-3D-Coder](https://huggingface.co/litert-community/Qwen3.5-4B-3D-Coder) | 4B | coding, Three.js 3D scenes | iPhone 18 Pro GPU 10.5 | M4 Max GPU 48.6 | [recipe](REPRODUCE.md#2026-11-02--qwen35-4b-3d-coder-the-qwen35-4b-rail-with-a-kv-cache-sized-for-the-models-long-answers-mixed-int4-at-16384-and-32768-tokens) |
 | [granite-4.1-8b](https://huggingface.co/litert-community/granite-4.1-8b) | 8.38B | chat | Galaxy S26 GPU 5.4 | M4 Max GPU 58.3 | [recipe](REPRODUCE.md#granite-41-8b--the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite) |

@@ -5774,3 +5774,42 @@ Run from a clean copy of this repository's `qwen36_35b_a3b_work/`, in a new Pyth
 - The environment: `requirements.txt` is the same file as [`qwen35_35b_a3b_work/`](qwen35_35b_a3b_work/)'s (79 packages; that entry has the one difference from the environment the conversion ran in), and litert-torch is installed from source at `67f11e89` with `--no-deps`; `pip check` found no broken requirements in the run's venv.
 - The files need a runtime with SiLU in the `moe` op: LiteRT-LM 0.19.2 from PyPI, run on 2026-11-13, refuses each file on the CPU (`moe node #94 unsupported activation='silu'` for the CPU file, `moe node #39 unsupported activation='silu'` for the GPU files) and the GPU files on the GPU (its GPU delegate refuses the `moe` op and `odml.gated_delta_block`). The README has the build with LiteRT pull requests #11192 and #11188.
 - How each part was checked: the README. Speeds and answers: the model card.
+
+## Oc-e-Non-v1 — a Qwen3-4B-Instruct-2507 derivative as int8 and Mixed INT4 files from one export with the released litert-torch 0.10.0, GPU composites, for LiteRT-LM 0.19 (2026-11-15)
+
+`ocenon_work/convert_oc_e_non_v1.sh` (key `oc-e-non-v1` of `scripts/reproduce_llm.sh`) converts [p-e-w/Oc-e-Non-v1](https://huggingface.co/p-e-w/Oc-e-Non-v1) at commit `dbf4e269` into three files. Two of them carry the sections of the two files of [mlboydaisuke/Oc-e-Non-v1-LiteRT](https://huggingface.co/mlboydaisuke/Oc-e-Non-v1-LiteRT); the third, the Mixed INT4 file with fp32 GPU activations declared, is not in that repo. The script runs the Qwen3-32B recipe above (`qwen3_32b_work/convert_qwen3_32b.sh`) three times with this model's pin and metadata: the export and the int8 file, then two int4 files from the same export, the second with fp16 GPU activations declared (`Q32_ACT=fp16`, new in the recipe for this model).
+
+```bash
+uv venv -p 3.13 .venv-qwen3-32b
+uv pip install --python .venv-qwen3-32b/bin/python -r mnn_pocket_work/requirements.txt
+PY=$PWD/.venv-qwen3-32b/bin/python bash scripts/reproduce_llm.sh oc-e-non-v1
+```
+
+`oc_e_non_v1_int8_ekv4096.litertlm` (4,060,193,936 B, in the Hub repo): int8 per-channel min-max weights for every FULLY_CONNECTED (both lm_heads included) and the token table, fp32 GPU activations declared.
+
+| Section | Bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto | 3,363 | `d4082f4c…` |
+| ExecutorMetadataProto | 4,894 | `3334a06b…` |
+| HF_Tokenizer_Zlib | 2,142,162 | `7e610629…` |
+| TFLiteModel (prefill_decode, `prefer_activation_type` fp32) | 4,057,998,480 | `656ceaf2…` |
+
+`oc_e_non_v1_mixed_int4b32_ekv4096.litertlm` (3,051,929,936 B, not in the Hub repo): int4 blockwise-32 min-max FULLY_CONNECTED weights (block scales floored at 2^-14), the decode signature's lm_head and the token table int8 per-channel, fp32 GPU activations declared.
+
+| Section | Bytes | sha256 |
+|---|---:|---|
+| LlmMetadataProto | 3,363 | `d4082f4c…` |
+| ExecutorMetadataProto | 4,894 | `3334a06b…` |
+| HF_Tokenizer_Zlib | 2,142,162 | `7e610629…` |
+| TFLiteModel (prefill_decode, `prefer_activation_type` fp32) | 3,049,734,480 | `7232a5a9…` |
+
+`oc_e_non_v1_mixed_int4b32_fp16act_ekv4096.litertlm` (3,051,929,936 B): the four sections of the file above, byte for byte, with the TFLite section's `prefer_activation_type` item set to fp16. These are the sections of the Hub repo's Mixed INT4 file. On a Galaxy S26 GPU that file decodes 18.1 tokens/s against 14.7 for the fp32-declared file, and it passes the same accuracy checks (the model card).
+
+The packer writes a new uuid and creation time into the file header, so a file's own sha256 differs from run to run; compare the sections. The Hub repo's Mixed INT4 file was made from the fp32-declared file: unpacked with LiteRT-LM 0.19.0's `litert-lm` CLI, its declaration set to fp16, and packed again. Its header therefore also says version 1.9.0 where this recipe writes 1.7.0 (sha256 `0dac09e4…` on the Hub, `1ca7dbd2…` from the run below).
+
+- **No F32 copy and no prefused file.** The 32B recipe needs both to keep its export inside 128 GB of RAM. A 4B export reads the bf16 snapshot directly (`F32_DIR` = the snapshot) and builds the fused projections in RAM (`Q32_CATVIEW=0`): the same float values.
+- **Metadata.** `oc_e_non_v1_LlmMetadata.pbtext` = LiteRT-LM v0.19.1's `models/qwen3` configuration with three changes: the checkpoint's sampler (`generation_config.json`: top-k 20, top-p 0.8, temperature 0.7), `<|endoftext|>` added to the stop tokens, and no `thought` channel (the source model has no thinking mode). The chat template is unchanged (it reads message content as a list of parts, so the file needs LiteRT-LM 0.18 or newer). Tokenizer: the checkpoint's `tokenizer.json`, byte for byte (sha256 `be756060…`).
+- **The int4 files' prefill lm_head is int4.** The recipe keeps the lm_head int8 by name, and in this export only the decode signature's lm_head carries that name; the prefill signature's lm_head is quantized like the other layers (int4 blockwise-32). LiteRT-LM never samples from the prefill's logits.
+- On a 128 GB Mac with the snapshot and the outputs on an external hard disk: the first two passes took 37 minutes in all (the download included; the export 20 minutes), peak memory footprint 46.1 GB (the export); the float TFLite is 16,094,693,920 B. With that file cold on the hard disk, the quantizer's scattered reads took 1.4–2.8 s per tensor (of 7,539), so the third pass read it into the page cache first (11 minutes) and then took 86 s at a peak footprint of 10.1 GB. The outputs take 34 GB of disk at the end.
+
+What ran: the first two lines of the script on 2026-11-14 as printed, end to end; the third line (`Q32_ACT=fp16`) on 2026-11-15 from the same export, into a file whose four sections are those of the Hub repo's Mixed INT4 file, byte for byte. In an environment whose 75 packages are those of `mnn_pocket_work/requirements.txt` (Python 3.13.13).
