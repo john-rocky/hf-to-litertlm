@@ -1,0 +1,6 @@
+# litert-torch for the PY_EXPORT environment, installed by make_envs.sh with --no-deps after requirements-export.txt.
+# Its metadata asks for torch < 2.13, litert-converter 0.3.*, ai-edge-quantizer 0.8.* and ai-edge-litert < 2.2; the
+# published file was exported with torch 2.13.0, litert-converter 0.4.0, ai-edge-quantizer 0.9.0 and ai-edge-litert
+# 2.2.0 (the versions in requirements-export.txt), which pip would not install together with these bounds. `pip check`
+# then lists those four bounds of litert-torch and nothing else.
+litert-torch==0.9.3
