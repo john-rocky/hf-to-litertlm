@@ -7,10 +7,10 @@
 #                                 encoder and adapter with fp16 weights; the decoder's and the embedder's weights in
 #                                 TFLiteWeights sections at the end of the file
 #
-# Vision   = unlimitedocr1_work/vision_export.py with uocr_vision.py: the Unlimited-OCR-2 files (the two checkpoints'
-#            vision towers have the same structure, each with its own weights; this uocr_vision.py also reads a
-#            checkpoint without the CLIP position_ids tensor), checked against this checkpoint's own deepencoder.py
-#            classes on four document pictures; the copies with fp16 weights go into the bundle.
+# Vision   = unlimitedocr1_work/vision_export.py with uocr_vision.py: the Unlimited-OCR-2 files (this uocr_vision.py
+#            also reads a checkpoint without the CLIP position_ids tensor), checked against this checkpoint's own
+#            deepencoder.py classes on four document pictures; the copies with fp16 weights go into the bundle. The
+#            pair comes out byte for byte the Unlimited-OCR-2 pair: the two checkpoints' vision towers export the same.
 # Decoder  = unlimitedocr1_work/export_ring1.py: uocr1_decoder.py writes the model's own decode attention (the prompt's
 #            277 positions pinned, the last 128 generated positions in a ring, plain multi-head attention, 1-D RoPE from
 #            a constant table) around the MLP / MoE of unlimitedocr2_work/uocr_decoder.py; prefill_278 (the 277-id
@@ -27,8 +27,8 @@
 # Environments: PY_EXPORT, PY_BUNDLE and PY_XR (absolute paths to the python of each), or none of the three:
 # unlimitedocr1_work/make_envs.sh then makes them under ENVS (default OUT/envs) from the frozen requirements files of
 # that folder (PYTHON314 / PYTHON312 = the interpreters to make them from; default python3.14 / python3.12).
-# Disk: about 33 GB under OUT besides the environments (the 11.1 GB fp32 decoder stays in OUT/work) and 6.7 GB in the
-# Hugging Face cache. Memory: the decoder export peaks near 40 GB.
+# Disk (the 2026-11-15 run): 27.3 GB under OUT at the end, the environments' 2.0 GB included (the 11.1 GB fp32 decoder
+# stays in OUT/work), and 6.7 GB in the Hugging Face cache. Memory: the decoder export peaked at 36.5 GiB resident.
 #
 #   bash scripts/ship_unlimited_ocr.sh [OUT]        # OUT defaults to out/unlimitedocr1
 set -euo pipefail
