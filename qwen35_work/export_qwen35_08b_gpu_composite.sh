@@ -2,7 +2,8 @@
 # export_qwen35_08b_gpu_composite.sh WORK - rebuild Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm of litert-community/Qwen3.5-0.8B in
 # WORK (created if missing; a finished step is not repeated) and compare its sections with the file as uploaded on 2026-11-05. Output: WORK/model.litertlm.
 # The script rebuilds that upload. On 2026-11-09 the file on the Hub was replaced (its integer weights moved into a TFLiteWeights section; REPRODUCE.md).
-# export_qwen35_08b_gpu_composite.sh --check FILE [PYTHON] - step 7 alone, on any file. PYTHON (default python3) needs litert-lm-builder.
+# export_qwen35_08b_gpu_composite.sh --check FILE [PYTHON] - step 7 alone, on any file. PYTHON (default python3) needs litert-lm-builder:
+#   0.19.0 runs it; 0.16.1 stops with a ValueError (its LlmMetadata message has no supports_thinking field, which bundle_sections.py reads).
 #   1 litert-torch at 65aafa4, upstream's Qwen3.5 graph (the last commit whose gated_delta_update has the 6 inputs litert-lm 0.19.0 accepts), with
 #     litert_lm_builder.py of fe5c2bd (packaging code only, the pinned litert-lm-builder 0.19.0 has no TfLiteModelType)
 #   2 a Python 3.12 venv from qwen35_08b_gpu_composite.lock.txt, plus that litert-torch
