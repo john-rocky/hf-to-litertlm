@@ -23,6 +23,10 @@
 #                                 weights go to the weights section (FLOAT_EXTERNAL = no: LiteRT's WebGPU streamed
 #                                 loading takes only INT8 / INT4 / INT2 external weights); a file whose only weights
 #                                 are float then has nothing to externalize (exit 5). Default off
+#     --tflite-sha256-item        a TFLiteModel section that carries a `sha256` item in the input file gets the sha256 of
+#                                 the graph it holds after the move: set in the TOML before the pack (lib/sha256_item.py)
+#                                 and checked against the packed section after the pack (exit 5 on a mismatch). Default
+#                                 off: the item is copied as it was, the hash of the section before the move
 #     --executor-metadata auto|off  auto = a bundle with a prefill_decode section and no ExecutorMetadata section gets
 #                                 one generated from the signatures (lib/executor_skeleton.py); default off
 #     --smoke-attachment PNG      the smoke asks about this image instead of the text question (vision bundles)
@@ -63,7 +67,7 @@ REPO=$1
 FILE=$2
 shift 2
 SOURCE= API_JSON= REVISION=main KEEP_MB=0 EXECMD=off ATTACH= NO_SMOKE=0 SMOKE_ONLY=0 W= S= KEEP_WORK=0 NO_HUB=0 THRESH=256
-KEEP_FLOAT=0
+KEEP_FLOAT=0 SHA_ITEM=0
 need() { [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a value"; exit 2; }; }
 while [ $# -gt 0 ]; do
   case $1 in
@@ -71,6 +75,7 @@ while [ $# -gt 0 ]; do
     --no-hub) NO_HUB=1; shift ;;
     --num-elements-threshold) need "$@"; THRESH=$2; shift 2 ;;
     --keep-float-inline) KEEP_FLOAT=1; shift ;;
+    --tflite-sha256-item) SHA_ITEM=1; shift ;;
     --api-json) need "$@"; API_JSON=$2; shift 2 ;;
     --revision) need "$@"; REVISION=$2; shift 2 ;;
     --keep-inline-under-mb) need "$@"; KEEP_MB=$2; shift 2 ;;
@@ -191,6 +196,7 @@ log "start: $REPO $FILE → work $W, staging $S"
 kv repo "$REPO"; kv file "$FILE"; kv out_name "$BASE"; kv started "$(date '+%F %T %Z')"; kv revision_asked "$REVISION"
 kv host "$(uname -sm) $(sw_vers -productVersion 2>/dev/null || true)"
 kv keep_inline_under_mib "$KEEP_MB"; kv executor_metadata "$EXECMD"; kv num_elements_threshold "$THRESH"
+[ $SHA_ITEM = 1 ] && kv tflite_sha256_item "set to the sha256 of the graph after the move (--tflite-sha256-item)"
 if [ $NO_SMOKE = 1 ]; then kv smoke_mode "skipped (--no-smoke)"; else kv smoke_mode "cpu, in this run"; fi
 for x in "$PY" "$CLI" "$BUILDER" "$PEEK"; do command -v "$x" > /dev/null || fail 2 "not found: $x"; done
 [ -z "$SOURCE" ] && { command -v "$HF" > /dev/null || fail 2 "not found: $HF (needed to download; or give --source)"; }
@@ -353,6 +359,12 @@ if [ "$EXECMD" = auto ]; then
     kv executor_metadata "auto: generated from $(basename "$pd") and added"; log "executor metadata: generated and added"
   fi
 fi
+if [ $SHA_ITEM = 1 ]; then
+  pyrun "$LG/sha256_item_set.log" sha256_item.py set --toml "$PACK_TOML" --out "$B/model.sha.toml" \
+    || fail 1 "the sha256 items were not set ($LG/sha256_item_set.log)"
+  PACK_TOML=$B/model.sha.toml
+  log "sha256 item: $(grep -E '^(set|section|TFLiteModel blocks) ' "$LG/sha256_item_set.log" | tr '\n' ' ')"
+fi
 OUT=$B/$BASE
 run "$LG/pack.log" $TIMEL "$BUILDER" toml --path "$PACK_TOML" output --path "$OUT" || fail 1 "pack failed ($LG/pack.log)"
 grep -q 'successfully created' "$LG/pack.log" && [ -s "$OUT" ] || fail 1 "pack printed no success line ($LG/pack.log)"
@@ -383,8 +395,16 @@ kv float_external "$(sed -n 's/^FLOAT_EXTERNAL=//p' "$LG/breakdown.log")"
 kv dw_int8_external "$(sed -n 's/^DW_INT8_EXTERNAL=//p' "$LG/breakdown.log")"
 kv graph_over_50mib "$(sed -n 's/^GRAPH_OVER_MARK=//p' "$LG/breakdown.log")"
 log "checks: sections rc $rc1, tensors rc $rc2, $(grep -E '^FLOAT_EXTERNAL|^DW_INT8_EXTERNAL|^GRAPH_OVER' "$LG/breakdown.log" | tr '\n' ' ')"
-grep -q '^### exit: 0' "$LG/verify_peek.log" && [ $rc1 = 0 ] && [ $rc2 = 0 ] \
-  || fail 5 "a check failed: verify-peek $(grep '^### exit' "$LG/verify_peek.log"), sections rc $rc1, tensors rc $rc2"
+rc3=0 x3=
+if [ $SHA_ITEM = 1 ]; then
+  pyrun "$LG/sha256_item_check.log" sha256_item.py check --litertlm "$OUT"
+  rc3=$?
+  x3=", sha256 item rc $rc3"
+  kv sha256_item "$(grep -E '^SHA256-ITEM|^unreadable' "$LG/sha256_item_check.log" | head -1 | sed 's/^SHA256-ITEM: //')"
+  log "sha256 item check: rc $rc3, $(grep -E '^section|^SHA256-ITEM|^unreadable' "$LG/sha256_item_check.log" | tr '\n' ' ')"
+fi
+grep -q '^### exit: 0' "$LG/verify_peek.log" && [ $rc1 = 0 ] && [ $rc2 = 0 ] && [ $rc3 = 0 ] \
+  || fail 5 "a check failed: verify-peek $(grep '^### exit' "$LG/verify_peek.log"), sections rc $rc1, tensors rc $rc2$x3"
 
 # --- 4 smoke ---------------------------------------------------------------------------------------------------------
 if [ $NO_SMOKE = 0 ]; then
@@ -401,7 +421,7 @@ if [ $NO_SMOKE = 1 ]; then kv result "STAGED (smoke not run yet)"; else kv resul
 # --- 6 clean up (only what this run made; never the --source file) -----------------------------------------------------
 if [ $KEEP_WORK = 0 ]; then
   rm -rf "${U:?}" "${E:?}"
-  rm -f "${B:?}/model.toml" "${B:?}/model.exec.toml"
+  rm -f "${B:?}/model.toml" "${B:?}/model.exec.toml" "${B:?}/model.sha.toml"
   [ $DOWNLOADED = 1 ] && rm -rf "${W:?}/int"
   kv cleanup "removed unpack/, externalized/, build/model*.toml$([ $DOWNLOADED = 1 ] && echo ', int/ (the download)')"
 else

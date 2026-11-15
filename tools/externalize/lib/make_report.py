@@ -58,8 +58,9 @@ def main():
     smk = load_tsv(os.path.join(W, "report", "smoke.tsv"))
     g = R.get
     L = [f"# {g('repo', '?')} · {g('file', '?')} — weights moved to TFLiteWeights sections", ""]
+    shi = f", sha256 item {g('sha256_item', 'not run')}" if g("tflite_sha256_item") else ""
     L += [f"- Result: **{g('result', 'not finished')}**. Checks: verify-peek {g('verify_peek', 'not run')}, sections "
-          f"{g('sections_check', 'not run')}, tensors {g('breakdown', 'not run')}. Smoke: {smk.get('verdict', 'not run')}.",
+          f"{g('sections_check', 'not run')}, tensors {g('breakdown', 'not run')}{shi}. Smoke: {smk.get('verdict', 'not run')}.",
           f"- Output: `{g('out_name', '?')}` {int(g('out_size', 0) or 0):,} B, sha256 `{g('out_sha256', '?')}` "
           f"(staged at `{g('staged_path', '—')}`).",
           "- The builder writes a new uuid and creation_timestamp into the container header at every pack, so the file's "
@@ -74,7 +75,7 @@ def main():
           f"{g('input_check', 'not checked')}.",
           f"- Options: keep inline at or under {g('keep_inline_under_mib', '0')} MiB; executor metadata "
           f"{g('executor_metadata', 'off')}; num_elements_threshold {g('num_elements_threshold', '256')}; smoke "
-          f"{g('smoke_mode', '?')}."]
+          f"{g('smoke_mode', '?')}" + (f"; sha256 item {g('tflite_sha256_item')}" if g("tflite_sha256_item") else "") + "."]
     L += [f"  - threshold for {mt}: {v}" for mt, v in ths] + [""]
     if sec:
         I, X = sec["orig"], sec["new"]
