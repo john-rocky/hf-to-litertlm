@@ -12,4 +12,4 @@
 - Exclude backend lists emptied after parsing; return `null` if no candidates remain.
 - Document local path installation and include the package license and third-party notice.
 
-Adapted from Hugh (@hung-yueh)'s [manifest resolver hardening](https://github.com/hung-yueh/react-native-litert-lm/commit/09f44d348014a213593d40f63ff784e32b70dde3), released in [react-native-litert-lm 0.7.0](https://github.com/hung-yueh/react-native-litert-lm/releases/tag/v0.7.0) under MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Thinking markers and declared channels retain their existing behavior.
+Adapted from @hung-yueh's [manifest resolver hardening](https://github.com/hung-yueh/react-native-litert-lm/commit/09f44d348014a213593d40f63ff784e32b70dde3), released in [react-native-litert-lm 0.7.0](https://github.com/hung-yueh/react-native-litert-lm/releases/tag/v0.7.0) under MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Thinking markers and declared channels retain their existing behavior.

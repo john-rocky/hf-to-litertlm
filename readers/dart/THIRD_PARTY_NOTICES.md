@@ -1,7 +1,7 @@
 # Third-party notices
 
 The parser, fetch-source and empty-backend fixes in reader 0.2.2 are adapted
-from react-native-litert-lm by Hugh (@hung-yueh), commit
+from react-native-litert-lm by @hung-yueh, commit
 [09f44d348014a213593d40f63ff784e32b70dde3](https://github.com/hung-yueh/react-native-litert-lm/commit/09f44d348014a213593d40f63ff784e32b70dde3).
 The reference reader remains licensed under Apache-2.0; the upstream MIT
 notice for these adaptations is reproduced below.

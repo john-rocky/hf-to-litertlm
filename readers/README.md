@@ -70,7 +70,7 @@ TS `fetchManifest` continues to throw on HTTP or parse failure. Thinking markers
 
 `thinkingControl` (0.2.3) reads `model.capabilities.thinking.control`, defined in [SCHEMA.md](../manifest/SCHEMA.md#capabilitiesthinkingcontrol--what-the-template-does-about-thinking). Only `switch` means the app can turn thinking on and off, by setting `enable_thinking` per turn. Resolution does not use it.
 
-The 0.2.2 fixes incorporate the parser, fork-source and empty-backend corrections by Hugh (@hung-yueh) in [react-native-litert-lm 0.7.0](https://github.com/hung-yueh/react-native-litert-lm/releases/tag/v0.7.0). Each package includes the upstream MIT notice alongside its Apache-2.0 license.
+The 0.2.2 fixes incorporate the parser, fork-source and empty-backend corrections by @hung-yueh in [react-native-litert-lm 0.7.0](https://github.com/hung-yueh/react-native-litert-lm/releases/tag/v0.7.0). Each package includes the upstream MIT notice alongside its Apache-2.0 license.
 
 ## Live manifests to test against
 
