@@ -661,6 +661,54 @@ Checks of the new file (the file in the table), against the previous file unless
 
 Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build of the first entry of 2026-11-14). Each run is a new process that prefills 1,024 tokens and generates 256 tokens, three times; the 1,024 tokens are the prompt file's one sentence padded with token id 0 (the runtime's benchmark mode). A run's value is the mean of iterations 2–3. Four runs in the order previous / new / new / previous: prefill 187 / 195 / 195 / 194 tok/s and decode 15.3 / 18.7 / 18.6 / 15.6 tok/s, so previous → new is prefill ×1.045 and decode ×1.225 in the first pair, prefill ×1.007 and decode ×1.193 in the second; the previous file's two runs differ by 3.6 % in prefill. In every run the prefill slowed from one iteration to the next (228–234 tok/s in iteration 1, 169–181 in iteration 3). The median of iterations 2–3 over the two runs per file: decode 15.4 → 18.7 tok/s, prefill 193 → 195 tok/s. On a Pixel 11 Pro GPU (same build and workload) the new file prefilled more slowly and decoded faster than the previous file in every iteration of the four runs (prefill 175–189 against 205–215 tok/s, decode 9.2–10.1 against 7.8–8.6 tok/s); the previous file's first run started at thermal status 0, the other three runs at thermal status 1 (light). On the Galaxy S26 CPU (XNNPACK) four runs went previous, new, new, previous after one warm-up run of the new file; each counted run started at thermal status 1 and was at thermal status 2 by 11–22 s in, and the last run started 82 minutes after the third. The new file's medians were 1.9 % above the previous file's in prefill and 0.2 % above in decode in iteration 1, 0.3 % above and equal in iteration 2, and 4.9 % and 2.6 % below in iteration 3. The clock caps differed between the runs during iteration 3's prefill: the new file's warm-up run, whose caps stayed at 1.56 / 1.50 GHz then as in the previous file's second run, prefilled 40.82 tok/s in iteration 3 against that run's 40.70. Two counted runs of the same file differed by up to 12.7 %. The new file's peak memory on the Galaxy S26 CPU (`VmHWM`) was 4.28–4.30 GB, the previous file's 3.95–4.00 GB.
 
+## 2026-11-15 — GPU graph re-ship: Spark-X2.5-1.7B, 2 files (weights unchanged)
+
+The previous files (the ones at the Hub commit in the table) wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The re-ship rewrites only their prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces, as in the [first entry of 2026-11-14](#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged): one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products (336 `odml.cache_update` and 650 `odml.runtime_bmm` composites over the 12 signatures of each file), a `param_tensor` signature input, and the attention mask added to the attention logits by broadcast (`--mask add_bcast`; that entry says why). Spark's sliding-window layers add a band to the mask input with one ADD before the group CONCATENATION, where `tools/gpu_graph/gpu_graph_retrofit.py` alone stops ("mask consumer op 7 (ADD) is not CONCATENATION(mask x g, axis 2)"). So the graph goes through `dory_work/retrofit_gpu.py`, a wrapper first written for NVIDIA-Nemotron-Labs-Dory1.0-4B, whose graph adds its sliding band to the mask the same way. The wrapper loads that tool by path, unchanged, and applies its add_bcast rewrite to the mask input and to the banded mask, keeping the band ADD (the [Spark-X2.6 entry](#spark-x26-17b--4b-sparkllm-team-thinking--the-x25-recipe-on-new-weights-a-mixed-int4-17b-file-and-a-gpu-graph-rewrite) uses it the same way). Every weight buffer keeps its bytes. Both files already had a 1,024-token prefill signature (11 prefill signatures, 1 to 1,024 tokens), so none is added. The re-ship also drops a comment from the bundle's chat template; a Jinja comment renders nothing.
+
+`previous.litertlm` is each file at the Hub commit in the table. The commands unpack and pack the bundle with the litert-lm CLI (`litert-lm` below), run the rewrite on the unpacked prefill/decode graph and drop the template comment from the unpacked metadata; the script needs `ai-edge-litert`, `flatbuffers` and `numpy` (the rebuild below ran with Python 3.14.6, the litert-lm 0.19.1 CLI, ai-edge-litert 2.2.0, flatbuffers 25.12.19 and numpy 2.5.2). The published files are the output of these commands.
+
+```
+# from the root of a copy of this repo, with previous.litertlm = the file at the Hub commit below;
+# for the int8 file, the same lines in another copy with F=Spark-X2.5-1.7B_int8.litertlm
+F=Spark-X2.5-1.7B_int4.litertlm
+litert-lm unpack previous.litertlm --output-dir unpack
+python dory_work/retrofit_gpu.py unpack/Section*_TFLiteModel_tf_lite_prefill_decode.tflite retrofit.tflite report.json
+mv retrofit.tflite unpack/Section*_TFLiteModel_tf_lite_prefill_decode.tflite
+python - <<'EOF'
+# drop the comment from the chat template (a Jinja comment renders nothing)
+import re
+p = "unpack/LlmMetadataProto.pbtext"
+s = open(p, encoding="utf-8").read()
+t, n = re.subn(r"\{#-.*?-#\}\\n", "", s, count=1, flags=re.S)
+assert n == 1
+open(p, "w", encoding="utf-8").write(t)
+EOF
+litert-lm pack unpack/model.toml --output "$F"
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| Spark-X2.5-1.7B | `Spark-X2.5-1.7B_int4.litertlm` | 1,264,287,744 | `e3441c7cfef0` | `b8a514521af5` |
+| Spark-X2.5-1.7B | `Spark-X2.5-1.7B_int8.litertlm` | 1,835,761,664 | `358ae64dd009` | `b8a514521af5` |
+
+Run as written on 2026-11-15 from a clean copy of `tools/gpu_graph`, `dory_work/retrofit_gpu.py` and `scripts/section_identity.py` at this repo's commit `082a070b`, with the previous files downloaded at the commit in the table, the rebuild gave every bundle section byte-identical to the published files (sha256 per section, `scripts/section_identity.py`). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+Checks of the files in the table, against the previous files unless a line says otherwise. Most of them ran on files with the same graph whose chat template still had the comment (int8 `0c1d52f1…`, int4 `b95a52bf…`; "the new files" below); the second check compares the files in the table with the new files directly:
+- Every section other than the prefill/decode graph and the metadata is byte-identical, and so is every weight buffer the graph uses (the tool's buffer identity check); in the metadata only the chat template differs, by the dropped comment.
+- The files in the table against the new files (litert-lm 0.19.2, Mac): six conversations rendered by the runtime to the same text and the same token ids, the same CPU replies, byte for byte, on the 4 prompts of the next line, and the 8 short questions with thinking off (the scores below).
+- CPU (XNNPACK, 1 thread, greedy decoding with top-k 1, thinking on, litert-lm 0.19.2, Mac): the same replies, byte for byte, on 4 prompts: a short question, a passage of 752 tokens, a coding request and that passage twice (1,460 tokens, longer than the 1,024-token prefill), with `--max-num-tokens` 1,024 for the first three and 2,048 for the last; the replies to both passages ran to that limit inside the thought.
+- One prompt on the Mac CPU and GPU with litert-lm 0.19.0 to 0.19.2: the same reply, byte for byte, on both backends and each version.
+- 8 short questions, with thinking on: 8 of 8 with the previous and the new files on a Galaxy S26 GPU and on a Pixel 11 Pro GPU (int8 and int4), and 8 of 8 with each file in the table on the Galaxy S26 GPU. With thinking off on the Mac (litert-lm 0.19.2; the previous and the new files, then the new files and the files in the table): int4, 7 of 8 in every run on the CPU and the GPU; int8, 5 of 8 in every run on the GPU, and on the CPU (the CLI's default thread count) 5 or 6 of 8, changing between runs: the previous file 6, the new file 5 and, the next day, 6, the file in the table 5. The answer that moved was 8 times 7 ("56" or "64"). Asked that question again at the default thread count, three times per file on each day (the previous and the new file, then the new file and the file in the table), every run answered "56" (12 runs); with 1 thread, once per file and day, every run answered "64" (4 runs).
+
+Galaxy S26 GPU, LiteRT-LM v0.19.0 (the build of the first entry of 2026-11-14; each run prefills 1,024 tokens and decodes 256, three iterations, with `--use_session=true`: without it, each iteration of this model's benchmark runs prefilled two 1,024-token turns; the median of iterations 2–3 over a file's runs, in the order previous / new / new / previous, two runs per file for int8 and four for int4, in two sets):
+
+| File | Decode tok/s | Prefill tok/s |
+|---|---:|---:|
+| `Spark-X2.5-1.7B_int8.litertlm` | 21.9 → 27.7 | 446 → 537 |
+| `Spark-X2.5-1.7B_int4.litertlm` | 28.3 → 38.2 | 457 → 546 |
+
+By each run's mean of iterations 2–3, the new int8 file decoded ×1.246 and ×1.264 as fast as the previous one in the two pairs of runs and prefilled ×1.395 and ×1.167 as fast. The new int4 file decoded ×1.371 and ×0.957 and prefilled ×1.944 and ×0.888 in the first set, where runs 1, 2 and 3 each had an iteration 2 or 3 that decoded more than 1 tok/s slower than every iteration 2–3 of the same file in the second set and runs 1 and 3 each had one that prefilled below 300 tok/s, and decoded ×1.392 and ×1.384 and prefilled ×1.146 and ×1.179 in the second. On the Galaxy S26 CPU (XNNPACK), measured back to back with the previous files after one warm-up run, the new files' per-iteration medians were within 2.5 % of the previous files' in iterations 2 and 3; in iteration 1 the new int4 file prefilled 4.5 % slower (190.9 against 199.9 tok/s) and the new int8 file was within 0.6 % in prefill and decode. On a Pixel 11 Pro GPU (the runs without `--use_session=true`, so only decode is compared) the new int8 file decoded at ×0.97 of the previous one's speed in both pairs of runs and the new int4 file at ×1.00 and ×0.91.
+
 ## 2026-10-06 — GPU graph re-ship (8 files, weights unchanged)
 
 The eight files below were exported without litert-torch's `--apply_gpu_composites`. Their prefill/decode graph writes the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and runs attention with BATCH_MATMUL(adjY). A graph exported with the flag has the same KV layout and weights, but it expresses both steps as composites.
