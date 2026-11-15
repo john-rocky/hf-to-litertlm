@@ -9,7 +9,8 @@ Sources, all public:
 
 Each row takes, per device class (phone / Mac), the measured row with the highest decode
 tokens/s across every variant of the repo, and prints device, backend and decode speed. A
-"lo-hi" spread stays a range. Nothing here is typed in by hand: the numbers come out of the
+"lo-hi" spread stays a range. A speed is rounded half up to one decimal from the decimal the
+manifest writes (38.15 prints as 38.2). Nothing here is typed in by hand: the numbers come out of the
 manifests, and the script refuses to write if a recipe link points at a missing card or a
 REPRODUCE.md heading that no longer exists.
 
@@ -27,6 +28,7 @@ import sys
 import urllib.request
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from decimal import ROUND_HALF_UP, Decimal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -52,12 +54,17 @@ def lo(v):
     return float(m.group(1)) if m else -1.0
 
 
+def one_decimal(s):
+    """Round a decimal string half up to one decimal: "38.15" -> "38.2" (a float's own rounding gives 38.1)."""
+    return str(Decimal(s).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+
 def fmt(v):
     if isinstance(v, (int, float)):
-        return f"{v:.1f}"
+        return one_decimal(str(v))
     m = re.match(r"\s*([\d.]+)\s*[-–]\s*([\d.]+)", str(v))
     if m:
-        return f"{float(m.group(1)):.1f}–{float(m.group(2)):.1f}"
+        return f"{one_decimal(m.group(1))}–{one_decimal(m.group(2))}"
     return str(v)
 
 
