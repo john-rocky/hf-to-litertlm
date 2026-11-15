@@ -115,3 +115,4 @@ litert-community/Qwen3.5-35B-A3B
 litert-community/Qwen3.6-35B-A3B
 mlboydaisuke/Oc-e-Non-v1-LiteRT
 litert-community/Unlimited-OCR
+litert-community/Kimi-Linear-48B-A3B-Instruct

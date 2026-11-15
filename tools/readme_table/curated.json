@@ -577,5 +577,10 @@
     "task": "chat, short answers",
     "group": 1,
     "recipe": "REPRODUCE.md#oc-e-non-v1--a-qwen3-4b-instruct-2507-derivative-as-int8-and-mixed-int4-files-from-one-export-with-the-released-litert-torch-0100-gpu-composites-for-litert-lm-019-2026-11-15"
+  },
+  "Kimi-Linear-48B-A3B-Instruct": {
+    "task": "chat (LiteRT-LM built from source)",
+    "group": 1,
+    "recipe": "REPRODUCE.md#kimi-linear-48b-a3b-instruct--the-27-layer-hybrid-moe-decoder-kimi-delta-attention-and-mla-written-with-a-graph-writer-for-litert-torch-the-256-silu-experts-of-each-moe-layer-in-one-moe-custom-op-with-int8-per-channel-weights-a-4096-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-15"
   }
 }

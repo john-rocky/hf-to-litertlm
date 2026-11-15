@@ -1,6 +1,6 @@
 # hf-to-litertlm
 
-> Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 117 published conversions on Hugging Face (109 in litert-community, 8 under mlboydaisuke), most with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
+> Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). 118 published conversions on Hugging Face (110 in litert-community, 8 under mlboydaisuke), most with measured speeds and a one-command reproduction. Independent converter, not affiliated with Google.
 
 ```bash
 uv sync                                                    # the pinned toolchain (uv.lock) into .venv
