@@ -1,6 +1,6 @@
 #!/bin/bash
-# Timing-only legs on a rested phone (the long parity legs heat the SoC and cap the clocks mid-leg; memory
-# android-thermal-freq-cap-before-bench): for each ship candidate, wait for thermal status 0 + no cap + a rest, then one
+# Timing-only legs on a rested phone (the long parity legs heat the SoC and cap the clocks mid-leg):
+# for each ship candidate, wait for thermal status 0 + no cap + a rest, then one
 # short gate (5 rows) followed by the timing rows (5 warm-ups + 20 calls each). Reports get the suffix _timing.
 # usage: s26_timing.sh   (waits for device/followon.log "followon done"; env NOWAIT=1 skips the wait)
 set -u

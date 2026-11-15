@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """GSM8K on a .litertlm with ONE FRESH PROCESS PER QUESTION (`litert-lm run`, greedy by default), because a second
 conversation on the same engine corrupts this family's linear-attention state (cross-conversation cache dedup rewinds
-the step, not the recurrent state: engine-crossconv-dedup-linear-state) — measured here: same-engine run gave 3/21
+the step, not the recurrent state) — measured here: same-engine run gave 3/21
 with prompt echoes and loops, fresh engines answer the same questions correctly. `--cache disk` keeps the GPU compile
 cache next to the bundle so init is a fraction of the first run. Same prompt / extraction / scoring as
 scripts/parity_gsm8k.py. Rows appended to <out>.jsonl (resumable).

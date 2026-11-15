@@ -4,7 +4,7 @@
     cd K
     ~/code/standup/tools/quiet/quiet_wait.py -- venv-ref/bin/python scripts/norm_probe.py
 
-Why (memory fp16-storage-norm-overflow): the converter lowers a norm's mean(x^2) to SUM + MUL; under fp16 storage
+Why: the converter lowers a norm's mean(x^2) to SUM + MUL; under fp16 storage
 (GPU default precision, FP16_WITH_FP32_ACCUM) a sum of squares above 65,504 is inf, rsqrt 0, and the row comes back
 exactly 0 with no non-finite value. So, per norm site, over the real positions (pad = 1: the prefix and the text) of
 every fixture row at its smallest bucket (inputs = host build_inputs, media prefix from ref/npz), torch fp32 CPU:

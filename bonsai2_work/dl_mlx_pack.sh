@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Parallel-range download of prism-ml/Ternary-Bonsai-2-27B-mlx-2bit model.safetensors (8.6 GB) into bonsai2_work/src.
-# Per-connection HF throttle ~0.35 MB/s on this link; N ranges scale (memory hf-download-disable-xet). sha256 checked at the end.
+# Per-connection HF throttle ~0.35 MB/s on this link; N ranges scale. sha256 checked at the end.
 set -u
 cd "$(dirname "$0")/src"
 URL="https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit/resolve/main/model.safetensors"

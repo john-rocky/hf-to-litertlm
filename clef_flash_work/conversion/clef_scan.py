@@ -1,5 +1,5 @@
 """The export's acceptance scan: scripts/tflite_scan.py (kev_work's static flatbuffer reader, copied unchanged) plus
-the lightweight path's three checks (memory export-fp32-ram-ceiling), all read from the schema without running the
+the lightweight path's three checks, all read from the schema without running the
 model (the file is mmapped):
 
   all_constant_input_ops   ops whose every input is a constant tensor (not produced by an op, not a graph input):

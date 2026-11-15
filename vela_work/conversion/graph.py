@@ -13,7 +13,7 @@ layers[i].attn_norm (Identity at 0) / attn.Wqkv / attn.Wo / mlp_norm / mlp.Wi / 
     transformers does with `rope_scaling`;
   * attention is q k^T / 8 + bias, softmax, v (SDPA written out); the bias is additive, NEG = -1e4 (fp16-safe) on padded
     keys and outside the +-64 band of the sliding layers (local_attention 128), 0 on the diagonal of every row so a padded
-    query attends to itself instead of to nothing (no empty softmax row, no NaN: memory sliding-window-empty-row-nan;
+    query attends to itself instead of to nothing (no empty softmax row, no NaN;
     granite_embed_work had 45-442 fully-masked rows at S=128-512). Valid rows are unchanged: a valid query's own key is
     already allowed;
   * the embeds / engine forms replace every padded (stale) input row with the pad token's own embedding row (table row 0,

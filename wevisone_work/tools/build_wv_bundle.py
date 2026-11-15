@@ -9,7 +9,7 @@ template form = minicpmv47_work/scripts/build_mv47_bundle.py's dual jinja).
   HF tokenizer   : the pinned snapshot's tokenizer.json, bytes as on the Hub (sha256 3bb17242...fc5e)
   LlmMetadata    : fast_vlm 512 x 512, max_num_tokens 2048 (= the export's KV cache), NO start token (bos_token null),
                    stop = <|im_end|> 151645 and <|endoftext|> 151643, STRUCTURED prompt_templates present and empty
-                   (memory vlm-fastvlm-ride: jinja-only metadata gives a null conversation), the jinja below.
+                   (jinja-only metadata gives a null conversation), the jinja below.
 
 Template contract: the system turn is always "You are a helpful assistant." (a passed system message is
 not rendered: the derived image positions start at P = 15); the image of the FIRST user turn, its first image item,
@@ -18,7 +18,7 @@ injects the adapter's 256 rows); any other image item is not rendered, and the r
 ("Provided more images than expected in the prompt", multimodal_processor_helper.cc v0.18.1) instead of placing it
 at wrong positions; text items follow in order, concatenated (the checkpoint template's form); user content may be
 a string or a list (0.18 content parts). Assistant turns close at <|im_end|> and the next turn opens with "\\n"
-(the KV holds <|im_end|> as the pending token, not the "\\n": memory conversation-prefix-contract).
+(the KV holds <|im_end|> as the pending token, not the "\\n").
 
 Modes:
   --check-template OUT.json  (reference venv: jinja2 + tokenizers) desk-render against ref/B (29 image rows),

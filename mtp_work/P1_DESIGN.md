@@ -87,6 +87,6 @@ chunk boundaries + verify's first pair.
 A. Interpreter-level (ai_edge_litert, float tflite, no runtime): simulate the EXACT runtime call sequence
    (prefill chunks incl. partial, decode, verify rounds with forced rejections) vs patched-HF reference:
    teacher-forced logits + ring state contents + drafter-KV slots. The rewind gate: force wrong drafts,
-   check CONTENT of every state after the next round (gates-can-lie: content, not crash-free).
+   check CONTENT of every state after the next round (content, not crash-free).
 B. `scripts/verify_quality.py` on the packed bundle (litert-lm CPU run) — normal path E2E parity.
 C. Hermetic multi-turn (banana sweep pattern) on the bundle.

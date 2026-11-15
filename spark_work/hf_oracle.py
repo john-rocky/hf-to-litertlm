@@ -7,8 +7,7 @@ Spark-X2.5 is a THINKING model (default `<think>` prefill). Two A/Bs the ship ne
   --template simple   : templates/spark25_think.jinja rendered the same way (what
                         the .litertlm carries); both should score alike.
   --extra-bos         : prepend one more <｜start▁of▁sentence｜> (what the bundle
-                        would do if start_token were left in) -- the
-                        bundle prepends bos add bos false check.
+                        would do if start_token were left in).
 
 Scored on the text AFTER the last </think>; a run that never closes the think
 block within --max-tokens is reported as unfinished (not a wrong answer).

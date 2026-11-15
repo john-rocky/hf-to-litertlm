@@ -31,7 +31,7 @@ bit-equal rows, max |dp|, argmax agreement). Timing rows of the fixture dir that
 Delegation: LiteRT's `Partitioned subgraph<0>, selected N ops, from a total of M ops. resulted in P partitions.`, the
 `Replacing N out of M node(s) with delegate (X) node, yielding P partitions for subgraph S (name)` lines, the compiler
 plugin line, the JIT reserialize / cache lines, the QNN validator's rejected ops; from the runner's stdout and from the
-logcat lines of the runner's pid (memory gates-can-lie #11: an NPU row needs the Replacing (DispatchDelegate) line).
+logcat lines of the runner's pid (an NPU row needs the Replacing (DispatchDelegate) line).
 The runner's own `input[i] sig_name=... elems=... rank=...` lines are checked against the manifest's subgraph order.
 Timing (when the latency phase ran): the runner's calls (write the six inputs + LiteRtRunCompiledModel + read the
 scores = 1 call; run-only apart), warm-up calls, median / min / max, the runner's own summary line next to it; the

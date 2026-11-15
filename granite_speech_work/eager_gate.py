@@ -5,7 +5,7 @@ LibriSpeech dummy fixtures, and reports per-clip transcripts + corpus WER
 against the reference texts. Also runs the two kickoff checks from
 the pre-conversion license/architecture check:
 
-  1. attention_dists persistence (tf5x-meta-load-zeroes-init-buffers):
+  1. attention_dists persistence:
      assert the loaded buffer is non-trivial and equals a freshly-initialized
      encoder's buffer (catches meta-load zeroing).
   2. input_linear.in_features == 320 (n_mels 80 x 2 (deltas) x stack 2).

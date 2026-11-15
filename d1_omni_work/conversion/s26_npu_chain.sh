@@ -24,7 +24,7 @@
 #   OOM_GUARD; default MEM_GUARD_KB), sample=<s> (default 2).
 # Phone layout: /data/local/tmp/d1omni_npu/ = the runner + the 12 .so (flat: --libdir, LD_LIBRARY_PATH and the
 # ADSP_LIBRARY_PATH head all point there; the compiler plugin's DT_NEEDED libQnnIr.so etc. resolve only through
-# LD_LIBRARY_PATH = memory npu-jit-srq-litertlm), fx_L128/ and fx_L256/ (the fixtures), the graph files, the JIT cache
+# LD_LIBRARY_PATH), fx_L128/ and fx_L256/ (the fixtures), the graph files, the JIT cache
 # dirs (one per leg; a cache is about 1.3 GB, kept only while a later leg uses it), out_<tag>/ (the dumps, pulled and
 # removed after each leg). Nothing else on the phone is touched; the cleanup removes that one directory.
 # Per leg: the time checks -> the graph on the phone (bytes polled, toybox sha256sum; graphs and caches no later leg needs
@@ -203,8 +203,8 @@ transfer_check() {  # another session's adb transfer on the Mac, or a runner / a
   if [ -n "$tl" ] && { echo "$tl" | grep -q -- " -s $SERIAL" || echo "$tl" | grep -qv -- " -s "; }; then
     if [ "$DRY_RUN" = 1 ]; then echo "(dry run: a host adb transfer is recorded, not a stop - the fake phone is not on USB)"; else return 1; fi
   fi
-  # phone side: a native runner of any lane (a process name ending in "runner"), another com.mlboydaisuke.* app in front
-  # or whose CPU time grows (an idle cached app of another lane is recorded only: memory shared-device-coordination)
+  # phone side: a native runner (a process name ending in "runner"), another com.mlboydaisuke.* app in front
+  # or whose CPU time grows (an idle cached app is recorded only)
   if sed -n '/^phone:/,/^top resumed:/p' "$R/x0_transfer_check.txt" | awk '{print $NF}' | grep -qE '^[A-Za-z0-9_.]*runner$'; then
     return 1
   fi

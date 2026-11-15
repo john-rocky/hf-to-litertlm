@@ -3,8 +3,8 @@ parakeet_redux_work/scripts/redux_ref.py (r1 of that lane): the ternary expansio
 
 U = ParakeetForTDT built from hf/ultra/config.json (byte-identical to the original nvidia/parakeet-tdt-0.6b-v3
 config.json: same git blob), every tensor of hf/ultra/model.safetensors loaded strictly (F16 raised to fp32, F32 and the
-I64 BatchNorm counters as stored); vad_head.* (6 tensors) is the only thing left out. Arithmetic fp32 on the CPU (memory
-mac-cpu-bf16-gemm-slow). Feature extractor = the original repo's processor_config.json (ParakeetFeatureExtractor; ultra
+I64 BatchNorm counters as stored); vad_head.* (6 tensors) is the only thing left out. Arithmetic fp32 on the CPU.
+Feature extractor = the original repo's processor_config.json (ParakeetFeatureExtractor; ultra
 ships none), generation config = the original's generation_config.json.
 
 Text = the TDT decode: tokenizers.Tokenizer.decode(ids, skip_special_tokens=True) on the repo's tokenizer.json, no

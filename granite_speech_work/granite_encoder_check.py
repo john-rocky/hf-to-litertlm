@@ -3,7 +3,7 @@
 The stock GraniteSpeechCTCEncoder registers attention_dists with
 persistent=False, i.e. it is NOT in the checkpoint and is rebuilt from config
 at init — the exact buffer class that the meta-device load path can silently
-zero (tf5x-meta-load-zeroes-init-buffers). This mirrors the formula from
+zero. This mirrors the formula from
 transformers.models.granite_speech.modeling_granite_speech (read from the
 installed 5.14.1 source) so eager_gate.py can assert the loaded model's buffer
 equals a fresh build.

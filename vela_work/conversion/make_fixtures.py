@@ -14,7 +14,7 @@ Every text is STRIPPED first (sentence-transformers' Transformer.tokenize strips
 trailing space would otherwise become a lone "▁" token 235248 before <eos>: 12 of the STS-B rows end in a space), then
 tokenized with the repo's tokenizer.json (tokenizers; the post-processor adds <bos> … <eos>) and the row length (with the
 specials) is recorded; the groups are keyed so every later gate can select by window. An app that feeds this graph must
-strip the same way (memory metaspace-tokenizer-strip-trap).
+strip the same way.
 """
 import json
 import hashlib

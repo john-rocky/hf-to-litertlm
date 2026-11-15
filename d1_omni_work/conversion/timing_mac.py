@@ -14,7 +14,7 @@ Per form, in this order inside the one window (the same-condition pair):
      record). The launch's rule "load above 8 = another lane's CPU job -> discard" cannot be met on 2026-10-08: with
      no lane job running the load stays 20-40 at 68-73 % idle CPU (Spotlight, 50 sessions' wakeups; the first window,
      results/timing_mac_r4_cpu_L128.json, waited 240 s at 19.9-40.0). The gate that decides is the knowledge rule
-     (memory gates-can-lie-in-our-favour #12: no peer process above 120 % CPU) on the second sample of
+     (no peer process above 120 % CPU) on the second sample of
      `top -l 2 -s 1 -o cpu` (instantaneous): no process outside this process tree above 120 % CPU and CPU idle >= 50 %.
      10 s polls, up to 300 s; still contended -> the set is not measured ("discarded: contention"), exit 3, and the
      window is taken again later.

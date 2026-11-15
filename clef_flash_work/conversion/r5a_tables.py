@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Round 5a: the host's two vocabulary tables, each the checkpoint's BF16 tensor copied byte for byte into a one-key
-safetensors file without __metadata__ (memory decision-graph-embeds-input-form: metadata reorders between writes and
+safetensors file without __metadata__ (metadata reorders between writes and
 moves the sha256), and the round's ledger of large untracked files.
 
     venv-host/bin/python scripts/r5a_tables.py          (from K) -> out/r5a/embed_tokens.safetensors,

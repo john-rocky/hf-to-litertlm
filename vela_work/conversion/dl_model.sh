@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Download vllm-sr/Vela-1.0-Encoder-307M-Embedding @ 290318fdefda0ef569745fed362881914fac650a into hf/ (plain HTTP, Xet off;
-# the 1.23 GB safetensors by 24 parallel byte ranges = the per-connection throttle here, memory hf-download-disable-xet).
+# the 1.23 GB safetensors by 24 parallel byte ranges = the per-connection throttle here).
 set -u
 export HF_HUB_DISABLE_XET=1
 cd "$(dirname "$0")/../hf"

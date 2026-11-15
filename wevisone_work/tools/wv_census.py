@@ -3,7 +3,7 @@
 
 Per file: the signatures (input / output names, shapes, dtypes), per signature subgraph the op histogram, the
 flagged ops (GATHER, GATHER_ND, CUSTOM, FLEX, STABLEHLO, BROADCAST_TO, RELU_0_TO_1), tensors of rank > 4,
-operator inputs of rank 0 (memory rank0-reduction-keepdim-gpu), the dtype of every FULLY_CONNECTED / CONV / EMBEDDING
+operator inputs of rank 0, the dtype of every FULLY_CONNECTED / CONV / EMBEDDING
 weight (input 1 of FC / CONV, input 1 of EMBEDDING_LOOKUP = the table), DEQUANTIZE count, and the derived-position op
 counts (RELU, COS, SIN). -> one json.
 

@@ -28,7 +28,7 @@ state() {
 }
 
 ready() {
-  # every CPU policy at its top frequency and the GPU not thermally limited (memory android-thermal-freq-cap-before-bench)
+  # every CPU policy at its top frequency and the GPU not thermally limited
   local caps
   caps=$(A shell 'for p in /sys/devices/system/cpu/cpufreq/policy*; do [ "$(cat $p/scaling_max_freq)" = "$(cat $p/cpuinfo_max_freq)" ] || echo capped; done; [ "$(cat /sys/class/kgsl/kgsl-3d0/thermal_pwrlevel 2>/dev/null || echo 0)" = "0" ] || echo gpucapped' | tr -d '\r')
   [ -z "$caps" ]

@@ -43,8 +43,8 @@ def text_of(msg):
 
 
 def bench_dict(conv):
-    """Every prefill / decode turn through the C API (the Python BenchmarkInfo keeps the last turn only: memory
-    litert-lm-benchmark-info-last-turn), plus the first-token time the C API reports."""
+    """Every prefill / decode turn through the C API (the Python BenchmarkInfo keeps the last turn only),
+    plus the first-token time the C API reports."""
     lib = conv._lib
     try:
         ptr = lib.litert_lm_conversation_get_benchmark_info(conv._ptr)

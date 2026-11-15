@@ -9,8 +9,8 @@ Records raw facts only; the judgement against the graph readout is made by scrip
   the runtime's own tokenization of the text part, its render of the message (render_message_to_string, before
   sending), every streamed text chunk in order, get_benchmark_info() (prefill / decode token counts, TTFT, init),
   token_count after the turn (includes the generated tokens; informational), wall times.
-One process per row: running-state models must not share an engine across conversations
-(memory engine-crossconv-dedup-linear-state). stdin is expected to be /dev/null (driver).
+One process per row: running-state models must not share an engine across conversations.
+stdin is expected to be /dev/null (driver).
 
     out/venv-readout/bin/python -B scripts/runtime_row_r3.py --row ROW --backend cpu|gpu [--vision-backend cpu|gpu]
         --cache-dir DIR --out results/runtime_r3_rows/<backend>/<row>.json [--bundle out/bundle_r4/<v>/<name>.litertlm]

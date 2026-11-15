@@ -11,7 +11,7 @@ Built from the publisher's own modules (phocinae/model.py `DecisionModel`, loade
   * attention is q k^T / 8 + bias, softmax, v (SDPA written out); the bias is additive: NEG (-1e4, fp16-safe) on
     padded keys and outside the +-64 band of the sliding layers, 0 on the diagonal of every row (a padded query row
     then attends to itself instead of to nothing: no empty softmax row, no NaN; valid rows are unchanged because a
-    valid query's own key is already allowed) — memory sliding-window-empty-row-nan;
+    valid query's own key is already allowed);
   * the head's nn.TransformerEncoderLayer (pre-norm, ReLU, 6 heads, ff 1536) is written out the same way
     (ExplicitHeadLayer), with the key padding as the same additive bias;
   * type embedding = qtype_onehot @ type_emb.weight (the SDK's one-hot input), added to every position;

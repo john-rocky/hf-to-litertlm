@@ -864,10 +864,10 @@ Two traps this lane paid for, both worth copying:
 | `phi4-mini-reasoning` | download microsoft/Phi-4-mini-reasoning, set `config.sliding_window=None` | phi_simple, BOCTAV4, **PHI3_STATIC_ROPE**, EXTERNALIZE_EMBEDDER, CACHE=4096 → litert-community/Phi-4-mini-reasoning |
 | `qwen25-3b` | `ingest_gptq_dequant.py Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4 Qwen/Qwen2.5-3B-Instruct … fp32clip` (dequantize GPTQ) | chatml_simple, **BMIX4_128**, CACHE=4096 → mlboydaisuke *(NC license, personal only)* |
 
-## Caveats / lower-confidence fields (verify against the card + memory before quoting)
+## Caveats / lower-confidence fields (verify against the card before quoting)
 
 - **`jan-nano` template** ⚠ — no source names it. It's a Qwen3-4B thinking model, so `qwen3_think.jinja`
-  (matches the sibling Qwen3-4B-Thinking and the reasoning-template-parity note); `chatml_simple.jinja`
+  (matches the sibling Qwen3-4B-Thinking); `chatml_simple.jinja`
   (what same-base FastContext used) is the alternative. Swap and re-gate if output rambles.
 - **`polaris-4b` FORCE_SPM** — added **2026-08-25**; the row shipped without it, and without it the
   tokenizer section does not match the published file. The evidence is in the published bundle's own

@@ -30,7 +30,7 @@ import torch.nn.functional as F
 
 # litert-torch 0.10.0's export_hf imports tensorflow.lite.python.schema_py_generated (model_ext/bonsai_flux2.py:41)
 # without declaring TensorFlow, and TensorFlow cannot share a process with litert-converter: the one-line shim
-# `from ai_edge_litert.schema_py_generated import *` stands in (memory litert-torch-head-export-tf-shim; the copy of
+# `from ai_edge_litert.schema_py_generated import *` stands in (the copy of
 # qwen3_gpuopt_work/reexport_20261013/shim). On sys.path here because the tools run with python -I.
 TF_SHIM = str(Path(__file__).resolve().parent / "tfshim")
 if TF_SHIM not in sys.path:

@@ -21,7 +21,7 @@ DELEGATION_FAIL and exit 4 after the json is written; a compile or runtime excep
 Resumable: a run whose .npy exists is skipped (temp name + rename). --budget-s: no gate run starts when the elapsed time
 plus the median call time (first call: compile + 2 x the call estimate) would pass budget - 15 s. Per run: write / run
 / read ms, non-finite values (real and all positions), all-zero rows and constant rows at the real positions (the GPU
-fp16 overflow signature, memory fp16-storage-norm-overflow), the hidden max |diff| against the reference's last_hidden
+fp16 overflow signature), the hidden max |diff| against the reference's last_hidden
 (fixture / red: ref/npz; held-out: Core AI's held-out npz). Memory: phys_footprint after compile, at the end, and its
 lifetime maximum (proc_pid_rusage). Files next to the model and in TMPDIR before / after (a weight cache would show).
 ms protocol (r1's scripts/clef_ms.py on this compiled model): own_t12's ids cycled to L real tokens (valid all 1; the

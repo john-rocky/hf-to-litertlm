@@ -4,7 +4,7 @@
   wi8     dynamic_wi8_afp32 (int8 channelwise weights, run-time int8 activations on the CPU) on PREFILL_DECODE and
           on the EMBEDDER (its EMBEDDING_LOOKUP table)
   wi4b32  dynamic_wi4b32_afp32 (int4 blockwise-32, symmetric) on PREFILL_DECODE only, with clamp-before-quantize: every
-          blockwise int4 scale floored at 2^-14 (memory blockwise-zero-scale-patch-trap; the wrapper is the one of
+          blockwise int4 scale floored at 2^-14 (the wrapper is the one of
           aa_mobile_b2_work/nemotron_nano_9b_v2/tools/quantize_clamped.py); the int4 bundle reuses the wi8 EMBEDDER
 Each output gets the scale scan (zero and subnormal fp16 block scales; XNNPACK checks std::isnormal).
 This is what export_hf's own quantize_model() does after the fp32 export (same Quantizer calls), run separately so

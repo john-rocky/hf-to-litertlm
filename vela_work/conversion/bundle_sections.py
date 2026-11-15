@@ -1,5 +1,5 @@
 """List a .litertlm bundle's sections (type, bytes, sha256) and check the HF tokenizer section against a tokenizer.json
-(memory tok-json-verbatim: the bundle must carry the repo's own bytes). Uses the section reader of
+(the bundle must carry the repo's own bytes). Uses the section reader of
 hf-to-litertlm/tools/tokenizer_parity/swap_tokenizer_section.py by file path (needs litert_lm_builder).
 
     python3 scripts/bundle_sections.py exports/engine/<bundle>.litertlm hf/tokenizer.json

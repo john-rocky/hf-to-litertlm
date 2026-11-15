@@ -12,7 +12,7 @@ one added branch for the image part.
                    jinja = identity (no role prefix/suffix, nothing on add_generation_prompt; text parts verbatim;
                    image part -> <|vision_start|><image_soft_token><|vision_end|>, the runtime splits on
                    <image_soft_token> and injects the adapter's 64 embeddings there), plus STRUCTURED prompt_templates
-                   present with empty user/model/system affixes (memory vlm-fastvlm-ride: jinja-only metadata gave a
+                   present with empty user/model/system affixes (jinja-only metadata gave a
                    null conversation).
 
 Writes out/bundle/<name>_noexec.litertlm; ExecutorMetadata is appended afterwards by

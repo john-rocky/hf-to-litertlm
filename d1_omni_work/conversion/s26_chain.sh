@@ -515,8 +515,8 @@ transfer_check() {  # another session's adb transfer on the Mac, or a busy app o
     return 1
   fi
   # phone side: this package or a test runner at all; another com.mlboydaisuke.* app only when it is in front or its CPU
-  # time grows (a cached, idle app of another lane is recorded, not a stop: memory shared-device-coordination); system
-  # daemons (installd, com.sec.spp.push, gatekeeperd) are recorded only (Kev r14)
+  # time grows (a cached, idle app is recorded, not a stop); system
+  # daemons (installd, com.sec.spp.push, gatekeeperd) are recorded only
   if sed -n '/^phone:/,/^top resumed:/p' "$R/x0_transfer_check.txt" | awk '{print $NF}' | grep -qE '^(com\.mlboydaisuke\.d1omni\.gate|[A-Za-z0-9_.]*runner)$'; then
     return 1
   fi

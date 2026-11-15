@@ -28,14 +28,14 @@ Export traps handled here:
     trace refuses the context manager we stub it to a no-op (MATH decomposes
     to matmul+softmax either way).
   * BatchNorm num_batches_tracked / attention_dists are int64 buffers
-    (c25-audio-codec-seanet-pad class) — eval-mode BN never reads the
+    — eval-mode BN never reads the
     counter and attention_dists is only sliced by static bounds; op_report
     prints any int64 tensor that still reaches the graph.
 
 Quantization: wi8fc = dynamic-range int8 on FULLY_CONNECTED only (pointwise
 convs here ARE Linears, so this reaches them; the 7-tap depthwise convs and
-the tiny rel_pos_emb table stay float on purpose — small-audio-model caution,
-paddleocr-vl-shipped). fp16 = float_casting on everything.
+the tiny rel_pos_emb table stay float on purpose — small-audio-model caution).
+fp16 = float_casting on everything.
 """
 import collections
 import json

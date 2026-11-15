@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack the EmbeddingEngine bundle (litert-lm-builder; the runtime contract of memory embedding-engine-bundle-contract):
+# Pack the EmbeddingEngine bundle (litert-lm-builder):
 #   scripts/pack_engine.sh <embedder.tflite> <encoder.tflite> <bundle.litertlm>
 # TF_LITE_EMBEDDER = the one-token lookup (vela_lookup_*.tflite, signature embedder), TF_LITE_TEXT_ENCODER = the encoder_<L>
 # signatures (a multi-signature file packed by scripts/merge_encoders.py, or one window), hf_tokenizer = the repo's

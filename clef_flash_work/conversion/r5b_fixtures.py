@@ -5,7 +5,7 @@
                                                           reference_probs.json, images/*.png (drawn), LICENSE-SemIf-MIT.txt}
                                                           results/r5b_fixtures.json (per-record license decision, checks)
 
-Per record (memory public-fixtures-by-reference): written for the fixtures (own_*, ho_t* / ho_j* / ho_l*, and the
+Per record: written for the fixtures (own_*, ho_t* / ho_j* / ho_l*, and the
 question text of every picture record) -> with its request; SemIf authored144 (MIT) -> with its request and the MIT
 notice; drawn pictures (CC0-1.0, drawn with Pillow primitives) -> the PNG files; CC0 photographs from Wikimedia Commons
 (CC0-1.0 in the fixture's metadata at fetch time and on Commons on 2026-10-21) -> the PNG the checks read (images/) and

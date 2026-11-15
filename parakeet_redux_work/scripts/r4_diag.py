@@ -170,7 +170,7 @@ def decide_fix(stats, order_names):
             var = stats[name.replace(".sqdiff", ".var")]["amax"]
             k_x2 = max(0, math.ceil(math.log2(dev / TARGET))) if dev > TARGET else 0
             # the row sum of the squared difference (1,024 x the row variance) kept 4x under 65,504 too, in case a
-            # GPU reduction holds the sum in fp16 (memory fp16-storage-norm-overflow: headroom on x^2 and the row sum)
+            # GPU reduction holds the sum in fp16 (headroom on x^2 and the row sum)
             k_sum = max(0, math.ceil(0.5 * math.log2(1024.0 * var / ROWSUM_LIMIT))) if 1024.0 * var > ROWSUM_LIMIT else 0
             k = max(k_x2, k_sum)
             ln_k.append({"block": b, "site": site.replace("n_", ""), "max_abs_dev": round(dev, 3), "k": k,

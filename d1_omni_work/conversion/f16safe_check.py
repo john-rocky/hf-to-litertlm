@@ -20,8 +20,8 @@ Main run (torch fp32, 8 threads):
      While the scaled model runs, forward pre-hooks record per norm site, over the real positions and over every
      position (pads included), the sum of squares the scaled graph forms (x s)^2 summed, its smallest mean, the
      largest |x s| and, for the LayerNorms, |sum(x s)| and the centred sum.
-  2. fp16 emulation (a screen for overflow / NaN only: host fp16 emulation is about 5x optimistic about device error,
-     memory fp16-storage-norm-overflow): 60 rows (50 text over L128 / 256 / 512 / 2048 / 4096 + 10 media rows: 5 image,
+  2. fp16 emulation (a screen for overflow / NaN only: host fp16 emulation is about 5x optimistic about device error):
+     60 rows (50 text over L128 / 256 / 512 / 2048 / 4096 + 10 media rows: 5 image,
      5 audio), both modules .half() (weights, activations, constants) with the converter's lowering written out:
      RMSNorm = (x s)^2 -> SUM stored in fp16 -> x 1 / dim -> + eps -> rsqrt; LayerNorm = SUM(x s) x 1/dim, the
      centred squares SUM x 1/dim, + eps, rsqrt (MEAN taken as a SUM stored in fp16, the conservative reading); fp32

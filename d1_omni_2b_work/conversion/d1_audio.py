@@ -11,8 +11,8 @@ convolutions through d1's `_lfm2_conv` = the same causal depthwise sums), in pla
   stride 2 -> 1x1 -> SiLU over the (mel, time) plane, then the 1x1 Conv1d over channel x mel (c * 16 + f) -> 768 per
   token (one token per 8 frames). The provider's `mask_padding` (zero the frames past the clip's length at the input,
   after the first stage and after the second) = products with `valid` and its stride-2 samples: v2 = valid[0::2],
-  v4 = valid[0::4] (u < ceil(F / 2) <=> 2u < F; ceil(ceil(F / 2) / 2) = ceil(F / 4)), all rank 4 (memory
-  mldrift-rank-promotion-class: the GPU delegate places lower-rank runtime tensors batch-first).
+  v4 = valid[0::4] (u < ceil(F / 2) <=> 2u < F; ceil(ceil(F / 2) / 2) = ceil(F / 4)), all rank 4
+  (the GPU delegate places lower-rank runtime tensors batch-first).
 - 17 LFM2 layers (conv, conv, attention) x 5 + attention x 2, hidden 768: RMSNorm (eps 1e-5) before the operator and
   before the MLP (no sandwich norms); conv layers: in_proj -> B, C, x (thirds) -> B * x -> causal depthwise conv of
   width 3 (no bias) as 3 shifted products of a front pad of 2 -> C * . -> out_proj; attention layers: q / k / v (8 / 4
