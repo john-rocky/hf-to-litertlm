@@ -1,6 +1,6 @@
 # hf-to-litertlm
 
-Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 116 published conversions below, most with speeds measured on a phone and a Mac.
+Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 117 published conversions below, most with speeds measured on a phone and a Mac.
 
 <p align="center">
 <picture>
@@ -152,6 +152,7 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [WeVisOne-VL-2B](https://huggingface.co/litert-community/WeVisOne-VL-2B) | 2.44B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 22.5 | M4 Max GPU 117.0 | [recipe](REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25) |
 | [North-Micro-Vision-Instruct](https://huggingface.co/litert-community/North-Micro-Vision-Instruct) | 2.48B | chat + image, 11 languages | Galaxy S26 GPU 13.3 | M4 Max GPU 80.6 | [card](cards/north-micro-vision-instruct-litert.md) |
 | [LFM2.5-VL-3B](https://huggingface.co/litert-community/LFM2.5-VL-3B) | 3B | chat + image | Galaxy S26 GPU 27.0 | M4 Max GPU 143.2 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
+| [Unlimited-OCR](https://huggingface.co/litert-community/Unlimited-OCR) | 3.34B | OCR: pages, text, tables, formulas | Galaxy S26 CPU 20.2–20.5 | — | [recipe](REPRODUCE.md#unlimited-ocr--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-vision-pair-of-the-unlimited-ocr-2-recipe-and-the-12-layer-deepseek-v2-decoder-with-its-sliding-window-attention-as-a-kv-cache-of-277-pinned-and-128-ring-slots-2026-11-15) |
 | [Unlimited-OCR-2](https://huggingface.co/litert-community/Unlimited-OCR-2) | 3.34B | OCR: pages, text, tables, formulas | iPhone 18 Pro CPU 30.5–31.7 | M4 Max GPU 97.7–99.0 | [recipe](REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-pinned-and-128-ring-slots-2026-11-04) |
 | [InternVL3_5-4B](https://huggingface.co/litert-community/InternVL3_5-4B) | 4B | chat + image | Galaxy S26 GPU 18.7 | M4 Max GPU 86.5 | [card](cards/internvl3_5-4b-litert.md) |
 | [Mage-VL](https://huggingface.co/litert-community/Mage-VL) | 4.7B | chat + image | Galaxy S26 GPU 17.1 | M4 Max GPU 80.0 | [card](cards/magevl-litert.md) |
