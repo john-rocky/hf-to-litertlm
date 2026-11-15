@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # export_qwen35_08b_gpu_composite.sh WORK - rebuild Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm of litert-community/Qwen3.5-0.8B in
-# WORK (created if missing; a finished step is not repeated) and compare its sections with the published file. Output: WORK/model.litertlm.
+# WORK (created if missing; a finished step is not repeated) and compare its sections with the file as uploaded on 2026-11-05. Output: WORK/model.litertlm.
+# The script rebuilds that upload. On 2026-11-09 the file on the Hub was replaced (its integer weights moved into a TFLiteWeights section; REPRODUCE.md).
 # export_qwen35_08b_gpu_composite.sh --check FILE [PYTHON] - step 7 alone, on any file. PYTHON (default python3) needs litert-lm-builder.
 #   1 litert-torch at 65aafa4, upstream's Qwen3.5 graph (the last commit whose gated_delta_update has the 6 inputs litert-lm 0.19.0 accepts), with
 #     litert_lm_builder.py of fe5c2bd (packaging code only, the pinned litert-lm-builder 0.19.0 has no TfLiteModelType)
@@ -11,7 +12,7 @@
 #   6 re-pack with litert-lm-nightly 0.20.0.dev20261103 (through uvx): the LlmMetadata becomes qwen35_08b_gpu_composite.pbtext (the chat template
 #     and stop tokens of Qwen3.5-0.8B_int8.litertlm, model type qwen3, pad_token <|endoftext|>), the tokenizer section the repository's own
 #     tokenizer.json (an 8-byte little-endian length, then zlib level 6); the TFLite and executor sections stay as exported
-#   7 the sha256 of every section against the published file. The file's own sha256 changes with every pack (a uuid and a timestamp in the header).
+#   7 the sha256 of every section against the file as uploaded on 2026-11-05. A file's own sha256 changes with every pack (a uuid and a timestamp in the header).
 # Every command is printed as `### CMD: ...` before it runs. Exit 0 = every section equal, 1 = a step failed or a section differs. Refuses to overwrite
 # WORK/model.litertlm. A differing TFLite section: tools/tfl_compare/ (tfl_diff, tfl_swapcheck, tfl_struct) says whether it is the same computation.
 # env: PYTHON (default python3.12)
@@ -45,7 +46,7 @@ for s in sections:
     same = want == (size, sha) and "prefer_activation_type" not in s
     differ = differ or not same
     print(f"{s['type']} {size} B {sha} {'SAME' if same else 'DIFF'}")
-print(("DIFF: a section differs from" if differ else "SAME: every section equals") + " the published Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm: " + sys.argv[2])
+print(("DIFF: a section differs from" if differ else "SAME: every section equals") + " the 2026-11-05 upload of Qwen3.5-0.8B_int8_gpu_composite_v0190.litertlm: " + sys.argv[2])
 sys.exit(1 if differ else 0)
 EOF
 }
