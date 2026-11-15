@@ -23,7 +23,7 @@
 #                             so 1.9 GB int4 -> ~7.6 GB fits a 12-16 GB flagship, while
 #                             3.4 GB int8 -> ~13.6 GB does not.
 #   int8 (dynamic_wi8_afp32)= quality reference / desktop build. Granite dense int4 damage
-#                             is documented as diffuse ([[granite-3.3-2b-int4-sensitive]]),
+#                             is diffuse,
 #                             so the int4 file is not shippable until a task eval says so.
 set -euo pipefail
 cd "$(dirname "$0")/.."

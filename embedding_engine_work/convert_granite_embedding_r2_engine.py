@@ -165,7 +165,7 @@ def main():
                     compute_precision=qtyping.ComputePrecision.FLOAT))
         quantize(P("encoder_fp32.tflite"), P("encoder_fp16.tflite"), fp16_recipe)
         # The embedder table stays fp32 in-graph: the converter marks EMBEDDING_LOOKUP
-        # illegal on f16 tables ([[qwen3-tts]] gotcha), so an fp16 embedder would only
+        # illegal on f16 tables, so an fp16 embedder would only
         # materialize the fp32 table at prepare time. Pair encoder_fp16 with embedder_wi8.
         smoke("fp16", P("embedder_wi8.tflite"), P("encoder_fp16.tflite"))
 

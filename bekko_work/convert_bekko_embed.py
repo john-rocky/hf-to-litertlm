@@ -43,8 +43,7 @@ Traps handled here (all verified against the installed sources, tf 5.14.1):
     wholesale; we instead always allow the diagonal:
         allowed(q,k) = (valid[k] | (q==k)) & (|q-k| <= 64)
     For valid queries the extra term is a no-op (q==k is already a valid key);
-    pad queries get finite garbage that the pooling mask then drops. Same
-    class as [[sliding-window-empty-row-nan]].
+    pad queries get finite garbage that the pooling mask then drops.
   * Full-attention bias is the broadcast [1,1,1,S] key-validity bias (pad
     query rows attend all valid keys — never empty, no fix needed).
   * tf5.x meta-load can zero init-computed non-persistent buffers; here that is

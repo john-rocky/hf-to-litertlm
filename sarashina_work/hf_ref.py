@@ -6,7 +6,7 @@ The bundle carries no start_token (NO_START_TOKEN, matching add_bos_token=false
 and the official template). This script feeds the SAME rendered prompt to the
 bf16 model (a) exactly as apply_chat_template renders it and (b) with a leading
 <s>, so the recipe decision rests on a measurement rather than on the
-tokenizer_config flag ([[bundle-prepends-bos-add-bos-false]]: eligibility is
+tokenizer_config flag (eligibility is
 not damage — sweep per model).
 
     ~/venvs/ltconv040dev/bin/python sarashina_work/hf_ref.py <hf_model_or_dir> <out.json>

@@ -3,8 +3,8 @@
 
 The oracle exists because a backend split (GPU says X, CPU says Y) is not evidence of
 quantization damage until the *reference itself* has been asked the same question the
-same way — twice now a "GPU bug" turned out to be the fp32 model getting it wrong
-([[gates-can-lie-in-our-favour]]). Same 8 questions and same answer regexes as
+same way — twice now a "GPU bug" turned out to be the fp32 model getting it wrong.
+Same 8 questions and same answer regexes as
 scripts/verify_quality.py, same greedy decode, granite's own chat template.
 
   python granite41_work/hf_oracle.py --hf src_models/granite-4.1-3b --out granite41_work/hf_oracle.json

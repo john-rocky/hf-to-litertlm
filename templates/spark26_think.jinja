@@ -11,18 +11,16 @@
       * content is a string or a list of text blocks (the vendor's render_content macro,
         kept: litert-lm 0.18+ hands content to the template as typed parts);
       * every message is wrapped <｜start▁of▁sentence｜> ... <｜end▁of▁sentence｜>
-        (bos id 0 / eos id 1); the export runs NO_START_TOKEN=1
-        ([[bundle-prepends-bos-add-bos-false]]);
+        (bos id 0 / eos id 1); the export runs NO_START_TOKEN=1;
       * generation prompt <|Bot|><think> (thinking on) or <|Bot|></think>
-        (enable_thinking false); the literal <think> declares the `thought` channel
-        ([[thinking-models-need-think-prefill]]);
+        (enable_thinking false); the literal <think> declares the `thought` channel;
       * assistant HISTORY turns render as <|Bot|></think>{content} at every position (the
         vendor's form for a turn without reasoning_content), so render(history) is a
-        prefix of the next render ([[conversation-prefix-contract]]).
+        prefix of the next render.
     Edits to the vendor's plain-chat lines (none changes a non-empty render):
       (1) the `if not messages: raise` guard is dropped and the first-message test reads
           `messages and messages[0].role == "system"`: the runtime renders a messageless
-          preface ([[template-empty-messages-guard]]);
+          preface;
       (2) the assistant branch does not render reasoning_content (as spark25_think.jinja);
       (3) whitespace control on every tag ({%- -%}), so the output does not depend on the
           renderer's trim_blocks / lstrip_blocks settings.
