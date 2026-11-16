@@ -20,7 +20,7 @@ K = Path(__file__).resolve().parents[1]
 SNAP = Path.home() / ".cache/huggingface/hub/models--LiquidAI--d1-omni-600M/snapshots" / REV
 WEIGHTS = SNAP / "model.safetensors"
 
-# token ids the launch measured from tokenizer.json (asserted against convert_tokens_to_ids in step 2)
+# token ids measured from tokenizer.json (asserted against convert_tokens_to_ids in step 2)
 TOKEN_IDS = {"<|pad|>": 0, "<|startoftext|>": 1, "<|im_end|>": 7, "<|mask|>": 16, "<|reserved_7|>": 17,
              "<|reserved_8|>": 18, "<|reserved_9|>": 19, "<|reserved_10|>": 20, "<|reserved_11|>": 21}
 ROLE = {"<|pad|>": "pad", "<|startoftext|>": "bos", "<|im_end|>": "eos", "<|mask|>": "marker",

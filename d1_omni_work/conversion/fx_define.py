@@ -382,7 +382,7 @@ def v2_shared_records(mf, vision):
                      "license": me["license"], "pool": me["pool"], "made": me["made"], "source": me["source"],
                      "shows": me["shows"], "checked": me["checked"], "copied_from": e["from"], "layout": lay,
                      "prefix_tokens": p}
-            prov["publishable_rule"] = ("round 2 launch: publishable = the d1d pool's licence is CC0; pool "
+            prov["publishable_rule"] = ("publishable = the d1d pool's licence is CC0; pool "
                                         f"{me['pool']!r} -> {publishable}")
         prov["gold_check_round2"] = GOLD_CHECK["d1d_" + rid.split("_")[0]]
         out.append({"id": rid, "source": r["source"], "publishable": publishable,

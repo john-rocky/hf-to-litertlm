@@ -5,14 +5,14 @@ signatures that share the weights, state_prefill_<Ls> and question_step_<Ls>_<Lq
         --Ls 256 --Lq 128
 
 1. Guard: results/real_sharedstate_torch_check.json says pass (the two phases vs the row form, acceptance 1).
-   --guard-decision "<who decided, when, the message>" (round 9, the ruling on stop condition 1, 2026-10-09 03:2x:
+   --guard-decision "<who decided, when, the message>" (round 9, 2026-10-09:
    the planned 1e-4 on the question positions' hidden is below this model's float32 rounding, the design is shown by
    float64, results/real_sharedstate_torch_fp64.json): when the check failed only on that bar, the guard is read again
-   from the check's rows (cache/real/pair/torch_check_rows.json, its sha256 as recorded) with the ruling's gate: every
+   from the check's rows (cache/real/pair/torch_check_rows.json, its sha256 as recorded) with that gate: every
    run and edge case |dp| <= 1e-5, answer-slot max |dh| <= 1e-4, finite, argmax equal; the question positions' max |dh|
    is recorded and must stay <= --guard-alert-hidden (2.5e-4, the float32 noise bound of round 6b; above it the guard
    stops for a review); RowCheck, pad content, guard-off control and coverage as the check's summary.
-   The ruling goes into the export json (`guard.override`).
+   The decision goes into the export json (`guard.override`).
    The two modules being exported are checked again on card_text_001 (3 questions) and own_fiveq_09 (5 questions)
    against the provider's float32 reference (argmax equal, |dp| <= 1e-4; the read-out is host/d1_litert.py's).
 2. litert_torch.signature("state_prefill_<Ls>", StatePrefill, {ids, valid})
@@ -40,7 +40,7 @@ Round 10:
 --embeds --Ls <Ls> --Lq <Lq>: the embeds pair (scripts/d1_shared_state.py StatePrefillEmbeds + QuestionStep(embeds=True):
 `embeds` float32 [1, L, 2048] in place of `ids`, no table in the graph) -> exports/real_sharedstate_embeds_Ls<Ls>_Lq<Lq>_
 fp32.tflite, results/real_sharedstate_embeds_{export,opscan}_Ls<Ls>_Lq<Lq>.json; the guard is the embeds torch check
-(results/real_sharedstate_embeds_torch_check.json: pass = the round-9 ruling's gate, the pair among its sizes); the probe
+(results/real_sharedstate_embeds_torch_check.json: pass = the round-9 gate, the pair among its sizes); the probe
 modules get the host's float32 rows of embed_table.safetensors; an EMBEDDING_LOOKUP in the file is a stop.
 --contract-r10 [--host-check <json>] [--dry-run] (write_contract_r10): host/contract.json with the text path on the embeds
 form (the row graphs L128..L4096, the embeds pairs, the pick by measured call time); vision and every section outside
@@ -105,7 +105,7 @@ def per_signature_ops(path: Path) -> dict:
 
 
 def guard_override(guard: dict, alert_hidden: float, decision: str) -> dict:
-    """--guard-decision (module docstring): the check's rows read again with the recorded ruling."""
+    """--guard-decision (module docstring): the check's rows read again with the recorded decision."""
     from d1_common import sha256_file
 
     rows_path = K / guard["rows_file"]
@@ -461,8 +461,8 @@ def main() -> int:
     ap.add_argument("--pairs", default="256:128,128:64")
     ap.add_argument("--min-questions", default="2", help="--contract: one number, or per pair as 128:64=1,256:128=3")
     ap.add_argument("--why", default="", help="--contract: the measurement behind --min-questions")
-    ap.add_argument("--guard-decision", default="", help="the recorded ruling (module docstring, 1)")
-    ap.add_argument("--guard-alert-hidden", type=float, default=2.5e-4, help="the ruling's alert line on the question "
+    ap.add_argument("--guard-decision", default="", help="the recorded decision (module docstring, 1)")
+    ap.add_argument("--guard-alert-hidden", type=float, default=2.5e-4, help="the decision's alert line on the question "
                                                                              "positions' hidden")
     ap.add_argument("--embeds", action="store_true", help="round 10: the embeds pair (module docstring)")
     ap.add_argument("--contract-r10", action="store_true", help="round 10: host/contract.json on the embeds form "
@@ -487,7 +487,7 @@ def main() -> int:
     guard = json.loads(guard_file.read_text())
     assert not guard.get("limit"), "the torch check is a smoke run"
     override = None
-    if a.embeds:     # round 10: the embeds check's pass is the ruling's gate itself (d1_shared_state.py --embeds)
+    if a.embeds:     # round 10: the embeds check's pass is that gate itself (d1_shared_state.py --embeds)
         assert guard["input"] == "embeds" and [Ls, Lq] in guard["pairs"], (guard.get("input"), guard.get("pairs"))
         assert guard["summary"]["pass"], "the embeds torch check did not pass: no export"
     if not guard["summary"]["pass"]:

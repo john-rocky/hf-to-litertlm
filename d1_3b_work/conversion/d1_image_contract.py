@@ -84,7 +84,7 @@ def e2e_runs() -> dict:
             "test": "host/test_d1_vision_real.py", "reference": "results/real_vision_e2e_ref.json",
             "reference_npz_sha256": ref["npz_sha256"], "files": {"fp32": "the float32 picture graphs + the float32 embeds "
                                                                          "row graph (path check, bar 1e-4)",
-                                                                 "ship": "tower v2 + projector v2 + v2e (the FACTS section 7 bar)",
+                                                                 "ship": "tower v2 + projector v2 + v2e (the ship bar)",
                                                                  "mixed": "the float32 picture graphs + v2e (recorded)",
                                                                  "torch": "the torch export forms (path check, bar 1e-4)"},
             "runs": runs}

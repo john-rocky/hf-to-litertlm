@@ -811,8 +811,8 @@ def truth(a):
     doc["float64_truth"] = {"written": now(), "what": truth.__doc__, "summary": summ, "records": rows,
                             "seconds": round(time.time() - t0, 1)}
     doc["bar_decision"] = {
-        "from": "the review of 2026-10-08 15:3x",
-        "pass_fail": "e2e = FACTS §7 on the 16 image rows against the oracle (argmax 100 % + max |dp| <= 0.02 + "
+        "from": "2026-10-08",
+        "pass_fail": "e2e on the 16 image rows against the oracle (argmax 100 % + max |dp| <= 0.02 + "
                      "mean |dp| <= 0.002)",
         "module_identity": "float64 identity <= 1e-10 (features and prefix)",
         "prefix_distances_recorded": ["vs the oracle (provider fp32)", "vs the float64 truth", "vs our eager fp32"],
@@ -984,7 +984,7 @@ def lrt_score(tag):
     summ["prefix_max_element_2x_truth_distance"] = bool(rows and len(rows) == 7
                                                         and summ["within_2x_provider_distance"] == 7
                                                         and summ["nonfinite"] == 0)
-    # 15:4x: the auxiliary prefix bar = the rel_rms distance to the float64 truth within 2x the provider
+    # the auxiliary prefix bar = the rel_rms distance to the float64 truth within 2x the provider
     # fp32's (per record); the max-element ratio is kept as a value; PASS / FAIL = e2e
     summ["prefix_bar_rel_rms_2x"] = bool(rows and len(rows) == 7 and summ["within_2x_provider_rel_rms"] == 7
                                          and summ["nonfinite"] == 0)
@@ -992,11 +992,11 @@ def lrt_score(tag):
         summ["e2e"] = {k: v["summary"] for k, v in old["e2e"].items()}
     doc = {"step": "round 6 step 4: the vision graphs on the Mac (CompiledModel) against the oracle / float64 truth / "
                    "eager", "written": now(), "tag": tag, "summary": summ, "e2e": old.get("e2e", {}),
-           "bar": {"pass_fail": "e2e (FACTS §7 on the 16 image rows, oracle v2): argmax 100 % outside near-tie rows "
+           "bar": {"pass_fail": "e2e (the 16 image rows, oracle v2): argmax 100 % outside near-tie rows "
                                 "+ max |dp| <= 0.02 + mean |dp| <= 0.002 + no non-finite value",
                    "prefix_auxiliary": "rel_rms distance to the float64 truth within 2x the provider fp32's, per "
-                                       "record, no non-finite value (15:4x; the fp32 files); the "
-                                       "max-element ratio (15:3x proposal) is kept as a value",
+                                       "record, no non-finite value (the fp32 files); the "
+                                       "max-element ratio (an earlier proposal) is kept as a value",
                    "e2e": BAR_E2E},
            "run": info, "records": rows, "pad_invariance": raw["pad_invariance"],
            "history": old.get("history", []) + [{"scored": now(), "status": info["status"]}]}

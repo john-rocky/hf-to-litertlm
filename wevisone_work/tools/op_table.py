@@ -1,6 +1,6 @@
 """Op table of a .tflite for the round-1 export probes (question 3), read with ai_edge_litert's interpreter.
 
-Reports: the op histogram; the ops the launch flags (GATHER, GATHER_ND, CUSTOM, FLEX, STABLEHLO, BROADCAST_TO,
+Reports: the op histogram; the ops to flag (GATHER, GATHER_ND, CUSTOM, FLEX, STABLEHLO, BROADCAST_TO,
 RELU_0_TO_1); every tensor of rank > 4; for SLICE / STRIDED_SLICE / PAD / PADV2 / CONCATENATION the count by input
 rank and by the axis they act on (innermost or not; PAD's axes from its constant paddings, CONCATENATION's and the
 slices' from the input / output shapes); and the reductions (MEAN / SUM) with the length of the reduced axis, the

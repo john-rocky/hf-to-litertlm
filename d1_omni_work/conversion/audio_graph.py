@@ -352,7 +352,7 @@ def k_table_doc() -> dict:
            "source": {"file": str(AUDIO_RANGE.relative_to(K)), "sha256": hashlib.sha256(AUDIO_RANGE.read_bytes()).hexdigest(),
                       "written": rng.get("written"), "step": rng.get("step")},
            "rule": "k = the smallest k >= 0 with max (x - mean)^2 (the element, fixture valid rows) x 4^-k <= 65,504 / 4 "
-                   "(margin >= 4x); a site already within the margin keeps k = 0 and its original module (launch r12)",
+                   "(margin >= 4x); a site already within the margin keeps k = 0 and its original module",
            "fp16": {"max": FP16_MAX, "min_normal": 2.0 ** -14, "min_subnormal": 2.0 ** -24},
            "summary": {"sites": len(out), "sites_k_gt_0": sum(v["k"] > 0 for v in out.values()),
                        "k_histogram": {str(k): n for k, n in sorted(hist.items())},

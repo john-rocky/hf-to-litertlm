@@ -229,7 +229,7 @@ def main():
         d = V[prec]
         if not d["rows"] and not d["pair"]:
             continue
-        p(f"\n#### S26 GPU {prec}、request block v2(C、per-call APK + cool-down; 監督 21:5x (a): row も pair も GPU 上限なしの call の "
+        p(f"\n#### S26 GPU {prec}、request block v2(C、per-call APK + cool-down; row も pair も GPU 上限なしの call の "
           "median(CPU の上限は問わない)、括弧 = その n と、うち GPU も CPU も上限なし = 厳密 burst の n; row の合成 = T4 の 1 call の厳密 "
           "burst 値 × 行(各行の最小 bucket))\n")
         p("| request | 問 | row 実測(GPU 上限なしの call、n; うち厳密 burst) | row 厳密 burst の合成(1 call 値 × 行) | pair Ls128 共有あり | "

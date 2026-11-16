@@ -407,7 +407,7 @@ def ckpt_main():
                        "encoder_head_tensors": len(sd), "dtypes": dtypes, "read_seconds": round(load_s, 1)},
            "bars": {"max_abs_dp": CKPT_BAR_DP, "max_abs_dlogit": CKPT_BAR_DLOGIT, "argmax": "100 % (near-tie apart)",
                     "float64_max_abs_dlogit": CKPT_BAR_F64, "near_tie_top2": NEAR_TIE,
-                    "basis": "launch r2 fact 5a: the provider's fp32 vs float64 = dp 9.3e-6 (d1d); two fp32 runs "
+                    "basis": "the provider's fp32 vs float64 = dp 9.3e-6 (d1d); two fp32 runs "
                              "-> dp <= 2e-5, logit <= 1e-4; same function = float64 <= 1e-12"}}
 
     # ---- 1. every row at its smallest bucket

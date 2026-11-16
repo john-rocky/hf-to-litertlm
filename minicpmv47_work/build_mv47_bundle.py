@@ -253,7 +253,7 @@ def build(a):
 
   md = llm_metadata_pb2.LlmMetadata()
   md.max_num_tokens = MAX_TOKENS
-  # NO start_token: the HF template begins directly with <|im_start|> (r1 nostart ruling).
+  # NO start_token: the HF template begins directly with <|im_start|>.
   md.prompt_templates.user.prefix = U_PRE
   md.prompt_templates.user.suffix = U_SUF
   md.prompt_templates.model.prefix = M_PRE

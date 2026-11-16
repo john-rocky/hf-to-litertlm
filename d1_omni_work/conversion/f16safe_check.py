@@ -25,7 +25,7 @@ Main run (torch fp32, 8 threads):
      5 audio), both modules .half() (weights, activations, constants) with the converter's lowering written out:
      RMSNorm = (x s)^2 -> SUM stored in fp16 -> x 1 / dim -> + eps -> rsqrt; LayerNorm = SUM(x s) x 1/dim, the
      centred squares SUM x 1/dim, + eps, rsqrt (MEAN taken as a SUM stored in fp16, the conservative reading); fp32
-     islands kept as the launch says: RoPE (cos / sin fp32, rotation in fp32), softmax (fp32), the scores read out in
+     islands kept: RoPE (cos / sin fp32, rotation in fp32), softmax (fp32), the scores read out in
      fp32 by the host readout. Per module: non-finite rows, uniform rows (every real position the same score = the
      collapse rounds 3-5 saw on the GPU), max / p95 / mean |dp| vs the oracle, argmax, cutoff crossings, and per norm
      site the real positions whose output is all zeros or non-finite. The emulation forwards are checked in fp32

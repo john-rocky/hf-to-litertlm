@@ -182,7 +182,7 @@ def main():
                   non_tie_argmax_mismatches=[r['row_id'] for r in output['rows'] if not r['tie'] and not r['argmax_identical']])
     write_json('results/parity_fp.json',output)
     print('PARITY',output['status'],json.dumps(summary),flush=True)
-    assert passed,'Round 1 fixed parity acceptance failed; supervisor decision required'
+    assert passed,'Round 1 fixed parity acceptance failed'
 
 
 if __name__=='__main__':

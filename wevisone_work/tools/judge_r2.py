@@ -38,12 +38,12 @@ def bars_from_jitter(j):
         if d > tol:
             bars[k], why[k] = 1.0 - 2 * d, f"bf16 mismatch {d:.4f} > {tol} -> tolerance 2d = {2 * d:.4f}"
         else:
-            bars[k], why[k] = 1.0 - tol, f"bf16 mismatch {d:.4f} <= {tol} -> launch bar"
+            bars[k], why[k] = 1.0 - tol, f"bf16 mismatch {d:.4f} <= {tol} -> default bar"
     c = j["cer"] or 0.0
     if c > LAUNCH_CER:
         bars["cer"], why["cer"] = 2 * c, f"bf16 CER {c:.4f} > {LAUNCH_CER} -> 2 x = {2 * c:.4f}"
     else:
-        bars["cer"], why["cer"] = LAUNCH_CER, f"bf16 CER {c:.4f} <= {LAUNCH_CER} -> launch bar"
+        bars["cer"], why["cer"] = LAUNCH_CER, f"bf16 CER {c:.4f} <= {LAUNCH_CER} -> default bar"
     return bars, why
 
 

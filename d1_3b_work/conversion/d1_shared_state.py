@@ -64,7 +64,7 @@ QuestionStep(embeds=True): the table lookup leaves the graph (the host writes th
 embed_table.safetensors at the padded ids, the pad id's row on the pads, as host/d1_litert.py does for the embeds row
 graphs); everything else is the ids pair's. The check is --check's with: the pairs Ls256+Lq128, Ls128+Lq64 and the new
 Ls64+Lq64; the row form = D1PrefillEmbeds on the same rows; the table's rows first compared bit for bit with the
-model's float32 table at every id of the fixture rows; the gate of the round-9 ruling (answer slot <= 1e-4, |dp| <= 1e-5,
+model's float32 table at every id of the fixture rows; the round-9 gate (answer slot <= 1e-4, |dp| <= 1e-5,
 the question positions' hidden recorded with the alert line 2.5e-4); `vs_ids_round9` = every run against round 9's ids
 run of the same question and shape (Ls64+Lq64 against round 9's Ls128+Lq64), |dp| and the answer-slot hidden, and the
 row form against round 9's (stop line |dp| 1e-5). Outputs: results/real_sharedstate_embeds_torch_check.json,
@@ -98,7 +98,7 @@ NEG = G.NEG
 TAIL = 2                                  # conv_L_cache 3 -> the 2 previous conv inputs
 PAIRS = ((256, 128), (128, 64))           # the export sizes (design 2)
 PAIRS_EMBEDS = ((256, 128), (128, 64), (64, 64))   # round 10 (--embeds): + the small pair Ls64+Lq64
-BAR_HIDDEN_ALERT = 2.5e-4                 # round 9 ruling: the question positions' hidden is recorded, alert above
+BAR_HIDDEN_ALERT = 2.5e-4                 # round 9: the question positions' hidden is recorded, alert above
 LS_BUCKETS = (128, 256, 512, 1024, 2048, 4096)
 LQ_BUCKETS = (64, 128, 192)
 ROW_BUCKETS = (256, 512, 1024, 2048, 4096)   # the host's row buckets
@@ -819,12 +819,12 @@ def check(a) -> int:
               and summary["rowcheck"]["bit_equal"] == len(checks)
               and summary["state_checks"]["pad_content"]["bit_equal"] == summary["state_checks"]["pad_content"]["requests"]
               and all(x > 0 for x in ga))
-    if emb:     # round 10: the round-9 ruling's gate (answer slot, |dp|; the question positions recorded, alert line)
+    if emb:     # round 10: the round-9 gate (answer slot, |dp|; the question positions recorded, alert line)
         summary["embed_table_check"] = embed_check
         summary["bar"] = {"h_sel_max_abs_vs_row": BAR_HIDDEN, "max_abs_dp_vs_row": BAR_DP,
                           "hidden_question_alert": BAR_HIDDEN_ALERT, "rowcheck": "bit-equal", "nonfinite": 0,
                           "vs_ids_round9_max_abs_dp": BAR_DP,
-                          "why": "round 9 ruling (2026-10-09 03:2x): the question positions' hidden is "
+                          "why": "set 2026-10-09 (round 9): the question positions' hidden is "
                                  "this model's float32 rounding (results/real_sharedstate_torch_fp64.json), recorded "
                                  "with an alert at 2.5e-4; the gate is |dp| and the answer slot"}
         summary["vs_ids_round9"] = vs_ids_round9(rows, hsel)

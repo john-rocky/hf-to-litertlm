@@ -483,7 +483,7 @@ def vision_score(a) -> int:
            "e2e": {"text_graphs": graphs, "summary": st, "round6_current_file": {"file": str(r6p.relative_to(K)), "summary": r6e},
                    "per_row": e2e_rows},
            "bar": {"features": "bit-equal to the current tower (same run) or max |d| <= 1e-5 on the real patches",
-                   "pass_fail": "e2e, FACTS §7 (16 image rows)"},
+                   "pass_fail": "e2e on the 16 image rows (litert_gate.compare)"},
            "summary": {"status": rec.get("status"), "crops": len(fe),
                        "features_vs_current_bit_equal": f"{sum(x['bit_equal'] for x in fe)}/{len(fe)}",
                        "features_vs_current_max_abs": max(x["max_abs"] for x in fe),

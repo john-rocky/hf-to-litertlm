@@ -1109,7 +1109,7 @@ def speed_window(a):
 
 def speed_aggregate(a):
     """results/timing_mac_r7.json from the window files (the last measured take per backend): the audio graph per
-    bucket and form, the host mel, the 10 s question end to end, and the sum the launch names (mel + audio graph +
+    bucket and form, the host mel, the 10 s question end to end, and the sum (mel + audio graph +
     round 4's text L256 row)."""
     import timing_mac as TM
 

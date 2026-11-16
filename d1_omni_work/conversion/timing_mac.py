@@ -83,7 +83,7 @@ WORKLOAD_NAMES = {"a": "1 question, short state (card_text/refund)",
                   "c": "5 questions in one request (own_fiveq_09: 5 calls)",
                   "d": "1 question on a 3.4k-token state (long_3400/component)",
                   "e": "384 px image, 1 question, text side (img_dogs_01/count; vision graph not included)",
-                  "e_L256": "the same image row at L256 (the bucket the launch named; its smallest bucket is L128)",
+                  "e_L256": "the same image row at L256 (its smallest bucket is L128)",
                   "f": "10 s audio, 1 question, text side (aud_01/topic; audio graph not included)",
                   "g": "one call of the bucket (the bucket's median fixture row; L1024 = L512's longest row padded)"}
 
@@ -194,7 +194,7 @@ def load_gate():
                     "top_head": top_head(), "contention": c, "lock": lock_line(), "at": now()}
         time.sleep(LOAD_POLL_S)
     return {"ok": True, "rule": f"no process outside this tree > {PEER_CPU_MAX:g} % CPU and idle >= {IDLE_MIN:g} % "
-                                f"(second top sample); load recorded, launch threshold {LOAD_MAX:g} not met today",
+                                f"(second top sample); load recorded, load-average limit {LOAD_MAX:g} not met today",
             "waited_s": round(time.time() - t0, 1), "polls": polls[-6:], "top_head": top_head(), "contention": c,
             "lock": lock_line(), "at": now(), "load_at_start": la, "load_above_launch_threshold": la[0] > LOAD_MAX}
 
@@ -361,7 +361,7 @@ def window_main(a):
            "gate_rule": f"before each set: no process outside this process tree above {PEER_CPU_MAX:g} % CPU and CPU "
                         f"idle >= {IDLE_MIN:g} % on the second `top -l 2 -s 1` sample (polls every {LOAD_POLL_S} s, "
                         f"up to {LOAD_WAIT_S} s); the 1-minute load and `top -l 1 | head -5` are recorded (the "
-                        f"launch's load <= {LOAD_MAX:g} cannot be met today: 20-40 with 68-73 % idle)"}
+                        f"load-average limit {LOAD_MAX:g} cannot be met today: 20-40 with 68-73 % idle)"}
     rc = 0
     for form in forms:
         gate = load_gate()

@@ -51,7 +51,7 @@ def main():
             assert finite,'Nonfinite values recorded; no tuning'
         summary=summarize(out['rows']);errors=[r['max_abs_probability_error'] for r in out['rows']]
         summary.update(median_abs_probability_error=float(np.median(errors)),rows_above_002=sum(e>0.02 for e in errors))
-        out.update(status='PASS',summary=summary,acceptance='Measurement completeness only; supervisor owns numerical decisions',
+        out.update(status='PASS',summary=summary,acceptance='Measurement completeness only; no numerical acceptance',
                    peak_rss_at_stage_end_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                    total_wall_seconds=time.monotonic()-start)
     except Exception:
