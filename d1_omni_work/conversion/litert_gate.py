@@ -27,7 +27,7 @@ oracle when it exists, else eager (both sections are kept, with a history of eve
 invariance (rows run again with random ids and prefix at the pad positions: scores at the real positions bit-equal),
 GPU vs CPU of the same file (max |dscores| over real positions), delegation (`Replacing N out of M node(s)` with the
 runtime's VERBOSE log on, partitions, is_fully_accelerated), compile / run failure text.
-Bar (FACTS §7): argmax 100 % outside near-tie rows + max |dp| <= 0.02 + mean |dp| <= 0.002 + no non-finite value.
+Bar: argmax 100 % outside near-tie rows + max |dp| <= 0.02 + mean |dp| <= 0.002 + no non-finite value.
 A GPU run executes in a child process (a delegate abort ends the child; the parent then writes the failure record).
 No timing is recorded beyond the wall seconds of each job (this round measures no speed).
 

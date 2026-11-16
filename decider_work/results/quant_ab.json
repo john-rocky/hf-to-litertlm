@@ -348,7 +348,7 @@
     }
   ],
   "ship_recipe_selected": null,
-  "acceptance": "Round 3 completeness only; supervisor chooses ship from the numbers",
+  "acceptance": "Round 3 completeness only; no ship recipe chosen in this record",
   "quantizer": "ai-edge-quantizer 0.8.0",
   "lm_head_output_tensor": "decode_logits_output",
   "lm_head_scope": "decode_logits_output;",

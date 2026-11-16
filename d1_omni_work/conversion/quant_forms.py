@@ -12,7 +12,7 @@ Forms (no calibration; the ShortConv taps, norms and the attention matmuls are n
                 FULLY_CONNECTED ops (it has no CONV_2D / DEPTHWISE_CONV_2D / CONV_2D_TRANSPOSE, asserted). Config of
                 scripts/quantize_lfm25_fp16.py (add_quantization_config, float_casting, weight 16-bit FLOAT, compute
                 FLOAT) with the operation narrowed from ALL_SUPPORTED: ALL_SUPPORTED would also cast the embedding table
-                to fp16, and an fp16 table is not made in this lane (launch 2026-10-08 r3; agreed 11:0x). The table
+                to fp16, and an fp16 table is not made in this lane. The table
                 stays FLOAT32 (asserted: one table, FLOAT32 [65536, 1024]).
   fp16fc_i8emb  kev_work/scripts/quantize_kev.py `v2`: add_weight_only_config(FULLY_CONNECTED, 16, CHANNELWISE,
                 FLOAT_CASTING) + add_dynamic_config(EMBEDDING_LOOKUP, 8, CHANNELWISE) = fp16 FC weights through

@@ -2,7 +2,7 @@
 
 Loads the HF checkpoint (trust_remote_code, fp32, CPU), transcribes the 20
 LibriSpeech dummy fixtures, and reports per-clip transcripts + corpus WER
-against the reference texts. Also runs the two kickoff checks from
+against the reference texts. Also runs the two checks from
 the pre-conversion license/architecture check:
 
   1. attention_dists persistence:
@@ -78,12 +78,12 @@ def main():
     torch.manual_seed(0)
     model, processor = load_eager(dtype=torch.float32)
 
-    # --- kickoff check 2: input feature dim
+    # --- check 2: input feature dim
     in_f = model.encoder.input_linear.in_features
     print(f"input_linear.in_features = {in_f}")
     assert in_f == 320, in_f
 
-    # --- kickoff check 1: attention_dists buffer integrity
+    # --- check 1: attention_dists buffer integrity
     ad = model.encoder.attention_dists
     print(f"attention_dists: shape {tuple(ad.shape)} dtype {ad.dtype} "
           f"min {ad.min().item()} max {ad.max().item()} "

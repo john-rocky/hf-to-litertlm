@@ -1,6 +1,6 @@
 # P1 design — Qwen3.5 ring + verify re-export (frozen 2026-08-31, sources read at LiteRT-LM 90f42140 / litert-torch 115a136)
 
-Everything below was derived from source, not the handoff doc. Line refs: `llm_litert_mtp_drafter.cc`,
+Everything below was derived from source. Line refs: `llm_litert_mtp_drafter.cc`,
 `llm_litert_compiled_model_executor.cc` (executor), `litert/state.cc`, all at FETCH_HEAD 90f42140.
 
 ## Runtime round flow (exact, verified)

@@ -20,7 +20,7 @@ padding with the pad id's row to the smallest embeds graph present that holds th
 stepwise ones bit for bit. The text graphs are loaded one at a time (a 4.9 GB graph per bucket).
 --files: fp32 = exports/real_vision_tower_fp32 + real_projector_fp32 + real_rowprefill_embeds_L{L}_fp32 (the path
 check: max |dp| <= 1e-4 is the stop line, 1e-5 class expected); ship = real_vision_tower_v2_fp16fc +
-real_projector_v2_fp16fc + real_rowprefill_embeds_L{L}_v2e_fp16fc (the shipping forms: the FACTS section 7 bar on the CPU
+real_projector_v2_fp16fc + real_rowprefill_embeds_L{L}_v2e_fp16fc (the shipping forms: the bar on the CPU
 and Metal float32); mixed = the float32 picture graphs + v2e (the ship error's text part alone; recorded).
 --accel torch: the same host steps with the torch export forms in place of the files (d1_vision_graph VisionTower /
 Projector, d1_prefill_graph D1PrefillEmbeds from the snapshot, float32 CPU) = path error vs conversion error. gpu =

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # d1_run_vision.sh <source> <tag>: the picture graphs of d1-3B, one command.
 #   source = tiny | a snapshot directory holding LiquidAI/d1-3B's model.safetensors; tag = export prefix (tiny, real).
-# Steps (round 3 ran each on the tiny VL model, ROUND3.md; round 6d on the real weights, ROUND6D.md):
+# Steps (round 3 ran each on the tiny VL model; round 6d on the real weights):
 #   host_check     d1_vision_host_check.py (venv-ref) once: pictures, processor tensors, acceptance 1-3; skipped when
 #                  results/vision_host_check.json already says pass (it never overwrites)
 #   extra          d1v_extra_pictures.py (venv-ref) when D1V_EXTRA names pictures: their processor tensors
 #   torch_check    d1_vision_torch_check.py: VisionTower / Projector vs transformers on every tile (round 3 bar 1e-5
 #                  absolute; D1V_REL_BAR = a relative bar), the HF rows saved for the LiteRT checks
 #   tower          d1_vision_graph.py --write tower -> exports/{tag}_vision_tower_fp32.tflite + scan
-#   tower_prelint  tools/rank3_prelint.py (attention BMM and post_layernorm affine rows are expected, see ROUND3.md)
+#   tower_prelint  tools/rank3_prelint.py (attention BMM and post_layernorm affine rows are expected)
 #   tower_v2       d1v_storage.py --variant v2 when D1V_STORAGE=v2 (fp16 FC weights) -> {tag}_vision_tower_v2_fp16fc
 #   per file (fp32, then v2):  _cpu  d1_vision_lrt_check.py --accel cpu (vs torch and transformers, pad noise)
 #                  _gpu_f32 / _gpu_default   Metal, inside the GPU window (soft: a refusal is recorded, the chain goes

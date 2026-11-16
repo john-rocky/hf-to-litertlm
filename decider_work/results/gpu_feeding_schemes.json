@@ -87914,7 +87914,7 @@
   ],
   "threshold_scope": "Measured cells only; a numerical observation, not causal interpretation or artifact acceptance",
   "numerical_recomputation": "PASS",
-  "interpretation": "Supervisor owns causal interpretation and numerical acceptance",
+  "interpretation": "Causal interpretation and numerical acceptance are not part of this record",
   "worker_evidence": {
     "cpu": "results/feeding_cpu_r4.json",
     "gpu": "results/feeding_gpu_r4.json"

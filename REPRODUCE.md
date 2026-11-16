@@ -10,7 +10,7 @@ bash scripts/reproduce_llm.sh --all           # everything (heavy)
 
 The engine is `scripts/export_simple_template.py`
 (`<hf_model> out/<name> templates/<template>.jinja <quant>` + env). Recipes reconstructed **2026-07-06**
-from `cards/*.md` + auto-memory + `reports/*` while the memory was fresh (a few env/template fields are
+from `cards/*.md` + `reports/*` (a few env/template fields are
 best-inference, flagged below). The tables here are the dense/reasoning LLMs; the **Vision-language
 models** section at the bottom covers the VLMs (`scripts/reproduce_vlm.sh`).
 
@@ -2817,7 +2817,7 @@ What is genuinely outside, in demand order, with the reason:
 | `kakaocorp/kanana-2-*`, `ibm-granite/granite-swash-*` | genuinely remote-code / not yet registered in transformers 5.14.1 |
 | `Zyphra/ZUNA`, `stabilityai/SAME-*` | not transformers-format checkpoints |
 
-Two things this refuted about the previous session's summary: the phone band's gaps are
+Two things this refuted about the earlier summary: the phone band's gaps are
 **not** only MoE and Gemma (Hy-MT2 and Jamba2 were dense-ish, ungated, and in demand;
 Hy-MT2 has since been converted — the intake above — and Jamba2 still stands), and
 one apparent gap — the most-downloaded 2026 model in the whole band — was this converter's

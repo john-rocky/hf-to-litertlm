@@ -1,5 +1,5 @@
-"""D1DecisionF16Safe: d1_graph.D1Decision with the fp16-safe norm rewrite (round 8, launch
-2026-10-08-d1c-d1-omni-litert-opus-r8.md). Pure torch: imports in the reference venv and in the exporter venv.
+"""D1DecisionF16Safe: d1_graph.D1Decision with the fp16-safe norm rewrite (round 8).
+Pure torch: imports in the reference venv and in the exporter venv.
 
 Why: the converter lowers RMSNorm's mean(x^2) to MUL (the square) + SUM + MUL (1 / dim) and LayerNorm to MEAN /
 SQUARED_DIFFERENCE / MEAN; an fp16-storage GPU path (Mac Metal default precision, Android FP16_WITH_FP32_ACCUM) keeps

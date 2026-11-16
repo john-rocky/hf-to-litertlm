@@ -20,7 +20,7 @@ equal to the reference's, build_inputs, the decision graph of the smallest bucke
                default precision, the decision graph at fp32) = the shipped Mac GPU pipeline
   4 mac_metal_audio_cpu_decision  the audio graph at Metal's default precision -> the decision graph on the CPU
                (the same split as run 0)
-Statistics and bar = scripts/s26_score.py compare (FACTS §7: argmax outside near-ties, max |dp| <= 0.02, mean |dp|
+Statistics and bar = scripts/s26_score.py compare (argmax outside near-ties, max |dp| <= 0.02, mean |dp|
 <= 0.002, no non-finite value). Per run and clip: the prefix against the provider's (max |d|, rel_rms).
 """
 from __future__ import annotations

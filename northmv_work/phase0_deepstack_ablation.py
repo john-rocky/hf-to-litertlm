@@ -21,7 +21,7 @@ reference ids stored in the suite:
            fast_vlm runtime feed)
   fold1d : fold + 1-D positions
 
-Verdict rule from the handoff: >=7/9 cases token-equivalent -> GO; else PARK.
+Verdict rule: >=7/9 cases token-equivalent -> GO; else PARK.
 
     .venv-vl0930-t515/bin/python northmv_work/phase0_deepstack_ablation.py [--modes full,drop,...]
 """

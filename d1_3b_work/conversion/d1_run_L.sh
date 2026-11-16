@@ -2,10 +2,10 @@
 # d1_run_L.sh <source> <tag> <L>: the per-window chain of the d1-3B row graphs, one command per L.
 #   source = tiny | a snapshot directory holding LiquidAI/d1-3B's model.safetensors; tag = output prefix (tiny, real);
 #   L = the window (64 .. 4096).
-# Steps (round 2 ran each on the tiny model; ROUND2.md):
+# Steps (round 2 ran each on the tiny model):
 #   graph_check  d1_graph_check.py --L L      torch: D1Prefill vs the provider (bar 1e-5), pad content bit-equal, tree
 #   export       d1_export.py --L L           litert_torch -> exports/{tag}_rowprefill_L{L}_fp32.tflite + op scan
-#   prelint      tools/rank3_prelint.py       rank <= 3 forms (attention BMM rows are expected, see ROUND2.md)
+#   prelint      tools/rank3_prelint.py       rank <= 3 forms (attention BMM rows are expected)
 #   cpu          d1_check.py --accel cpu      CompiledModel CPU vs the torch rows
 #   gpu_f32 / gpu_default                     Metal, float32 / default precision, inside the GPU window (soft: the fp32
 #                                             file keeps a float embedding table, which Kev's Metal runs refused at

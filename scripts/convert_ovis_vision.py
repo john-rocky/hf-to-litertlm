@@ -16,7 +16,7 @@ reshape/transpose the literal patchify would need (>5-D ops break GPU delegates 
 lack tflite kernels).
 
 Vision tower is made export-able by ovis_work/ovis_static.install_static_vision
-(NaViT dynamic-res -> static single-512; see NEXT-SESSION-ovis-bundle.md).
+(NaViT dynamic-res -> static single-512).
 
 ADAPTER = the Ovis visual-tokenizer tail:
   head (Linear 4608->65532 + LayerNorm) -> softmax -> pad 4 zeros -> vte matmul

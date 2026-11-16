@@ -19,7 +19,7 @@ _recipe_of_lane = quant_sections.recipe_of
 
 # Encoder: dynamic int8 (dynamic_wi8_afp32's config) on every op except the in-graph log-mel ops, which stay float.
 # The mel ops are matched by their output tensor names (aeq's op scope = output tensor names), listed in MEL_SCOPE_RX
-# once they are read from the fp32 encoder tflite (see ROUND3.md); a regex that matches nothing leaves the recipe equal
+# once they are read from the fp32 encoder tflite; a regex that matches nothing leaves the recipe equal
 # to dynamic_wi8_afp32, so the caller compares the section bytes against that arm.
 MEL_SCOPE_RX = os.environ.get("R3_MEL_SCOPE_RX", "")
 

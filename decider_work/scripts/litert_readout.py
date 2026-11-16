@@ -1,6 +1,6 @@
 """Raw option-letter readout, CompiledModel CPU only, one final decode per row.
 
-Uses the named-buffer write/run_by_name/read pattern from the copied owner
+Uses the named-buffer write/run_by_name/read pattern from
 scripts/parity_logits_bigmodel.py. Every non-token/position/mask state is carried;
 each row starts from zero state. Exact-fit chunks never insert pad positions.
 """

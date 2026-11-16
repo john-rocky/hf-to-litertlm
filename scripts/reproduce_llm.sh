@@ -5,7 +5,7 @@
 #   bash scripts/reproduce_llm.sh --list          # list model keys + one-line recipe
 #   bash scripts/reproduce_llm.sh --all           # reproduce every model serially (heavy)
 #
-# Recipes reconstructed 2026-07-06 from cards/ + auto-memory + reports/ (see REPRODUCE.md
+# Recipes reconstructed 2026-07-06 from cards/ + reports/ (see REPRODUCE.md
 # for the full table, sources, and per-model caveats). The engine is
 # scripts/export_simple_template.py; recipe legend:
 #   BOCTAV4     = blockwise-32  int4 + OCTAV + int8 embedding  (best quality; Mac/Android)

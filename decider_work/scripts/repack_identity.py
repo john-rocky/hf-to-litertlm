@@ -1,4 +1,4 @@
-"""Identity-template repack using the owner's step-3 string escaping."""
+"""Identity-template repack: the template string escaped for the pbtext (backslash, quote, newline)."""
 import argparse
 import re
 import subprocess

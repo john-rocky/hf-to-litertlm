@@ -29,7 +29,7 @@ float32 CPU): argmax per question, max / mean / p95 |dp| over all options (mean 
 the number of options), the near-tie questions (reference top-2 gap <= 0.02) apart, the answer-slot hidden against the
 reference's (max |dh|), non-finite values. Red arms: the file's probabilities of the arm row against the BASE record's
 reference probabilities (same option keys) must move by more than 0.02 on some option (a graph that ignored the changed
-input would not move). Bar readings (FACTS section 7, the four lanes): bar_strict = argmax on every question + max <=
+input would not move). Bar readings (the four lanes): bar_strict = argmax on every question + max <=
 0.02 + mean <= 0.002 + no non-finite row; bar_near_tie_apart = the same with the near-tie questions' argmax apart (the
 bar set before the runs). With --compare, the answer-slot hidden and probabilities are also compared with the earlier run's
 (its npz keeps `hsel/<id>/<qid>`). The npz gains `hsel/<id>/<qid>` per row. --stop-on-bar: exit 1 when

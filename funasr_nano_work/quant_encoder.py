@@ -13,7 +13,7 @@ Per variant: post-quantisation weight dtype audit of every FC op, op histogram, 
 the fp32 file), size, parity vs the fp32 tflite on the 25 runtime windows (features[:vt] max|diff| / cos, vt = the
 fp32 file's valid count; mask equality), transcripts from the variant's features + lm_native greedy (port_eval.Greedy,
 same loop as round 1) vs the funasr oracle (text, token ids, en WER), first / warm invoke ms (8 threads).
-Selection rule (supervisor): ship candidate = the smallest variant whose transcripts equal the oracle 25/25 with the
+Selection rule: ship candidate = the smallest variant whose transcripts equal the oracle 25/25 with the
 same en WER.
 Run with ~/venvs/lt094dev/bin/python. Writes out/audio_encoder/audio_encoder_504f_<variant>.tflite and
 encoder_variants.json (+ quant_encoder.log via the caller's redirect).

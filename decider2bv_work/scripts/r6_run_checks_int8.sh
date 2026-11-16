@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Round 6 addendum (supervisor ship plan A, 03:0x JST): the reference on the int8 (dyn8) bundle, CPU exact-fit + bit
+# Round 6 addendum: the reference on the int8 (dyn8) bundle, CPU exact-fit + bit
 # identity with round 4's readout_r4_dyn8.json, then the GPU rule; minimal venv.
 cd "$(dirname $0)/.."
 v=dyn8

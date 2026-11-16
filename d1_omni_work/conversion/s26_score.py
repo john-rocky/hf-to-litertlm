@@ -17,7 +17,7 @@ scores at P + markers[k]) -> the host read-out per row (host/d1_host.py readout:
 probs and logits_raw): argmax outside near-tie rows (oracle top-2 gap <= 0.02) and the near-tie rows apart, max / p95 /
 mean |dp| over all options, max |dlogit| at the markers, options that change side at the cutoffs 0.5 and 0.9,
 non-finite rows, the control (red_arm_000/answer's probabilities against the oracle of tv4_000/answer, must differ by
-more than 0.02), by mode; per row the probabilities and the call's ms. Bar (FACTS §7): argmax 100 % outside near-tie +
+more than 0.02), by mode; per row the probabilities and the call's ms. Bar: argmax 100 % outside near-tie +
 max |dp| <= 0.02 + mean |dp| <= 0.002 + no non-finite row. --same-file label=<report>:<sel>: another run of the same
 graph file over the same rows (the Mac stand-in, a second phone run) -> per row max |dscore| at the markers, rows
 bit-equal, max |dp|, argmax agreement. --round3 label=<results json>: round 3's per-row probabilities and marker scores
@@ -51,7 +51,7 @@ Round 9 (the app's generic mode; the round 5 subcommands above are unchanged):
         [--out results/s26_parity_<leg>_e2e_r9.json]
       the end to end on the Mac: the phone's prefixes through the text decision graph fp16 on the Mac CPU (8 threads;
       vision = the smallest of L256 / 512 / 1024 / 2048 / 4096 that holds the row, round 6's rule; audio = L256, round
-      7's) -> the host read-out -> vs the oracle (FACTS §7 bar); the oracle's prefix through the same graph (the text
+      7's) -> the host read-out -> vs the oracle (the bar above); the oracle's prefix through the same graph (the text
       graph's own share); the Mac chains' e2e of rounds 6 / 7 (same files) for the phone-vs-Mac difference.
     $PY scripts/s26_score.py table9 [--round r9] [--suffix _r9] [--out results/s26_summary_r9.json]
 """

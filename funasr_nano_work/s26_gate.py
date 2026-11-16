@@ -14,9 +14,9 @@ one audio item (litert_lm_lib.cc BuildContentList), so the bundle's jinja adds t
 Transcript = the non-log stdout lines, through funasr's post-processing (as mac_gate.py). The first clip runs with
 --report_peak_memory_footprint and its stderr is saved in full to s26_gate_<tag>_first_stderr.log.
 
-The shared-device hold is taken OUTSIDE this script (hold_cli.py with a sleeper pid, see ROUND3.md); this script
+The shared-device hold is taken OUTSIDE this script (hold_cli.py with a sleeper pid); this script
 refuses to run unless the hold file names that pid. /proc/uptime is read before and after every clip: a smaller value
-= the phone rebooted = hard stop for the leg (memory: S26 reboot at engine start).
+= the phone rebooted = hard stop for the leg.
 
   python3 s26_gate.py --backend cpu --tag s26_r3_cpu_cpu
 """

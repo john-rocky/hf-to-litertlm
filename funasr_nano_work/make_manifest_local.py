@@ -2,7 +2,7 @@
 """Run manifest/make_manifest.py for a model repo that is not on the Hub yet.
 
 make_manifest.py lists the repo's files through the HF API before it reads anything, also with --local-file (the
-tree request is unconditional). litert-community/Fun-ASR-Nano-2512 is created only after the user's GO, so that
+tree request is unconditional). litert-community/Fun-ASR-Nano-2512 is created only at release, so that
 request answers 401 today. This wrapper replaces only the file listing, and only when the Hub answers 401/404: the
 listing is then the set of --local-file names. Every derived value (sha256, size, sections, context length,
 capabilities) is still read out of the local bundle by make_manifest.py's own code. make_manifest.py is not edited.

@@ -10,8 +10,8 @@ Window file (never overwritten; a retake gets _take<N>): results/timing_mac_r4_<
 backend: cpu = XNNPACK 8 threads; gpu_fp32 = Metal, GpuOptions(enforce_f32=True); gpu_default = Metal default precision
 (fp16 activations; a lever data point: its answers are known to collapse, round 3).
 Per form, in this order inside the one window (the same-condition pair):
-  1. contention gate: `top -l 1 | head -5` and the 1-minute load average are recorded before every set (the launch's
-     record). The launch's rule "load above 8 = another lane's CPU job -> discard" cannot be met on 2026-10-08: with
+  1. contention gate: `top -l 1 | head -5` and the 1-minute load average are recorded before every set.
+     A load-average rule "load above 8 = another lane's CPU job -> discard" cannot be met on 2026-10-08: with
      no lane job running the load stays 20-40 at 68-73 % idle CPU (Spotlight, 50 sessions' wakeups; the first window,
      results/timing_mac_r4_cpu_L128.json, waited 240 s at 19.9-40.0). The gate that decides is the knowledge rule
      (no peer process above 120 % CPU) on the second sample of
@@ -25,12 +25,12 @@ Per form, in this order inside the one window (the same-condition pair):
      workload: 20 requests of its rows back to back). Per call: [wall clock ms at the start, ms of write + run + read
      back, ms of run only]. Every timed call's scores must be finite; the first timed call of each row is read out
      (host readout) and compared with the oracle (max |dp|) to show the timed graph answers the question.
-Workloads (FACTS §7 / launch fact 4; rows = ref/records_ref.json version 2, inputs = the gate's row_inputs):
+Workloads (rows = ref/records_ref.json version 2, inputs = the gate's row_inputs):
   L128  a  card_text/refund (47 tokens)                    b  card_text/refund + team + urgency (one request, 3 calls)
         e  img_dogs_01/count (P 84 + 32 = 116: its smallest bucket is L128)
         g  tv4_010/answer (84 tokens, the bucket's median row)
   L256  c  own_fiveq_09's 5 questions (132-148 tokens, one request, 5 calls)
-        e_L256  img_dogs_01/count at L256 (the bucket the launch named)
+        e_L256  img_dogs_01/count at L256
         f  aud_01/topic (P 121 + 63 = 184)              g  aud_reservation_01/topic (P 103 + 54 = 157, the median row)
   L512  g  tv4_009/answer (339)     L1024  g  tv4x_sciq_11/answer (371 = L512's longest row, padded; no natural row)
   L2048 g  own_long_log_10/resolved (1,672)
@@ -58,7 +58,7 @@ K = HERE.parent
 sys.path.insert(0, str(HERE))
 
 WARMUP, REPS = 5, 20
-LOAD_MAX, LOAD_WAIT_S, LOAD_POLL_S = 8.0, 300, 10   # LOAD_MAX = the launch's number, recorded against, not gated on
+LOAD_MAX, LOAD_WAIT_S, LOAD_POLL_S = 8.0, 300, 10   # LOAD_MAX = the load-average limit, recorded against, not gated on
 PEER_CPU_MAX, IDLE_MIN = 120.0, 50.0
 LOCK = os.path.expanduser("~/code/coreai/_GPU_LOCK")
 TMP = K / "out/r4_timing_tmp"
@@ -375,7 +375,7 @@ def window_main(a):
         st["load_after"] = {"load": load_avg(), "at": now()}
         spread = spread_check(child)
         if a.backend == "cpu" and child.get("status") == "OK" and spread["over"]:
-            # 12:2x: a CPU set whose median is more than 20 % above its min is taken once more in the same
+            # A CPU set whose median is more than 20 % above its min is taken once more in the same
             # window; if the retake is over too, both stay and both are reported
             st["first_attempt"] = {"result": child, "spread": spread}
             st["retake_gate"] = load_gate()

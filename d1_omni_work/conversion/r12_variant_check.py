@@ -1,4 +1,4 @@
-"""Round 12 (launch 2026-10-08-d1c-d1-omni-litert-opus-r12.md): the Mac gates and the Mac ms of the audio / vision
+"""Round 12: the Mac gates and the Mac ms of the audio / vision
 graph variants (scripts/audio_graph.py --variant f16safe | clast, scripts/vision_graph.py --variant f16safe), against
 the round 6 / 7 files and stores of the same backend and form and against the oracle (ref/records_ref.json v2).
 Runs in the exporter venv (lt094dev): ai-edge-litert 2.2.0 CompiledModel, numpy, torch (the host read-out).
@@ -18,7 +18,7 @@ audio: every clip of the buckets whose variant file exists, host float32 mel (ho
   (out/r7_runs/audio_<label>_<form>[_T3001].npz = the current file, same host mel: bit-equal or max |d|), vs the
   oracle's prefix (the 7 oracle clips), vs the provider's own prefix (the 5 s cut, the 27.2 s clip); end to end = the
   7 prefixes (T1001 + T2001) through out/d1omni_decide_L256_fp16.tflite on the CPU (8 threads) -> the host read-out
-  -> the 19 audio rows vs the oracle (litert_gate.compare, FACTS §7), with round 7's e2e of the current file beside it.
+  -> the 19 audio rows vs the oracle (litert_gate.compare), with round 7's e2e of the current file beside it.
 vision: the 13 crops of the 7 image records (host/d1_vision_host.tower_inputs): the variant tower and the current tower
   (the same form, the same backend, one process), the current projector of the same form; per crop the features of
   both towers (bit-equal / max |d| on the real patches), per record the prefix (variant tower -> host unshuffle ->

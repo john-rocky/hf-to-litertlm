@@ -12837,7 +12837,7 @@
     "median_abs_probability_error": 0.0002553197555243969,
     "rows_above_002": 0
   },
-  "acceptance": "Measurement completeness only; supervisor owns numerical decisions",
+  "acceptance": "Measurement completeness only; no numerical acceptance",
   "peak_rss_at_stage_end_bytes": 31542935552,
   "total_wall_seconds": 98.07924099999946,
   "process_report": "results/processes/r5_parity_fp16fc_i8emb_dynhead_cpu.json",

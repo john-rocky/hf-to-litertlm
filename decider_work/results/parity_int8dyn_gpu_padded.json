@@ -10028,7 +10028,7 @@
     "rows_above_002": 10,
     "lite_ties": 0
   },
-  "acceptance": "Measurement completeness only; supervisor owns numerical decisions",
+  "acceptance": "Measurement completeness only; no numerical acceptance",
   "peak_rss_at_stage_end_bytes": 50587582464,
   "total_wall_seconds": 127.90527333307546,
   "process_report": "results/processes/r5_parity_int8dyn_gpu_padded.json",

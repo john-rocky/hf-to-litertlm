@@ -1,5 +1,5 @@
-"""D1Decision: the d1-omni trunk + decision head as one static-L graph body (design 1-4, handoff
-2026-10-08-d1-omni-litert.md). Pure torch, no transformers: it imports in the reference venv and in the exporter venv.
+"""D1Decision: the d1-omni trunk + decision head as one static-L graph body.
+Pure torch, no transformers: it imports in the reference venv and in the exporter venv.
 
     forward(ids int32 [1, L], prefix f32 [1, L, 1024], media f32 [1, L], pad f32 [1, L], keep_right f32 [1, L],
             qtype_onehot f32 [1, 3]) -> {"scores": f32 [1, L]}

@@ -20,7 +20,7 @@ per fixture of the parity pass, the latency phase, and LiteRT's own INFO / VERBO
 --dump full: scores float32 [L] per fixture), logcat_all.txt (logcat -b all since the leg's device mark), samples.txt
 (the 2 s sampler), state_before / state_after.txt; the fixture manifest device/<round>/<fx>.manifest.json; the Mac CPU
 same-file scores device/<round>/mac/<graph>/model0/<id3>.f32 (scripts/npu_fixtures.py check).
-Parity (the gate rows of the fixture dir; bar = FACTS §7, as rounds 3-9): the K scores at P + markers -> the host
+Parity (the gate rows of the fixture dir; bar as in rounds 3-9): the K scores at P + markers -> the host
 read-out (scripts/s26_score.py readout = host/d1_host.py readout: / T for a text question, softmax, a noul reversed)
 -> vs the oracle (ref/records_ref.json version 2) with scripts/s26_score.py compare (argmax outside near-tie, near-tie
 apart, max / p95 / mean |dp|, max |dlogit|, crossings of 0.5 / 0.9, non-finite rows), the control row (red_arm_000 vs the
@@ -330,7 +330,7 @@ def score_leg(a) -> int:
                    "cutoff_crossings": st["cutoff_crossings"], "nonfinite_rows": len(st["nonfinite_rows"]),
                    "uniform_rows": len(uni), "collapse": bool(uni) and len(uni) == st["rows_compared"],
                    "red_arm_max_abs_dp": (ctl or {}).get("max_abs_dp"),
-                   # FACTS §7 (s26_score.compare's bar, rounds 3-9) + the runner's input order; a row whose K scores tie
+                   # s26_score.compare's bar (rounds 3-9) + the runner's input order; a row whose K scores tie
                    # (one near-tie row in fp16 storage) is reported, not failed; every row uniform = the collapse
                    "bar_pass": bool(st["bar_pass"]) and input_check["order_equal"] and input_check["elems_equal"]}
     doc = {
@@ -406,7 +406,7 @@ def score_generic_leg(a, rd, res_dir, tag, leg, so, stdout_text, logcat, pid, lp
     the 5 s cut and the 27.2 s clip; tower: the oracle's tower_last_hidden_state; projector: the record prefix vs the
     oracle's); the prefixes for the end to end -> <round dir>/<tag>.prefix.npz (a tower leg's features go through the host
     unshuffle and the Mac CPU projector fp16 file, as round 9's e2e of the Mac chain did). No bar in this file: the
-    PASS / FAIL of these graphs is the end to end (`npu_score.py e2e`, FACTS §7)."""
+    PASS / FAIL of these graphs is the end to end (`npu_score.py e2e`)."""
     import d1_vision_host as V
 
     kind = man["kind"]
@@ -544,7 +544,7 @@ def score_generic_leg(a, rd, res_dir, tag, leg, so, stdout_text, logcat, pid, lp
 def e2e_leg(a) -> int:
     """Round 12: the end to end of an audio / vision leg on the Mac: the phone's prefixes (<round dir>/<tag>.prefix.npz)
     through the fp16 text graph on the Mac CPU -> the host read-out -> vs the oracle (s26_score.py e2e9 = round 9's
-    scorer: audio L256, images the smallest of L256 .. L4096 that holds the row; FACTS §7)."""
+    scorer: audio L256, images the smallest of L256 .. L4096 that holds the row)."""
     from types import SimpleNamespace
 
     rd = Path(a.round_dir).resolve() if a.round_dir else K / "device" / a.round

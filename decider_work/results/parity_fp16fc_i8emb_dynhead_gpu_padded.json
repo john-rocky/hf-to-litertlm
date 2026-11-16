@@ -10026,7 +10026,7 @@
     "rows_above_002": 0,
     "lite_ties": 0
   },
-  "acceptance": "Measurement completeness only; supervisor owns numerical decisions",
+  "acceptance": "Measurement completeness only; no numerical acceptance",
   "peak_rss_at_stage_end_bytes": 61439770624,
   "total_wall_seconds": 112.31972616608255,
   "process_report": "results/processes/r5_parity_fp16fc_i8emb_dynhead_gpu_padded.json",
