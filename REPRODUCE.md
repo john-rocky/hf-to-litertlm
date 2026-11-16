@@ -339,6 +339,46 @@ bash tools/externalize/externalize_repo.sh litert-community/WeVisOne-VL-4B <file
 As in the 2026-11-09 section, compare a rebuilt file with the published one section by section (`python scripts/section_identity.py <published> <rebuilt>`), not by its sha256.
 
 
+## 2026-11-16 — metadata re-ship: a comment removed from the chat template, Spark-X2.6-1.7B (2 files, weights unchanged)
+
+The previous files (the ones at the Hub commit in the table) carried a Jinja comment at the top of the bundle's chat template. The re-ship removes that comment and changes nothing else. A Jinja comment renders nothing, so the template builds the same prompts. Every section other than the metadata keeps its bytes (tokenizer, graphs, weights); in the metadata only the chat template differs, by the removed comment. The header's format version stays 1.9.0 and the file sizes stay the same.
+
+`previous.litertlm` is each file at the Hub commit in the table. The commands unpack the bundle with the litert-lm CLI (`litert-lm` below), remove the comment from the unpacked metadata and pack the bundle again; the last line compares the two files section by section. The rebuild below ran with Python 3.13.13 and the litert-lm 0.19.1 CLI, a release that writes the previous files' header version (1.9.0). The block shows the int4-mlp file; the int8 file was built the same way, with its name in `F`, in a directory of its own. The published files are the output of these commands.
+
+```
+# from the root of a copy of this repo, with previous.litertlm = the file at the Hub commit in the table;
+# F = the file's name in the table; litert-lm = the litert-lm CLI that writes the previous file's header version:
+# 0.19.1 for the Spark-X2.6 files (1.9.0), 0.18.1 for the Spark-X2.5-4B files (1.7.0)
+F=Spark-X2.6-1.7B_int4-mlp.litertlm
+litert-lm unpack previous.litertlm --output-dir unpack
+python - <<'EOF'
+# drop the comment from the chat template (a Jinja comment renders nothing)
+import re
+p = "unpack/LlmMetadataProto.pbtext"
+s = open(p, encoding="utf-8").read()
+t, n = re.subn(r"\{#-.*?-#\}\\n", "", s, count=1, flags=re.S)
+assert n == 1
+open(p, "w", encoding="utf-8").write(t)
+EOF
+litert-lm pack unpack/model.toml --output "$F"
+python scripts/section_identity.py previous.litertlm "$F"
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| Spark-X2.6-1.7B | `Spark-X2.6-1.7B_int4-mlp.litertlm` | 1,705,918,464 | `c0ce1e9e80a7` | `08a12ac51f6d` |
+| Spark-X2.6-1.7B | `Spark-X2.6-1.7B_int8.litertlm` | 1,835,761,664 | `fae673b13e93` | `08a12ac51f6d` |
+
+Run as written a second time on 2026-11-16, in an empty directory with `scripts/section_identity.py` from a clean copy of this repo at commit `e945a06`, with the previous files downloaded at the commit in the table, the rebuild gave every bundle section byte-identical to the published files (sha256 per section). Only the bundle header differs, because `litert-lm pack` writes a new uuid and creation time, so the whole-file sha256 of a rebuild does not match the table.
+
+Checks of the files in the table against the previous files:
+- Sections (`scripts/section_identity.py`): the metadata section is 5,688 → 3,451 bytes and every other section is byte-identical (5 in the int4-mlp file, 3 in the int8 file). In the metadata every field other than the chat template is the same, and the previous template is the new template with the one comment (29 lines, 2,237 bytes) put back at its top.
+- Rendered by the runtime (litert-lm 0.19.2, Python API): 8 conversations (plain, a system message, a history, a system message inside the messages, thinking off, content given as parts, `reasoning_effort` low, no messages) come out as the same text and the same token ids with each file.
+- Rendered by Jinja2 3.1.6: the previous and the new template give the same output on 388 inputs (two Jinja2 environments, each over four conversation shapes, content as a string or as parts, the generation prompt on and off, thinking unset, on and off, and `reasoning_effort` unset, high, low and medium, plus an empty message list); 64 of the inputs raise, with the same error text for both templates.
+- CPU (XNNPACK, 1 thread, greedy decoding with top-k 1, litert-lm 0.19.2, Mac): the same replies, byte for byte, on 4 prompts with each file (a short question, a passage, a coding request and the passage twice; `--max-num-tokens` 1,024 for the first three and 2,048 for the last).
+- Older runtimes (the litert-lm 0.15.0 to 0.19.2 CLIs, 10 releases; one short question on the Mac CPU, 1 thread, top-k 1, `--max-num-tokens` 256): with every release the previous file answers with, the new file gives the same reply, byte for byte. The int8 file answers with all 10. The int4-mlp file answers with 9; with 0.15.0 neither the previous nor the new file's engine is created.
+- 8 short questions (each ends with "Answer briefly.") on a Pixel 11 Pro GPU (LiteRT-LM v0.19.0, `litert_lm_advanced_main`, thinking on): the expected word or number was in all 8 replies with each file in the table (the previous files were not asked in this run).
+
 ## 2026-10-12 — metadata re-ship to the official LiteRT-LM configuration, second batch (3 files, weights unchanged)
 
 Same recipe and script as the 2026-10-10 batch (`scripts/repack_official_metadata.sh`, official config at LiteRT-LM commit `4a363c0728d4461eaf05c4d87250ef3e90deb035`, byte-identical to main `03d3979f` on 2026-10-10). Every section other than LlmMetadata is byte-identical to the published file; `max_num_tokens` was left at the official 4096 because each original either set 4096 or left the field unset. Proposed as Hub pull requests (metadata only); until a PR merges, `main` serves the original.
@@ -1590,7 +1630,7 @@ What each step adds to the X2.5 recipe:
 
 Measured on these files (the model cards carry the full tables): GPU decode with the rewrite against the same file without it, Apple M4 Max: 1.7B int8 ×1.69, 4B int4 ×1.72; Galaxy S26 (Adreno): 1.7B int8 ×1.52; the CPU speed of the 1.7B int8 and 4B int4 files did not change measurably (the int4-mlp file's CPU speed was not compared). GSM8K (first 100, greedy, thinking on, 3,584 output tokens, KV 4,096): 1.7B int4-mlp 82, int8 80 (bf16 84); 4B int4 89 on the GPU, int8 93 on the GPU and 90 on the CPU (bf16 90). Every run used LiteRT-LM 0.19.0 (the macOS CLI and Python API, the PyPI Android wheel, and the nightly iOS build 0.19.0-20261029 for the 1.7B card's iPhone rows); earlier releases were not run with these files.
 
-Reproducibility, as run on 2026-10-31: both commands above ran end to end from a copy of this tree, from the vendor checkpoints at the pinned revisions (`hf download`) to the last step. Every section of the four files came out byte for byte as in the published files (section sha256: the LlmMetadata, tokenizer and TFLite sections, the embedder sections included); before the stop-order step the LlmMetadata section differed in the order of its stop entries alone. A whole-file hash does not match, because the file header carries a creation timestamp and a UUID that every pack writes anew; those header bytes (38 to 43 per file) are the only ones that differ. On 2026-11-15 the header comment of `templates/spark26_think.jinja` was shortened (it cited notes that are not in this repository), so a build from the current tree packs the shorter comment and its LlmMetadata section no longer matches the published files byte for byte. Outside the comment the template is byte-identical, and on 168 combinations of conversation, flags and `reasoning_effort` it gives the same output, or the same error for an unsupported `reasoning_effort`, in jinja2, transformers and minijinja; the build itself was not re-run.
+Reproducibility, as run on 2026-10-31: both commands above ran end to end from a copy of this tree, from the vendor checkpoints at the pinned revisions (`hf download`) to the last step. Every section of the four files came out byte for byte as in the published files (section sha256: the LlmMetadata, tokenizer and TFLite sections, the embedder sections included); before the stop-order step the LlmMetadata section differed in the order of its stop entries alone. A whole-file hash does not match, because the file header carries a creation timestamp and a UUID that every pack writes anew; those header bytes (38 to 43 per file) are the only ones that differ. On 2026-11-15 the header comment of `templates/spark26_think.jinja` was shortened (it cited notes that are not in this repository), so a build from the current tree packs the shorter comment and its LlmMetadata section no longer matches the published files byte for byte. Outside the comment the template is byte-identical, and on 168 combinations of conversation, flags and `reasoning_effort` it gives the same output, or the same error for an unsupported `reasoning_effort`, in jinja2, transformers and minijinja; the build itself was not re-run. On 2026-11-16 the comment was removed from the chat template of the two published Spark-X2.6-1.7B files (the [entry of 2026-11-16](#2026-11-16--metadata-re-ship-a-comment-removed-from-the-chat-template-spark-x26-17b-2-files-weights-unchanged)); `templates/spark26_think.jinja` keeps its header comment and, without it, is byte-identical to the template those two files carry.
 
 **4B int8 with a 2,048-token KV cache** (`Spark-X2.6-4B_int8-kv2048.litertlm`, for a CPU with `reasoning_effort` `low`), made from the 4B int8 file without a re-export:
 
