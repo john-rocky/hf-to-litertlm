@@ -196,7 +196,7 @@ def load_gate():
     return {"ok": True, "rule": f"no process outside this tree > {PEER_CPU_MAX:g} % CPU and idle >= {IDLE_MIN:g} % "
                                 f"(second top sample); load recorded, load-average limit {LOAD_MAX:g} not met today",
             "waited_s": round(time.time() - t0, 1), "polls": polls[-6:], "top_head": top_head(), "contention": c,
-            "lock": lock_line(), "at": now(), "load_at_start": la, "load_above_launch_threshold": la[0] > LOAD_MAX}
+            "lock": lock_line(), "at": now(), "load_at_start": la, "load_above_limit": la[0] > LOAD_MAX}
 
 
 # ---------------------------------------------------------------- child

@@ -23,8 +23,8 @@ spec = importlib.util.spec_from_file_location("score_r2", Path(__file__).resolve
 SR = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(SR)
 SA = SR.SA
-LAUNCH_TOL = {"box": 0.10, "count": 0.10, "point": 0.10}
-LAUNCH_CER = 0.05
+DEFAULT_TOL = {"box": 0.10, "count": 0.10, "point": 0.10}
+DEFAULT_CER = 0.05
 
 
 def rates(s):
@@ -33,17 +33,17 @@ def rates(s):
 
 def bars_from_jitter(j):
     bars, why = {}, {}
-    for k, tol in LAUNCH_TOL.items():
+    for k, tol in DEFAULT_TOL.items():
         d = 1.0 - j[k] if j[k] is not None else 0.0
         if d > tol:
             bars[k], why[k] = 1.0 - 2 * d, f"bf16 mismatch {d:.4f} > {tol} -> tolerance 2d = {2 * d:.4f}"
         else:
             bars[k], why[k] = 1.0 - tol, f"bf16 mismatch {d:.4f} <= {tol} -> default bar"
     c = j["cer"] or 0.0
-    if c > LAUNCH_CER:
-        bars["cer"], why["cer"] = 2 * c, f"bf16 CER {c:.4f} > {LAUNCH_CER} -> 2 x = {2 * c:.4f}"
+    if c > DEFAULT_CER:
+        bars["cer"], why["cer"] = 2 * c, f"bf16 CER {c:.4f} > {DEFAULT_CER} -> 2 x = {2 * c:.4f}"
     else:
-        bars["cer"], why["cer"] = LAUNCH_CER, f"bf16 CER {c:.4f} <= {LAUNCH_CER} -> default bar"
+        bars["cer"], why["cer"] = DEFAULT_CER, f"bf16 CER {c:.4f} <= {DEFAULT_CER} -> default bar"
     return bars, why
 
 
@@ -86,7 +86,7 @@ def main():
     jit, _ = SA.pair_table(a.jitter, a.ref, rows)
     j = rates(jit)
     bars_bf16, why = bars_from_jitter(j)
-    bars_orig = {"box": 0.90, "count": 0.90, "point": 0.90, "cer": LAUNCH_CER}
+    bars_orig = {"box": 0.90, "count": 0.90, "point": 0.90, "cer": DEFAULT_CER}
     labels = a.labels.split(",") if a.labels else sorted(
         p.name for p in (K / "r2" / "suite").iterdir()
         if p.is_dir() and (p.name.startswith("768_") == (a.ref == "F")))    # 768 suites are judged against F only

@@ -1,7 +1,10 @@
 """Step 5: D1Decision (scripts/d1_graph.py) against the provider's encoder.Trunk + encoder.DecisionHead, both holding
 the same random weights, eval, no_grad, CPU fp32 -> results/eager_random_check.json
 
-    venv-ref/bin/python scripts/eager_check.py
+    D1_OMNI_HEADER_JSON=<header.json> venv-ref/bin/python scripts/eager_check.py
+
+<header.json> is the JSON header of the checkpoint's model.safetensors (tensor names, dtypes and shapes, no weights);
+the module's keys are mapped against it. Without it the run stops at the start.
 
 Weights: torch.manual_seed(0), the provider's own init, then every norm weight drawn as 1 + 0.1 N(0, 1) and every bias
 as 0.02 N(0, 1) (generator seed 1), so a mis-mapped norm or bias shows up; loaded into D1Decision through
@@ -19,6 +22,7 @@ against the provider's oracle (ref/records_ref.json, round 2 step 2) on every ro
 """
 import ast
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -32,7 +36,7 @@ import d1_src as S
 
 L = 64
 BAR = 1e-5
-HEADER = Path.home() / "code/standup/handoffs/assets/2026-10-08-d1/source/d1-omni-600m_safetensors_header.json"
+HEADER_ENV = "D1_OMNI_HEADER_JSON"   # names the checkpoint's safetensors header as JSON (see header_path())
 CASES = {  # name: (prefix length, text length, state / instruction / option random-token counts)
     "a_text40_pad24": (0, 40, (10, 8, 3)),
     "b_prefix16_text36_pad12": (16, 36, (8, 6, 3)),
@@ -132,9 +136,20 @@ class OpAudit(TorchFunctionMode):
         return out
 
 
-def header_keymap(model):
+def header_path():
+    """The file named by D1_OMNI_HEADER_JSON; stops with the file's name when the variable is not set or the file is
+    not there."""
+    value = os.environ.get(HEADER_ENV)
+    path = Path(value).expanduser() if value else None
+    if path is None or not path.is_file():
+        raise SystemExit(f"set {HEADER_ENV} to the JSON header of the checkpoint's model.safetensors "
+                         "(d1-omni-600m_safetensors_header.json)" + (f"; not a file: {path}" if path else ""))
+    return path
+
+
+def header_keymap(model, header):
     """Map the real checkpoint's header (names + shapes, no weights) through KEY_RULES onto the module."""
-    hdr = json.loads(HEADER.read_text())
+    hdr = json.loads(header.read_text())
     ours = {k: list(v.shape) for k, v in model.state_dict().items()}
     mapped, unmatched, ignored, mismatch = {}, [], 0, []
     for key, meta in hdr.items():
@@ -151,7 +166,7 @@ def header_keymap(model):
                 if ours.get(ok) != shape:
                     mismatch.append({"key": ok, "header_derived": shape, "module": ours.get(ok)})
     missing = sorted(set(ours) - set(mapped))
-    return {"header": str(HEADER), "header_tensors": len(hdr) - ("__metadata__" in hdr),
+    return {"header": str(header), "header_tensors": len(hdr) - ("__metadata__" in hdr),
             "encoder_head_tensors": sum(1 for k in hdr if k.startswith(("encoder.", "head."))),
             "module_parameters": len(ours), "mapped_module_parameters": len(mapped), "unmatched": unmatched,
             "ignored_vision_audio": ignored, "shape_mismatch": mismatch, "module_params_not_covered": missing,
@@ -159,6 +174,7 @@ def header_keymap(model):
 
 
 def main():
+    header = header_path()
     t0 = time.time()
     torch.manual_seed(0)
     PE = S.provider_encoder()
@@ -269,7 +285,7 @@ def main():
                        "rank_by_op": dict(sorted(audit.rank_by_op.items())),
                        "banned_ops_seen": sorted(audit.names & banned),
                        "pass": audit.max_rank <= 4 and not (audit.names & banned)}
-    out["checkpoint_header_keymap"] = header_keymap(ours)
+    out["checkpoint_header_keymap"] = header_keymap(ours, header)
 
     # ---- verdicts
     def worst(ref):
