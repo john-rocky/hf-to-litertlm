@@ -19,8 +19,7 @@ library_name: litert-lm
 
 [mistralai/Ministral-3-3B-Reasoning-2512](https://huggingface.co/mistralai/Ministral-3-3B-Reasoning-2512)
 converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with
-Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the
-engine behind the official `litert-community/*` models).
+Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 Text-only conversion (the Ministral-3 text decoder; the Pixtral vision tower is dropped).
 
@@ -90,7 +89,7 @@ falsely penalises it):
 90.7% is a strong on-device GSM8K for a 3B, and *above* the same-family
 [Ministral-3-3B-Instruct LiteRT build](https://huggingface.co/litert-community/Ministral-3-3B-Instruct-2512)
 (85%) — the reasoning traces help. No reasoning collapse, non-degenerate; the model
-also passes the local quality gate **8/8** with a clean stop at `</s>`. Blockwise-32 +
+also passes the local quality check **8/8** with a clean stop at `</s>`. Blockwise-32 +
 OCTAV optimal-clipping (data-free) is what preserves the accuracy versus a naive
 min-max int4.
 

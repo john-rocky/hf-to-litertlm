@@ -18,8 +18,7 @@ library_name: litert-lm
 
 [POLARIS-Project/Polaris-4B-Preview](https://huggingface.co/POLARIS-Project/Polaris-4B-Preview)
 converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with Google's
-[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine behind the
-official `litert-community/*` models).
+[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 Polaris-4B is an **RL post-trained reasoning model** built on Qwen3-4B (standard dense
 `qwen3`, Apache-2.0). It is tuned for hard competition math and works the problem inside a
@@ -71,7 +70,7 @@ Measured on GSM8K (n=50, greedy, 0-shot chain-of-thought, **max-tokens 2048**):
 |---|---|
 | **This model — LiteRT int4 (block128 + OCTAV)** | **82.0%** |
 
-Non-degenerate, passes the local quality gate **8/8** with a clean stop at `<|im_end|>`.
+Non-degenerate, passes the local quality check **8/8** with a clean stop at `<|im_end|>`.
 GSM8K undersells this model — it is tuned for AIME-level problems, and on easy arithmetic its
 long exploratory reasoning is not where its edge shows. **block128** is used (rather than
 block32) because a 4B reasoning model's block32 weights can corrupt on the iPhone Metal GPU;

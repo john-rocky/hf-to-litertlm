@@ -17,8 +17,7 @@ library_name: litert-lm
 
 [allenai/OLMo-2-0425-1B-Instruct](https://huggingface.co/allenai/OLMo-2-0425-1B-Instruct)
 converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with
-Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the
-engine behind the official `litert-community/*` models).
+Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 OLMo-2 is AllenAI's **fully-open** model family (Apache-2.0; open weights, data,
 and training code). This 1B variant is small enough to run on a phone — verified on

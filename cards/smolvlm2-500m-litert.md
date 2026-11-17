@@ -51,8 +51,8 @@ GPU-delegate trait shared across `fast_vlm` models; CPU handles multi-image.)
 
 ## Run on iPhone / macOS
 
-Use the LiteRT-LM Swift runtime ([swift-litert-lm](https://github.com/google-ai-edge/litert-lm) /
-the `LiteRTDemo` sample). Load `SmolVLM2-500M.litertlm` with the **vision tower enabled**
+Use [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm), a community Swift package over the LiteRT-LM runtime,
+and its `LiteRTDemo` sample. Load `SmolVLM2-500M.litertlm` with the **vision tower enabled**
 (modalities `Modality.textImage` / `[.vision]` — vision-only bundle, no audio tower), attach a photo,
 ask a question.
 

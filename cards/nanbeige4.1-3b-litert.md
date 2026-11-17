@@ -17,10 +17,9 @@ library_name: litert-lm
 
 [Nanbeige/Nanbeige4.1-3B](https://huggingface.co/Nanbeige/Nanbeige4.1-3B) converted to the
 **LiteRT-LM** (`.litertlm`) format for on-device inference with Google's
-[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine behind the
-official `litert-community/*` models).
+[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
-Nanbeige4.1-3B is a fresh (Dec 2025) **phone-size reasoning** model on a plain dense
+Nanbeige4.1-3B is a **phone-size reasoning** model on a plain dense
 Llama architecture (Apache-2.0), reported to be competitive with much larger models. It
 works the problem inside a `<think>…</think>` block before giving the final answer.
 
@@ -65,7 +64,7 @@ reasoning model needs the budget to finish; scoring it at 512 tokens falsely pen
 | **This model — LiteRT int4 (block32 + OCTAV)** | **84.0%** |
 
 84% is a strong on-device GSM8K for a 3B, non-degenerate; the model also passes the local
-quality gate **8/8** with a clean stop at `<|im_end|>`. Blockwise-32 + OCTAV optimal-clipping
+quality check **8/8** with a clean stop at `<|im_end|>`. Blockwise-32 + OCTAV optimal-clipping
 (data-free) preserves the accuracy versus a naive min-max int4.
 
 ## Conversion

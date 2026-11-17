@@ -20,8 +20,7 @@ library_name: litert-lm
 
 [Menlo/Jan-nano](https://huggingface.co/Menlo/Jan-nano) converted to the **LiteRT-LM**
 (`.litertlm`) format for on-device inference with Google's
-[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine behind the
-official `litert-community/*` models).
+[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 Jan-nano is a 4B **deep-research agent** fine-tuned from **Qwen3-4B** (`Qwen3ForCausalLM`)
 with a multi-stage RLVR recipe, optimized for tool use via the Model Context Protocol (MCP).

@@ -19,8 +19,7 @@ library_name: litert-lm
 
 [microsoft/FastContext-1.0-4B-SFT](https://huggingface.co/microsoft/FastContext-1.0-4B-SFT)
 converted to the **LiteRT-LM** (`.litertlm`) format for on-device inference with
-Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine
-behind the official `litert-community/*` models).
+Google's [LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime.
 
 FastContext is a lightweight **repository-exploration sub-agent** for coding agents —
 it specializes in repo discovery and evidence gathering via parallel tool calls
@@ -105,7 +104,7 @@ The block-32 build is at **full parity (−0 pt vs bf16)** — the OCTAV + block
 recipe leaves int4 indistinguishable from bf16 here. (FastContext is a tool-calling
 agent, not a math model, so GSM8K is an *indirect* capability measure; the bf16-vs-int4
 delta is nonetheless the correct test for "did int4 quantization degrade the model" —
-and at block 32 it did not.) Passes the local quality gate 8/8 (no degeneracy).
+and at block 32 it did not.) Passes the local quality check 8/8 (no degeneracy).
 
 > **Identity:** asked "what is your name?", the model answers "I am Qwen…". FastContext
 > is fine-tuned from Qwen3-4B-Instruct and the SFT does not override the base identity —

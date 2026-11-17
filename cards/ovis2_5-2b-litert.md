@@ -18,8 +18,8 @@ library_name: litert-lm
 
 [AIDC-AI/Ovis2.5-2B](https://huggingface.co/AIDC-AI/Ovis2.5-2B) converted to the **LiteRT-LM**
 (`.litertlm`) format for **on-device image+text** inference with Google's
-[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine behind the official
-`litert-community/*` models, and the same runtime that runs `litert-community/FastVLM-0.5B`).
+[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the same runtime
+that runs `litert-community/FastVLM-0.5B`).
 
 Ovis2.5 is a **SOTA-for-size vision-language model** (OpenCompass ~73.9 for the 2B) with a distinctive
 **structural-embedding** vision path: a **Siglip2 NaViT** encoder feeds a *visual tokenizer* that turns

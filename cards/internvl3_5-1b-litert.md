@@ -19,8 +19,8 @@ library_name: litert-lm
 
 [OpenGVLab/InternVL3_5-1B](https://huggingface.co/OpenGVLab/InternVL3_5-1B) converted to the
 **LiteRT-LM** (`.litertlm`) format for **on-device image+text** inference with Google's
-[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the engine behind the official
-`litert-community/*` models, and the same runtime that runs `litert-community/FastVLM-0.5B`).
+[LiteRT-LM](https://github.com/google-ai-edge/litert-lm) runtime (the same runtime
+that runs `litert-community/FastVLM-0.5B`).
 
 InternVL3.5-1B is a compact **vision-language model**: an **InternViT** vision encoder + pixel-shuffle +
 MLP projector feeding a **Qwen3-0.6B** language decoder (the newer Qwen3 backbone is what distinguishes
