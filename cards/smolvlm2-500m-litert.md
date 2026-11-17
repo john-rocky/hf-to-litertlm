@@ -84,7 +84,7 @@ Run this model **with image input** in the official
 - 2026-11-14: the prefill/decode graph was rewritten into the form litert-torch writes with
   `--apply_gpu_composites` (`odml.cache_update`, `odml.runtime_bmm`), and a `prefill_1024` signature copied from
   `prefill_512` was added; every weight buffer is unchanged. Steps and checks:
-  [REPRODUCE.md](../REPRODUCE.md#2026-11-14--gpu-graph-re-ship-2-files-weights-unchanged).
+  [REPRODUCE.md](../REPRODUCE.md#2026-11-14--gpu-graph-update-2-files-weights-unchanged).
 
 ## License
 
