@@ -21,8 +21,8 @@ is emptied once no tensor names it. Operator versions are not changed (ai-edge-q
 Layout: a source without external buffers is written with every buffer inline, as gpu_graph_retrofit.py writes one. A
 source with external buffers (Buffer.offset/size) gets a new external region: every external buffer the source keeps
 (named by a tensor or not), and each INT8 buffer that replaces an external FLOAT16 one, in buffer order, each at a
-multiple of the source's own external alignment (the largest power of two up to 16384 that divides every source
-offset), the region starting at a multiple of 16384 after the structure.
+multiple of the external alignment (the largest power of two up to 16384 that divides the source offset of every
+external buffer it keeps, or 64 when it keeps none), the region starting at a multiple of 16384 after the structure.
 
 Output: one JSON line on stdout (sites, unique weights, bytes, the quantization error, the layout, both files' sha256),
 also written to --json. --dry-run quantizes and prints the line without writing OUT. --describe IN prints one JSON line
