@@ -12,7 +12,7 @@ LiteRT 2.3.0's CPU accelerator can run a graph in float16 arithmetic on an ARM p
 
 Check the result in XNNPACK's profile (every kernel's datatype tag F16 — here `PF16`, `X16`, `F16`, none `F32` — in one XNNPACK partition; on the phone the delegate line read `Replacing 4090 out of 4093 node(s) … yielding 2 partitions`, the three cache concatenations at the graph's end staying on LiteRT's own kernel) and with a parity run.
 
-On the rewritten conformer (float16 weights behind DEQUANTIZE, the int8 decoder on the CPU) the flag roughly halved the chunk time, one short run each: 53.072 ms with the flag against 107.648 ms without on a Galaxy S26 (6 threads, both runs in one sitting) and 84.038 against 176.418 ms on a Pixel 11 Pro (4 threads, the two runs in separate sittings, so the Pixel pair is indicative only).
+On the rewritten conformer (float16 weights behind DEQUANTIZE, the int8 decoder on the CPU) the flag roughly halved the chunk time, one short run each: 53.072 ms with the flag against 107.648 ms without on a Galaxy S26 (6 threads, both runs in one session) and 84.038 against 176.418 ms on a Pixel 11 Pro (4 threads, the two runs in separate sessions, so the Pixel pair is indicative only).
 
 **Check across processes.** Multi-threaded XNNPACK arithmetic can differ from one process to the next (float32 at 4 threads: the encoder outputs of two processes of the same graph and input differed by up to 5.6e-4; with run-time int8 activations one FLEURS Japanese utterance came out empty in one of two processes). Score the hardest set in three fresh processes before calling a form stable; here FLEURS Japanese under flags 7 gave CER 12.355 in each of three.
 

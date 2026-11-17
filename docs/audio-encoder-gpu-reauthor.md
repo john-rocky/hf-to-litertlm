@@ -9,4 +9,4 @@ The stock export of granite-speech-5.0-2b's audio encoder (log-mel front end, a 
 5. 0/1 masks applied by MUL instead of SELECT_V2; the Q-Former's learned queries are constants, so their projections are computed once.
 6. The window: a multiple of the attention block (200 frames), the Q-Former window (15 frames) and the shrink (10). The encoder does ceil(L / W) · W of work per clip; a 24 s window beats 36 s on clips up to 24 s.
 
-Measured: one 24 s window takes 114 ms on the Mac's Metal against 476 ms on XNNPACK at 4 threads; on a Galaxy S26 the 9.9 s clip's first text is 1.21 s with the LM on the GPU (`granite-speech-5.0-2b_ekv2048.litertlm`). The transcripts pass the 220-clip host gate and the 38-clip phone gates.
+Measured: one 24 s window takes 114 ms on the Mac's Metal against 476 ms on XNNPACK at 4 threads; on a Galaxy S26 the 9.9 s clip's first text is 1.21 s with the LM on the GPU (`granite-speech-5.0-2b_ekv2048.litertlm`). The transcripts pass the 220-clip host check and the 38-clip phone checks.
