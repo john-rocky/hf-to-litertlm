@@ -821,6 +821,29 @@ On a Pixel 11 Pro GPU (same build and workload) four runs in the same order gave
 
 On the Galaxy S26 CPU (XNNPACK, the runtime's default of 4 threads) four runs went previous, new, new, previous after one warm-up run of the new file; each started without a CPU clock cap; the phone began to lower the caps of its two CPU clock domains 2–4 s into each run, and they reached 1.56 / 1.50 GHz by 36–43 s in (the warm-up and the first run) or 1.79 / 1.75 GHz by 24–27 s in (the others). The new file's medians were above the previous file's in each iteration (prefill 10.8 %, 11.1 % and 0.5 % above, decode 2.4 %, 3.6 % and 4.6 % above, in iterations 1–3), but the previous file's two runs differ by 25.5 % in iteration 1 prefill (399.03 and 500.76 tok/s), and in the last pair alone the new file prefilled ×1.009 and decoded ×0.996 as fast in iteration 1. The new file's peak memory on the Galaxy S26 CPU (`VmHWM`) was 4.20 GB in both runs, the previous file's 4.36 GB.
 
+## 2026-11-17 — PaddleOCR-VL-1.6: a second file with int8 decoder weights
+
+`PaddleOCR-VL-1.6_decoder_int8.litertlm` ("the published file") is the second file of litert-community/PaddleOCR-VL-1.6. It is `PaddleOCR-VL-1.6.litertlm` ("the main file", the file in the table of the [2026-11-15 entry](#2026-11-15--gpu-graph-update-paddleocr-vl-16-weights-unchanged)) with only the weights of the text decoder's 127 linear layers (seven in each of the 18 layers and the output head) in int8 per output channel. Every other section is the main file's, byte for byte, and the published file is 350 MB smaller. It is not the integer-compute int8 export of July 2026 that the [Vision-language models section](#vision-language-models-fast_vlm) mentions.
+
+The decoder's weights sit inside the prefill/decode graph. In the main file each of the 127 weights is an fp16 constant that a `DEQUANTIZE` op turns to float. `tools/gpu_graph/fc_int8.py --form drq` writes each as an int8 tensor that the fully connected op reads directly, quantized per output channel with zero point 0: the scale of a channel is its largest absolute weight divided by 127, each weight goes to the nearest step, and no weight was clipped. The relative RMS error of the int8 weights against the fp16 values is 1.27 %. The graph goes from 725,540,096 to 375,345,152 bytes. `tools/gpu_graph/litertlm_section_swap.py` then writes the bundle with only that section replaced.
+
+The commands run from the root of a copy of this repo. `PaddleOCR-VL-1.6.litertlm` is the main file at the Hub commit in the table, and `published/PaddleOCR-VL-1.6_decoder_int8.litertlm` is the published file, downloaded for the last command. The environment is Python 3.14 with `ai-edge-litert` 2.2.0, `litert-lm-builder` 0.19.0, `numpy`, `flatbuffers` and `protobuf`, and the litert-lm 0.19.1 CLI for `unpack`. `litertlm_section_swap.py` needs litert-lm-builder 0.19.0: under 0.16.1 it stops with a TypeError.
+
+```
+litert-lm unpack PaddleOCR-VL-1.6.litertlm --output-dir unpack
+python tools/gpu_graph/fc_int8.py unpack/Section3_TFLiteModel_tf_lite_prefill_decode.tflite pd_int8.tflite --form drq --json fc.json
+python tools/gpu_graph/litertlm_section_swap.py PaddleOCR-VL-1.6.litertlm PaddleOCR-VL-1.6_decoder_int8.litertlm --section tf_lite_prefill_decode=pd_int8.tflite --json swap.json
+python scripts/section_identity.py published/PaddleOCR-VL-1.6_decoder_int8.litertlm PaddleOCR-VL-1.6_decoder_int8.litertlm
+```
+
+| Repo (`litert-community/…`) | File | Size (bytes) | sha256 (first 12) | Built from Hub commit |
+|---|---|---:|---|---|
+| PaddleOCR-VL-1.6 | `PaddleOCR-VL-1.6_decoder_int8.litertlm` | 1,040,351,232 | `5d415de3dea5` | `a15a0903baf0` |
+
+The last command compares the published file with the rebuild, by the sha256 of each section. Every bundle section of the rebuild is byte-identical to the published file's. Only the bundle header differs, because `litertlm_section_swap.py` writes a new uuid and creation time, so the whole-file sha256 of the rebuild does not match the table. With `--ids-from published/PaddleOCR-VL-1.6_decoder_int8.litertlm` added to the third command, the rebuild is the published file byte for byte.
+
+The published file was made by a longer path. It started from the previous file of the 2026-11-15 entry (Hub commit `ab87bee999a1`): that file's prefill/decode graph was rewritten as in that entry, `fc_int8.py --form drq` ran on the rewritten graph, and the int8 graph was swapped into the previous file. The main file already carries the rewritten graph, and its other seven sections are byte-identical to the previous file's, so the commands above give the same sections.
+
 ## 2026-11-16 — GPU graph update: North-Micro-Vision-Instruct int4 (weights unchanged)
 
 The previous file (the one at the Hub commit in the table) wrote the KV cache with two DYNAMIC_UPDATE_SLICE ops per layer and ran attention with BATCH_MATMUL. The update rewrites only its prefill/decode graph into the form litert-torch's `--apply_gpu_composites` produces, as in the [first entry of 2026-11-14](#2026-11-14--gpu-graph-update-2-files-weights-unchanged): one `odml.cache_update` composite per layer, `odml.runtime_bmm` composites for the attention products (112 `odml.cache_update` and 218 `odml.runtime_bmm` composites over the 4 signatures), a `param_tensor` signature input, and the attention mask added to the attention logits by broadcast (the `--mask add_bcast` mode of `tools/gpu_graph/gpu_graph_retrofit.py`; `dory_work/retrofit_gpu.py`, the wrapper the commands below call, accepts no other mode; the first entry of 2026-11-14 says why). The model's graph adds a sliding-window band to the mask input with one ADD before the group CONCATENATION, where `tools/gpu_graph/gpu_graph_retrofit.py` alone stops ("mask consumer op 7 (ADD) is not CONCATENATION(mask x g, axis 2)"), so the graph goes through `dory_work/retrofit_gpu.py`, as in the [Spark-X2.5-1.7B entry of 2026-11-15](#2026-11-15--gpu-graph-update-spark-x25-17b-2-files-weights-unchanged). The previous file already has prefill signatures of 128, 512 and 1,024 tokens; the new file keeps them. `North-Micro-Vision-Instruct_wi8.litertlm` in the same repo did not change.
@@ -1275,7 +1298,7 @@ bundle). Details per model in `cards/<name>-litert.md`.
 | `mage-vl-cowork` | **static 1920×1088, 255-row attention chunks** (2,040 tok) | Qwen3-4B **int4-b128**, cache 4096, fp16-exact rotary | `ship_mage_vl_cowork.sh` |
 | `north-micro-vision` | **static-512, deepstack folded, no GATHER_ND** (256 tok) | Cohere2-rehost 2B **int8** + in-bundle `fp32_fp16` hint | `ship_northmv.sh` |
 | `ovis2.5-2b` | **static-NaViT-512** (256 tok) | Qwen3-1.7B | `ship_ovis_2b.sh` |
-| `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — int4/int8 corrupt OCR) | `ship_paddleocr_vl.sh` |
+| `paddleocr-vl-1.6` | **static-NaViT-560** (400 tok) | ERNIE-4.5-0.3B (**fp16** — a July 2026 int4 export and an integer-compute int8 export were recorded as corrupting transcription; the [2026-11-17 int8 file](#2026-11-17--paddleocr-vl-16-a-second-file-with-int8-decoder-weights) is a different form) | `ship_paddleocr_vl.sh` |
 | `qwen2-vl-2b` | **static-672, no GATHER_ND** (576 tok) | Qwen2-1.5B int4 | `ship_qwen2vl_2b.sh` |
 | `smolvlm2-500m` / `-2.2b` | SigLIP + pixel-shuffle | SmolLM2 / SmolLM2-1.7B | `ship_smolvlm2{,_22b}.sh` |
 | `wevisone-vl-2b` | **static-512, DeepStack kept in an 8,196-wide embedding + image flag, no GATHER_ND** (256 tok) | the Qwen3-VL 2B text decoder, **fp16** weights, M-RoPE derived in the graph | `ship_wevisone.sh` |
@@ -1338,8 +1361,10 @@ top generative Qwen2-VL-2B derivative). Two findings, one of them a blocker:
 `paddleocr-vl-1.6` is the OCR/document-parsing specialist (task prompts `OCR:` / `Table Recognition:` /
 `Formula Recognition:` / …). Two conversion gotchas are baked into its scripts: transformers ≥5.12 loads
 remote-code rotary modules with a ZEROED non-persistent `inv_freq` (fix: `rope_init()` after load — and
-validate against the native `paddleocr_vl` port, not the remote code), and its 0.36B decoder must ship
-fp16 (`RECIPE=WF16`): int4 and dynamic-int8 both measurably corrupt transcription.
+validate against the native `paddleocr_vl` port, not the remote code), and its 0.36B decoder is exported
+fp16 (`RECIPE=WF16`): an int4 export and an integer-compute int8 export (`dynamic_wi8_afp32`) of July 2026
+were recorded as corrupting transcription. The int8 file of 2026-11-17 is a different form (the fp16 graph
+with only the decoder's linear-layer weights in int8): [its entry](#2026-11-17--paddleocr-vl-16-a-second-file-with-int8-decoder-weights).
 
 VLM quality is checked on vision end-to-end corr (≈1.0 fp32) + eager image grounding, not the 8-question
 text check (image input is device-only on this toolchain). `internvl3-2b` has a card but is reproduced by
