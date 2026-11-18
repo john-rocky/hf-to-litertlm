@@ -2749,7 +2749,7 @@ The small `qwen35_export_compat.patch` adds the position-mask fallback missing
 from this repository’s older Qwen3.5 patch; hashes verify that all seven patched files
 match the measured export source.
 
-The [directory instructions](agents_a1_work/README.md#gates-in-order) give the
+The [directory instructions](agents_a1_work/README.md#checks-in-order) give the
 complete matrix of eight configurations, both length ranges, thinking/conversation/tools
 tests and the ordered GSM8K A/B commands. Every runtime request uses a fresh
 process, closed stdin, greedy sampling and seed 0; the multi-turn API test
@@ -4278,7 +4278,7 @@ PYTHONPATH=out/pyoverlay_builder017 python speed/scripts/pack_r5.py --src out/r5
 python speed/scripts/parity_r3.py --hyp speed/r5/rt_F6_cpu.jsonl --out speed/r5/parity_F6_cpu.json   # FLEURS en 4.35 / zh 6.19 / ja 5.84 (GPU fp16: 4.44 / 6.24 / 5.21)
 ```
 
-Speed rows (response = audio encoder + prefill + decode, the 6.4 s English demo clip, warm): Mac M4 Max GPU 0.341 s / CPU 0.847 s (litert-lm-api 0.18.0), Galaxy S26 GPU 1.40–1.51 s / CPU 1.55 s, Pixel 8a GPU 5.03–6.33 s / CPU 5.10 s (v0.18.0 prebuilt CLI); the 30 s file on the same days 0.538 / 1.191, 2.11–2.81 / 2.11, 9.86–9.98 / 8.39 s. Other forms were tried (int4 LM = parity FAIL, encoder int8 = runtime refusal unless the log-mel stays float, KV 512 = GPU parity FAIL on Japanese, prefill buckets on the 30 s window); the full record of them is not in this repository.
+Speed rows (response = audio encoder + prefill + decode, the 6.4 s English demo clip, warm): Mac M4 Max GPU 0.341 s / CPU 0.847 s (litert-lm-api 0.18.0), Galaxy S26 GPU 1.40–1.51 s / CPU 1.55 s, Pixel 8a GPU 5.03–6.33 s / CPU 5.10 s (v0.18.0 prebuilt CLI); the 30 s file on the same days 0.538 / 1.191, 2.11–2.81 / 2.11, 9.86–9.98 / 8.39 s. Other forms were tried (int4 LM = parity FAIL, encoder int8 = runtime refusal unless the log-mel stays float, KV 512 = GPU parity FAIL on Japanese, prefill buckets on the 30 s window).
 
 ## Kev-0.8B and Kev-4B (jaredpalmer) — decision models that never generate text, as raw LiteRT graphs: row graphs at six lengths and shared-state pairs; Kev-0.8B on the Galaxy S26 GPU and, up to 256 tokens, on its NPU (2026-10-05)
 

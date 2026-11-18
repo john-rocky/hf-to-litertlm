@@ -141,7 +141,7 @@ The four cases without tools (a plain user message, thinking off, content parts,
 must pass. The two tool cases (a tool list, a tool-call conversation) may differ only in JSON serialization inside the tool
 JSON payloads; literal diffs are saved. The recorded run met that tolerance.
 
-## Gates, in order
+## Checks, in order
 
 First download the fixed GSM8K test set and check float CPU logits. No HF
 `generate()` is used here; if adding one, pass `eos_token_id=[248044, 248046]`.
