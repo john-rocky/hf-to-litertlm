@@ -284,7 +284,7 @@ void main() {
     expect(m.declaredChannels[1].name, 'tool_call');
     expect(m.declaredChannels[0].isReasoning, isTrue);
     // "absent" is checked on an inline manifest: the fixtures are real shipped manifests and may
-    // declare channels (LFM2.5-1.2B-Instruct does since its 0.1.2 re-ship on 2026-09-05).
+    // declare channels (LFM2.5-1.2B-Instruct does since its 0.1.2 update on 2026-09-05).
     final bare = LitertlmManifest.fromJson({
       'manifest_schema': '0.1.0',
       'repo': 'test/no-channels',

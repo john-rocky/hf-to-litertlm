@@ -1,8 +1,8 @@
-"""Strongest pre-ship check: run the EXACT shipped int8 vision tflites (encoder+adapter)
+"""Strongest pre-release check: run the EXACT shipped int8 vision tflites (encoder+adapter)
 on a real image, splice the 256 embeddings into a ChatML prompt, and generate with the
 Ovis Qwen3 decoder. Confirms the deployed int8 path (not just fp32) stays grounded.
 
-    ~/clipconv/bin/python ovis_work/eager_validate_ovis_int8.py [image] [question]
+    /path/to/python ovis_work/eager_validate_ovis_int8.py [image] [question]
 """
 import sys, numpy as np, torch
 import transformers.modeling_utils as _mu

@@ -16,7 +16,7 @@ prompt). The hybrid families and `--curated` need a clone; the package says so a
 ([pypi/README.md](../pypi/README.md)).
 
 `convert.py` refuses, with a JSON reason, what it cannot convert honestly (gated, remote-code,
-pre-quantized repos) and gates every bundle before calling it done. The lock records the Hub
+pre-quantized repos) and checks every bundle before calling it done. The lock records the Hub
 commit, the sha256 of every file the export read, the export call and every package version
 ([docs/one-command-lock.md](one-command-lock.md)); a failure ends in one line,
 `FAIL <stage>: <op or first error line> -> next: <hint>`. When litert-lm 0.18 cannot render the model's chat template the way transformers does,
@@ -46,12 +46,12 @@ convert the model honestly, so you can start without reading further.
 python scripts/convert.py <org>/<model>              # -> out/<model>/ bundle + convert_report.json
 python scripts/convert.py <org>/<model> --int4       # proven int4 recipe (blockwise-32 OCTAV)
 python scripts/convert.py <org>/<model> --gate-script my_gate.py   # task-specific models
-python scripts/convert.py <org>/<model> --check      # entry gate only, exits 0/2, nothing downloaded
+python scripts/convert.py <org>/<model> --check      # entry check only, exits 0/2, nothing downloaded
 ```
 
 One run does five things:
 
-- **Entry gate.** Gated, remote-code, and pre-quantized repos — and pre-port Zamba2
+- **Entry check.** Gated, remote-code, and pre-quantized repos — and pre-port Zamba2
   serializations no modern stack can load — are refused with a structured JSON reason
   before anything downloads. A repo that declares `auto_map` for a model_type transformers
   now registers natively is *not* remote-code: the pinned library implementation loads and
@@ -60,15 +60,15 @@ One run does five things:
   the adapter's own tokenizer, chat template, and generation config win over the base's.
 - **Export.** Stock litert-torch defaults for dense models; pinned family recipes for the
   architectures no released exporter converts (table below). The derivative's own chat
-  template is embedded verbatim. ≥3B models also get the reduced 7-signature prefill ladder,
+  template is embedded verbatim. ≥3B models also get the reduced set of 7 signatures (6 prefill lengths + decode),
   on both the stock and the family-recipe path.
 - **Post-export guards.** A missing turn-end stop token is added; a spurious start token is
   dropped when the tokenizer says `add_bos_token: False` (or bos == eos) and the template
   never renders a leading BOS; the ExecutorMetadata section is retrofitted where the
   exporter omits it.
-- **Exit gate.** `verify_quality.py` (8 questions, bar 6/8, think-aware budget) — or your
-  `--gate-script` for models the generic gate cannot certify (an Arabic diacritizer answers
-  no trivia). Exit 0 = converted and gated, 1 = converted but gate failed, 2 = refused.
+- **Exit check.** `verify_quality.py` (8 questions, bar 6/8, think-aware budget) — or your
+  `--gate-script` for models the generic check cannot certify (an Arabic diacritizer answers
+  no trivia). Exit 0 = converted and checked, 1 = converted but check failed, 2 = refused.
 
 Routing is automatic, by `config.json` model_type. What the converter accepts, with the
 Hub derivative counts behind the coverage claim (recounted 2026-08-26 via `base_model`
@@ -77,10 +77,10 @@ tags over the bases named in each row; mirrors included):
 | base family | bases | Hub finetunes + adapters | toolchain | path |
 |---|---|---:|---|---|
 | any dense arch the stock exporter handles | llama 3.x, qwen 2/2.5/3, smollm3, olmo2, phi, ministral, … | open-ended | default stack | stock export |
-| MiniCPM5 | 1B | 53 + 54 | default stack | stock export (plain llama rail) |
+| MiniCPM5 | 1B | 53 + 54 | default stack | stock export (plain llama path) |
 | granite-4.1 (dense) | 3b | 20 + 15 | default stack | stock export; spurious-BOS guard fires (bos == eos) |
 | Hy-MT2 (hunyuan_v1_dense) | 1.8B | 10 + 1 | default stack | stock export after a bitwise-equal rope bake; duplicate-BOS guard fires |
-| Qwen3.5 | 0.8B / 2B / 4B | 1,214 + 928 | litert-torch *main* | stock export; CPU gate |
+| Qwen3.5 | 0.8B / 2B / 4B | 1,214 + 928 | litert-torch *main* | stock export; CPU check |
 | LFM2.5 | 350M / 1.2B / 2.6B | 210 + 94 | released 0.9.3/0.9.4 | stock export + ExecutorMetadata retrofit |
 | granite-4.0-h | 350m / 1b | 24 + 4 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
 | Falcon-H1 | 0.5B / 1.5B / 1.5B-Deep / 3B | 14 + 2 | pinned checkout | family recipe (`HYBRID_RECIPE`) |
@@ -89,17 +89,17 @@ tags over the bases named in each row; mirrors included):
 
 For `HYBRID_RECIPE` families the one-time checkout setup command is printed on refusal.
 The measurements behind each row — template byte-equality, greedy A/B against the HF
-reference, and three gate refusals of genuinely defective derivatives — are in
+reference, and three check refusals of genuinely defective derivatives — are in
 [REPRODUCE.md](../REPRODUCE.md).
 
 
 **VLM derivatives.** `bash scripts/ship_qwen2vl_derivative.sh <org>/<model>` builds the full
 bundle. Qwen2-VL derivatives train the vision tower too (measured: 339/391 vision tensors
 differ on the top derivative), so vision re-exports from the derivative's own weights. The
-script ends with a tokenizer-parity gate (`scripts/gate_specials.py`: every added-token special,
+script ends with a tokenizer-parity check (`scripts/gate_specials.py`: every added-token special,
 Latin-1, emoji — the engine's encode against the upstream `tokenizer.json`). The 2026-08 failure
 on a format-exact derivative, first blamed on the runtime, was the bundle's own SentencePiece
-section; the gate is what catches it, and REPRODUCE.md carries the correction.
+section; the check is what catches it, and REPRODUCE.md carries the correction.
 
 ## Speech recognition models
 
@@ -135,7 +135,7 @@ with audio_transcriber.AudioTranscriber.create_from_options(options) as transcri
     print(transcriber.transcribe(audio, end_of_stream=True).text)
 ```
 
-The gate transcribes LibriSpeech clips through that task on the CPU: `--smoke` one clip, by default 73
+The check transcribes LibriSpeech clips through that task on the CPU: `--smoke` one clip, by default 73
 clips with a word error rate of at most 0.10 (on a Mac, litert-community's own file scores 0.0609 on them
 and this route's file 0.0626). The export needs no NeMo. CTC, RNN-T, Whisper, Moonshine and the streaming
 Nemotron models are refused with the reason. The design, the field-by-field match with PR #1426 and the
@@ -151,10 +151,10 @@ bash scripts/reproduce_vlm.sh --list          # 18 VLM keys
 bash scripts/reproduce_vlm.sh ovis2.5-2b     # -> out/*-bundle/Ovis2.5-2B.litertlm
 ```
 
-The 2026-08 verification sweep executed every then-current LLM recipe end-to-end and gated
+The 2026-08 verification sweep executed every then-current LLM recipe end-to-end and checked
 it: **16/18 reproduced and passed** (the two exceptions are documented — one source repo
-went gated, one thinking model the strict gate over-flags). For one model the reproduced
-weights are **bit-identical** to the published artifact. Per-model recipes, caveats, and
+went gated, one thinking model the strict check over-flags). For one model the reproduced
+weights are **bit-identical** to the published model. Per-model recipes, caveats, and
 device measurements: [REPRODUCE.md](../REPRODUCE.md); per-model cards: `cards/`.
 
 What the lists contain:
@@ -182,7 +182,7 @@ What the lists contain:
 
 ## Convert a new architecture
 
-- **A dense LLM** not listed: run the engine directly —
+- **A dense LLM** not listed: run the export script directly —
   `EXTERNALIZE_EMBEDDER=1 CACHE=4096 $PY scripts/export_simple_template.py <hf_id> out/<name> templates/<t>.jinja BOCTAV4`
   (pick a template from `templates/`; `FORCE_SPM=1` for thinking models with added tokens).
   Then add a `case` to `scripts/reproduce_llm.sh` to keep it reproducible.
@@ -210,7 +210,7 @@ models load under the iOS section limit; reasoning models use a thinking templat
 ## What lives here
 
 1. **A finetune converter.** `python scripts/convert.py <org>/<model>`: one command from Hub
-   id to a gated bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
+   id to a checked bundle. It covers finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h,
    Falcon-H1, Nemotron-H/Nemotron-3-Nano, and every dense architecture the stock exporter
    handles, about **2,670 tagged derivatives** on the Hub as of 2026-08-26. LoRA/PEFT repos
    merge automatically. Broken models are refused with a machine-readable reason.
@@ -219,18 +219,18 @@ models load under the iOS section limit; reasoning models use a thinking templat
 3. **A deployment manifest**, `litertlm_manifest.json`, that every published repo ships, with
    reference readers and a Google Play packer ([manifests.md](manifests.md)).
 4. **An on-device check for converted graphs.** `tools/devicebench/` runs a graph on a shared Android
-   phone and keeps the record of every leg; [the agent skill](../skills/android-device-gate/SKILL.md) walks through it.
+   phone and keeps the record of every run; [the agent skill](../skills/android-device-gate/SKILL.md) walks through it.
 
 ## Layout
 
 | path | what |
 |---|---|
-| `scripts/convert.py` | the finetune converter (entry gate → export → guards → exit gate) |
-| `scripts/export_simple_template.py` | the LLM engine (template + quant recipe + env knobs) |
+| `scripts/convert.py` | the finetune converter (entry check → export → guards → exit check) |
+| `scripts/export_simple_template.py` | the LLM exporter (template + quant recipe + env knobs) |
 | `scripts/reproduce_llm.sh` · `scripts/reproduce_vlm.sh` | one-command reproductions |
 | `scripts/ship_*.sh`, `convert_*_vision.py`, `prep_*_decoder*.py`, `build_*_bundle.py` | the VLM pipeline |
 | `granite_work/` `falcon_h1_work/` `zamba2_work/` `nemotron_h_work/` | pinned hybrid-family recipes |
-| `qwen35_work/` `lfm_work/` `minicpm_work/` … | per-family recipes and gates |
+| `qwen35_work/` `lfm_work/` `minicpm_work/` … | per-family recipes and checks |
 | `templates/`, `recipes/` | chat templates + quant recipe JSONs |
 | `cards/` | model cards for the converted bundles |
 | [REPRODUCE.md](../REPRODUCE.md) | the full measurement record behind every claim above |

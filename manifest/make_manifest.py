@@ -612,7 +612,7 @@ def main():
                   metavar="NAME=PATH",
                   help="use a local copy for bundle NAME instead of HF ranges; "
                        "its sha256 and size are then computed from that file "
-                       "(a re-ship whose new bundle is not on the Hub yet)")
+                       "(an update whose new bundle is not on the Hub yet)")
   ap.add_argument("--only-curated", action="store_true",
                   help="describe only the files the curated file lists "
                        "(a repo that also hosts third-party bundles)")

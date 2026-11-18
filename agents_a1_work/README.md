@@ -12,7 +12,7 @@ byte-identical to Qwen/Qwen3.5-4B's. Bundles:
 Run commands from the repository root. Keep conversion, template rendering,
 large-model parity and the two runtime versions in separate environments.
 The pins below are the measured software versions; package installation and a
-full conversion were not repeated when this portable entry was staged.
+full conversion were not re-run from these instructions.
 
 ```bash
 python3.10 -m venv .venv-agents-convert
@@ -44,7 +44,7 @@ Defaults: scripts use their current interpreter, `litert-lm` on PATH, checkpoint
 values; `--help` lists them. The packager and builder default to the executables
 beside the conversion interpreter; `PACKAGER` and `LITERT_LM_BUILDER` override
 them. `CONVERTER_PYTHON` selects the build worker; `TEMPLATE_PYTHON` selects
-minijinja. Gate programs accept `--model`, `--cli`, `--runtime` and `--out`;
+minijinja. Check programs accept `--model`, `--cli`, `--runtime` and `--out`;
 GSM8K additionally accepts `--dataset` or `GSM8K_DATA`.
 
 Downloads are pinned to checkpoint revision
@@ -61,7 +61,7 @@ scratch disk. The parity loader must be `CompiledModel` from ai-edge-litert
 
 ## Build, in order
 
-After adding the launcher case, the single conversion command is:
+The single conversion command is:
 
 ```bash
 bash scripts/reproduce_llm.sh agents-a1-4b
@@ -83,7 +83,7 @@ git -C "$LITERT_TORCH_DIR" apply "$(pwd)/agents_a1_work/qwen35_export_compat.pat
 
 `export_float.py` reproduces **step 1** of the existing
 `qwen35_work/convert_qwen35_hybrid.py`: the `litert_torch.cli.main` export entry,
-empty quantization recipe, cache 4096, prefill ladder 1024/256/64/16/4/1. It does
+empty quantization recipe, cache 4096, prefill signatures 1024/256/64/16/4/1. It does
 not run that driver's older template or int8-only steps. A plain abbreviated
 checkout no longer retrieves the required base; use the full fetch-by-hash
 command above.
@@ -137,8 +137,8 @@ The build runs these commands automatically; they can be run separately:
 "$TEMPLATE_PYTHON" -B agents_a1_work/render_check.py minijinja --model "$AGENTS_A1_CHECKPOINT" --template "$AGENTS_A1_OUTPUT/chat_template_agents_a1.jinja" --output "$AGENTS_A1_OUTPUT/results"
 ```
 
-Cases (i)–(iv) must be byte-identical to HF; all four prefix-contract variants
-must pass. Cases (v)/(vi) may differ only in JSON serialization inside the tool
+The four cases without tools (a plain user message, thinking off, content parts, an explicit system message) must be byte-identical to HF; all four prefix checks (the rendered history is a prefix of the next turn and of the generation prompt, with and without a system message, with string and with parts content)
+must pass. The two tool cases (a tool list, a tool-call conversation) may differ only in JSON serialization inside the tool
 JSON payloads; literal diffs are saved. The recorded run met that tolerance.
 
 ## Gates, in order
@@ -182,15 +182,15 @@ for variant in int8 mixed_int4; do
 done
 ```
 
-Read every 8Q answer before closing its result: a fluent off-prompt answer
+Read every answer of the 8-question check before closing its result: a fluent off-prompt answer
 fails even when a regex matches. After inspection, record the judgment with
 `gate8q.py --review <result.json> --on-topic yes` (or `no`). The automatic
 verdict alone remains `REVIEW_REQUIRED`. Acceptance and the recorded result:
-**8/8 with zero degenerate answers in all eight cells** (0.17.1 and
-0.18.0.dev20260919); BANANA **40/40 CPU fills 12–51 and 20/20 GPU fills 12–31
-per file**, containing BANANA in fewer than 200 characters.
+**8/8 with zero degenerate answers in all eight configurations** (0.17.1 and
+0.18.0.dev20260919); the length sweep (the prompt "Reply with only the single word BANANA." after 12–51 repetitions of "well" on CPU and 12–31 on GPU, one process each): **40/40 on CPU and 20/20 on GPU
+per file**, each reply containing BANANA in fewer than 200 characters.
 
-Thinking and conversation checks use int8/CPU. Run each API probe with that
+Thinking and conversation checks use int8/CPU. Run each API test with that
 runtime's own Python:
 
 ```bash
@@ -215,7 +215,7 @@ Inspect multi-turn text for garbage as well as the recorded checks.
 
 Then run the original GSM8K protocol: first 100 questions, int8 then mixed
 int4, GPU 0.17.1, one process/question, thinking off, greedy, seed 0. Disk cache
-is permitted only after that exact file passes its cache-off GPU gates. There
+is permitted only after that exact file passes its cache-off GPU checks. There
 is no decode-token cap; EOS or the 4096-token context ends generation.
 
 ```bash
@@ -239,11 +239,11 @@ There is no tuned score target for another run: report its measured counts.
 
 ## Optional Mac benchmark
 
-Reserve the GPU on the host before timing; `--lock` can name its agreed lock
+Reserve the GPU on the host before timing; `--lock` can name the host's lock
 file. The default is a lock under the output directory. The script rests at
-least 300 seconds before each GPU cell, checks load <3.0 and matching compute
-processes before every cell, waits up to 20 minutes in 60-second polls, and
-then labels a remaining busy cell contended. `--busy-pattern` can cover other
+least 300 seconds before each GPU run, checks load <3.0 and matching compute
+processes before every run, waits up to 20 minutes in 60-second polls, and
+then labels the run contended if the host is still busy. `--busy-pattern` can cover other
 compute programs on the host. It never terminates them.
 
 ```bash
@@ -262,12 +262,12 @@ removed. The following are observations, not performance thresholds:
 | int8 / CPU | 255 | 20.6 | 1.05 |
 | mixed int4 / CPU | 99.1 | 20.2 | 2.63 |
 
-These rows use Apple M4 Max and litert-lm 0.17.1. All four rows were taken on a quiet machine (1-minute load under 3.0, at least 300 s of rest before a GPU cell); three of them are a second pass that agreed within 2 % with a first pass taken on a busier machine. Source numbers and artifact fingerprints are in
+These rows use Apple M4 Max and litert-lm 0.17.1. All four rows were taken on a quiet machine (1-minute load under 3.0, at least 300 s of rest before a GPU run); three of them are a second pass that agreed within 2 % with a first pass taken on a busier machine. Source numbers and file fingerprints are in
 [measured_results.json](measured_results.json).
 
 ## Phone check
 
-Phone check (Galaxy S26, SM8850, Android 16, LiteRT-LM Android CLI build of 2026-09-18; the same 8 questions with thinking off, one fresh session per question, the prompt rendered from the bundled template): mixed int4 **8/8 on CPU** (peak 4.94 GB; 47.1 prefill / 11.9 decode tok/s, TTFT 5.52 s at 256/256, thermal status 0, frequencies uncapped) and **8/8 on the OpenCL GPU** with every subgraph delegated (peak 4.16 GB; speed not measured). With thinking on, the final answer arrives after a 350–400-token thought. The int8 file is a desktop-class file: on this phone its CPU answers are correct but 2 of 8 run on into repetitive self-talk, the thinking-on probe gives no final answer, and starting its GPU engine took the phone off USB — the published card tells Android users to take the mixed int4 file. The Android CLI has no thinking switch and no sampler flags, so a phone gate that leaves thinking on needs a token cap in the thousands and a watchdog in minutes, not seconds.
+Phone check (Galaxy S26, SM8850, Android 16, LiteRT-LM Android CLI build of 2026-09-18; the same 8 questions with thinking off, one fresh session per question, the prompt rendered from the bundled template): mixed int4 **8/8 on CPU** (peak 4.94 GB; 47.1 prefill / 11.9 decode tok/s, TTFT 5.52 s at 256/256, thermal status 0, frequencies uncapped) and **8/8 on the OpenCL GPU** with every subgraph delegated (peak 4.16 GB; speed not measured). With thinking on, the final answer arrives after a 350–400-token thought. The int8 file is a desktop-class file: on this phone its CPU answers are correct but 2 of 8 run on into repetitive self-talk, the thinking-on test gives no final answer, and starting its GPU engine took the phone off USB — the published card tells Android users to take the mixed int4 file. The Android CLI has no thinking switch and no sampler flags, so a phone check that leaves thinking on needs a token cap in the thousands and a watchdog in minutes, not seconds.
 
 ## Script map
 
@@ -280,7 +280,7 @@ Phone check (Galaxy S26, SM8850, Android 16, LiteRT-LM Android CLI build of 2026
 | render_check.py | HF/minijinja byte comparisons and prefix contracts |
 | gate8q.py, banana_hermetic_sweep.py | Fixed quality questions and fresh-engine length sweep |
 | think_probe.py, multiturn_probe.py | Thought channels, budgets and one-conversation history |
-| tools_preset.py, parse_xml_tool_call.py, run_tools.py | Fixtures, app-side XML parsing and twelve tool probes |
+| tools_preset.py, parse_xml_tool_call.py, run_tools.py | Fixtures, app-side XML parsing and twelve tool requests |
 | gsm8k_litertlm.py, rescore_gsm8k.py | Original scoring, saved answers and corrected paired analysis |
 | download_gsm8k.py, parity.py | Dataset fingerprint and existing big-model parity integration |
 | bench_mac.py | Optional Mac benchmark with explicit contention labels |

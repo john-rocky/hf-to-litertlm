@@ -1,4 +1,4 @@
-"""The definitive pre-ship gates, on the PROVEN README-verbatim native path:
+"""The definitive pre-release checks, on the PROVEN README-verbatim native path:
 
   A: true M-RoPE, native dynamic resolution   (reference — known perfect)
   B: forced 1D sequential positions           (what the exported decoder computes)

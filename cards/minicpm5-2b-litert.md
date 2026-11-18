@@ -28,13 +28,13 @@ MiniCPM5-2B is OpenBMB's 2.5B-parameter dense **hybrid-reasoning** model (42 lay
 
 2026-09-21: chat template updated to accept the 0.18 content-parts form (string form unchanged); weights, tokenizer and executor metadata byte-identical.
 
-2026-10-13: re-packed with LiteRT-LM's official `models/minicpm5` metadata and chat template (metadata only; weights, tokenizer and graph byte-identical): passing `tools` works, the tool call is parsed on litert-lm 0.18.0, and the model answers directly unless `enable_thinking` is true. The 2026-10-13 re-pack changes the model type, and with it the runtime's GPU executor defaults (every non-generic LiteRT-LM model type shares them: allow_src_quantized_fc_conv_ops on, OpenCL hint_waiting_for_completion off, kernel batch size unset); the phone GPU rows on this card were measured with the previous files and have not been re-run — the Mac GPU digit check passed on 0.18.0.
+2026-10-13: re-packed with LiteRT-LM's official `models/minicpm5` metadata and chat template (metadata only; weights, tokenizer and graph byte-identical): passing `tools` works, the tool call is parsed on litert-lm 0.18.0, and the model answers directly unless `enable_thinking` is true. The 2026-10-13 re-pack changes the model type, and with it the runtime's GPU executor defaults (every non-generic LiteRT-LM model type shares them: allow_src_quantized_fc_conv_ops on, OpenCL hint_waiting_for_completion off, kernel batch size unset); the phone GPU rows on this card were measured with the previous files and have not been re-run — a check on the Mac GPU passed on 0.18.0.
 
 The **int4 file is the phone file** (smaller, fastest GPU decode on every platform measured) — best used for direct answers or short reasoning; see the thinking-mode note below. **int8 is the file for reasoning that has to complete**: its thinking chains are ~3–4× shorter than int4's on the same questions and terminate where int4 runs into the token budget. int8's main weight section is 2.33 GB, above the single-section mmap ceiling of default-entitlement iOS apps, so it is a desktop / Android build.
 
 ## Correctness
 
-Both files score **8/8 on an 8-question sanity gate on both CPU and GPU** (Apple M4 Max), with the reasoning arriving on the thought channel and only the final answer in the streamed text. The bf16 PyTorch model scores 8/8 on the same gate with thinking on or left to the model, and **6/8 with thinking forced off** ("opposite of hot" → "Cool.", the rhyme line → "Green.") — read any thinking-off result against that, not against 8/8.
+Both files score **8/8 on an 8-question sanity check on both CPU and GPU** (Apple M4 Max), with the reasoning arriving on the thought channel and only the final answer in the streamed text. The bf16 PyTorch model scores 8/8 on the same check with thinking on or left to the model, and **6/8 with thinking forced off** ("opposite of hot" → "Cool.", the rhyme line → "Green.") — read any thinking-off result against that, not against 8/8.
 
 **GSM8K** (first 100 test questions, greedy, 0-shot chain-of-thought prompt, **thinking off** — the protocol OpenBMB's own MiniCPM5 cards use, max 2048 new tokens, identical prompt and extraction on every row):
 
@@ -51,7 +51,7 @@ int8 is at parity (7 of its 9 misses are the bf16 model's own). int4 costs about
 
 On a **Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno)** both files generate correctly on GPU and CPU with **full OpenCL delegation — 1873/1873 nodes on every prefill signature and decode, zero rejected ops** — and the runtime separates the reasoning on-device (`[thought] … [/thought]`, then the answer).
 
-On an **iPhone 17 Pro** the int4 file passes the same 8-question gate on both backends (on-device byte count verified against the source file): **Metal GPU 7/8** (init 5.7 s) and **CPU 7/8** (init 2.2 s); the one miss on each leg is the rhyme line inside the 8-question composite prompt, answered "green" — the same answer the bf16 model gives with thinking off, so a prompt-format artifact rather than conversion damage.
+On an **iPhone 17 Pro** the int4 file passes the same 8-question check on both backends (on-device byte count verified against the source file): **Metal GPU 7/8** (init 5.7 s) and **CPU 7/8** (init 2.2 s); the one miss on each run is the rhyme line inside the 8-question composite prompt, answered "green" — the same answer the bf16 model gives with thinking off, so a prompt-format effect rather than conversion damage.
 
 Multi-turn: three-turn conversations (introduce a name and a city, an arithmetic question, then "which city do I live in?") hold on both files under all three thinking modes with the name and city recalled — the template's history rendering stays consistent with what the runtime already streamed.
 
@@ -72,8 +72,8 @@ Since the 2026-10-13 re-pack the default is a **direct answer**: the bundled tem
 
 - **Give it a generous output budget (≥ 2048 tokens; 4096 for math).** Truncated mid-thought it produces no final answer at all.
 - The bundle declares the `thought` channel (`<think>` / `</think>`), so the streamed text contains only the answer and runtimes that expose `ThinkingConfig` can cap or read the reasoning separately.
-- `enable_thinking=false` (via `ThinkingConfig` or the conversation's extra context — both reach the template) switches the model to **direct answers**: two- to seven-token replies on the gate questions, ~10× faster turns, and the GSM8K numbers above. `enable_thinking=true` pre-fills the think opener explicitly.
-- Sampling: OpenBMB recommends `temperature 1.0, top_p 0.95`; the gates above are greedy.
+- `enable_thinking=false` (via `ThinkingConfig` or the conversation's extra context — both reach the template) switches the model to **direct answers**: two- to seven-token replies on the test questions, ~10× faster turns, and the GSM8K numbers above. `enable_thinking=true` pre-fills the think opener explicitly.
+- Sampling: OpenBMB recommends `temperature 1.0, top_p 0.95`; the checks above are greedy.
 - Prompt format is ChatML (`<|im_start|>role\n…<|im_end|>\n`), 4096-token KV budget, six prefill signatures (1024, 256, 64, 16, 4, 1).
 
 ## Performance
@@ -87,7 +87,7 @@ Since the 2026-10-13 re-pack the default is a **direct answer**: the bundled tem
 | int8 (fp32 activations) | GPU (Metal) | 1405 tok/s | 74.7 tok/s | 0.20 s | 3.0 s |
 | int8 (fp32 activations) | CPU | 161 tok/s | 30.0 tok/s | 1.62 s | 15.0 s |
 
-Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno; `litert_lm_advanced_main` from the litert-lm v0.16.0 release kit, 205-token prompt with `--benchmark`, 2 runs per cell, ranges shown; a reasoning model decodes its own full response, so decode-turn lengths vary):
+Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno; `litert_lm_advanced_main` of litert-lm v0.16.0, 205-token prompt with `--benchmark`, 2 runs per configuration, ranges shown; a reasoning model decodes its own full response, so decode-turn lengths vary):
 
 | File | Backend | Prefill (205) | Decode | TTFT | Init | Peak RSS |
 |---|---|---|---|---|---|---|
@@ -105,9 +105,9 @@ Converted with [`litert-torch`](https://github.com/google-ai-edge/litert-torch) 
 - **The chat template is LiteRT-LM's official `models/minicpm5/chat_template.jinja`** since the 2026-10-13 re-pack, with the official metadata (`llm_model_type minicpm5`, stop tokens, `thought` channel). It keeps `enable_thinking` and the runtime's tool calling available to the app. Until then the bundle carried the checkpoint's `chat_template.jinja` byte for byte, which failed when `tools` were passed.
 - **Start token `<s>`** is correct for this family: the template's own `{{ bos_token }}` renders empty at runtime and the engine prepends the metadata start token, so the model sees exactly one `<s>` as it does upstream. Stops are the model's `</s>` and `<|im_end|>`.
 - **int4 needed a zero-scale fix.** Decoder layer 0's MLP contains 13 all-zero rows; blockwise quantization emits a zero scale for each of their blocks, which the CPU (XNNPACK) path refuses to load while the GPU path silently accepts. The scales were replaced in place by a tiny positive epsilon (the quantized values in those blocks are zero, so the dequantized weights are unchanged) — 3,328 bytes of a 1.55 GB file.
-- **int8 declares fp32 activations in-bundle.** With the runtime's default fp16 GPU activations, the int8 model's reasoning on one gate question ran 2000+ tokens without closing `</think>` (it fails the 8-question gate); with fp32 declared it closes in ~450 tokens and passes 8/8, at a cost of ~14 % GPU decode speed. On a ten-question thinking-on GSM8K subset the two dtypes were closer (fp16 finished 10/10, fp32 7/10), so this is a measured trade for the gate, not a cure. The int4 file keeps the fp16 default: it passes the gate there, and declaring fp32 only reproduces the CPU reference's non-terminating chains (see Correctness).
+- **int8 declares fp32 activations in-bundle.** With the runtime's default fp16 GPU activations, the int8 model's reasoning on one test question ran 2000+ tokens without closing `</think>` (it fails the 8-question check); with fp32 declared it closes in ~450 tokens and passes 8/8, at a cost of ~14 % GPU decode speed. On a ten-question thinking-on GSM8K subset the two dtypes were closer (fp16 finished 10/10, fp32 7/10), so this is a measured trade for the check, not a cure. The int4 file keeps the fp16 default: it passes the check there, and declaring fp32 only reproduces the CPU reference's non-terminating chains (see Correctness).
 - **Embedder externalised** so the 130560×2048 input-embedding table sits in its own section; tokenizer embedded as the upstream `tokenizer.json` (byte-level BPE survives intact).
-- **Quantization**: int4 is blockwise-32 with OCTAV clipping on the linears and int8 on the embedding; int8 is dynamic per-channel on linears and embedding. A block-128 int4 variant was built and rejected: it loses 8 GSM8K points (79 vs 87, thinking off), fails the 8-question gate on CPU, and does not shorten the thinking chains.
+- **Quantization**: int4 is blockwise-32 with OCTAV clipping on the linears and int8 on the embedding; int8 is dynamic per-channel on linears and embedding. A block-128 int4 variant was built and rejected: it loses 8 GSM8K points (79 vs 87, thinking off), fails the 8-question check on CPU, and does not shorten the thinking chains.
 
 ## Machine-readable manifest
 

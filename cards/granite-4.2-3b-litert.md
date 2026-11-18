@@ -29,11 +29,11 @@ The **int4 file is the one to use on a phone**: on Apple hardware it is smaller 
 
 ## Correctness
 
-Both files score **8/8 on an 8-question sanity gate on both CPU and GPU** (Apple M4 Max, litert-lm 0.16.0 runtime lineage), with every answer arriving as a clean final answer through the thought channel — no reasoning leakage, no degeneration. The bf16 PyTorch reference scores 8/8 on the same questions under the same template.
+Both files score **8/8 on an 8-question sanity check on both CPU and GPU** (Apple M4 Max, litert-lm 0.16.0 runtime lineage), with every answer arriving as a clean final answer through the thought channel — no reasoning leakage, no degeneration. The bf16 PyTorch reference scores 8/8 on the same questions under the same template.
 
 On a **Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno)** both files generate correctly on GPU and CPU, with **full OpenCL delegation — 1783/1783 nodes on every prefill signature and decode, zero rejected ops** — and the runtime separates the reasoning on-device exactly as intended: the answer arrives as a labeled thought block followed by the clean final answer.
 
-On an **iPhone 17 Pro** the int4 file passes the same gate on both backends (on-device byte count verified against the source file): **Metal GPU 7/8** (engine created at the bundle's full 4096-token budget, init 13.0 s; the one miss is the rhyme line at the end of the composite 8-question prompt — the model answers that question correctly when asked on its own, on every other platform) and **CPU 8/8** (init 5.5 s). Available process memory never dropped below ~4.2 GB during either leg.
+On an **iPhone 17 Pro** the int4 file passes the same check on both backends (on-device byte count verified against the source file): **Metal GPU 7/8** (engine created at the bundle's full 4096-token budget, init 13.0 s; the one miss is the rhyme line at the end of the composite 8-question prompt — the model answers that question correctly when asked on its own, on every other platform) and **CPU 8/8** (init 5.5 s). Available process memory never dropped below ~4.2 GB during either run.
 
 ## Usage
 
@@ -48,7 +48,7 @@ Notes for a reasoning model:
 
 - **Give it a generous output budget (≥ 2048 tokens).** The model thinks before it answers; truncated mid-thought it produces no final answer at all.
 - The bundle declares the `thought` channel (`<think>`…`</think>`), so runtimes that expose `ThinkingConfig` / a thinking budget can cap or read the reasoning separately; the streamed answer contains only the final response.
-- The bundle uses ChatML role markers (`<|im_start|>…<|im_end|>`) with a 4096-token KV budget and six prefill signatures (1024, 256, 64, 16, 4, 1) — six rather than eleven because every exported signature is charged engine memory whether or not it is called, a lesson measured on this model family's 4.1 ship, where an eleven-signature build was killed by iOS during Metal engine initialisation.
+- The bundle uses ChatML role markers (`<|im_start|>…<|im_end|>`) with a 4096-token KV budget and six prefill signatures (1024, 256, 64, 16, 4, 1) — six rather than eleven because every exported signature is charged engine memory whether or not it is called, a lesson measured on this model family's 4.1 conversion, where an eleven-signature build was killed by iOS during Metal engine initialisation.
 
 ## Performance
 
@@ -63,7 +63,7 @@ Notes for a reasoning model:
 
 Two patterns worth knowing, both consistent with the granite-4.1-3b conversion of the same shape: **int4 beats int8 on the GPU** (+21% decode on top of the 1.7× size reduction), while **int8 wins CPU prefill** (2.5×) — XNNPACK's large matmuls outrun the blockwise dequant.
 
-Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno; `litert_lm_advanced_main` from the litert-lm v0.16.0 release kit, 205-token prompt with `--benchmark`, 2 runs per cell, ranges shown; a reasoning model decodes its own full response, so decode-turn lengths vary):
+Galaxy S26 (SM-S942Q, Snapdragon SM8850, Adreno; `litert_lm_advanced_main` of litert-lm v0.16.0, 205-token prompt with `--benchmark`, 2 runs per configuration, ranges shown; a reasoning model decodes its own full response, so decode-turn lengths vary):
 
 | File | Backend | Prefill (205) | Decode | TTFT | Init |
 |---|---|---|---|---|---|
