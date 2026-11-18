@@ -8,14 +8,14 @@ with ChatML + the Qwen3.5 think-scaffold template and NO start token):
   + LlmMetadata  : FastVlm(image 512x512), NO start token (Qwen3.5 no-BOS rule),
                    ChatML turns with the empty <think> block kept in BOTH the
                    generation prompt and history assistant renders (the engine's
-                   incremental-render prefix contract, qwen35_work RESULTS),
+                   incremental-render prefix contract, qwen35_work/convert_qwen35_hybrid.py),
                    image rendered <|vision_start|><image_soft_token><|vision_end|>
                    (HF: <|vision_start|><|image_pad|><|vision_end|>; the runtime
                    splits on the literal <image_soft_token> and drops the 256
                    soft tokens there), stop tokens <|endoftext|> AND <|im_end|>.
 
 The decoder section declares prefer_activation_type (DEC_ACT, default fp32):
-the gated-delta graphs need fp32 activations on GPU (the text 2B GPU reship
+the gated-delta graphs need fp32 activations on GPU (the text 2B GPU update
 shipped as _int8_fp32act for the same reason).
 
 After building, append ExecutorMetadata (scripts/add_executor_metadata.py — it
@@ -54,7 +54,7 @@ U_PRE, U_SUF = "<|im_start|>user\n", "<|im_end|>\n"
 M_PRE, M_SUF = "<|im_start|>assistant\n" + THINK, "<|im_end|>\n"
 S_PRE, S_SUF = "<|im_start|>system\n", "<|im_end|>\n"
 
-# Same shape as the northmv/FastVLM jinja (string and list content both handled;
+# Same form as the northmv/FastVLM jinja (string and list content both handled;
 # roles user/model/system as the runtime names them). No BOS anywhere.
 def _turn(pre, suf, body):
   return pre + body + suf
@@ -142,7 +142,7 @@ def main():
   b.add_hf_tokenizer(hf_tok)
   b.add_tflite_model(embedder, litertlm_builder.TfLiteModelType.EMBEDDER)
   # DEC_ACT: the gated-delta decoder needs fp32 activations on GPU (the 8/12
-  # text GPU reship shipped _int8_fp32act; fp16 paths mis-wire / overflow).
+  # text GPU update shipped _int8_fp32act; fp16 paths mis-wire / overflow).
   dec_act = os.environ.get("DEC_ACT", "fp32")
   b.add_tflite_model(prefill_decode, litertlm_builder.TfLiteModelType.PREFILL_DECODE,
                      prefer_activation_type=dec_act or None)

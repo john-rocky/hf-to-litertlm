@@ -1,4 +1,4 @@
-"""Controls C1-C7 for round 1, recomputed from the oracle JSON (and the fresh-process rerun JSON for C7).
+"""Controls C1-C7 for stage 1, recomputed from the oracle JSON (and the fresh-process rerun JSON for C7).
 
     python3 scripts/controls.py [--oracle fixtures/oracle_fp32.json] [--rerun results/c7_rerun_oracle.json]
 """
@@ -26,7 +26,7 @@ def main():
     logits = lambda f: [s['letter_logits_fp32'] for s in f['slots']]
     res = OrderedDict(source=args.oracle, source_sha256=sha256_file(ROOT / args.oracle))
 
-    # C1: no-image rows identical across all five arms (ids and letter logits, exact float equality)
+    # C1: no-image rows identical across all five variants (ids and letter logits, exact float equality)
     text_rows = [r for r in rows if author[r]['image_original'] is None]
     c1 = []
     for r in text_rows:
@@ -53,7 +53,7 @@ def main():
     res['C2'] = dict(status='PASS' if len(c2) >= 2 and all(x['pixel_values_equal'] and x['ids_equal'] and x['logits_equal'] for x in c2)
                      else 'FAIL', detail=c2)
 
-    # C3: the pos1d replacement is what the rotary receives (arange), the M-RoPE arms are not arange
+    # C3: the pos1d replacement is what the rotary receives (arange), the M-RoPE variants are not arange
     c3 = []
     for f in fw:
         if f['image_original'] is None:
@@ -151,11 +151,11 @@ def main():
     write_json(args.out, res)
     c = res
     md = ['| control | status | measured |', '|---|---|---|',
-          f"| C1 no-image rows identical in all 5 arms | {c['C1']['status']} | {c['C1']['n_equal']}/{c['C1']['n_comparisons']} arm pairs bit-identical (ids + letter logits), rows {len(c['C1']['rows'])} |",
+          f"| C1 no-image rows identical in all 5 variants | {c['C1']['status']} | {c['C1']['n_equal']}/{c['C1']['n_comparisons']} variant pairs bit-identical (ids + letter logits), rows {len(c['C1']['rows'])} |",
           f"| C2 GxG original: author == g{{G}}_mrope | {c['C2']['status']} | " + '; '.join(
               f"{x['row_id']} G={x['G']}: pixel_values {x['pixel_values_equal']}, ids {x['ids_equal']}, logits {x['logits_equal']}" for x in c['C2']['detail']) + ' |',
-          f"| C3 rotary receives arange only in pos1d arms | {c['C3']['status']} | pos1d arange {c['C3']['n_pos1d_arange']}/{c['C3']['n_pos1d']}, "
-          f"M-RoPE non-arange {c['C3']['n_mrope_not_arange']}/{c['C3']['n_mrope']}, (b) vs (c) same ids+pixels {c['C3']['b_vs_c_same_ids_and_pixels']} |",
+          f"| C3 rotary receives arange only in pos1d variants | {c['C3']['status']} | pos1d arange {c['C3']['n_pos1d_arange']}/{c['C3']['n_pos1d']}, "
+          f"M-RoPE non-arange {c['C3']['n_mrope_not_arange']}/{c['C3']['n_mrope']}, M-RoPE vs pos1d same ids+pixels {c['C3']['b_vs_c_same_ids_and_pixels']} |",
           f"| C4 pixel_values vs (x/255-0.5)/0.5 | {c['C4']['status']} | max abs {c['C4']['max_abs_vs_float64_hand']:.3e} vs float64 hand, "
           f"{c['C4']['max_abs_vs_float32_hand']:.3e} vs float32 hand ({c['C4']['n_exact_vs_float32_hand']}/{c['C4']['n_forwards']} exact) |",
           f"| C5 slots / slot token / letters / colour rows | {c['C5']['status']} | {c['C5']['n_slots']} slots in {c['C5']['n_forwards']} forwards, "

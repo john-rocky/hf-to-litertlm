@@ -47,7 +47,7 @@ def main():
     p.add_argument('--cli', default=os.environ.get('LITERT_LM', 'litert-lm'))
     p.add_argument('--out', type=Path, default=ROOT / 'results/bench_mac.json')
     p.add_argument('--device', required=True, help='Measured host hardware label')
-    p.add_argument('--lock', type=Path, help='Optional GPU lock path agreed on for this host')
+    p.add_argument('--lock', type=Path, help='Optional GPU lock path for this host')
     p.add_argument('--busy-pattern', default=r'\blitert[-_]lm\b|python.*benchmark')
     a = p.parse_args(); configure_output(a.out)
     version = subprocess.check_output([a.cli, '--version'], text=True).strip()
