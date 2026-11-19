@@ -1925,7 +1925,7 @@ The script printed these section hashes for both files when it was run from a co
 
 ## granite-4.0-h (Mamba2 + attention hybrid) — first Mamba2 hybrid on the released runtime
 
-`granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **The published file runs on litert-lm 0.15.0, 0.16.1, 0.17.1, 0.18.0 and 0.19.2** on a Mac CPU (checked 2026-11-14) and on the Mac GPU with 0.19.2; on Android, its GPU path needs 0.19.0 or later. From 0.15 on, litert-lm binds the hybrid conv/SSM states through the `ExecutorMetadata` section.
+`granite_work/convert_granite4h.py` converts IBM's granite-4.0-h dense-hybrid models (Mamba2 selective-scan blocks interleaved with grouped-query attention) to `.litertlm`. Published: [litert-community/granite-4.0-h-1b](https://huggingface.co/litert-community/granite-4.0-h-1b). **The published file runs on litert-lm 0.15.0, 0.16.1, 0.17.1, 0.18.0 and 0.19.2** on a Mac CPU (checked 2026-11-14) and on the Mac GPU with 0.19.2. It has not been run on a phone since the 2026-11-09 re-pack ("2026-11-09 — external weights for the remaining files", above). From 0.15 on, litert-lm binds the hybrid conv/SSM states through the `ExecutorMetadata` section.
 
 ```bash
 cd granite_work
@@ -5743,7 +5743,7 @@ The steps are in [`minicpmv4_gpu_work/`](minicpmv4_gpu_work/) (its README and `r
 
 - The two files differ only in the decoder: int8 weights per channel on every linear layer, or int4 blockwise-32 with the 32 MLP down projections at fp16 weights and the output head int8. On the Pixel 11 Pro's GPU the int8 file answers off the prompt for prompts through its 64- or 256-token prefill, and on the Galaxy S26's GPU one of 4 longer prompts looped; the mixed int4 file passed all 12 passage questions on both phones.
 - The README lists the first 8 hex digits of every section's sha256 and the whole-file sha256 of the shipped files. The scripts are the ones that built them on 2026-11-02 and 2026-11-03, with comments, docstrings and paths changed; `reproduce.sh` has not been run end to end from this repository, so no claim that it gives the same section bytes.
-- The files need LiteRT-LM 0.19.0 or newer: an Android build of v0.18.0 or v0.18.1 crashes (SIGSEGV) while building the GPU engine for a file with TFLiteWeights sections (LiteRT-LM #3986).
+- The phone runs in the README used the `litert-lm-api` 0.19.0 Android wheel. On a Pixel 8a, an Android build of LiteRT-LM v0.18.0 or v0.18.1 crashes (SIGSEGV) while building the GPU engine for an externalized Qwen3-0.6B file (External weights, above).
 - How each part was checked, the speeds and the answers: the README. Limits and usage: the model card.
 
 ## Unlimited-OCR-2 — an OCR VLM with a mixture-of-experts decoder as a fast_vlm bundle that reads one 1,024 × 1,024 page per request: the DeepEncoder (SAM ViT-B and CLIP-L) re-authored for that size, and the 12-layer DeepSeek-V2 decoder with its DASH attention written statically for one page and a KV cache of 288 pinned and 128 ring slots (2026-11-04)
