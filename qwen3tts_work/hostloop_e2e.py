@@ -21,7 +21,7 @@ DUMP_MTP = os.environ.get("DUMP_MTP")  # npz path: per-frame MTP inputs (calibra
 SAMPLE = os.environ.get("SAMPLE") == "1"
 SEED = int(os.environ.get("SEED", "0"))
 rng = np.random.default_rng(SEED)
-SRC = "/Users/majimadaisuke/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base/snapshots/5d83992436eae1d760afd27aff78a71d676296fc"
+SRC = os.path.expanduser("~/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base/snapshots/5d83992436eae1d760afd27aff78a71d676296fc")
 TALKER = os.environ.get("TALKER", "out/qwen3tts-talker-fp32/model.tflite")
 HOSTD = "out/qwen3tts-host"
 NEG = -1e9

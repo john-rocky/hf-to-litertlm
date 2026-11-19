@@ -8,7 +8,7 @@ Head NCHW channel layout split as (A, K): for spatial (h,w), anchor a, class k -
 
     ~/clipconv/bin/python scripts/validate_ssdlite_decode.py
 """
-import os, urllib.request
+import os, tempfile, urllib.request
 import numpy as np
 import torch
 from PIL import Image
@@ -141,7 +141,7 @@ def main():
 
     # real image -> x: bilinear stretch to 320, normalize (pixel/255)*2-1, NCHW.
     # This is exactly what m.transform produces (matched to 2e-7) and what Kotlin runs.
-    tmp = "/private/tmp/claude-501/-Users-majimadaisuke-Downloads-depthanything-android/6daec927-0ad2-4541-b2b3-d7e8cf5a3cda/scratchpad/dog.jpg"
+    tmp = os.path.join(os.environ.get("SCRATCH") or tempfile.gettempdir(), "dog.jpg")
     if not os.path.exists(tmp):
         urllib.request.urlretrieve(
             "https://github.com/pytorch/hub/raw/master/images/dog.jpg", tmp)

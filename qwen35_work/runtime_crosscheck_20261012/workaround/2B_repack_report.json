@@ -1,11 +1,11 @@
 {
   "tool": "repack_metadata.py",
   "status": "PASS",
-  "source": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
-  "source_realpath": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
-  "output": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm",
+  "source": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+  "source_realpath": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+  "output": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm",
   "mode": "pbtext",
-  "new_pbtext": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_qwen3type.pbtext",
+  "new_pbtext": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_qwen3type.pbtext",
   "expected_changed_fields": [
     "llm_model_type",
     "jinja_prompt_template",
@@ -18,8 +18,8 @@
     "protobuf": "7.36.2"
   },
   "cli": "uvx --from litert-lm==0.18.0 litert-lm",
-  "scratch": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh",
-  "evidence": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence",
+  "scratch": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh",
+  "evidence": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence",
   "timings_seconds": {
     "input_hash_and_header": 0.74,
     "unpack": 0.83,
@@ -37,13 +37,13 @@
         "litert-lm==0.18.0",
         "litert-lm",
         "unpack",
-        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
+        "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/bundles/Qwen3.5-2B_int8.litertlm",
         "--output-dir",
-        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked"
+        "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked"
       ],
       "stdin": "/dev/null",
       "exit_code": 0,
-      "log": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/unpack.log"
+      "log": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/unpack.log"
     },
     {
       "name": "pack",
@@ -53,13 +53,13 @@
         "litert-lm==0.18.0",
         "litert-lm",
         "pack",
-        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked",
+        "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/.repack_scratch_2hbb54dh/unpacked",
         "--output",
-        "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm"
+        "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/Qwen3.5-2B_int8_qwen3type.litertlm"
       ],
       "stdin": "/dev/null",
       "exit_code": 0,
-      "log": "/Users/majimadaisuke/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/pack.log"
+      "log": "~/code/litertlm-convert/qwen35_work/runtime_crosscheck_20261012/workaround/2B_repack_report.evidence/pack.log"
     }
   ],
   "checks": {

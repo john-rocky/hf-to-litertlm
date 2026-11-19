@@ -1,4 +1,4 @@
-transformers 5.14.1  sentencepiece 0.2.0  litert-torch checkout /Users/majimadaisuke/code/litert-torch
+transformers 5.14.1  sentencepiece 0.2.0  litert-torch checkout ~/code/litert-torch
 
 === HuggingFaceTB/SmolLM3-3B: unk=None pad='<|im_end|>' eos='<|im_end|>'
 pieces=128256  UNKNOWN piece(s)=[(128012, '<|im_end|>')]  unk_id=0

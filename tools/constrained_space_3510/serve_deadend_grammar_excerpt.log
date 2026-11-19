@@ -5,21 +5,21 @@ W0000 00:00:1788748031.867626 116210078 tasks.cc:490] Failed to get prefill prof
 === Source Location Trace: === 
 ./third_party/odml/litert/litert/cc/litert_macros.h:547
 Warning: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'; stopping
-Error during inference for model '/Users/majimadaisuke/models/litertlm/gemma-4-E2B-it.litertlm,gpu,1024' with prompt {'role': 'user', 'content': 'Answer with exactly two lowercase English words separated by one space: the common pet that meows and the common pet that barks. Nothing else.'}: RuntimeError('INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n<state>\nTokens: ⟦cat‧▁dog⟧\n2 tokens, 3 bytes; grm_prefix: ""\nFlags:\nParser: {\n  "compute_time_us": 0,\n  "rows": 2,\n  "cached_rows": 0,\n  "all_items": 2,\n  "lexer_cost": 1718,\n  "slices_applied": 0,\n  "trie_nodes_walked": 0,\n  "definitive_bytes": 7,\n  "lexer_ops": 0,\n  "num_lex_errors": 0,\n  "num_lexemes": 0\n}\nStop: ParserTooComplex\nError: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n</state><grammar>\n\n</grammar>')
+Error during inference for model '~/models/litertlm/gemma-4-E2B-it.litertlm,gpu,1024' with prompt {'role': 'user', 'content': 'Answer with exactly two lowercase English words separated by one space: the common pet that meows and the common pet that barks. Nothing else.'}: RuntimeError('INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n<state>\nTokens: ⟦cat‧▁dog⟧\n2 tokens, 3 bytes; grm_prefix: ""\nFlags:\nParser: {\n  "compute_time_us": 0,\n  "rows": 2,\n  "cached_rows": 0,\n  "all_items": 2,\n  "lexer_cost": 1718,\n  "slices_applied": 0,\n  "trie_nodes_walked": 0,\n  "definitive_bytes": 7,\n  "lexer_ops": 0,\n  "num_lex_errors": 0,\n  "num_lexemes": 0\n}\nStop: ParserTooComplex\nError: Parser Error: token "▁dog" doesn\'t satisfy the grammar; forced bytes: got \' \'; applying \'â\'\n</state><grammar>\n\n</grammar>')
 Traceback (most recent call last):
-  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
+  File "~/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
     self._handle_chat_completions(
         conv,
     ...<7 lines>...
         response_format=response_format,
     )
-  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 876, in _handle_chat_completions
+  File "~/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 876, in _handle_chat_completions
     for chunk in conv.send_message_async(
         prompt,
         max_output_tokens=max_completion_tokens,
         response_format=response_format,
     ):
-  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm/conversation.py", line 432, in send_message_async
+  File "~/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm/conversation.py", line 432, in send_message_async
     raise item
 RuntimeError: INTERNAL: Failed to commit token: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: got ' '; applying 'â'
 <state>
@@ -50,7 +50,7 @@ Error: Parser Error: token "▁dog" doesn't satisfy the grammar; forced bytes: g
 ----------------------------------------
 Exception occurred during processing of request from ('127.0.0.1', 49798)
 Traceback (most recent call last):
-  File "/Users/majimadaisuke/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
+  File "~/venvs/lt0161probe/lib/python3.14/site-packages/litert_lm_cli/commands/openai_handler.py", line 1276, in _handle_chat_completions_endpoint
     self._handle_chat_completions(
         conv,
     ...<7 lines>...

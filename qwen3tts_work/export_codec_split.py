@@ -25,7 +25,7 @@ sys.path.insert(0, "qwen3tts_work")
 from qtok12.modeling_qwen3_tts_tokenizer_v2 import Qwen3TTSTokenizerV2Model
 from qtok12.configuration_qwen3_tts_tokenizer_v2 import Qwen3TTSTokenizerV2Config
 
-SRC = "/Users/majimadaisuke/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base/snapshots/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer"
+SRC = os.path.expanduser("~/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base/snapshots/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer")
 OUT = "out/qwen3tts-codec"
 T = 64
 os.makedirs(OUT, exist_ok=True)
