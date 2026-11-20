@@ -1,6 +1,6 @@
 # hf-to-litertlm
 
-Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 118 published conversions below, most with speeds measured on a phone and a Mac.
+Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` files for Google's LiteRT-LM runtime (Android, iOS, macOS, Windows, Linux). There are 118 published conversions below, most with speeds measured on a phone and a Mac.
 
 <p align="center">
 <picture>
@@ -9,7 +9,7 @@ Convert open-weight Hugging Face LLMs and VLMs into `.litertlm` bundles for Goog
 </picture>
 </p>
 
-If you want an open model in an Android or iPhone app, look for it in the [list of converted models](#converted-models) first. If it isn't there, [ask for it](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml) with the model's Hugging Face link. I reply on the issue with the bundle, the recipe and the measured numbers, or the reason it couldn't be converted. Two SDKs already load these files by repo name: [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) and [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai).
+If you want an open model in an Android or iPhone app, look for it in the [list of converted models](#converted-models) first. If it isn't there, [ask for it](https://github.com/john-rocky/hf-to-litertlm/issues/new?template=model-request.yml) with the model's Hugging Face link. I reply on the issue with the converted file, the recipe and the measured numbers, or the reason it couldn't be converted. Two SDKs already load these files by repo name: [react-native-litert-lm](https://github.com/hung-yueh/react-native-litert-lm) and [flutter_edge_ai](https://github.com/DenisovAV/flutter_edge_ai).
 
 ## Try a published model
 
@@ -22,7 +22,7 @@ uvx litert-lm@0.18.0 run \
   --prompt="What is 17 + 25? Answer briefly."
 ```
 
-To use a published bundle in an Android app, add [hfmodels-android](https://github.com/john-rocky/hfmodels-android) with one Gradle dependency and a few lines of Kotlin ([code](docs/apps.md#android)). In an iPhone app, it loads through [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm) ([code](docs/apps.md#iphone)).
+To use a published conversion in an Android app, add [hfmodels-android](https://github.com/john-rocky/hfmodels-android) with one Gradle dependency and a few lines of Kotlin ([code](docs/apps.md#android)). In an iPhone app, it loads through [swift-litert-lm](https://github.com/john-rocky/swift-litert-lm) ([code](docs/apps.md#iphone)).
 
 ## Convert a finetune
 
@@ -30,7 +30,7 @@ To use a published bundle in an Android app, add [hfmodels-android](https://gith
 uvx hf-to-litertlm <org>/<model>
 ```
 
-That runs `convert.py` from PyPI and writes the bundle under `./out`. The hybrid families (granite-4.0-h, Falcon-H1, Zamba2 and Nemotron-H) need a clone, and the package tells you when:
+That runs `convert.py` from PyPI and writes the `.litertlm` file under `./out`. The hybrid families (granite-4.0-h, Falcon-H1, Zamba2 and Nemotron-H) need a clone, and the package tells you when:
 
 ```bash
 git clone https://github.com/john-rocky/hf-to-litertlm
@@ -41,11 +41,11 @@ uv run python scripts/verify_lock.py out/<model>/<model>.lock.json
 uv run litert-lm run out/<model>/*.litertlm --prompt "Hello"
 ```
 
-`verify_lock.py` rebuilds the bundle from its lock file and prints MATCH when the bytes are the same.
+`verify_lock.py` rebuilds the `.litertlm` file from its lock file and prints MATCH when the bytes are the same.
 
-`convert.py` handles finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h, Falcon-H1 and Nemotron-H, and every dense architecture the stock exporter handles. LoRA and PEFT repos merge automatically. It refuses gated, remote-code and pre-quantized repos and says why. It then asks the finished bundle 8 test questions and reports a failure if fewer than 6 are right. [All the flags and steps](docs/convert.md) are in the docs.
+`convert.py` handles finetunes of Qwen3.5, LFM2.5, MiniCPM5, granite-4.0-h, Falcon-H1 and Nemotron-H, and every dense architecture the stock exporter handles. LoRA and PEFT repos merge automatically. It refuses gated, remote-code and pre-quantized repos and says why. It then asks the converted model 8 test questions and reports a failure if fewer than 6 are right. [All the flags and steps](docs/convert.md) are in the docs.
 
-[LiteRT CLI](https://github.com/google-ai-edge/LiteRT-CLI#7-run-and-benchmark-a-generative-llm-model-using-litert-lm-cli) also takes a repo id: after `pip install -U litert-cli-nightly`, `litert lm run <org>/<model>` converts the checkpoint once with the stock exporter, caches the bundle and runs it.
+[LiteRT CLI](https://github.com/google-ai-edge/LiteRT-CLI#7-run-and-benchmark-a-generative-llm-model-using-litert-lm-cli) also takes a repo id: after `pip install -U litert-cli-nightly`, `litert lm run <org>/<model>` converts the checkpoint once with the stock exporter, caches the `.litertlm` file and runs it.
 
 ## Converted models
 
@@ -83,7 +83,7 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [Falcon-H1-3B-Instruct](https://huggingface.co/litert-community/Falcon-H1-3B-Instruct) | 3B | chat | Galaxy S26 GPU 11.6 | M4 Max GPU 65.3 | [recipe](REPRODUCE.md#falcon-h1-attention--mamba2-in-parallel-every-layer--first-fully-hybrid-family-in-litert-form) |
 | [Ministral-3-3B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-3B-Instruct-2512) | 3B | chat | iPhone 18 Pro GPU 44.0 | M4 Max GPU 129.5 | [card](cards/ministral3-3b-litert.md) |
 | [granite-4.0-micro](https://huggingface.co/litert-community/granite-4.0-micro) | 3.4B | chat | Galaxy S26 GPU 20.8 | M4 Max GPU 111.3 | [recipe](REPRODUCE.md#granite-40-micro--a-granitemoehybrid-checkpoint-with-no-mamba-layer-rewritten-to-the-dense-granite-layout-first) |
-| [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend) |
+| [granite-4.1-3b](https://huggingface.co/litert-community/granite-4.1-3b) | 3.4B | chat, tool calling | Galaxy S26 GPU 16.1 | M4 Max GPU 86.3 | [recipe](REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-file-must-not-prepend) |
 | [Agents-A1-4B](https://huggingface.co/litert-community/Agents-A1-4B) | 4B | agentic research, tool calls | Galaxy S26 CPU 11.9 | M4 Max GPU 67.2 | [recipe](REPRODUCE.md#2026-09-21--agents-a1-4b-internscience-the-qwen35-4b-recipe-on-an-agentic-finetune-tools--thinking-template) |
 | [FastContext-1.0-4B-SFT](https://huggingface.co/litert-community/FastContext-1.0-4B-SFT) | 4B | chat | Galaxy S26 GPU 20.5 | M4 Max GPU 73.8 | [card](cards/fastcontext-4b-litert.md) |
 | [Oc-e-Non-v1](https://huggingface.co/mlboydaisuke/Oc-e-Non-v1-LiteRT) | 4B | chat, short answers | Galaxy S26 GPU 18.0–18.2 | — | [recipe](REPRODUCE.md#oc-e-non-v1--a-qwen3-4b-instruct-2507-derivative-as-int8-and-mixed-int4-files-from-one-export-with-the-released-litert-torch-0100-gpu-composites-for-litert-lm-019-2026-11-15) |
@@ -92,7 +92,7 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [granite-4.1-8b](https://huggingface.co/litert-community/granite-4.1-8b) | 8.38B | chat | Galaxy S26 GPU 5.4 | M4 Max GPU 58.3 | [recipe](REPRODUCE.md#granite-41-8b--the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite) |
 | [Ministral-3-8B-Instruct-2512](https://huggingface.co/litert-community/Ministral-3-8B-Instruct-2512) | 8.49B | chat | Galaxy S26 GPU 5.7 | M4 Max GPU 61.7 | [recipe](REPRODUCE.md#ministral-3-8b-instruct-2512--a-text-tower-out-of-a-vision-checkpoint-the-lightweight-export-path-for-an-8b-and-the-gpu-composite-graph-by-rewrite) |
 | [Ornith-1.0-9B](https://huggingface.co/litert-community/Ornith-1.0-9B) | 8.95B | agentic coding | — | M4 Max GPU 44.9 | [recipe](REPRODUCE.md#2026-10-16--ornith-10-9b-a-qwen35-9b-finetune-on-the-9b-hybrid-recipe-with-thinking-off-in-the-template) |
-| [Ornith-1.5-9B](https://huggingface.co/litert-community/Ornith-1.5-9B) | 8.95B | agentic coding | — | M4 Max GPU 45.6 | [recipe](REPRODUCE.md#2026-10-16--ornith-15-9b-the-same-9b-hybrid-recipe-plus-one-step-that-puts-the-model-repos-tokenizerjson-in-the-bundle) |
+| [Ornith-1.5-9B](https://huggingface.co/litert-community/Ornith-1.5-9B) | 8.95B | agentic coding | — | M4 Max GPU 45.6 | [recipe](REPRODUCE.md#2026-10-16--ornith-15-9b-the-same-9b-hybrid-recipe-plus-one-step-that-puts-the-model-repos-tokenizerjson-in-the-file) |
 | [Qwen3.5-9B](https://huggingface.co/litert-community/Qwen3.5-9B) | 8.95B | chat | — | M4 Max GPU 46.1 | [recipe](REPRODUCE.md#2026-10-16--qwen35-9b-the-9b-hybrid-recipe-the-repos-tokenizerjson-in-the-tokenizer-section-the-qwen35-4b-thinking-switch-in-the-metadata) |
 | [Qwen3.8-27B](https://huggingface.co/litert-community/Qwen3.8-27B) | 26.9B | chat | — | M4 Max GPU 18.2 | [recipe](REPRODUCE.md#2026-10-22--qwen38-27b-the-9b-hybrid-recipe-at-27b-exported-from-an-f32-copy-of-the-checkpoint-and-quantized-from-the-float-tflite-without-a-float-litertlm) |
 | [Qwen3-30B-A3B](https://huggingface.co/litert-community/Qwen3-30B-A3B) | 30.5B | chat, thinking (LiteRT-LM built from source) | — | M4 Max GPU 101.5 | [recipe](REPRODUCE.md#qwen3-30b-a3b--a-48-layer-moe-decoder-written-with-the-litert-tensor-api-each-layers-128-silu-experts-in-one-moe-custom-op-with-int4-blockwise-weights-int8-attention-and-lm_head-a-4096--or-2048-token-cache-for-a-litert-lm-built-with-two-open-litert-pull-requests-2026-11-03) |
@@ -136,12 +136,12 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [SmolVLM2-500M](https://huggingface.co/litert-community/SmolVLM2-500M) | 0.5B | chat + image | Galaxy S26 GPU 79.8 | M4 Max CPU 63.9 | [card](cards/smolvlm2-500m-litert.md) |
 | [Qwen3.5-0.8B](https://huggingface.co/litert-community/Qwen3.5-0.8B) | 0.8B | chat; separate image file | iPhone 17 Pro GPU 65.8 | M4 Max GPU 161.8 | [recipe](REPRODUCE.md#qwen35-gateddeltanet--attention-hybrid--first-qwen35-in-litert-form) |
 | [OvisOCR2](https://huggingface.co/mlboydaisuke/OvisOCR2-LiteRT) | 0.85B | document OCR | iPhone 17 Pro GPU 48.5 | M4 Max GPU 140.9 | [recipe](REPRODUCE.md#ovisocr2--an-ocr-finetune-rides-the-08b-vision-recipe-unchanged) |
-| [Xiaomi-OCR-0](https://huggingface.co/litert-community/Xiaomi-OCR-0) | 0.873B | OCR: pages, text, tables, formulas, fields | iPhone 18 Pro GPU 71.8 | M4 Max CPU 41.2 | [recipe](REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-2026-11-03) |
+| [Xiaomi-OCR-0](https://huggingface.co/litert-community/Xiaomi-OCR-0) | 0.873B | OCR: pages, text, tables, formulas, fields | iPhone 18 Pro GPU 71.8 | M4 Max CPU 41.2 | [recipe](REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-file-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-fixed-layernorm-scales-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-2026-11-03) |
 | [PaddleOCR-VL-1.6](https://huggingface.co/litert-community/PaddleOCR-VL-1.6) | 0.9B | OCR, 109 languages | Galaxy S26 GPU 65.8 | M4 Max GPU 208.3 | [card](cards/paddleocr-vl-1.6-litert.md) |
 | [InternVL3-1B](https://huggingface.co/litert-community/InternVL3-1B) | 1B | chat + image | Galaxy S26 GPU 111.9 | M4 Max CPU 94.0 | [card](cards/internvl3-1b-litert.md) |
 | [InternVL3_5-1B](https://huggingface.co/litert-community/InternVL3_5-1B) | 1B | chat + image | Galaxy S26 GPU 77.0 | M4 Max GPU 176.2 | [card](cards/internvl3_5-1b-litert.md) |
-| [MiniCPM-OCR-1.0](https://huggingface.co/litert-community/MiniCPM-OCR-1.0) | 1.3B | OCR: text, tables, formulas, fields | Galaxy S26 CPU 43.5–45.1 | M4 Max GPU 139.3 | [recipe](REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-and-page-tiles-through-one-extra-context-variable-2026-10-29) |
-| [MiniCPM-V-4.7-1B](https://huggingface.co/litert-community/MiniCPM-V-4.7-1B) | 1.55B | chat + image | iPhone 18 Pro GPU 73.7 | M4 Max GPU 158.4 | [recipe](REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token) |
+| [MiniCPM-OCR-1.0](https://huggingface.co/litert-community/MiniCPM-OCR-1.0) | 1.3B | OCR: text, tables, formulas, fields | Galaxy S26 CPU 43.5–45.1 | M4 Max GPU 139.3 | [recipe](REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-file-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-and-page-tiles-through-one-extra-context-variable-2026-10-29) |
+| [MiniCPM-V-4.7-1B](https://huggingface.co/litert-community/MiniCPM-V-4.7-1B) | 1.55B | chat + image | iPhone 18 Pro GPU 73.7 | M4 Max GPU 158.4 | [recipe](REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-file-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token) |
 | [LFM2.5-VL-1.6B](https://huggingface.co/litert-community/LFM2.5-VL-1.6B) | 1.6B | chat + image | Galaxy S26 GPU 54.2 | M4 Max GPU 275.3 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
 | [LFM3-VL-2B](https://huggingface.co/litert-community/LFM3-VL-2B-LiteRT) | 1.92B | questions about an image (en), optional thinking | Galaxy S26 GPU 37.9 | M4 Max GPU 179.0 | [recipe](REPRODUCE.md#lfm3-vl-2b--a-hybrid-vlm-as-a-fast_vlm-file-the-vision-tower-re-written-for-one-512--512-picture-with-the-runtimes-u8-input-taken-back-exactly-and-the-text-decoder-with-int4-or-fp16-weights-2026-10-29) |
 | [InternVL3-2B](https://huggingface.co/litert-community/InternVL3-2B) | 2B | chat + image | Galaxy S26 GPU 46.9 | M4 Max CPU 50.0 | [card](cards/internvl3-2b-litert.md) |
@@ -153,11 +153,11 @@ The list runs from LFM2.5-230M to Qwen3.5-122B-A10B: chat, reasoning, vision, OC
 | [WeVisOne-VL-2B](https://huggingface.co/litert-community/WeVisOne-VL-2B) | 2.44B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 22.5 | M4 Max GPU 117.0 | [recipe](REPRODUCE.md#wevisone-vl-2b--qwen3-vls-deepstack-carried-exactly-in-an-8196-wide-image-embedding-m-rope-positions-computed-in-the-graph-from-the-1-d-position-and-an-image-flag-float16-and-int8-files-2026-10-25) |
 | [North-Micro-Vision-Instruct](https://huggingface.co/litert-community/North-Micro-Vision-Instruct) | 2.48B | chat + image, 11 languages | Galaxy S26 GPU 23.3 | M4 Max GPU 80.6 | [card](cards/north-micro-vision-instruct-litert.md) |
 | [LFM2.5-VL-3B](https://huggingface.co/litert-community/LFM2.5-VL-3B) | 3B | chat + image | Galaxy S26 GPU 27.0 | M4 Max GPU 143.2 | [recipe](REPRODUCE.md#lfm25-vl-3b--16b--450m--lfm2-hybrid-text--siglip2-vision-native-runtime-image-support) |
-| [Unlimited-OCR](https://huggingface.co/litert-community/Unlimited-OCR) | 3.34B | OCR: pages, text, tables, formulas | Galaxy S26 CPU 20.2–20.5 | Mac GPU 107.4–109.1 | [recipe](REPRODUCE.md#unlimited-ocr--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-vision-pair-of-the-unlimited-ocr-2-recipe-and-the-12-layer-deepseek-v2-decoder-with-its-sliding-window-attention-as-a-kv-cache-of-277-pinned-and-128-ring-slots-2026-11-15) |
-| [Unlimited-OCR-2](https://huggingface.co/litert-community/Unlimited-OCR-2) | 3.34B | OCR: pages, text, tables, formulas | iPhone 18 Pro CPU 30.5–31.7 | M4 Max GPU 97.7–99.0 | [recipe](REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-pinned-and-128-ring-slots-2026-11-04) |
+| [Unlimited-OCR](https://huggingface.co/litert-community/Unlimited-OCR) | 3.34B | OCR: pages, text, tables, formulas | Galaxy S26 CPU 20.2–20.5 | Mac GPU 107.4–109.1 | [recipe](REPRODUCE.md#unlimited-ocr--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-file-that-reads-one-1024--1024-page-per-request-the-vision-pair-of-the-unlimited-ocr-2-recipe-and-the-12-layer-deepseek-v2-decoder-with-its-sliding-window-attention-as-a-kv-cache-of-277-fixed-and-128-ring-slots-2026-11-15) |
+| [Unlimited-OCR-2](https://huggingface.co/litert-community/Unlimited-OCR-2) | 3.34B | OCR: pages, text, tables, formulas | iPhone 18 Pro CPU 30.5–31.7 | M4 Max GPU 97.7–99.0 | [recipe](REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-file-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-fixed-and-128-ring-slots-2026-11-04) |
 | [InternVL3_5-4B](https://huggingface.co/litert-community/InternVL3_5-4B) | 4B | chat + image | Galaxy S26 GPU 18.7 | M4 Max GPU 86.5 | [card](cards/internvl3_5-4b-litert.md) |
 | [Mage-VL](https://huggingface.co/litert-community/Mage-VL) | 4.7B | chat + image | Galaxy S26 GPU 17.1 | M4 Max GPU 80.0 | [card](cards/magevl-litert.md) |
-| [Mage-VL-Cowork](https://huggingface.co/litert-community/Mage-VL-Cowork) | 4.74B | GUI agent step: screenshot + instruction -> next action | iPhone 18 Pro GPU 35.2–35.3 | M4 Max GPU 94.3–94.8 | [recipe](REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-bundle-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04) |
+| [Mage-VL-Cowork](https://huggingface.co/litert-community/Mage-VL-Cowork) | 4.74B | GUI agent step: screenshot + instruction -> next action | iPhone 18 Pro GPU 35.2–35.3 | M4 Max GPU 94.3–94.8 | [recipe](REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-file-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04) |
 | [WeVisOne-VL-4B](https://huggingface.co/litert-community/WeVisOne-VL-4B) | 4.83B | boxes, points, counts and OCR on an image | Galaxy S26 GPU 15.1–15.3 | M4 Max GPU 89.0–89.2 | [recipe](REPRODUCE.md#wevisone-vl-4b--wevisone-vl-2bs-layout-at-the-4bs-widths-10244-wide-image-rows-an-int4-decoder-with-the-gpu-kv-cache-composites-2026-11-10) |
 | [Muse-Glimmer-30B](https://huggingface.co/litert-community/Muse-Glimmer-30B-LiteRT) | 29.8B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 18.3 | [recipe](REPRODUCE.md#muse-glimmer-30b--a-dense-52-layer-decoder-through-export_hf-behind-a-text-only-wrapper-int4-with-its-kv-cache-shortened-to-2048-tokens-in-the-int4-file-and-a-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
 | [Qwen2.5-VL-72B-Instruct](https://huggingface.co/litert-community/Qwen2.5-VL-72B-Instruct-LiteRT) | 73.4B | chat + image (one picture at 448 × 448) | — | M4 Max GPU 8.6 | [recipe](REPRODUCE.md#qwen25-vl-72b-instruct--the-80-layer-text-decoder-written-with-the-litert-tensor-api-one-tensor-at-a-time-int4-a-2048-token-cache-prefill-32--128--1024-and-the-vision-tower-re-authored-for-one-448--448-picture-and-lifted-to-rank-4-for-the-gpu-2026-10-31) |
@@ -216,6 +216,6 @@ I wrote the two manifest resolvers and sent them as pull requests ([#25](https:/
 
 ## License
 
-Code: Apache-2.0. Converted model bundles inherit their base model's license.
+Code: Apache-2.0. Converted model files inherit their base model's license.
 
-This is an independent open-source project, not affiliated with or endorsed by Google. LiteRT and LiteRT-LM are Google projects, and `.litertlm` is their runtime's bundle format.
+This is an independent open-source project, not affiliated with or endorsed by Google. LiteRT and LiteRT-LM are Google projects, and `.litertlm` is their runtime's model file format.

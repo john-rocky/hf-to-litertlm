@@ -57,7 +57,7 @@
   "granite-4.1-3b": {
     "task": "chat, tool calling",
     "group": 1,
-    "recipe": "REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-bundle-must-not-prepend"
+    "recipe": "REPRODUCE.md#granite-41-3b-dense--and-the-bos-a-converted-file-must-not-prepend"
   },
   "granite-4.2-3b": {
     "task": "reasoning",
@@ -182,7 +182,7 @@
   "Mage-VL-Cowork": {
     "task": "GUI agent step: screenshot + instruction -> next action",
     "group": 3,
-    "recipe": "REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-bundle-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04"
+    "recipe": "REPRODUCE.md#mage-vl-cowork--a-gui-agent-vlm-as-a-fast_vlm-file-that-reads-one-1920--1088-screenshot-the-24-layer-vit-in-255-row-attention-chunks-the-qwen3-4b-decoder-int4-with-an-exact-fp16-rotary-path-2026-11-04"
   },
   "MiniCPM5-2B": {
     "task": "chat, hybrid thinking",
@@ -430,27 +430,27 @@
   "MiniCPM-OCR-1.0": {
     "task": "OCR: text, tables, formulas, fields",
     "group": 3,
-    "recipe": "REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-bundle-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-and-page-tiles-through-one-extra-context-variable-2026-10-29"
+    "recipe": "REPRODUCE.md#minicpm-ocr-10--an-ocr-vlm-as-a-fast_vlm-file-the-4-vit-re-authored-in-plain-torch-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-and-page-tiles-through-one-extra-context-variable-2026-10-29"
   },
   "Xiaomi-OCR-0": {
     "task": "OCR: pages, text, tables, formulas, fields",
     "group": 3,
-    "recipe": "REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-bundle-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-its-layernorm-scales-pinned-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-2026-11-03"
+    "recipe": "REPRODUCE.md#xiaomi-ocr-0--an-ocr-vlm-as-a-fast_vlm-file-that-reads-one-tall-768--1344-picture-the-checkpoints-12-layer-vit-exported-at-that-size-with-fixed-layernorm-scales-and-the-qwen35-text-hybrid-decoder-on-the-qwen35-recipe-2026-11-03"
   },
   "Unlimited-OCR": {
     "task": "OCR: pages, text, tables, formulas",
     "group": 3,
-    "recipe": "REPRODUCE.md#unlimited-ocr--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-vision-pair-of-the-unlimited-ocr-2-recipe-and-the-12-layer-deepseek-v2-decoder-with-its-sliding-window-attention-as-a-kv-cache-of-277-pinned-and-128-ring-slots-2026-11-15"
+    "recipe": "REPRODUCE.md#unlimited-ocr--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-file-that-reads-one-1024--1024-page-per-request-the-vision-pair-of-the-unlimited-ocr-2-recipe-and-the-12-layer-deepseek-v2-decoder-with-its-sliding-window-attention-as-a-kv-cache-of-277-fixed-and-128-ring-slots-2026-11-15"
   },
   "Unlimited-OCR-2": {
     "task": "OCR: pages, text, tables, formulas",
     "group": 3,
-    "recipe": "REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-bundle-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-pinned-and-128-ring-slots-2026-11-04"
+    "recipe": "REPRODUCE.md#unlimited-ocr-2--an-ocr-vlm-with-a-mixture-of-experts-decoder-as-a-fast_vlm-file-that-reads-one-1024--1024-page-per-request-the-deepencoder-sam-vit-b-and-clip-l-re-authored-for-that-size-and-the-12-layer-deepseek-v2-decoder-with-its-dash-attention-written-statically-for-one-page-and-a-kv-cache-of-288-fixed-and-128-ring-slots-2026-11-04"
   },
   "MiniCPM-V-4.7-1B": {
     "task": "chat + image",
     "group": 3,
-    "recipe": "REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-bundle-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token"
+    "recipe": "REPRODUCE.md#2026-10-13--minicpm-v-47-1b-a-qwen35-text-hybrid-vlm-as-a-fast_vlm-file-the-window-merger-vit-re-authored-in-plain-torch-and-a-chat-template-whose-second-turn-matches-upstream-token-for-token"
   },
   "granite-4.1-8b": {
     "task": "chat",
@@ -490,7 +490,7 @@
   "Ornith-1.5-9B": {
     "task": "agentic coding",
     "group": 1,
-    "recipe": "REPRODUCE.md#2026-10-16--ornith-15-9b-the-same-9b-hybrid-recipe-plus-one-step-that-puts-the-model-repos-tokenizerjson-in-the-bundle"
+    "recipe": "REPRODUCE.md#2026-10-16--ornith-15-9b-the-same-9b-hybrid-recipe-plus-one-step-that-puts-the-model-repos-tokenizerjson-in-the-file"
   },
   "Falcon-H1R-7B": {
     "task": "reasoning",
