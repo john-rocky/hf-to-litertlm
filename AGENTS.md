@@ -105,7 +105,7 @@ with Google.
    When the `.litertlm` file carries a thinking-off form instead (Ornith-1.0-9B ships the 701-byte `qwen35_text_current.jinja`),
    render it the way the runtime does (`tools/chat_template_prefix/desk_render.py`) and render the derivative's own
    template with transformers' `apply_chat_template(..., enable_thinking=False)`; ship it only if the two are
-   byte-identical in every conversation shape. A family template that matches the base but not the derivative (the
+   byte-identical in every kind of conversation. A family template that matches the base but not the derivative (the
    Qwen3.5-4B switch template drops the think block Ornith writes into past assistant turns) is a substitution.
 6. **Model files are not in this repository.** The `.litertlm` files live on Hugging Face; `out/` is local.
 7. **The tokenizer section is the repo's own `tokenizer.json`.** Pack `tokenizer.json` from the Hub at a
